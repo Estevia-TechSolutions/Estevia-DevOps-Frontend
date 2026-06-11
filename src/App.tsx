@@ -280,7 +280,7 @@ const getBadgeTextColor = (type: string, theme: 'dark' | 'light') => {
 };
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'scan' | 'provision' | 'credentials' | 'cost'>('scan');
+  const [activeTab, setActiveTab] = useState<'scan' | 'provision' | 'credentials' | 'cost' | 'databases'>('scan');
   const [organizationId, setOrganizationId] = useState<string>(
     new URLSearchParams(window.location.search).get('org') || 'estevia'
   );
@@ -386,6 +386,24 @@ function App() {
   };
   const [selectedStageForJobs, setSelectedStageForJobs] = useState<any | null>(null);
   const [selectedJobForDetails, setSelectedJobForDetails] = useState<any | null>(null);
+
+  // Database Hub States
+  const [dbServers, setDbServers] = useState<any[]>([]);
+  const [selectedDbServer, setSelectedDbServer] = useState<any | null>(null);
+  const [databases, setDatabases] = useState<any[]>([]);
+  const [selectedDatabase, setSelectedDatabase] = useState<any | null>(null);
+  const [databaseSchema, setDatabaseSchema] = useState<any[]>([]);
+  const [loadingDbServers, setLoadingDbServers] = useState(false);
+  const [loadingDatabases, setLoadingDatabases] = useState(false);
+  const [loadingSchema, setLoadingSchema] = useState(false);
+  const [newDbName, setNewDbName] = useState('');
+  const [deployingDb, setDeployingDb] = useState(false);
+  const [deployDbSuccess, setDeployDbSuccess] = useState<string | null>(null);
+  const [deployDbError, setDeployDbError] = useState<string | null>(null);
+  const [expandedTables, setExpandedTables] = useState<Record<string, boolean>>({});
+  const [copiedText, setCopiedText] = useState<string | null>(null);
+  const [dbDetailTab, setDbDetailTab] = useState<'schema' | 'connect'>('schema');
+  const [connectCodeTab, setConnectCodeTab] = useState<'cli' | 'node' | 'python' | 'php'>('cli');
 
   // Dynamic Organization Settings State
   const [orgName, setOrgName] = useState<string>('');
@@ -1113,6 +1131,7 @@ function App() {
       fetchOrgSettings();
       fetchGithubRepos();
       fetchCostData();
+      fetchDbServers();
     }
   }, [organizationId, token]);
 
@@ -1254,6 +1273,103 @@ function App() {
       }
     } catch (e) {
       console.error('Failed to load credential status:', e);
+    }
+  };
+
+  const fetchDbServers = async () => {
+    setLoadingDbServers(true);
+    try {
+      const res = await fetch(`${API_BASE}/apps/db-servers?organizationId=${organizationId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setDbServers(data.servers);
+          if (data.servers.length > 0) {
+            // Find existing selection or default to first
+            setSelectedDbServer(data.servers[0]);
+            fetchDatabases(data.servers[0].name);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load database servers:', e);
+    } finally {
+      setLoadingDbServers(false);
+    }
+  };
+
+  const fetchDatabases = async (serverName: string) => {
+    setLoadingDatabases(true);
+    setDatabases([]);
+    setSelectedDatabase(null);
+    setDatabaseSchema([]);
+    try {
+      const res = await fetch(`${API_BASE}/apps/databases?organizationId=${organizationId}&serverName=${serverName}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setDatabases(data.databases);
+          if (data.databases.length > 0) {
+            setSelectedDatabase(data.databases[0]);
+            fetchDatabaseSchema(serverName, data.databases[0].name);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load databases:', e);
+    } finally {
+      setLoadingDatabases(false);
+    }
+  };
+
+  const fetchDatabaseSchema = async (serverName: string, dbName: string) => {
+    setLoadingSchema(true);
+    setDatabaseSchema([]);
+    try {
+      const res = await fetch(`${API_BASE}/apps/database-schema?organizationId=${organizationId}&serverName=${serverName}&dbName=${dbName}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setDatabaseSchema(data.schema || []);
+          if (data.schema && data.schema.length > 0) {
+            setExpandedTables({ [data.schema[0].table]: true });
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load database schema:', e);
+    } finally {
+      setLoadingSchema(false);
+    }
+  };
+
+  const handleProvisionDatabase = async () => {
+    if (!selectedDbServer || !newDbName.trim()) return;
+    setDeployingDb(true);
+    setDeployDbSuccess(null);
+    setDeployDbError(null);
+    try {
+      const res = await fetch(`${API_BASE}/apps/databases`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationId,
+          serverName: selectedDbServer.name,
+          dbName: newDbName.trim()
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDeployDbSuccess(data.message || `Database '${newDbName}' deployed successfully.`);
+        setNewDbName('');
+        fetchDatabases(selectedDbServer.name);
+      } else {
+        setDeployDbError(data.message || 'Failed to deploy database.');
+      }
+    } catch (e: any) {
+      setDeployDbError(e.message || 'Error occurred while deploying database.');
+    } finally {
+      setDeployingDb(false);
     }
   };
 
@@ -2967,6 +3083,10 @@ function App() {
         <button className={`tab-btn ${activeTab === 'cost' ? 'active' : ''}`} onClick={() => setActiveTab('cost')}>
           <Database size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
           Cost Management
+        </button>
+        <button className={`tab-btn ${activeTab === 'databases' ? 'active' : ''}`} onClick={() => setActiveTab('databases')}>
+          <Database size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+          Database Hub
         </button>
         <button className={`tab-btn ${activeTab === 'credentials' ? 'active' : ''}`} onClick={() => setActiveTab('credentials')}>
           <ShieldCheck size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
@@ -6053,6 +6173,514 @@ function App() {
               </div>
             )}
 
+          </div>
+        )}
+
+        {activeTab === 'databases' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', alignItems: 'flex-start', marginTop: '20px' }}>
+            {/* Left Column: Servers & Databases */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Server Selection Card */}
+              <div className="glass-panel" style={{ padding: '20px' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                  <Server size={18} style={{ color: 'var(--accent-purple)' }} />
+                  Database Server
+                </h3>
+                
+                {loadingDbServers ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 0', color: 'var(--text-secondary)' }}>
+                    <RefreshCw size={16} className="spin-anim" />
+                    <span style={{ fontSize: '0.85rem' }}>Listing database servers...</span>
+                  </div>
+                ) : dbServers.length === 0 ? (
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', padding: '12px 0' }}>
+                    No MySQL Flexible Servers found in resource group.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <select
+                      value={selectedDbServer?.name || ''}
+                      onChange={(e) => {
+                        const s = dbServers.find(srv => srv.name === e.target.value);
+                        if (s) {
+                          setSelectedDbServer(s);
+                          fetchDatabases(s.name);
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--glass-border)',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.88rem',
+                        outline: 'none'
+                      }}
+                    >
+                      {dbServers.map(srv => (
+                        <option key={srv.name} value={srv.name}>{srv.name}</option>
+                      ))}
+                    </select>
+
+                    {selectedDbServer && (
+                      <div style={{ 
+                        marginTop: '4px',
+                        padding: '12px',
+                        borderRadius: '8px',
+                        backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                        border: '1px solid rgba(255, 255, 255, 0.04)',
+                        fontSize: '0.78rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>Status:</span>
+                          <span style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                            <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--success)' }}></span>
+                            {selectedDbServer.state}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>Version:</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>MySQL {selectedDbServer.version}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>Region:</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{selectedDbServer.location}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>Tier / Size:</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{selectedDbServer.tier} ({selectedDbServer.sku})</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Databases List Card */}
+              <div className="glass-panel" style={{ padding: '20px' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                  <Database size={18} style={{ color: 'var(--accent-blue)' }} />
+                  Schemas / Databases
+                </h3>
+
+                {loadingDatabases ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '16px 0', color: 'var(--text-secondary)' }}>
+                    <RefreshCw size={16} className="spin-anim" />
+                    <span style={{ fontSize: '0.85rem' }}>Loading schemas...</span>
+                  </div>
+                ) : databases.length === 0 ? (
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', padding: '16px 0', fontStyle: 'italic' }}>
+                    No databases deployed yet.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto', paddingRight: '4px' }}>
+                    {databases.map(db => {
+                      const isSelected = selectedDatabase?.name === db.name;
+                      return (
+                        <div
+                          key={db.name}
+                          onClick={() => {
+                            setSelectedDatabase(db);
+                            if (selectedDbServer) {
+                              fetchDatabaseSchema(selectedDbServer.name, db.name);
+                            }
+                          }}
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            background: isSelected ? 'var(--accent-blue)' : 'rgba(255, 255, 255, 0.02)',
+                            border: `1px solid ${isSelected ? 'var(--accent-blue)' : 'rgba(255, 255, 255, 0.05)'}`,
+                            color: isSelected ? '#ffffff' : 'var(--text-primary)',
+                            fontSize: '0.85rem',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: isSelected ? 600 : 500 }}>
+                            <Database size={14} />
+                            {db.name}
+                          </div>
+                          <span style={{ fontSize: '0.7rem', color: isSelected ? 'rgba(255,255,255,0.7)' : 'var(--text-secondary)' }}>
+                            {db.charset}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Provision Database Sub-form */}
+                <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--glass-border)' }}>
+                  <h4 style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.05em' }}>
+                    Deploy New Database
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <input
+                      type="text"
+                      value={newDbName}
+                      onChange={(e) => setNewDbName(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+                      placeholder="database_name"
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--glass-border)',
+                        background: 'rgba(0,0,0,0.1)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.82rem',
+                        outline: 'none'
+                      }}
+                    />
+                    <button
+                      className="btn-primary"
+                      onClick={handleProvisionDatabase}
+                      disabled={deployingDb || !newDbName.trim() || !selectedDbServer}
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        borderRadius: '6px',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {deployingDb ? (
+                        <>
+                          <RefreshCw size={14} className="spin-anim" />
+                          Deploying...
+                        </>
+                      ) : (
+                        <>
+                          <PlusCircle size={14} />
+                          Deploy Database
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  
+                  {deployDbSuccess && (
+                    <div style={{ marginTop: '12px', padding: '10px', borderRadius: '6px', backgroundColor: 'rgba(34, 197, 94, 0.1)', border: '1px solid var(--success)', color: 'var(--success)', fontSize: '0.78rem' }}>
+                      {deployDbSuccess}
+                    </div>
+                  )}
+
+                  {deployDbError && (
+                    <div style={{ marginTop: '12px', padding: '10px', borderRadius: '6px', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid var(--error)', color: 'var(--error)', fontSize: '0.78rem' }}>
+                      {deployDbError}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Database details & schema */}
+            <div className="glass-panel" style={{ padding: '24px', minHeight: '520px', display: 'flex', flexDirection: 'column' }}>
+              {!selectedDatabase ? (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', padding: '60px' }}>
+                  <Database size={48} style={{ color: 'var(--glass-border)', marginBottom: '16px' }} />
+                  <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '1.05rem' }}>No Database Selected</p>
+                  <p style={{ fontSize: '0.85rem', marginTop: '6px', textAlign: 'center', maxWidth: '380px' }}>
+                    Select an existing database schema from the left panel or deploy a new one to begin exploring.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Header Detail Info */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--glass-border)', paddingBottom: '16px', marginBottom: '20px' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {selectedDatabase.name}
+                        </h2>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--accent-blue)', background: 'rgba(96, 165, 250, 0.1)', border: '1px solid rgba(96, 165, 250, 0.2)', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>
+                          Active Schema
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                        Deployed on: <code style={{ color: 'var(--accent-purple)', fontWeight: 600 }}>{selectedDbServer?.host}</code>
+                      </p>
+                    </div>
+
+                    {/* Sub-tab Selection */}
+                    <div style={{ display: 'flex', gap: '4px', background: 'rgba(0,0,0,0.15)', padding: '4px', borderRadius: '8px' }}>
+                      <button
+                        onClick={() => setDbDetailTab('schema')}
+                        style={{
+                          padding: '6px 12px',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          background: dbDetailTab === 'schema' ? 'rgba(255,255,255,0.08)' : 'transparent',
+                          color: dbDetailTab === 'schema' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        Schema Explorer
+                      </button>
+                      <button
+                        onClick={() => setDbDetailTab('connect')}
+                        style={{
+                          padding: '6px 12px',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          background: dbDetailTab === 'connect' ? 'rgba(255,255,255,0.08)' : 'transparent',
+                          color: dbDetailTab === 'connect' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        Connection Settings
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Schema Explorer Tab */}
+                  {dbDetailTab === 'schema' && (
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '14px', letterSpacing: '0.05em' }}>
+                        Tables in database ({databaseSchema.length})
+                      </h4>
+
+                      {loadingSchema ? (
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
+                          <RefreshCw size={20} className="spin-anim" />
+                          <span>Retrieving schema catalog...</span>
+                        </div>
+                      ) : databaseSchema.length === 0 ? (
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', border: '1px dashed var(--glass-border)', borderRadius: '8px', padding: '40px' }}>
+                          <Database size={32} style={{ color: 'var(--glass-border)', marginBottom: '12px' }} />
+                          <p style={{ fontWeight: 500, fontSize: '0.9rem' }}>Empty Database</p>
+                          <p style={{ fontSize: '0.78rem', marginTop: '4px', textAlign: 'center', maxWidth: '300px' }}>No tables have been created inside this schema yet.</p>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          {databaseSchema.map((tbl) => {
+                            const isExpanded = !!expandedTables[tbl.table];
+                            return (
+                              <div
+                                key={tbl.table}
+                                style={{
+                                  borderRadius: '8px',
+                                  border: `1px solid ${isExpanded ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.03)'}`,
+                                  background: isExpanded ? 'rgba(255, 255, 255, 0.01)' : 'transparent',
+                                  overflow: 'hidden',
+                                  transition: 'all 0.2s ease'
+                                }}
+                              >
+                                {/* Table Row Header */}
+                                <div
+                                  onClick={() => setExpandedTables(prev => ({ ...prev, [tbl.table]: !prev[tbl.table] }))}
+                                  style={{
+                                    padding: '12px 16px',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    cursor: 'pointer',
+                                    userSelect: 'none',
+                                    backgroundColor: isExpanded ? 'rgba(255, 255, 255, 0.015)' : 'transparent'
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, fontSize: '0.88rem', color: isExpanded ? 'var(--accent-teal)' : 'var(--text-primary)' }}>
+                                    {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                    <Database size={14} style={{ color: 'var(--text-secondary)' }} />
+                                    {tbl.table}
+                                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 400 }}>
+                                      ({tbl.columns.length} columns)
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Columns Details Grid */}
+                                {isExpanded && (
+                                  <div style={{ padding: '0 16px 16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '12px', fontSize: '0.8rem', textAlign: 'left' }}>
+                                      <thead>
+                                        <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                          <th style={{ padding: '8px', color: 'var(--text-secondary)', fontWeight: 600 }}>Field</th>
+                                          <th style={{ padding: '8px', color: 'var(--text-secondary)', fontWeight: 600 }}>Type</th>
+                                          <th style={{ padding: '8px', color: 'var(--text-secondary)', fontWeight: 600 }}>Null</th>
+                                          <th style={{ padding: '8px', color: 'var(--text-secondary)', fontWeight: 600 }}>Key</th>
+                                          <th style={{ padding: '8px', color: 'var(--text-secondary)', fontWeight: 600 }}>Extra</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {tbl.columns.map((col: any) => (
+                                          <tr key={col.name} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            <td style={{ padding: '8px', fontWeight: col.key === 'PRI' ? 600 : 400, color: col.key === 'PRI' ? 'var(--warning)' : 'var(--text-primary)' }}>
+                                              {col.name}
+                                            </td>
+                                            <td style={{ padding: '8px', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>{col.type}</td>
+                                            <td style={{ padding: '8px', color: 'var(--text-secondary)' }}>{col.nullable}</td>
+                                            <td style={{ padding: '8px' }}>
+                                              {col.key === 'PRI' && (
+                                                <span style={{ fontSize: '0.65rem', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.3)', color: 'var(--warning)', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
+                                                  PK
+                                                </span>
+                                              )}
+                                              {col.key === 'UNI' && (
+                                                <span style={{ fontSize: '0.65rem', background: 'rgba(96, 165, 250, 0.15)', border: '1px solid rgba(96, 165, 250, 0.3)', color: 'var(--accent-blue)', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
+                                                  UK
+                                                </span>
+                                              )}
+                                              {col.key === 'MUL' && (
+                                                <span style={{ fontSize: '0.65rem', background: 'rgba(168, 85, 247, 0.15)', border: '1px solid rgba(168, 85, 247, 0.3)', color: 'var(--accent-purple)', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
+                                                  FK
+                                                </span>
+                                              )}
+                                            </td>
+                                            <td style={{ padding: '8px', fontStyle: 'italic', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>{col.extra}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Connection Settings Tab */}
+                  {dbDetailTab === 'connect' && (
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                      {/* Connection Params Box */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+                        <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(0,0,0,0.12)', border: '1px solid var(--glass-border)' }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Host Address</span>
+                          <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'monospace', overflowWrap: 'anywhere' }}>
+                            {selectedDbServer?.host}
+                          </p>
+                        </div>
+                        <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(0,0,0,0.12)', border: '1px solid var(--glass-border)' }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Port</span>
+                          <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'monospace' }}>
+                            3306
+                          </p>
+                        </div>
+                        <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(0,0,0,0.12)', border: '1px solid var(--glass-border)' }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Default Database</span>
+                          <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--accent-blue)', marginTop: '4px', fontFamily: 'monospace' }}>
+                            {selectedDatabase.name}
+                          </p>
+                        </div>
+                        <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(0,0,0,0.12)', border: '1px solid var(--glass-border)' }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Admin Username</span>
+                          <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'monospace' }}>
+                            dbadmin
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Code Snippets Block */}
+                      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                          <h4 style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Connection Code Snippets
+                          </h4>
+                          
+                          {copiedText && (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                              <Check size={12} /> Copied to clipboard!
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Snippets Code Tab Selector */}
+                        <div style={{ display: 'flex', gap: '1px', background: 'var(--glass-border)', padding: '1px', borderRadius: '6px', marginBottom: '8px', width: 'fit-content' }}>
+                          {(['cli', 'node', 'python', 'php'] as const).map(tab => (
+                            <button
+                              key={tab}
+                              onClick={() => setConnectCodeTab(tab)}
+                              style={{
+                                padding: '6px 14px',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                textTransform: 'uppercase',
+                                background: connectCodeTab === tab ? 'var(--accent-purple)' : 'rgba(0,0,0,0.2)',
+                                color: '#ffffff',
+                                borderTopLeftRadius: tab === 'cli' ? '5px' : '0',
+                                borderBottomLeftRadius: tab === 'cli' ? '5px' : '0',
+                                borderTopRightRadius: tab === 'php' ? '5px' : '0',
+                                borderBottomRightRadius: tab === 'php' ? '5px' : '0',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              {tab === 'cli' ? 'MySQL CLI' : tab === 'node' ? 'Node.js' : tab === 'python' ? 'Python' : 'PHP PDO'}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Code Block Container */}
+                        {(() => {
+                          let code = '';
+                          if (connectCodeTab === 'cli') {
+                            code = `mysql -h ${selectedDbServer?.host || 'localhost'} -u dbadmin -p -D ${selectedDatabase.name}`;
+                          } else if (connectCodeTab === 'node') {
+                            code = `const mysql = require('mysql2/promise');\n\nasync function connect() {\n  const connection = await mysql.createConnection({\n    host: '${selectedDbServer?.host || 'localhost'}',\n    port: 3306,\n    user: 'dbadmin',\n    password: 'YOUR_SECURE_PASSWORD',\n    database: '${selectedDatabase.name}',\n    ssl: {\n      rejectUnauthorized: false\n    }\n  });\n  console.log('Successfully connected to MySQL database.');\n}`;
+                          } else if (connectCodeTab === 'python') {
+                            code = `import pymysql\n\nconnection = pymysql.connect(\n    host='${selectedDbServer?.host || 'localhost'}',\n    port=3306,\n    user='dbadmin',\n    password='YOUR_SECURE_PASSWORD',\n    database='${selectedDatabase.name}',\n    ssl={'ssl': {}}\n)\ntry:\n    with connection.cursor() as cursor:\n        print("Successfully connected to MySQL database.")\nfinally:\n    connection.close()`;
+                          } else {
+                            code = `<?php\ntry {\n    $dsn = "mysql:host=${selectedDbServer?.host || 'localhost'};dbname=${selectedDatabase.name};port=3306";\n    $pdo = new PDO($dsn, "dbadmin", "YOUR_SECURE_PASSWORD", [\n        PDO::MYSQL_ATTR_SSL_CA => true\n    ]);\n    echo "Successfully connected to MySQL database.";\n} catch (PDOException $e) {\n    echo "Connection failed: " . $e->getMessage();\n}`;
+                          }
+
+                          return (
+                            <div style={{ position: 'relative', flex: 1 }}>
+                              <pre 
+                                onClick={() => {
+                                  navigator.clipboard.writeText(code);
+                                  setCopiedText(connectCodeTab);
+                                  setTimeout(() => setCopiedText(null), 2000);
+                                }}
+                                style={{
+                                  margin: 0,
+                                  padding: '16px',
+                                  borderRadius: '8px',
+                                  background: 'rgba(0,0,0,0.25)',
+                                  border: '1px solid var(--glass-border)',
+                                  color: 'var(--text-primary)',
+                                  fontFamily: 'monospace',
+                                  fontSize: '0.8rem',
+                                  overflowX: 'auto',
+                                  cursor: 'pointer',
+                                  userSelect: 'all',
+                                  lineHeight: '1.45',
+                                  maxHeight: '260px'
+                                }}
+                              >
+                                {code}
+                              </pre>
+                              <div style={{ position: 'absolute', right: '8px', top: '8px', fontSize: '0.62rem', color: 'var(--text-secondary)', background: 'rgba(0,0,0,0.4)', padding: '2px 6px', borderRadius: '4px', pointerEvents: 'none' }}>
+                                Click to Copy
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         )}
 
