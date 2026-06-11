@@ -4116,33 +4116,13 @@ function App() {
             
             {/* Left Column: Multi-step Vertical Stepper */}
             <div className="glass-panel" style={{ 
-              padding: '28px 24px', 
+              padding: '36px 24px', 
               display: 'flex', 
               flexDirection: 'column', 
-              justifyContent: 'space-between',
+              gap: '0px',
               height: '100%',
-              boxSizing: 'border-box',
-              position: 'relative',
-              overflow: 'hidden'
+              boxSizing: 'border-box'
             }}>
-              {/* Stepper vertical connector line */}
-              <div style={{ 
-                position: 'absolute', 
-                top: '44px', 
-                bottom: '44px', 
-                left: '40px', // padding 24px + half of 32px circle (16px) = 40px
-                width: '2px', 
-                backgroundColor: 'rgba(255,255,255,0.06)', 
-                zIndex: 0 
-              }}>
-                <div style={{ 
-                  height: `${((provisionStep - 1) / 3) * 100}%`, 
-                  width: '100%', 
-                  background: 'linear-gradient(180deg, var(--accent-purple), var(--accent-blue))',
-                  transition: 'height 0.4s cubic-bezier(0.4, 0, 0.2, 1)' 
-                }} />
-              </div>
-
               {[
                 { stepNum: 1, label: 'GitHub Source Connection', sublabel: 'Select repository, triggers, and deployment target branch' },
                 { stepNum: 2, label: 'Verify Build Pipeline YML', sublabel: 'Review, modify, and commit azure-pipelines.yml configuration file' },
@@ -4154,33 +4134,45 @@ function App() {
                 return (
                   <div key={s.stepNum} style={{ 
                     display: 'flex', 
-                    alignItems: 'flex-start', 
                     gap: '16px', 
-                    zIndex: 1, 
-                    position: 'relative',
-                    opacity: isActive || isCompleted ? 1 : 0.65,
+                    opacity: isActive || isCompleted ? 1 : 0.5,
                     transition: 'opacity 0.3s ease'
                   }}>
-                    <div style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '50%',
-                      backgroundColor: isCompleted ? 'var(--accent-blue)' : isActive ? 'var(--bg-secondary)' : '#1e293b',
-                      border: `2px solid ${isCompleted ? 'var(--accent-blue)' : isActive ? 'var(--accent-purple)' : 'rgba(255,255,255,0.1)'}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: isCompleted || isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                      fontSize: '0.88rem',
-                      fontWeight: 600,
-                      boxShadow: isActive ? '0 0 12px var(--accent-purple-glow)' : 'none',
-                      transition: 'all 0.3s ease',
-                      flexShrink: 0,
-                      marginTop: '2px'
-                    }}>
-                      {isCompleted ? '✓' : s.stepNum}
+                    {/* Stepper column line and circle */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        backgroundColor: isCompleted ? 'var(--accent-blue)' : isActive ? 'var(--bg-secondary)' : '#1e293b',
+                        border: `2px solid ${isCompleted ? 'var(--accent-blue)' : isActive ? 'var(--accent-purple)' : 'rgba(255,255,255,0.1)'}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: isCompleted || isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        fontSize: '0.88rem',
+                        fontWeight: 600,
+                        boxShadow: isActive ? '0 0 12px var(--accent-purple-glow)' : 'none',
+                        transition: 'all 0.3s ease'
+                      }}>
+                        {isCompleted ? '✓' : s.stepNum}
+                      </div>
+                      {s.stepNum < 4 && (
+                        <div style={{ 
+                          width: '2px', 
+                          height: '38px',
+                          background: isCompleted 
+                            ? 'var(--accent-blue)' 
+                            : isActive 
+                              ? 'linear-gradient(180deg, var(--accent-purple), rgba(255,255,255,0.06))' 
+                              : 'rgba(255,255,255,0.06)', 
+                          margin: '4px 0' 
+                        }} />
+                      )}
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    
+                    {/* Label & Sublabel */}
+                    <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: s.stepNum < 4 ? '26px' : '0' }}>
                       <span style={{ 
                         fontSize: '0.88rem', 
                         color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)', 
@@ -4201,6 +4193,45 @@ function App() {
                   </div>
                 );
               })}
+
+              {/* Informative text at the bottom of the sidebar */}
+              <div style={{ 
+                marginTop: 'auto', 
+                paddingTop: '24px', 
+                borderTop: '1px solid var(--glass-border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <span style={{ 
+                  fontSize: '0.72rem', 
+                  color: 'var(--text-secondary)', 
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  Security & Compliance
+                </span>
+                <p style={{ 
+                  fontSize: '0.72rem', 
+                  color: 'var(--text-secondary)', 
+                  lineHeight: '1.4', 
+                  margin: 0 
+                }}>
+                  All credentials and tokens are encrypted with AES-256-GCM keys. Generated build pipelines strictly conform to corporate DevOps security standards and automatically run dependency vulnerability checks.
+                </p>
+                <div style={{ 
+                  marginTop: '4px',
+                  fontSize: '0.72rem', 
+                  color: 'var(--accent-purple)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '4px',
+                  fontWeight: 500
+                }}>
+                  <ShieldCheck size={12} /> Encrypted Credentials Active
+                </div>
+              </div>
             </div>
 
             {/* Right Column: Active Step Content */}
