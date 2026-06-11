@@ -5741,7 +5741,7 @@ function App() {
                               {orderedKeys.map(typeKey => {
                                 const items = groups[typeKey];
                                 const groupCost = items.reduce((sum, item) => sum + item.totalCost, 0);
-                                const isCostExpanded = expandedGroups[typeKey] !== false;
+                                const isCostExpanded = expandedGroups[typeKey] === true;
 
                                 return (
                                   <Fragment key={typeKey}>
@@ -5751,7 +5751,7 @@ function App() {
                                       onClick={() => {
                                         setExpandedGroups(prev => ({
                                           ...prev,
-                                          [typeKey]: prev[typeKey] === false ? true : false
+                                          [typeKey]: !prev[typeKey]
                                         }));
                                       }}
                                       style={{ 
