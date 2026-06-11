@@ -3026,7 +3026,7 @@ function App() {
                     return { color: 'var(--text-secondary)', bg: 'rgba(255,255,255,0.05)', border: 'var(--glass-border)', label: 'ENV' };
                   };
 
-                  const isCollapsed = collapsedScanGroups[group.key] === true;
+                  const isCollapsed = collapsedScanGroups[group.key] !== false;
 
                   return (
                     <div key={group.key} className="glass-panel" style={{ padding: '0', position: 'relative', overflow: 'hidden' }}>
@@ -5648,6 +5648,7 @@ function App() {
                     </div>
 
                     {(() => {
+                      const isDark = theme === 'dark';
                       const filtered = detailedCosts.filter(item => {
                         const matchesSearch = item.name.toLowerCase().includes(costSearch.toLowerCase()) || 
                                               (item.fqdn && item.fqdn.toLowerCase().includes(costSearch.toLowerCase())) ||
@@ -5711,63 +5712,93 @@ function App() {
 
                       return (
                         <div style={{ overflowX: 'auto' }}>
+                          <style>{`
+                            .cost-row {
+                              transition: background-color 0.15s ease-in-out;
+                            }
+                            .cost-row:hover {
+                              background-color: ${isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(15, 23, 42, 0.02)'} !important;
+                            }
+                            .cost-group-header {
+                              transition: background-color 0.15s ease-in-out;
+                            }
+                            .cost-group-header:hover {
+                              background-color: ${isDark ? 'rgba(255, 255, 255, 0.035)' : 'rgba(15, 23, 42, 0.035)'} !important;
+                            }
+                          `}</style>
                           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead>
-                              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px' }}>
-                                <th style={{ padding: '12px 8px', color: 'var(--text-secondary)', fontSize: '0.8rem', textTransform: 'uppercase' }}>Resource</th>
-                                <th style={{ padding: '12px 8px', color: 'var(--text-secondary)', fontSize: '0.8rem', textTransform: 'uppercase' }}>Type</th>
-                                <th style={{ padding: '12px 8px', color: 'var(--text-secondary)', fontSize: '0.8rem', textTransform: 'uppercase' }}>Config / Details</th>
-                                <th style={{ padding: '12px 8px', color: 'var(--text-secondary)', fontSize: '0.8rem', textTransform: 'uppercase', textAlign: 'right' }}>Compute</th>
-                                <th style={{ padding: '12px 8px', color: 'var(--text-secondary)', fontSize: '0.8rem', textTransform: 'uppercase', textAlign: 'right' }}>DNS</th>
-                                <th style={{ padding: '12px 8px', color: 'var(--text-secondary)', fontSize: '0.8rem', textTransform: 'uppercase', textAlign: 'right' }}>Total</th>
+                              <tr style={{ borderBottom: `2px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'}` }}>
+                                <th style={{ padding: '14px 12px', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resource</th>
+                                <th style={{ padding: '14px 12px', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Type</th>
+                                <th style={{ padding: '14px 12px', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Config / Details</th>
+                                <th style={{ padding: '14px 12px', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Compute</th>
+                                <th style={{ padding: '14px 12px', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>DNS</th>
+                                <th style={{ padding: '14px 12px', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Total</th>
                               </tr>
                             </thead>
                             <tbody>
                               {orderedKeys.map(typeKey => {
                                 const items = groups[typeKey];
                                 const groupCost = items.reduce((sum, item) => sum + item.totalCost, 0);
+                                const isCostExpanded = expandedGroups[typeKey] !== false;
 
                                 return (
                                   <Fragment key={typeKey}>
                                     {/* Group Header Row */}
                                     <tr 
+                                      className="cost-group-header"
                                       onClick={() => {
                                         setExpandedGroups(prev => ({
                                           ...prev,
-                                          [typeKey]: !prev[typeKey]
+                                          [typeKey]: prev[typeKey] === false ? true : false
                                         }));
                                       }}
                                       style={{ 
-                                        background: 'rgba(255, 255, 255, 0.02)', 
-                                        borderBottom: '1px solid rgba(255,255,255,0.06)',
+                                        background: isDark ? 'rgba(255, 255, 255, 0.015)' : 'rgba(15, 23, 42, 0.015)', 
+                                        borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)'}`,
                                         cursor: 'pointer',
                                         userSelect: 'none'
                                       }}
                                     >
-                                      <td colSpan={5} style={{ padding: '14px 8px', fontWeight: 600, fontSize: '0.85rem', color: 'var(--accent-purple)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                      <td colSpan={5} style={{ padding: '14px 12px', fontWeight: 600, fontSize: '0.85rem', color: 'var(--accent-purple)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                          {expandedGroups[typeKey] ? <ChevronDown size={14} style={{ color: 'var(--text-secondary)' }} /> : <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />}
+                                          {isCostExpanded ? <ChevronDown size={14} style={{ color: 'var(--text-secondary)' }} /> : <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />}
                                           <span>{getTypeLabel(typeKey)} ({items.length})</span>
                                         </div>
                                       </td>
-                                      <td style={{ padding: '14px 8px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem' }}>
+                                      <td style={{ padding: '14px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem' }}>
                                         ${groupCost.toFixed(2)}
                                       </td>
                                     </tr>
 
                                     {/* Group Rows (only if expanded) */}
-                                    {expandedGroups[typeKey] && items.map((item) => {
+                                    {isCostExpanded && items.map((item) => {
                                       const isOrphaned = !item.repositoryUrl && !item.fqdn && 
                                         (item.type === 'frontend' || item.type === 'backend' || 
                                          item.name.toLowerCase().includes('test') || item.name.toLowerCase().includes('example'));
 
                                       return (
-                                        <tr key={item.id} style={{ 
-                                          borderBottom: '1px solid rgba(255,255,255,0.04)',
-                                          background: isOrphaned ? 'rgba(239, 68, 68, 0.02)' : 'transparent'
+                                        <tr key={item.id} className="cost-row" style={{ 
+                                          borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'}`,
+                                          background: isOrphaned ? 'rgba(239, 68, 68, 0.03)' : 'transparent'
                                         }}>
-                                          <td style={{ padding: '16px 8px', fontWeight: 600 }}>
+                                          <td style={{ padding: '16px 12px', fontWeight: 600 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                              {/* Dynamic Resource Type Icon */}
+                                              {(() => {
+                                                switch(item.type) {
+                                                  case 'frontend': return <Globe size={14} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />;
+                                                  case 'backend': return <Server size={14} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />;
+                                                  case 'database': return <Database size={14} style={{ color: '#f59e0b', flexShrink: 0 }} />;
+                                                  case 'vm': return <Cpu size={14} style={{ color: '#3b82f6', flexShrink: 0 }} />;
+                                                  case 'registry': return <Server size={14} style={{ color: '#fbbf24', flexShrink: 0 }} />;
+                                                  case 'workspace': return <Eye size={14} style={{ color: '#38bdf8', flexShrink: 0 }} />;
+                                                  case 'disk': return <Database size={14} style={{ color: '#a78bfa', flexShrink: 0 }} />;
+                                                  case 'network': return <Globe size={14} style={{ color: '#f43f5e', flexShrink: 0 }} />;
+                                                  default: return <Settings size={14} style={{ color: 'var(--text-secondary)', opacity: 0.7, flexShrink: 0 }} />;
+                                                }
+                                              })()}
                                               <span style={{ color: isOrphaned ? 'var(--error)' : 'inherit' }}>{item.name}</span>
                                               {item.isTestResource && (
                                                 <span style={{
@@ -5831,12 +5862,12 @@ function App() {
                                               )}
                                             </div>
                                             {item.fqdn && (
-                                              <div style={{ fontSize: '0.75rem', color: 'var(--accent-purple)', fontWeight: 400, marginTop: '2px' }}>
+                                              <div style={{ fontSize: '0.75rem', color: 'var(--accent-purple)', fontWeight: 400, marginTop: '2px', paddingLeft: '22px' }}>
                                                 {item.fqdn}
                                               </div>
                                             )}
                                             {item.repositoryUrl && (
-                                              <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 400 }}>
+                                              <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 400, paddingLeft: '22px' }}>
                                                 <a 
                                                   href={item.repositoryUrl} 
                                                   target="_blank" 
@@ -5849,7 +5880,7 @@ function App() {
                                               </div>
                                             )}
                                           </td>
-                                          <td style={{ padding: '16px 8px' }}>
+                                          <td style={{ padding: '16px 12px' }}>
                                             <span style={{ 
                                               display: 'inline-block',
                                               padding: '2px 8px', 
@@ -5863,16 +5894,16 @@ function App() {
                                               {item.type}
                                             </span>
                                           </td>
-                                          <td style={{ padding: '16px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                          <td style={{ padding: '16px 12px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                                             {item.details}
                                           </td>
-                                          <td style={{ padding: '16px 8px', textAlign: 'right', fontWeight: 500 }}>
+                                          <td style={{ padding: '16px 12px', textAlign: 'right', fontWeight: 500 }}>
                                             ${item.resourceCost.toFixed(2)}
                                           </td>
-                                          <td style={{ padding: '16px 8px', textAlign: 'right', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                                          <td style={{ padding: '16px 12px', textAlign: 'right', fontWeight: 500, color: 'var(--text-secondary)' }}>
                                             ${item.dnsCost.toFixed(2)}
                                           </td>
-                                          <td style={{ padding: '16px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                          <td style={{ padding: '16px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}>
                                             ${item.totalCost.toFixed(2)}
                                           </td>
                                         </tr>
