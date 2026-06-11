@@ -3079,8 +3079,17 @@ function App() {
                             }).map(b => b.name)
                           : ['dev', 'qa', 'prod']; // fallback to default standard environments if no branches returned
 
+                        const isDark = theme === 'dark';
+
                         return (
-                          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(displayBranches.length, 3)}, 1fr)`, gap: '0' }}>
+                          <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+                            gap: '16px',
+                            padding: '20px',
+                            backgroundColor: isDark ? 'rgba(0,0,0,0.1)' : 'rgba(0,0,0,0.02)',
+                            borderTop: '1px solid var(--glass-border)'
+                          }}>
                             {displayBranches.map((branchName, idx) => {
                               const app = group.envs.find(e => {
                                 const nameLower = e.name.toLowerCase();
@@ -3129,23 +3138,24 @@ function App() {
                               if (!app) {
                                 const canDeploy = !!group.repoPath;
                                 return (
-                                  <div key={branchName} style={{ 
-                                    padding: '16px 20px', 
-                                    borderRight: (idx % 3 === 2) ? 'none' : '1px solid var(--glass-border)', 
-                                    borderTop: idx >= 3 ? '1px solid var(--glass-border)' : 'none',
+                                  <div key={branchName} className="glass-panel" style={{ 
+                                    padding: '20px', 
                                     display: 'flex', 
                                     flexDirection: 'column', 
-                                    gap: '8px', 
+                                    gap: '12px', 
                                     justifyContent: 'center', 
                                     alignItems: 'center', 
-                                    minHeight: '160px', 
-                                    background: 'rgba(255,255,255,0.01)' 
+                                    minHeight: '180px', 
+                                    border: `1px dashed ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.15)'}`,
+                                    backgroundColor: 'transparent',
+                                    borderRadius: '12px',
+                                    boxSizing: 'border-box'
                                   }}>
                                     <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', color: envTag.color, backgroundColor: envTag.bg, border: `1px solid ${envTag.border}`, padding: '2px 8px', borderRadius: '10px' }}>
                                       {envTag.label}
                                     </span>
-                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                                      Not Deployed
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                      <AlertCircle size={12} style={{ opacity: 0.6 }} /> Not Deployed
                                     </span>
                                     {canDeploy && (
                                       <button className="btn-secondary" 
@@ -3156,26 +3166,69 @@ function App() {
                                             openScannerProvisionModal(group, branchName);
                                           }
                                         }} 
-                                        style={{ padding: '4px 8px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '4px', borderStyle: 'dashed', marginTop: '6px' }}
+                                        style={{ padding: '6px 12px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '5px', marginTop: '4px', borderStyle: 'dashed' }}
                                       >
-                                        <PlusCircle size={11} style={{ verticalAlign: 'middle' }} /> Deploy Branch
+                                        <PlusCircle size={12} /> Deploy Branch
                                       </button>
                                     )}
                                   </div>
                                 );
                               }
 
+                              // Determine Accent Line color based on environment type
+                              const accentBarColor = envTag.color;
+                              
+                              // Determine dynamic status
+                              const getStatusMeta = (statusStr: string) => {
+                                const s = (statusStr || '').toLowerCase();
+                                if (s.includes('ready') || s.includes('running') || s.includes('succeeded') || s.includes('active')) {
+                                  return {
+                                    color: 'var(--success)',
+                                    icon: <CheckCircle2 size={12} />,
+                                    label: statusStr || 'Ready'
+                                  };
+                                }
+                                if (s.includes('fail') || s.includes('error') || s.includes('stop') || s.includes('degrad')) {
+                                  return {
+                                    color: 'var(--error)',
+                                    icon: <AlertCircle size={12} />,
+                                    label: statusStr || 'Error'
+                                  };
+                                }
+                                if (s.includes('pend') || s.includes('updat') || s.includes('deploy') || s.includes('progress')) {
+                                  return {
+                                    color: '#fbbf24',
+                                    icon: <RefreshCw size={12} className="spin-anim" />,
+                                    label: statusStr || 'Pending'
+                                  };
+                                }
+                                return {
+                                  color: 'var(--text-secondary)',
+                                  icon: <AlertCircle size={12} />,
+                                  label: statusStr || 'Unknown'
+                                };
+                              };
+
+                              const statusMeta = getStatusMeta(app.status);
+
                               return (
-                                <div key={app.name} style={{ 
-                                  padding: '16px 20px', 
-                                  borderRight: (idx % 3 === 2) ? 'none' : '1px solid var(--glass-border)', 
-                                  borderTop: idx >= 3 ? '1px solid var(--glass-border)' : 'none',
+                                <div key={app.name} className="glass-panel" style={{ 
+                                  padding: '20px', 
+                                  position: 'relative',
                                   display: 'flex', 
                                   flexDirection: 'column', 
-                                  gap: '8px' 
+                                  gap: '12px',
+                                  borderRadius: '12px',
+                                  border: '1px solid var(--glass-border)',
+                                  backgroundColor: isDark ? 'rgba(255,255,255,0.015)' : 'rgba(15,23,42,0.01)',
+                                  boxSizing: 'border-box',
+                                  overflow: 'hidden'
                                 }}>
+                                  {/* Environment Color Accent Strip on the top */}
+                                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', backgroundColor: accentBarColor }} />
+
                                   {/* Env label + status */}
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                       <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', color: envTag.color, backgroundColor: envTag.bg, border: `1px solid ${envTag.border}`, padding: '2px 8px', borderRadius: '10px' }}>
                                         {envTag.label}
@@ -3187,50 +3240,66 @@ function App() {
                                         </a>
                                       )}
                                     </div>
-                                    <span style={{ fontSize: '0.72rem', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                      <CheckCircle2 size={10} /> {app.status}
+                                    <span style={{ fontSize: '0.72rem', color: statusMeta.color, display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                                      {statusMeta.icon} {statusMeta.label}
                                     </span>
                                   </div>
 
                                   {/* App name (small) */}
-                                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={app.name}>
-                                    {app.name}
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                    <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resource Name</span>
+                                    <div style={{ fontSize: '0.78rem', color: 'var(--text-primary)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }} title={app.name}>
+                                      {app.name}
+                                    </div>
                                   </div>
 
-                                  {/* Hostname */}
-                                  {app.hostname ? (
-                                    <a href={`https://${app.hostname}`} target="_blank" rel="noreferrer"
-                                      style={{ fontSize: '0.78rem', color: 'var(--accent-blue)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '3px', overflow: 'hidden' }}>
-                                      <ExternalLink size={11} style={{ flexShrink: 0 }} />
-                                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{app.hostname}</span>
-                                    </a>
-                                  ) : <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>No endpoint</span>}
+                                  {/* Hostnames & Endpoints */}
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    {app.hostname ? (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <ExternalLink size={11} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
+                                        <a href={`https://${app.hostname}`} target="_blank" rel="noreferrer"
+                                          style={{ fontSize: '0.78rem', color: 'var(--accent-blue)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                          {app.hostname}
+                                        </a>
+                                      </div>
+                                    ) : (
+                                      <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <ExternalLink size={11} style={{ opacity: 0.5 }} />
+                                        <span>No endpoint configured</span>
+                                      </div>
+                                    )}
 
-                                  {/* DNS */}
-                                  {app.dnsDetails?.fqdn ? (
-                                    <a href={`https://${app.dnsDetails.fqdn}`} target="_blank" rel="noreferrer"
-                                      style={{ fontSize: '0.78rem', color: 'var(--accent-teal)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                      <Globe size={11} style={{ flexShrink: 0 }} />
-                                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{app.dnsDetails.fqdn}</span>
-                                    </a>
-                                  ) : (
-                                    <span style={{ fontSize: '0.75rem', color: 'var(--warning)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                      <Globe size={11} /> No domain
-                                    </span>
-                                  )}
+                                    {app.dnsDetails?.fqdn ? (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <Globe size={11} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
+                                        <a href={`https://${app.dnsDetails.fqdn}`} target="_blank" rel="noreferrer"
+                                          style={{ fontSize: '0.78rem', color: 'var(--accent-teal)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                          {app.dnsDetails.fqdn}
+                                        </a>
+                                      </div>
+                                    ) : (
+                                      <div style={{ fontSize: '0.75rem', color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '6px', fontStyle: 'italic' }}>
+                                        <Globe size={11} style={{ color: 'var(--warning)' }} />
+                                        <span>No custom domain bound</span>
+                                      </div>
+                                    )}
+                                  </div>
 
-                                  {/* Pipeline */}
-                                  {renderPipelineRunStatus(app)}
+                                  {/* Pipeline stages */}
+                                  <div style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'}`, paddingTop: '8px' }}>
+                                    {renderPipelineRunStatus(app)}
+                                  </div>
 
                                   {/* Per-env actions */}
-                                  <div style={{ display: 'flex', gap: '5px', marginTop: '4px', paddingTop: '8px', borderTop: '1px solid var(--glass-border)' }}>
+                                  <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', paddingTop: '10px', borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'}` }}>
                                     <button className="btn-secondary" onClick={() => openDnsModal(app)}
-                                      style={{ flex: 1, padding: '5px 6px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
-                                      <Globe size={11} /> DNS
+                                      style={{ flex: 1, padding: '6px 8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                                      <Globe size={12} /> DNS Map
                                     </button>
                                     <button className="btn-secondary" onClick={() => handleDeleteApp(app.name, app.type)} disabled={deletingAppName === app.name}
-                                      style={{ padding: '5px 8px', fontSize: '0.72rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--error)', borderColor: 'rgba(239,68,68,0.2)', backgroundColor: 'rgba(239,68,68,0.05)' }}>
-                                      {deletingAppName === app.name ? <RefreshCw size={11} className="spin-anim" /> : <Trash2 size={11} />}
+                                      style={{ padding: '6px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--error)', borderColor: 'rgba(239,68,68,0.2)', backgroundColor: 'rgba(239,68,68,0.03)' }}>
+                                      {deletingAppName === app.name ? <RefreshCw size={12} className="spin-anim" /> : <Trash2 size={12} />}
                                     </button>
                                   </div>
                                 </div>
