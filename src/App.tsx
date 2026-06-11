@@ -27,7 +27,8 @@ import {
   ChevronDown,
   ChevronRight,
   X,
-  Minus
+  Minus,
+  TrendingDown
 } from 'lucide-react';
 import './App.css';
 
@@ -1649,53 +1650,46 @@ function App() {
     }
 
     const { state, result, webUrl, name, stages } = app.pipelineRun;
+    const isDark = theme === 'dark';
 
     const getStageStyle = (s: any) => {
       if (s.state === 'inProgress') {
         return {
-          color: '#fbbf24',
-          bg: 'rgba(251,191,36,0.1)',
-          border: 'rgba(251,191,36,0.4)',
+          color: isDark ? '#fbbf24' : '#b45309',
+          bg: isDark ? 'rgba(251,191,36,0.15)' : 'rgba(251,191,36,0.08)',
+          border: isDark ? 'rgba(251,191,36,0.4)' : 'rgba(251,191,36,0.25)',
           icon: <RefreshCw size={10} className="spin-anim" />
         };
       }
       if (s.state === 'completed') {
         if (s.result === 'succeeded') {
           return {
-            color: 'var(--success)',
-            bg: 'rgba(34,197,94,0.1)',
-            border: 'rgba(34,197,94,0.4)',
+            color: isDark ? 'var(--success)' : '#15803d',
+            bg: isDark ? 'rgba(34,197,94,0.15)' : 'rgba(34,197,94,0.08)',
+            border: isDark ? 'rgba(34,197,94,0.4)' : 'rgba(34,197,94,0.25)',
             icon: <Check size={10} />
           };
         }
         if (s.result === 'failed') {
           return {
-            color: 'var(--error)',
-            bg: 'rgba(239,68,68,0.1)',
-            border: 'rgba(239,68,68,0.4)',
+            color: isDark ? 'var(--error)' : '#b91c1c',
+            bg: isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.08)',
+            border: isDark ? 'rgba(239,68,68,0.4)' : 'rgba(239,68,68,0.25)',
             icon: <X size={10} />
           };
         }
-        if (s.result === 'canceled') {
-          return {
-            color: 'var(--text-secondary)',
-            bg: 'rgba(255,255,255,0.05)',
-            border: 'rgba(255,255,255,0.2)',
-            icon: <AlertTriangle size={10} />
-          };
-        }
-        return {
-          color: 'rgba(255,255,255,0.3)',
-          bg: 'rgba(255,255,255,0.02)',
-          border: 'rgba(255,255,255,0.1)',
-          icon: <Minus size={10} />
+        return { // canceled, skipped
+          color: isDark ? '#94a3b8' : '#4b5563',
+          bg: isDark ? 'rgba(148,163,184,0.1)' : 'rgba(75,85,99,0.06)',
+          border: isDark ? 'rgba(148,163,184,0.25)' : 'rgba(75,85,99,0.15)',
+          icon: <AlertTriangle size={10} />
         };
       }
-      return {
-        color: 'rgba(255,255,255,0.4)',
-        bg: 'rgba(255,255,255,0.02)',
-        border: 'rgba(255,255,255,0.15)',
-        icon: <div style={{ width: '10px', height: '10px' }} />
+      return { // waiting
+        color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.4)',
+        bg: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(15,23,42,0.02)',
+        border: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)',
+        icon: <Minus size={10} />
       };
     };
 
@@ -1730,12 +1724,12 @@ function App() {
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
-            gap: '4px', 
+            gap: '6px', 
             flexWrap: 'wrap',
-            background: 'rgba(15,23,42,0.3)',
-            padding: '6px 8px',
-            borderRadius: '6px',
-            border: '1px solid var(--glass-border)'
+            background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(15,23,42,0.03)',
+            padding: '8px',
+            borderRadius: '8px',
+            border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)'}`
           }}>
             {stages.map((stage: any, sIdx: number) => {
               const style = getStageStyle(stage);
@@ -1747,23 +1741,20 @@ function App() {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
-                    padding: '2px 6px',
+                    padding: '3px 8px',
                     borderRadius: '4px',
                     backgroundColor: style.bg,
                     border: `1px solid ${style.border}`,
                     color: style.color,
-                    fontSize: '0.68rem',
+                    fontSize: '0.7rem',
                     fontWeight: 500,
                     cursor: 'default',
                     transition: 'all 0.2s ease',
-                    maxWidth: '120px',
                     whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
                   }}
                 >
                   {style.icon}
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{stage.displayName}</span>
+                  <span>{stage.displayName}</span>
                 </div>
               );
             })}
@@ -5638,90 +5629,132 @@ function App() {
               </div>
             ) : (
               /* Cost Optimization Recommendations */
-              <div className="glass-panel" style={{ padding: '32px' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  Optimization Recommendations
+              <div className="glass-panel" style={{ padding: '36px' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <TrendingDown style={{ color: 'var(--accent-teal)' }} />
+                  Cost Optimization Recommendations
                 </h3>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   {costSuggestions.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-                      <CheckCircle2 size={36} style={{ color: 'var(--success)', marginBottom: '12px' }} />
-                      <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Excellent Configuration!</p>
-                      <p style={{ fontSize: '0.85rem', marginTop: '4px' }}>All deployment environments are optimized for minimum idle costs.</p>
+                    <div style={{ textAlign: 'center', padding: '60px 40px', color: 'var(--text-secondary)' }}>
+                      <CheckCircle2 size={42} style={{ color: 'var(--success)', marginBottom: '16px' }} />
+                      <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '1.1rem' }}>Excellent Configuration!</p>
+                      <p style={{ fontSize: '0.88rem', marginTop: '6px', maxWidth: '400px', margin: '6px auto 0' }}>All deployment environments are optimized for minimum idle costs.</p>
                     </div>
                   ) : (
-                    costSuggestions.map((suggestion) => (
-                      <div key={suggestion.id} className="glass-panel" style={{ 
-                        padding: '20px', 
-                        borderLeft: `4px solid ${suggestion.impact === 'high' ? 'var(--error)' : suggestion.impact === 'medium' ? 'var(--warning)' : '#3b82f6'}`,
-                        background: 'rgba(255,255,255,0.01)'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                          <span style={{ 
-                            fontSize: '0.7rem', 
-                            fontWeight: 700, 
-                            textTransform: 'uppercase', 
-                            color: suggestion.impact === 'high' ? 'var(--error)' : suggestion.impact === 'medium' ? 'var(--warning)' : '#93c5fd',
-                            background: suggestion.impact === 'high' ? 'rgba(239, 68, 68, 0.1)' : suggestion.impact === 'medium' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(59, 130, 246, 0.1)',
-                            padding: '2px 6px',
-                            borderRadius: '4px'
-                          }}>
-                            {suggestion.impact} Impact
-                          </span>
-                          <span style={{ fontWeight: 700, color: 'var(--success)', fontSize: '0.95rem' }}>
-                            Save ${suggestion.savings.toFixed(2)}/mo
-                          </span>
-                        </div>
-                        
-                        <h4 style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '6px' }}>
-                          {suggestion.recommendation}
-                        </h4>
-                        
-                        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: '1.4' }}>
-                          {suggestion.description}
-                        </p>
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', 
+                      gap: '24px' 
+                    }}>
+                      {costSuggestions.map((suggestion) => {
+                        const isHigh = suggestion.impact === 'high';
+                        const isMedium = suggestion.impact === 'medium';
+                        const color = isHigh ? 'var(--error)' : isMedium ? 'var(--warning)' : 'var(--accent-blue)';
+                        const bg = isHigh ? 'rgba(239, 68, 68, 0.08)' : isMedium ? 'rgba(245, 158, 11, 0.08)' : 'rgba(96, 165, 250, 0.08)';
+                        const border = isHigh ? 'rgba(239, 68, 68, 0.25)' : isMedium ? 'rgba(245, 158, 11, 0.25)' : 'rgba(96, 165, 250, 0.25)';
+                        const icon = isHigh ? <AlertCircle size={14} /> : isMedium ? <AlertTriangle size={14} /> : <Settings size={14} />;
 
-                        <button 
-                          onClick={() => handleApplyRemediation(suggestion.id, suggestion.type, suggestion.appName)}
-                          disabled={remediating === suggestion.id}
-                          className="btn-primary"
-                          style={{ 
-                            width: '100%', 
-                            padding: '10px', 
-                            fontSize: '0.85rem', 
-                            fontWeight: 600,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '6px',
-                            background: 'transparent',
-                            border: '1px solid var(--accent-purple)',
-                            color: 'var(--text-primary)',
-                            cursor: 'pointer'
-                          }}
-                          onMouseEnter={(e) => {
-                            if (remediating !== suggestion.id) {
-                              e.currentTarget.style.background = 'var(--accent-purple)';
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (remediating !== suggestion.id) {
-                              e.currentTarget.style.background = 'transparent';
-                            }
-                          }}
-                        >
-                          {remediating === suggestion.id ? (
-                            <>
-                              <RefreshCw size={14} className="spin-anim" />
-                              <span>Applying Remediation...</span>
-                            </>
-                          ) : (
-                            <span>Apply Recommendation</span>
-                          )}
-                        </button>
-                      </div>
-                    ))
+                        return (
+                          <div 
+                            key={suggestion.id} 
+                            className="glass-panel" 
+                            style={{ 
+                              padding: '24px', 
+                              display: 'flex', 
+                              flexDirection: 'column', 
+                              justifyContent: 'space-between',
+                              borderLeft: `4px solid ${color}`,
+                              background: 'rgba(255,255,255,0.01)',
+                              transition: 'all 0.3s ease',
+                              position: 'relative',
+                              overflow: 'hidden'
+                            }}
+                          >
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                <span style={{ 
+                                  fontSize: '0.7rem', 
+                                  fontWeight: 700, 
+                                  textTransform: 'uppercase', 
+                                  color: color,
+                                  background: bg,
+                                  border: `1px solid ${border}`,
+                                  padding: '3px 8px',
+                                  borderRadius: '12px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  letterSpacing: '0.04em'
+                                }}>
+                                  {icon} {suggestion.impact} Impact
+                                </span>
+                                <span style={{ fontWeight: 700, color: 'var(--success)', fontSize: '1.05rem' }}>
+                                  Save ${suggestion.savings.toFixed(2)}/mo
+                                </span>
+                              </div>
+                              
+                              <h4 style={{ fontWeight: 600, fontSize: '0.98rem', marginBottom: '8px', color: 'var(--text-primary)', lineHeight: '1.4' }}>
+                                {suggestion.recommendation}
+                              </h4>
+                              
+                              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.5' }}>
+                                {suggestion.description}
+                              </p>
+                            </div>
+
+                            <button 
+                              onClick={() => handleApplyRemediation(suggestion.id, suggestion.type, suggestion.appName)}
+                              disabled={remediating === suggestion.id}
+                              className="btn-primary"
+                              style={{ 
+                                width: '100%', 
+                                padding: '10px 16px', 
+                                fontSize: '0.85rem', 
+                                fontWeight: 600,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px',
+                                background: 'transparent',
+                                border: `1px solid ${color}`,
+                                color: 'var(--text-primary)',
+                                cursor: 'pointer',
+                                borderRadius: '8px',
+                                transition: 'all 0.2s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                if (remediating !== suggestion.id) {
+                                  e.currentTarget.style.background = color;
+                                  e.currentTarget.style.borderColor = color;
+                                  e.currentTarget.style.boxShadow = `0 0 10px ${color}80`;
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (remediating !== suggestion.id) {
+                                  e.currentTarget.style.background = 'transparent';
+                                  e.currentTarget.style.borderColor = color;
+                                  e.currentTarget.style.boxShadow = 'none';
+                                }
+                              }}
+                            >
+                              {remediating === suggestion.id ? (
+                                <>
+                                  <RefreshCw size={14} className="spin-anim" />
+                                  <span>Applying...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <TrendingDown size={14} />
+                                  <span>Apply Recommendation</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
               </div>
