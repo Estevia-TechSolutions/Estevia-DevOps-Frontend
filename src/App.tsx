@@ -97,6 +97,15 @@ interface AppResource {
       result: string;  // succeeded | failed | canceled | skipped | null
       startTime?: string | null;
       finishTime?: string | null;
+      jobs?: {
+        id: string;
+        name: string;
+        displayName: string;
+        state: string;
+        result: string;
+        startTime?: string | null;
+        finishTime?: string | null;
+      }[];
     }[];
   } | null;
   branches?: { name: string; protected: boolean }[];
@@ -371,6 +380,8 @@ function App() {
   const [costSearch, setCostSearch] = useState('');
   const [envFilter, setEnvFilter] = useState<'all' | 'production' | 'test' | 'stale'>('all');
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [selectedStageForJobs, setSelectedStageForJobs] = useState<any | null>(null);
+  const [selectedJobForDetails, setSelectedJobForDetails] = useState<any | null>(null);
 
   // Dynamic Organization Settings State
   const [orgName, setOrgName] = useState<string>('');
@@ -1630,6 +1641,25 @@ function App() {
     }
   };
 
+  const formatDuration = (start?: string | null, finish?: string | null) => {
+    if (!start) return 'Not started';
+    const startTime = new Date(start).getTime();
+    const endTime = finish ? new Date(finish).getTime() : Date.now();
+    const diff = endTime - startTime;
+    if (diff < 0) return '0s';
+    
+    const seconds = Math.floor((diff / 1000) % 60);
+    const minutes = Math.floor((diff / (1000 * 60)) % 60);
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    
+    const parts = [];
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
+    
+    return parts.join(' ');
+  };
+
   const renderPipelineRunStatus = (app: AppResource) => {
     if (!app.pipelineId) {
       return (
@@ -1736,7 +1766,15 @@ function App() {
               return (
                 <div 
                   key={stage.id || sIdx} 
-                  title={`${stage.displayName} (${stage.state}${stage.result ? ': ' + stage.result : ''})`}
+                  title={`${stage.displayName} (${stage.state}${stage.result ? ': ' + stage.result : ''}) - Click to view jobs`}
+                  onClick={() => {
+                    setSelectedStageForJobs(stage);
+                    if (stage.jobs && stage.jobs.length > 0) {
+                      setSelectedJobForDetails(stage.jobs[0]);
+                    } else {
+                      setSelectedJobForDetails(null);
+                    }
+                  }}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -1748,7 +1786,7 @@ function App() {
                     color: style.color,
                     fontSize: '0.7rem',
                     fontWeight: 500,
-                    cursor: 'default',
+                    cursor: 'pointer',
                     transition: 'all 0.2s ease',
                     whiteSpace: 'nowrap',
                   }}
@@ -4086,6 +4124,242 @@ function App() {
                     >
                       Configure Pipeline
                     </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PIPELINE JOBS MASTER-DETAIL MODAL */}
+            {selectedStageForJobs && (
+              <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, overflowY: 'auto', padding: '20px' }}>
+                <div className="glass-panel" style={{ padding: '32px', width: '100%', maxWidth: '750px', position: 'relative', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
+                  
+                  {/* Close button */}
+                  <button 
+                    onClick={() => {
+                      setSelectedStageForJobs(null);
+                      setSelectedJobForDetails(null);
+                    }} 
+                    style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.3rem' }}
+                  >
+                    ✕
+                  </button>
+
+                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px', color: 'var(--text-primary)' }}>
+                    <GitBranch style={{ color: 'var(--accent-purple)' }} />
+                    {selectedStageForJobs.displayName} Pipeline Jobs
+                  </h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '24px' }}>
+                    Select a job from the list to view its execution details, execution duration, and timeline events.
+                  </p>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', flexGrow: 1, minHeight: 0, overflow: 'hidden' }}>
+                    
+                    {/* Left Panel: Jobs List */}
+                    <div style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      gap: '8px', 
+                      overflowY: 'auto',
+                      paddingRight: '8px',
+                      borderRight: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)'}`
+                    }}>
+                      {!selectedStageForJobs.jobs || selectedStageForJobs.jobs.length === 0 ? (
+                        <div style={{ padding: '20px', color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.88rem' }}>
+                          No jobs registered for this stage.
+                        </div>
+                      ) : (
+                        selectedStageForJobs.jobs.map((job: any) => {
+                          const isSelected = selectedJobForDetails?.id === job.id;
+                          const isDark = theme === 'dark';
+                          
+                          // Determine status color
+                          let statusColor = 'var(--text-secondary)';
+                          let statusBg = 'rgba(255,255,255,0.03)';
+                          let statusBorder = 'rgba(255,255,255,0.08)';
+                          let icon = <Minus size={12} />;
+
+                          if (job.state === 'inProgress') {
+                            statusColor = isDark ? '#fbbf24' : '#b45309';
+                            statusBg = isDark ? 'rgba(251,191,36,0.12)' : 'rgba(251,191,36,0.06)';
+                            statusBorder = isDark ? 'rgba(251,191,36,0.3)' : 'rgba(251,191,36,0.2)';
+                            icon = <RefreshCw size={12} className="spin-anim" />;
+                          } else if (job.state === 'completed') {
+                            if (job.result === 'succeeded') {
+                              statusColor = isDark ? 'var(--success)' : '#15803d';
+                              statusBg = isDark ? 'rgba(34,197,94,0.12)' : 'rgba(34,197,94,0.06)';
+                              statusBorder = isDark ? 'rgba(34,197,94,0.3)' : 'rgba(34,197,94,0.2)';
+                              icon = <Check size={12} />;
+                            } else if (job.result === 'failed') {
+                              statusColor = isDark ? 'var(--error)' : '#b91c1c';
+                              statusBg = isDark ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.06)';
+                              statusBorder = isDark ? 'rgba(239,68,68,0.3)' : 'rgba(239,68,68,0.2)';
+                              icon = <X size={12} />;
+                            } else {
+                              statusColor = isDark ? '#94a3b8' : '#4b5563';
+                              statusBg = isDark ? 'rgba(148,163,184,0.08)' : 'rgba(75,85,99,0.05)';
+                              statusBorder = isDark ? 'rgba(148,163,184,0.2)' : 'rgba(75,85,99,0.12)';
+                              icon = <AlertTriangle size={12} />;
+                            }
+                          }
+
+                          return (
+                            <div
+                              key={job.id}
+                              onClick={() => setSelectedJobForDetails(job)}
+                              style={{
+                                padding: '12px',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                border: isSelected 
+                                  ? '1px solid var(--accent-purple)' 
+                                  : `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'}`,
+                                backgroundColor: isSelected
+                                  ? 'rgba(168, 85, 247, 0.08)'
+                                  : isDark ? 'rgba(255,255,255,0.01)' : 'rgba(15,23,42,0.01)',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              <div style={{
+                                width: '22px',
+                                height: '22px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: statusBg,
+                                border: `1px solid ${statusBorder}`,
+                                color: statusColor,
+                                flexShrink: 0
+                              }}>
+                                {icon}
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flexGrow: 1 }}>
+                                <span style={{ 
+                                  fontSize: '0.85rem', 
+                                  fontWeight: isSelected ? 600 : 500,
+                                  color: 'var(--text-primary)',
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  textAlign: 'left'
+                                }}>
+                                  {job.displayName}
+                                </span>
+                                <span style={{ 
+                                  fontSize: '0.72rem', 
+                                  color: 'var(--text-secondary)',
+                                  marginTop: '2px',
+                                  textAlign: 'left',
+                                  textTransform: 'capitalize'
+                                }}>
+                                  {job.state === 'completed' ? job.result : job.state}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {/* Right Panel: Selected Job Details */}
+                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflowY: 'auto' }}>
+                      {!selectedJobForDetails ? (
+                        <div style={{ 
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          height: '100%', 
+                          color: 'var(--text-secondary)', 
+                          fontSize: '0.9rem',
+                          textAlign: 'center',
+                          gap: '12px'
+                        }}>
+                          <Cpu size={32} style={{ opacity: 0.4 }} />
+                          <span>Select a job to view run history and execution telemetry.</span>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
+                          <div>
+                            <span style={{ 
+                              fontSize: '0.72rem', 
+                              fontWeight: 600, 
+                              color: 'var(--accent-purple)', 
+                              textTransform: 'uppercase', 
+                              letterSpacing: '0.05em' 
+                            }}>
+                              Job Execution Details
+                            </span>
+                            <h4 style={{ fontSize: '1.1rem', fontWeight: 600, marginTop: '4px', color: 'var(--text-primary)' }}>
+                              {selectedJobForDetails.displayName}
+                            </h4>
+                          </div>
+
+                          <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: '1fr 1fr', 
+                            gap: '16px',
+                            backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.01)' : 'rgba(15,23,42,0.01)',
+                            padding: '16px',
+                            borderRadius: '8px',
+                            border: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'}`
+                          }}>
+                            <div>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Status State</div>
+                              <div style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '2px', color: 'var(--text-primary)', textTransform: 'capitalize' }}>
+                                {selectedJobForDetails.state}
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Result Status</div>
+                              <div style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '2px', color: selectedJobForDetails.result === 'succeeded' ? 'var(--success)' : selectedJobForDetails.result === 'failed' ? 'var(--error)' : 'var(--text-primary)', textTransform: 'capitalize' }}>
+                                {selectedJobForDetails.result || 'Active'}
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Start Time</div>
+                              <div style={{ fontSize: '0.82rem', marginTop: '2px', color: 'var(--text-primary)' }}>
+                                {selectedJobForDetails.startTime ? new Date(selectedJobForDetails.startTime).toLocaleString() : 'Not started'}
+                              </div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Finish Time</div>
+                              <div style={{ fontSize: '0.82rem', marginTop: '2px', color: 'var(--text-primary)' }}>
+                                {selectedJobForDetails.finishTime ? new Date(selectedJobForDetails.finishTime).toLocaleString() : 'Active'}
+                              </div>
+                            </div>
+                            <div style={{ gridColumn: 'span 2' }}>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Execution Duration</div>
+                              <div style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '2px', color: 'var(--text-primary)' }}>
+                                {formatDuration(selectedJobForDetails.startTime, selectedJobForDetails.finishTime)}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                            Pipeline jobs run in secure corporate runners. You can view full execution logs, container images, build artifacts, and diagnostics logs directly inside Azure DevOps.
+                          </div>
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
+                        <button 
+                          type="button" 
+                          className="btn-secondary" 
+                          onClick={() => {
+                            setSelectedStageForJobs(null);
+                            setSelectedJobForDetails(null);
+                          }}
+                        >
+                          Close
+                        </button>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
               </div>
