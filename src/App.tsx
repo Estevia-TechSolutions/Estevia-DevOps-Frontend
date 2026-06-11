@@ -380,6 +380,10 @@ function App() {
   const [costSearch, setCostSearch] = useState('');
   const [envFilter, setEnvFilter] = useState<'all' | 'production' | 'test' | 'stale'>('all');
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [collapsedScanGroups, setCollapsedScanGroups] = useState<Record<string, boolean>>({});
+  const toggleGroupScan = (key: string) => {
+    setCollapsedScanGroups(prev => ({ ...prev, [key]: !prev[key] }));
+  };
   const [selectedStageForJobs, setSelectedStageForJobs] = useState<any | null>(null);
   const [selectedJobForDetails, setSelectedJobForDetails] = useState<any | null>(null);
 
@@ -3014,7 +3018,6 @@ function App() {
                     if (n.includes('-dev')) return ENV_COLORS.dev;
                     if (n.includes('-qa'))  return ENV_COLORS.qa;
                     if (n.includes('-prod')) return ENV_COLORS.prod;
-                    // Bare-name app (no env suffix) → treat as production/main deployment
                     const noSuffix = !n.endsWith('-dev') && !n.includes('-dev-') &&
                                      !n.endsWith('-qa')  && !n.includes('-qa-')  &&
                                      !n.endsWith('-prod') && !n.includes('-prod-') &&
@@ -3023,29 +3026,74 @@ function App() {
                     return { color: 'var(--text-secondary)', bg: 'rgba(255,255,255,0.05)', border: 'var(--glass-border)', label: 'ENV' };
                   };
 
-                  // We render a standard 3-column layout (DEV, QA, PROD) for all frontend cards
+                  const isCollapsed = collapsedScanGroups[group.key] === true;
+
                   return (
                     <div key={group.key} className="glass-panel" style={{ padding: '0', position: 'relative', overflow: 'hidden' }}>
                       {/* Left accent strip */}
                       <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', backgroundColor: accentColor, boxShadow: accentGlow }} />
 
                       {/* Group Header */}
-                      <div style={{ padding: '20px 24px 14px 28px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: accentColor, backgroundColor: accentBg, padding: '3px 8px', borderRadius: '4px' }}>{group.type}</span>
-                            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>{group.label}</h3>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', backgroundColor: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }}>
-                              {group.envs.length} active environments
-                            </span>
+                      <div 
+                        onClick={() => toggleGroupScan(group.key)}
+                        style={{ 
+                          padding: '20px 24px 14px 28px', 
+                          borderBottom: isCollapsed ? 'none' : '1px solid var(--glass-border)', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between', 
+                          flexWrap: 'wrap', 
+                          gap: '10px',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          transition: 'background-color 0.2s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleGroupScan(group.key);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--text-secondary)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '4px',
+                              borderRadius: '4px',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            {isCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
+                          </button>
+                          
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: accentColor, backgroundColor: accentBg, padding: '3px 8px', borderRadius: '4px' }}>{group.type}</span>
+                              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>{group.label}</h3>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', backgroundColor: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }}>
+                                {group.envs.length} active environments
+                              </span>
+                            </div>
+                            {group.repoPath && (
+                              <a 
+                                href={group.repoUrl} 
+                                target="_blank" 
+                                rel="noreferrer" 
+                                title={group.repoPath}
+                                onClick={(e) => e.stopPropagation()}
+                                style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}
+                              >
+                                <GitBranch size={11} /> {group.repoPath} <ExternalLink size={10} />
+                              </a>
+                            )}
                           </div>
-                          {group.repoPath && (
-                            <a href={group.repoUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                              <GitBranch size={11} /> {group.repoPath} <ExternalLink size={10} />
-                            </a>
-                          )}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
                           {group.pipelineId ? (
                             <span style={{ fontSize: '0.8rem', color: accentColor, backgroundColor: accentBg, padding: '5px 12px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '6px', border: `1px solid ${accentColor}44` }}>
                               <GitBranch size={13} /> {group.pipelineName || `Pipeline #${group.pipelineId}`}
@@ -3053,7 +3101,6 @@ function App() {
                           ) : (
                             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>ℹ️ No pipeline registered</span>
                           )}
-                          {/* Shared CI/CD button */}
                           <button className="btn-secondary" onClick={() => openPipelineModal(group.envs[0], group)}
                             style={{ padding: '6px 14px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
                             <GitBranch size={13} /> CI/CD
@@ -3061,8 +3108,8 @@ function App() {
                         </div>
                       </div>
 
-                      {/* Environment Columns */}
-                      {(() => {
+                      {/* Collapsible content body */}
+                      {!isCollapsed && (() => {
                         const displayBranches = group.branches && group.branches.length > 0
                           ? [...group.branches].sort((a, b) => {
                               const getBranchOrder = (name: string) => {
@@ -3077,7 +3124,7 @@ function App() {
                               if (orderA !== orderB) return orderA - orderB;
                               return a.name.localeCompare(b.name);
                             }).map(b => b.name)
-                          : ['dev', 'qa', 'prod']; // fallback to default standard environments if no branches returned
+                          : ['dev', 'qa', 'prod'];
 
                         const isDark = theme === 'dark';
 
@@ -3094,80 +3141,32 @@ function App() {
                               const app = group.envs.find(e => {
                                 const nameLower = e.name.toLowerCase();
                                 const bLower = branchName.toLowerCase();
-                                // 1. Exact env-suffix match: e.g. "driver-hub-dev" matches branch "dev"
-                                if (nameLower.endsWith(`-${bLower}`) || nameLower.includes(`-${bLower}-`)) {
-                                  return true;
-                                }
-                                // 2. Standard alias matching for prod-tier branches
+                                if (nameLower.endsWith(`-${bLower}`) || nameLower.includes(`-${bLower}-`)) return true;
                                 if (['main', 'master', 'prod', 'production'].includes(bLower)) {
-                                  if (nameLower.endsWith('-prod') || nameLower.includes('-prod-') ||
-                                      nameLower.endsWith('-main') || nameLower.includes('-main-')) {
-                                    return true;
-                                  }
-                                  // 3. Bare-name fallback: app has NO env suffix at all (e.g. "driver-hub").
-                                  //    These are always treated as the production/main deployment.
-                                  //    This handles both single-env and multi-env groups correctly.
-                                  const hasNoEnvSuffix = !nameLower.endsWith('-dev') && !nameLower.includes('-dev-') &&
-                                    !nameLower.endsWith('-qa')  && !nameLower.includes('-qa-')  &&
-                                    !nameLower.endsWith('-prod') && !nameLower.includes('-prod-') &&
-                                    !nameLower.endsWith('-staging') && !nameLower.endsWith('-test');
-                                  if (hasNoEnvSuffix) {
-                                    return true;
-                                  }
+                                  if (nameLower.endsWith('-prod') || nameLower.includes('-prod-') || nameLower.endsWith('-main') || nameLower.includes('-main-')) return true;
+                                  const hasNoEnvSuffix = !nameLower.endsWith('-dev') && !nameLower.includes('-dev-') && !nameLower.endsWith('-qa')  && !nameLower.includes('-qa-')  && !nameLower.endsWith('-prod') && !nameLower.includes('-prod-') && !nameLower.endsWith('-staging') && !nameLower.endsWith('-test');
+                                  if (hasNoEnvSuffix) return true;
                                 }
                                 return false;
                               });
 
-                              // Determine color & label based on environment name
                               const getEnvMeta = (bName: string) => {
                                 const n = bName.toLowerCase();
-                                if (n === 'dev' || n === 'development') {
-                                  return { color: '#60a5fa', bg: 'rgba(96,165,250,0.08)', border: 'rgba(96,165,250,0.3)', label: 'DEV' };
-                                }
-                                if (n === 'qa' || n === 'testing') {
-                                  return { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', label: 'QA' };
-                                }
-                                if (['main', 'master', 'prod', 'production'].includes(n)) {
-                                  return { color: '#34d399', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.3)', label: 'PROD' };
-                                }
+                                if (n === 'dev' || n === 'development') return { color: '#60a5fa', bg: 'rgba(96,165,250,0.08)', border: 'rgba(96,165,250,0.3)', label: 'DEV' };
+                                if (n === 'qa' || n === 'testing') return { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', label: 'QA' };
+                                if (['main', 'master', 'prod', 'production'].includes(n)) return { color: '#34d399', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.3)', label: 'PROD' };
                                 return { color: 'var(--text-secondary)', bg: 'rgba(255,255,255,0.05)', border: 'var(--glass-border)', label: bName.toUpperCase() };
                               };
-
                               const envTag = getEnvMeta(branchName);
 
                               if (!app) {
                                 const canDeploy = !!group.repoPath;
                                 return (
-                                  <div key={branchName} className="glass-panel" style={{ 
-                                    padding: '20px', 
-                                    display: 'flex', 
-                                    flexDirection: 'column', 
-                                    gap: '12px', 
-                                    justifyContent: 'center', 
-                                    alignItems: 'center', 
-                                    minHeight: '180px', 
-                                    border: `1px dashed ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.15)'}`,
-                                    backgroundColor: 'transparent',
-                                    borderRadius: '12px',
-                                    boxSizing: 'border-box'
-                                  }}>
-                                    <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', color: envTag.color, backgroundColor: envTag.bg, border: `1px solid ${envTag.border}`, padding: '2px 8px', borderRadius: '10px' }}>
-                                      {envTag.label}
-                                    </span>
-                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                      <AlertCircle size={12} style={{ opacity: 0.6 }} /> Not Deployed
-                                    </span>
+                                  <div key={branchName} className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', justifyContent: 'center', alignItems: 'center', minHeight: '180px', border: `1px dashed ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.15)'}`, backgroundColor: 'transparent', borderRadius: '12px', boxSizing: 'border-box' }}>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', color: envTag.color, backgroundColor: envTag.bg, border: `1px solid ${envTag.border}`, padding: '2px 8px', borderRadius: '10px' }}>{envTag.label}</span>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '6px' }}><AlertCircle size={12} style={{ opacity: 0.6 }} /> Not Deployed</span>
                                     {canDeploy && (
-                                      <button className="btn-secondary" 
-                                        onClick={() => {
-                                          if (group.type === 'backend') {
-                                            openBackendDeployModal(group, branchName);
-                                          } else {
-                                            openScannerProvisionModal(group, branchName);
-                                          }
-                                        }} 
-                                        style={{ padding: '6px 12px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '5px', marginTop: '4px', borderStyle: 'dashed' }}
-                                      >
+                                      <button className="btn-secondary" onClick={() => group.type === 'backend' ? openBackendDeployModal(group, branchName) : openScannerProvisionModal(group, branchName)} style={{ padding: '6px 12px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '5px', marginTop: '4px', borderStyle: 'dashed' }}>
                                         <PlusCircle size={12} /> Deploy Branch
                                       </button>
                                     )}
@@ -3175,132 +3174,52 @@ function App() {
                                 );
                               }
 
-                              // Determine Accent Line color based on environment type
                               const accentBarColor = envTag.color;
-                              
-                              // Determine dynamic status
                               const getStatusMeta = (statusStr: string) => {
                                 const s = (statusStr || '').toLowerCase();
-                                if (s.includes('ready') || s.includes('running') || s.includes('succeeded') || s.includes('active')) {
-                                  return {
-                                    color: 'var(--success)',
-                                    icon: <CheckCircle2 size={12} />,
-                                    label: statusStr || 'Ready'
-                                  };
-                                }
-                                if (s.includes('fail') || s.includes('error') || s.includes('stop') || s.includes('degrad')) {
-                                  return {
-                                    color: 'var(--error)',
-                                    icon: <AlertCircle size={12} />,
-                                    label: statusStr || 'Error'
-                                  };
-                                }
-                                if (s.includes('pend') || s.includes('updat') || s.includes('deploy') || s.includes('progress')) {
-                                  return {
-                                    color: '#fbbf24',
-                                    icon: <RefreshCw size={12} className="spin-anim" />,
-                                    label: statusStr || 'Pending'
-                                  };
-                                }
-                                return {
-                                  color: 'var(--text-secondary)',
-                                  icon: <AlertCircle size={12} />,
-                                  label: statusStr || 'Unknown'
-                                };
+                                if (s.includes('ready') || s.includes('running') || s.includes('succeeded') || s.includes('active')) return { color: 'var(--success)', icon: <CheckCircle2 size={12} />, label: statusStr || 'Ready' };
+                                if (s.includes('fail') || s.includes('error') || s.includes('stop') || s.includes('degrad')) return { color: 'var(--error)', icon: <AlertCircle size={12} />, label: statusStr || 'Error' };
+                                if (s.includes('pend') || s.includes('updat') || s.includes('deploy') || s.includes('progress')) return { color: '#fbbf24', icon: <RefreshCw size={12} className="spin-anim" />, label: statusStr || 'Pending' };
+                                return { color: 'var(--text-secondary)', icon: <AlertCircle size={12} />, label: statusStr || 'Unknown' };
                               };
-
                               const statusMeta = getStatusMeta(app.status);
 
                               return (
-                                <div key={app.name} className="glass-panel" style={{ 
-                                  padding: '20px', 
-                                  position: 'relative',
-                                  display: 'flex', 
-                                  flexDirection: 'column', 
-                                  gap: '12px',
-                                  borderRadius: '12px',
-                                  border: '1px solid var(--glass-border)',
-                                  backgroundColor: isDark ? 'rgba(255,255,255,0.015)' : 'rgba(15,23,42,0.01)',
-                                  boxSizing: 'border-box',
-                                  overflow: 'hidden'
-                                }}>
-                                  {/* Environment Color Accent Strip on the top */}
+                                <div key={app.name} className="glass-panel" style={{ padding: '20px', position: 'relative', display: 'flex', flexDirection: 'column', gap: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', backgroundColor: isDark ? 'rgba(255,255,255,0.015)' : 'rgba(15,23,42,0.01)', boxSizing: 'border-box', overflow: 'hidden' }}>
                                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', backgroundColor: accentBarColor }} />
-
-                                  {/* Env label + status */}
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                      <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', color: envTag.color, backgroundColor: envTag.bg, border: `1px solid ${envTag.border}`, padding: '2px 8px', borderRadius: '10px' }}>
-                                        {envTag.label}
-                                      </span>
-                                      {app.pipelineRun?.webUrl && (
-                                        <a href={app.pipelineRun.webUrl} target="_blank" rel="noreferrer" title="View Pipeline Run Details"
-                                          style={{ color: 'var(--accent-blue)', display: 'inline-flex', alignItems: 'center', textDecoration: 'none', fontSize: '0.7rem', gap: '2px' }}>
-                                          <ExternalLink size={10} style={{ flexShrink: 0 }} /> View Details
-                                        </a>
-                                      )}
+                                      <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', color: envTag.color, backgroundColor: envTag.bg, border: `1px solid ${envTag.border}`, padding: '2px 8px', borderRadius: '10px' }}>{envTag.label}</span>
+                                      {app.pipelineRun?.webUrl && <a href={app.pipelineRun.webUrl} target="_blank" rel="noreferrer" title="View Pipeline Run Details" style={{ color: 'var(--accent-blue)', display: 'inline-flex', alignItems: 'center', textDecoration: 'none', fontSize: '0.7rem', gap: '2px' }}><ExternalLink size={10} style={{ flexShrink: 0 }} /> View Details</a>}
                                     </div>
-                                    <span style={{ fontSize: '0.72rem', color: statusMeta.color, display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
-                                      {statusMeta.icon} {statusMeta.label}
-                                    </span>
+                                    <span style={{ fontSize: '0.72rem', color: statusMeta.color, display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>{statusMeta.icon} {statusMeta.label}</span>
                                   </div>
-
-                                  {/* App name (small) */}
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                     <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resource Name</span>
-                                    <div style={{ fontSize: '0.78rem', color: 'var(--text-primary)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }} title={app.name}>
-                                      {app.name}
-                                    </div>
+                                    <div style={{ fontSize: '0.78rem', color: 'var(--text-primary)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }} title={app.name}>{app.name}</div>
                                   </div>
-
-                                  {/* Hostnames & Endpoints */}
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                     {app.hostname ? (
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         <ExternalLink size={11} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
-                                        <a href={`https://${app.hostname}`} target="_blank" rel="noreferrer"
-                                          style={{ fontSize: '0.78rem', color: 'var(--accent-blue)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                          {app.hostname}
-                                        </a>
+                                        <a href={`https://${app.hostname}`} target="_blank" rel="noreferrer" title={app.hostname} style={{ fontSize: '0.78rem', color: 'var(--accent-blue)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{app.hostname}</a>
                                       </div>
                                     ) : (
-                                      <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <ExternalLink size={11} style={{ opacity: 0.5 }} />
-                                        <span>No endpoint configured</span>
-                                      </div>
+                                      <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}><ExternalLink size={11} style={{ opacity: 0.5 }} /><span>No endpoint configured</span></div>
                                     )}
-
                                     {app.dnsDetails?.fqdn ? (
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         <Globe size={11} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
-                                        <a href={`https://${app.dnsDetails.fqdn}`} target="_blank" rel="noreferrer"
-                                          style={{ fontSize: '0.78rem', color: 'var(--accent-teal)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                          {app.dnsDetails.fqdn}
-                                        </a>
+                                        <a href={`https://${app.dnsDetails.fqdn}`} target="_blank" rel="noreferrer" title={app.dnsDetails.fqdn} style={{ fontSize: '0.78rem', color: 'var(--accent-teal)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{app.dnsDetails.fqdn}</a>
                                       </div>
                                     ) : (
-                                      <div style={{ fontSize: '0.75rem', color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '6px', fontStyle: 'italic' }}>
-                                        <Globe size={11} style={{ color: 'var(--warning)' }} />
-                                        <span>No custom domain bound</span>
-                                      </div>
+                                      <div style={{ fontSize: '0.75rem', color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '6px', fontStyle: 'italic' }}><Globe size={11} style={{ color: 'var(--warning)' }} /><span>No custom domain bound</span></div>
                                     )}
                                   </div>
-
-                                  {/* Pipeline stages */}
-                                  <div style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'}`, paddingTop: '8px' }}>
-                                    {renderPipelineRunStatus(app)}
-                                  </div>
-
-                                  {/* Per-env actions */}
+                                  <div style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'}`, paddingTop: '8px' }}>{renderPipelineRunStatus(app)}</div>
                                   <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', paddingTop: '10px', borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'}` }}>
-                                    <button className="btn-secondary" onClick={() => openDnsModal(app)}
-                                      style={{ flex: 1, padding: '6px 8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-                                      <Globe size={12} /> DNS Map
-                                    </button>
-                                    <button className="btn-secondary" onClick={() => handleDeleteApp(app.name, app.type)} disabled={deletingAppName === app.name}
-                                      style={{ padding: '6px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--error)', borderColor: 'rgba(239,68,68,0.2)', backgroundColor: 'rgba(239,68,68,0.03)' }}>
-                                      {deletingAppName === app.name ? <RefreshCw size={12} className="spin-anim" /> : <Trash2 size={12} />}
-                                    </button>
+                                    <button className="btn-secondary" onClick={() => openDnsModal(app)} style={{ flex: 1, padding: '6px 8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}><Globe size={12} /> DNS Map</button>
+                                    <button className="btn-secondary" onClick={() => handleDeleteApp(app.name, app.type)} disabled={deletingAppName === app.name} style={{ padding: '6px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--error)', borderColor: 'rgba(239,68,68,0.2)', backgroundColor: 'rgba(239,68,68,0.03)' }}>{deletingAppName === app.name ? <RefreshCw size={12} className="spin-anim" /> : <Trash2 size={12} />}</button>
                                   </div>
                                 </div>
                               );
