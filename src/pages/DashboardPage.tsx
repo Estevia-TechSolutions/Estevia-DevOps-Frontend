@@ -102,6 +102,7 @@ interface DashboardPageProps {
   setSelectedStageForJobs: (stage: any) => void;
   azureDevopsOrgUrl?: string;
   azureDevopsProject?: string;
+  onDeployBranch: (repoPath: string, branchName: string, type: 'frontend' | 'backend') => void;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
@@ -120,7 +121,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   theme,
   setSelectedStageForJobs,
   azureDevopsOrgUrl,
-  azureDevopsProject
+  azureDevopsProject,
+  onDeployBranch
 }) => {
 
   const [activeStageInfo, setActiveStageInfo] = React.useState<{appName: string, stageId: string} | null>(null);
@@ -732,6 +734,89 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         </div>
                       );
                     })}
+                    {(() => {
+                      const deployedBranchNames = group.envs.map(app => resolveBranchName(app).toLowerCase());
+                      const undeployedBranches = (group.branches || []).filter(branch => {
+                        return !deployedBranchNames.includes(branch.name.toLowerCase());
+                      });
+
+                      if (undeployedBranches.length === 0) return null;
+
+                      return undeployedBranches.map((branch) => {
+                        return (
+                          <div 
+                            key={branch.name} 
+                            style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'space-between', 
+                              padding: '12px 18px', 
+                              borderRadius: '10px', 
+                              border: '1px dashed var(--glass-border)', 
+                              backgroundColor: 'rgba(255,255,255,0.005)',
+                              transition: 'all 0.25s ease',
+                              flexWrap: 'wrap',
+                              gap: '12px'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '280px' }}>
+                              {/* Git Icon / Branch details */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <GitBranch size={16} style={{ color: 'var(--text-secondary)', opacity: 0.8 }} />
+                                <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                  {branch.name}
+                                </span>
+                              </div>
+                              
+                              {/* UNLINKED badge */}
+                              <span style={{
+                                fontSize: '0.62rem',
+                                fontWeight: 700,
+                                textTransform: 'uppercase',
+                                color: '#94a3b8',
+                                background: 'rgba(148, 163, 184, 0.12)',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                border: '1px dashed rgba(148, 163, 184, 0.3)',
+                                letterSpacing: '0.04em'
+                              }}>
+                                UNLINKED
+                              </span>
+                            </div>
+
+                            {/* Provision Branch Button */}
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <button 
+                                className="btn-secondary" 
+                                onClick={() => onDeployBranch(group.repoPath, branch.name, group.type)}
+                                style={{ 
+                                  padding: '6px 12px', 
+                                  fontSize: '0.75rem', 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center', 
+                                  gap: '6px',
+                                  borderColor: 'var(--accent-purple)',
+                                  color: 'var(--text-primary)',
+                                  background: 'rgba(139, 92, 246, 0.05)'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = 'rgba(139, 92, 246, 0.15)';
+                                  e.currentTarget.style.boxShadow = '0 0 8px var(--accent-purple-glow)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = 'rgba(139, 92, 246, 0.05)';
+                                  e.currentTarget.style.boxShadow = 'none';
+                                }}
+                              >
+                                <PlusCircle size={12} style={{ color: 'var(--accent-purple)' }} />
+                                Provision Branch
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
                 )}
               </div>

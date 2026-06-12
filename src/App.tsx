@@ -307,6 +307,8 @@ function App() {
     new URLSearchParams(window.location.search).get('org') || 'estevia'
   );
   
+  const isGuidedProvisionRef = useRef(false);
+  
   // Scanned Apps State
   const [apps, setApps] = useState<AppResource[]>([]);
   const [scanning, setScanning] = useState(false);
@@ -654,42 +656,47 @@ function App() {
       fetchProvisioningMetadata();
     }
     if (activeTab === 'provision') {
-      // Reset the entire wizard to a clean initial state
-      setProvisionStep(1);
-      setAppType('frontend');
-      setNewName('');
-      setSelectedRepo('');
-      setSelectedBranch('');
-      setSelectedBranches([]);
-      setYmlContent('');
-      setTargetPort('5005');
-      setDnsBinding(false);
-      setDomainInput(defaultDnsDomain || 'esteviatech.com');
-      setProvisionSuccess(null);
-      setProvisionError(null);
-      setProvisionErrorDetail(null);
-      // Pipeline & DNS
-      setPipelineRegSuccess(false);
-      setPipelineRegError(null);
-      setDnsBindSuccess(false);
-      setDnsBindError(null);
-      // ACA resource config
-      setSelectedResourceGroup('');
-      setSelectedManagedEnvironment('');
-      setSelectedCpu('0.25');
-      setSelectedMemory('0.5Gi');
-      setMinReplicas(0);
-      setMaxReplicas(10);
-      // Custom build paths
-      setCustomAppLocation('');
-      setCustomApiLocation('');
-      setCustomOutputLocation('');
-      // Dockerfile state
-      setDockerfileMissing(false);
-      setDockerfileChecked(false);
-      setDockerfileContent('');
-      setCommittingDockerfile(false);
-      setDockerfileCheckError(null);
+      if (isGuidedProvisionRef.current) {
+        // Skip reset for guided provisioning from dashboard
+        isGuidedProvisionRef.current = false;
+      } else {
+        // Reset the entire wizard to a clean initial state
+        setProvisionStep(1);
+        setAppType('frontend');
+        setNewName('');
+        setSelectedRepo('');
+        setSelectedBranch('');
+        setSelectedBranches([]);
+        setYmlContent('');
+        setTargetPort('5005');
+        setDnsBinding(false);
+        setDomainInput(defaultDnsDomain || 'esteviatech.com');
+        setProvisionSuccess(null);
+        setProvisionError(null);
+        setProvisionErrorDetail(null);
+        // Pipeline & DNS
+        setPipelineRegSuccess(false);
+        setPipelineRegError(null);
+        setDnsBindSuccess(false);
+        setDnsBindError(null);
+        // ACA resource config
+        setSelectedResourceGroup('');
+        setSelectedManagedEnvironment('');
+        setSelectedCpu('0.25');
+        setSelectedMemory('0.5Gi');
+        setMinReplicas(0);
+        setMaxReplicas(10);
+        // Custom build paths
+        setCustomAppLocation('');
+        setCustomApiLocation('');
+        setCustomOutputLocation('');
+        // Dockerfile state
+        setDockerfileMissing(false);
+        setDockerfileChecked(false);
+        setDockerfileContent('');
+        setCommittingDockerfile(false);
+        setDockerfileCheckError(null);
+      }
     }
   }, [activeTab]);
 
@@ -828,6 +835,22 @@ function App() {
     setScannerDeployStep(0);
     setScannerDeployError(null);
     setScannerProvisionOpen(true);
+  };
+
+  const handleDeployBranchFromDashboard = async (repoPath: string, branchName: string, type: 'frontend' | 'backend') => {
+    isGuidedProvisionRef.current = true;
+    setAppType(type);
+    setSelectedRepo(repoPath);
+    
+    const shortName = repoPath.split('/').pop() || '';
+    const cleanBranch = branchName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const suffix = type === 'frontend' ? 'swa' : 'api';
+    setNewName(`${shortName}-${cleanBranch}-${suffix}`.substring(0, 60));
+    
+    setProvisionStep(1);
+    setActiveTab('provision');
+    
+    await fetchBranches(repoPath, branchName);
   };
 
   const handleScannerBranchChange = (branchName: string) => {
@@ -2035,17 +2058,21 @@ function App() {
     }
   };
 
-  const fetchBranches = async (repoFullName: string) => {
+  const fetchBranches = async (repoFullName: string, targetBranch?: string) => {
     setLoadingBranches(true);
     setBranches([]);
-    setSelectedBranch('');
-    setSelectedBranches([]);
+    setSelectedBranch(targetBranch || '');
+    setSelectedBranches(targetBranch ? [targetBranch] : []);
     try {
       const res = await fetch(`${API_BASE}/apps/github-branches?organizationId=${organizationId}&githubRepo=${encodeURIComponent(repoFullName)}`);
       const data = await res.json();
       if (data.success && Array.isArray(data.branches)) {
         setBranches(data.branches);
-        if (data.branches.length > 0) {
+        if (targetBranch && data.branches.some((b: any) => b.name === targetBranch)) {
+          setSelectedBranch(targetBranch);
+          setSelectedBranches([targetBranch]);
+          setScannerProvisionBranch(targetBranch);
+        } else if (data.branches.length > 0) {
           const names = data.branches.map((b: any) => b.name);
           const defaultBr = names.find((n: string) => ['main', 'master', 'dev', 'development'].includes(n.toLowerCase())) || names[0];
           setSelectedBranch(defaultBr || '');
@@ -3706,6 +3733,7 @@ function App() {
             setSelectedStageForJobs={setSelectedStageForJobs}
             azureDevopsOrgUrl={azureDevopsOrgUrl}
             azureDevopsProject={azureDevopsProject}
+            onDeployBranch={handleDeployBranchFromDashboard}
           />
         )}
 
