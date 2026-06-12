@@ -3539,23 +3539,23 @@ function App() {
 
         {/* Tabs */}
         <div className="tabs-container">
-        <button className={`tab-btn ${activeTab === 'scan' ? 'active' : ''}`} onClick={() => setActiveTab('scan')}>
+        <button className={`tab-btn tab-btn-scan ${activeTab === 'scan' ? 'active' : ''}`} onClick={() => setActiveTab('scan')}>
           <Server size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
           Cloud Resource Scanning
         </button>
-        <button className={`tab-btn ${activeTab === 'provision' ? 'active' : ''}`} onClick={() => setActiveTab('provision')}>
+        <button className={`tab-btn tab-btn-provision ${activeTab === 'provision' ? 'active' : ''}`} onClick={() => setActiveTab('provision')}>
           <PlusCircle size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
           Provision Web App
         </button>
-        <button className={`tab-btn ${activeTab === 'cost' ? 'active' : ''}`} onClick={() => setActiveTab('cost')}>
+        <button className={`tab-btn tab-btn-cost ${activeTab === 'cost' ? 'active' : ''}`} onClick={() => setActiveTab('cost')}>
           <Database size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
           Cost Management
         </button>
-        <button className={`tab-btn ${activeTab === 'databases' ? 'active' : ''}`} onClick={() => setActiveTab('databases')}>
+        <button className={`tab-btn tab-btn-databases ${activeTab === 'databases' ? 'active' : ''}`} onClick={() => setActiveTab('databases')}>
           <Database size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
           Database Hub
         </button>
-        <button className={`tab-btn ${activeTab === 'credentials' ? 'active' : ''}`} onClick={() => setActiveTab('credentials')}>
+        <button className={`tab-btn tab-btn-credentials ${activeTab === 'credentials' ? 'active' : ''}`} onClick={() => setActiveTab('credentials')}>
           <ShieldCheck size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
           Decryption Secrets & Credentials
         </button>
