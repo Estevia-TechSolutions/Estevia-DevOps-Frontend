@@ -124,6 +124,7 @@ interface AppGroup {
 }
 
 function groupApps(apps: AppResource[]): AppGroup[] {
+  console.log('[DevOps Frontend] groupApps input apps:', apps);
   const map = new Map<string, AppGroup>();
 
   // Determine sort order: dev(0) → qa(1) → prod(2) → bare-name treated as prod(2) → other(3)
@@ -235,7 +236,9 @@ function groupApps(apps: AppResource[]): AppGroup[] {
   }
 
   // Sort groups alphabetically by label
-  return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
+  const sortedGroups = Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
+  console.log('[DevOps Frontend] groupApps sorted output:', sortedGroups);
+  return sortedGroups;
 }
 
 
@@ -732,13 +735,16 @@ function App() {
   const handleMicrosoftCallback = async (code: string) => {
     setAuthLoading(true);
     setAuthError(null);
+    console.log('[DevOps Auth] Starting Microsoft login exchange. API URL:', `${API_BASE}/auth/microsoft`, 'Code:', code);
     try {
       const res = await window.fetch(`${API_BASE}/auth/microsoft`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code })
       });
+      console.log('[DevOps Auth] Response status received:', res.status);
       const data = await res.json();
+      console.log('[DevOps Auth] Response JSON received:', data);
       if (res.ok && data.token) {
         localStorage.setItem('devops_token', data.token);
         localStorage.setItem('devops_user', JSON.stringify(data.user));
@@ -751,7 +757,7 @@ function App() {
         setUser(data.user);
         setRequiresOnboarding(data.requiresOnboarding);
       } else {
-        throw new Error(data.error || 'Failed to exchange authorization code.');
+        throw new Error(data.error || data.message || 'Failed to exchange authorization code.');
       }
     } catch (err: any) {
       console.error('[auth] Microsoft callback login failed:', err);
@@ -1613,10 +1619,13 @@ function App() {
   const handleScan = async () => {
     setScanning(true);
     setScanError(null);
+    console.log('[DevOps Scan] Initiating Cloud Scan for organization:', organizationId, 'URL:', `${API_BASE}/apps/scan?organizationId=${organizationId}`);
     try {
       const res = await fetch(`${API_BASE}/apps/scan?organizationId=${organizationId}`);
       const data = await res.json();
+      console.log('[DevOps Scan] Scan response received:', data);
       if (data.success) {
+        console.log('[DevOps Scan] Setting apps in state:', data.apps);
         setApps(data.apps);
       } else {
         setScanError(data.message || 'Failed to scan Azure resources.');
