@@ -1619,20 +1619,31 @@ function App() {
   const handleScan = async () => {
     setScanning(true);
     setScanError(null);
-    console.log('[DevOps Scan] Initiating Cloud Scan for organization:', organizationId, 'URL:', `${API_BASE}/apps/scan?organizationId=${organizationId}`);
+    const scanUrl = `${API_BASE}/apps/scan?organizationId=${organizationId}`;
+    console.log('[DevOps Scan] [START] Initiating Cloud Scan.', { organizationId, scanUrl });
     try {
-      const res = await fetch(`${API_BASE}/apps/scan?organizationId=${organizationId}`);
+      const res = await fetch(scanUrl);
+      console.log('[DevOps Scan] [HTTP STATUS]', res.status, res.statusText);
+      
       const data = await res.json();
-      console.log('[DevOps Scan] Scan response received:', data);
+      console.log('[DevOps Scan] [RESPONSE DATA]', data);
+      
       if (data.success) {
-        console.log('[DevOps Scan] Setting apps in state:', data.apps);
-        setApps(data.apps);
+        const appsCount = data.apps ? data.apps.length : 0;
+        console.log(`[DevOps Scan] [SUCCESS] Discovered ${appsCount} resources.`, data.apps);
+        if (appsCount === 0) {
+          console.warn('[DevOps Scan] [WARN] Scan returned 0 active resources. Check Azure subscription permissions or resource group filters.');
+        }
+        setApps(data.apps || []);
       } else {
+        console.error('[DevOps Scan] [API ERROR] Backend reported failure:', data.message || data.error);
         setScanError(data.message || 'Failed to scan Azure resources.');
       }
     } catch (e: any) {
+      console.error('[DevOps Scan] [FETCH EXCEPTION] Connection/parsing error:', e);
       setScanError(e.message || 'Error connecting to the DevOps backend server.');
     } finally {
+      console.log('[DevOps Scan] [END] Scan finished.');
       setScanning(false);
     }
   };
