@@ -1,0 +1,30 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- task: NodeTool@0
+  inputs:
+    versionSpec: '20.x'
+  displayName: 'Install Node.js'
+
+- script: |
+    echo "VITE_API_BASE=https://api-evaops.esteviatech.com/api" > .env.production
+  displayName: 'Create production env file'
+
+- script: |
+    npm ci
+    npm run build
+  displayName: 'Install dependencies and build'
+
+- task: AzureStaticWebApp@0
+  inputs:
+    app_location: '/'
+    api_location: ''
+    output_location: 'dist'
+    azure_static_web_apps_api_token: $(EVAOPS_SWA_TOKEN_PROD)
+  displayName: 'Deploy to Azure Static Web App'
