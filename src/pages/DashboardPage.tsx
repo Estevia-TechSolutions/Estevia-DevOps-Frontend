@@ -216,6 +216,59 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     return { color: 'var(--text-secondary)', bg: 'rgba(255,255,255,0.05)', border: 'var(--glass-border)', label: 'ENV' };
   };
 
+  const getCardStyles = (name: string, theme: 'dark' | 'light') => {
+    const n = name.toLowerCase();
+    const isLight = theme === 'light';
+    
+    if (n.includes('-dev')) {
+      return {
+        bg: isLight ? '#f0f6ff' : 'rgba(16, 24, 48, 0.7)',
+        border: isLight ? '#bfdbfe' : 'rgba(96, 165, 250, 0.25)',
+        color: '#60a5fa'
+      };
+    }
+    if (n.includes('-qa')) {
+      return {
+        bg: isLight ? '#fef3c7' : 'rgba(35, 20, 10, 0.7)',
+        border: isLight ? '#fde68a' : 'rgba(245, 158, 11, 0.25)',
+        color: '#f59e0b'
+      };
+    }
+    if (n.includes('-prod')) {
+      return {
+        bg: isLight ? '#ecfdf5' : 'rgba(10, 30, 20, 0.7)',
+        border: isLight ? '#a7f3d0' : 'rgba(52, 211, 153, 0.25)',
+        color: '#34d399'
+      };
+    }
+    const noSuffix = !n.endsWith('-dev') && !n.includes('-dev-') &&
+                     !n.endsWith('-qa')  && !n.includes('-qa-')  &&
+                     !n.endsWith('-prod') && !n.includes('-prod-') &&
+                     !n.endsWith('-staging') && !n.endsWith('-test');
+    if (noSuffix) {
+      return {
+        bg: isLight ? '#ecfdf5' : 'rgba(10, 30, 20, 0.7)',
+        border: isLight ? '#a7f3d0' : 'rgba(52, 211, 153, 0.25)',
+        color: '#34d399'
+      };
+    }
+    
+    return {
+      bg: isLight ? '#f8fafc' : 'rgba(30, 41, 59, 0.4)',
+      border: isLight ? '#e2e8f0' : 'var(--glass-border)',
+      color: 'var(--text-secondary)'
+    };
+  };
+
+  const getUnlinkedCardStyles = (theme: 'dark' | 'light') => {
+    const isLight = theme === 'light';
+    return {
+      bg: isLight ? '#faf5ff' : 'rgba(24, 18, 40, 0.7)',
+      border: isLight ? '#e9d5ff' : 'rgba(168, 85, 247, 0.25)',
+      color: '#a855f7'
+    };
+  };
+
   return (
     <div>
       {scanError && (
@@ -366,6 +419,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   <div style={{ padding: '8px 16px 20px 28px', display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(0,0,0,0.03)' }}>
                     {group.envs.map((item) => {
                       const tag = getEnvTag(item.name);
+                      const cardStyle = getCardStyles(item.name, theme);
                       const isOrphaned = item.status?.toLowerCase() === 'stale' || item.status?.toLowerCase() === 'orphaned';
                       
                       return (
@@ -377,9 +431,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             justifyContent: 'space-between', 
                             padding: '12px 18px', 
                             borderRadius: '10px', 
-                            border: `1px solid ${tag.border}`, 
-                            borderLeft: `4px solid ${tag.color}`,
-                            backgroundColor: tag.bg,
+                            border: `1px solid ${cardStyle.border}`, 
+                            borderLeft: `4px solid ${cardStyle.color}`,
+                            backgroundColor: cardStyle.bg,
                             transition: 'all 0.25s ease',
                             flexWrap: 'wrap',
                             gap: '12px'
@@ -743,6 +797,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                       if (undeployedBranches.length === 0) return null;
 
+                      const unlinkedStyle = getUnlinkedCardStyles(theme);
+
                       return undeployedBranches.map((branch) => {
                         return (
                           <div 
@@ -753,9 +809,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               justifyContent: 'space-between', 
                               padding: '12px 18px', 
                               borderRadius: '10px', 
-                              border: '1px dashed rgba(168, 85, 247, 0.25)', 
-                              borderLeft: '4px solid rgba(168, 85, 247, 0.5)',
-                              backgroundColor: theme === 'light' ? 'rgba(168, 85, 247, 0.02)' : 'rgba(168, 85, 247, 0.04)',
+                              border: `1px dashed ${unlinkedStyle.border}`, 
+                              borderLeft: `4px solid ${unlinkedStyle.color}`,
+                              backgroundColor: unlinkedStyle.bg,
                               transition: 'all 0.25s ease',
                               flexWrap: 'wrap',
                               gap: '12px'
