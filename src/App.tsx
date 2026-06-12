@@ -3535,26 +3535,6 @@ function App() {
                   </div>
                 )}
               </div>
-
-              {/* Integrated progress bar at the very bottom edge of the card */}
-              {(scanning || scanProgress > 0) && apps.length > 0 && (
-                <div style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: '4px',
-                  backgroundColor: 'rgba(255,255,255,0.04)'
-                }}>
-                  <div style={{
-                    width: `${scanProgress}%`,
-                    height: '100%',
-                    backgroundColor: 'var(--accent-purple)',
-                    boxShadow: '0 0 10px var(--accent-purple-glow)',
-                    transition: 'width 0.15s ease-out'
-                  }} />
-                </div>
-              )}
             </div>
 
         {/* Tabs */}
