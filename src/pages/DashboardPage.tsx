@@ -788,9 +788,25 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             {/* Steps List */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
               {!selectedJobForModal.steps || selectedJobForModal.steps.length === 0 ? (
-                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontStyle: 'italic', margin: 0, textAlign: 'center', padding: '20px' }}>
-                  No step details found for this job.
-                </p>
+                <div style={{
+                  padding: '24px',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                  border: '1px solid rgba(239, 68, 68, 0.15)',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}>
+                  <AlertCircle size={28} style={{ color: 'var(--error)' }} />
+                  <div>
+                    <h4 style={{ margin: '0 0 6px 0', fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)' }}>No Step Telemetry Sync Available</h4>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4' }}>
+                      Azure DevOps timeline steps have not been cached yet for this run. Please close this modal and click the <strong>"Scan Active Cloud"</strong> button to fetch the latest live execution logs and timeline records.
+                    </p>
+                  </div>
+                </div>
               ) : (
                 selectedJobForModal.steps.map((step: any, idx: number) => {
                   const stepColor = getStageColor(step.result, step.state);
