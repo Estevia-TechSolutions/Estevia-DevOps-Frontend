@@ -3455,11 +3455,32 @@ function App() {
         ) : (
           <>
             {/* Hero */}
-            <div className="page-hero">
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-            Automated Environment Scanning · SWA Provisioning · GoDaddy DNS · Azure DevOps CI/CD
-          </p>
-        </div>
+            <div className="page-hero" style={{ marginBottom: '28px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                flexWrap: 'wrap',
+                fontSize: '0.78rem',
+                fontWeight: 600
+              }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(96,165,250,0.05)', border: '1px solid rgba(96,165,250,0.15)', padding: '4px 10px', borderRadius: '12px', color: '#60a5fa' }}>
+                  <Search size={11} /> Automated Environment Scanning
+                </span>
+                <span style={{ color: 'rgba(255,255,255,0.08)', userSelect: 'none', fontSize: '0.8rem' }}>•</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(167,139,250,0.05)', border: '1px solid rgba(167,139,250,0.15)', padding: '4px 10px', borderRadius: '12px', color: '#a78bfa' }}>
+                  <PlusCircle size={11} /> SWA Provisioning
+                </span>
+                <span style={{ color: 'rgba(255,255,255,0.08)', userSelect: 'none', fontSize: '0.8rem' }}>•</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(45,212,191,0.05)', border: '1px solid rgba(45,212,191,0.15)', padding: '4px 10px', borderRadius: '12px', color: '#2dd4bf' }}>
+                  <Globe size={11} /> GoDaddy DNS
+                </span>
+                <span style={{ color: 'rgba(255,255,255,0.08)', userSelect: 'none', fontSize: '0.8rem' }}>•</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)', padding: '4px 10px', borderRadius: '12px', color: '#f59e0b' }}>
+                  <GitBranch size={11} /> Azure DevOps CI/CD
+                </span>
+              </div>
+            </div>
 
         {(scanning || scanProgress > 0) && apps.length > 0 && (
           <div className="glass-panel" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px', borderColor: 'var(--accent-purple)', backgroundColor: 'rgba(139, 92, 246, 0.05)' }}>
