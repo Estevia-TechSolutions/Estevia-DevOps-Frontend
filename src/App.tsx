@@ -3455,30 +3455,60 @@ function App() {
         ) : (
           <>
             {/* Hero */}
-            <div className="page-hero" style={{ marginBottom: '28px' }}>
+            <div className="page-hero" style={{
+              position: 'relative',
+              padding: '28px 36px',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.04) 0%, rgba(20, 184, 166, 0.04) 100%)',
+              border: '1px solid var(--glass-border)',
+              boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.15)',
+              marginBottom: '32px',
+              overflow: 'hidden'
+            }}>
+              {/* Decorative background glow */}
               <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                flexWrap: 'wrap',
-                fontSize: '0.78rem',
-                fontWeight: 600
-              }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(96,165,250,0.05)', border: '1px solid rgba(96,165,250,0.15)', padding: '4px 10px', borderRadius: '12px', color: '#60a5fa' }}>
-                  <Search size={11} /> Automated Environment Scanning
-                </span>
-                <span style={{ color: 'rgba(255,255,255,0.08)', userSelect: 'none', fontSize: '0.8rem' }}>•</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(167,139,250,0.05)', border: '1px solid rgba(167,139,250,0.15)', padding: '4px 10px', borderRadius: '12px', color: '#a78bfa' }}>
-                  <PlusCircle size={11} /> SWA Provisioning
-                </span>
-                <span style={{ color: 'rgba(255,255,255,0.08)', userSelect: 'none', fontSize: '0.8rem' }}>•</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(45,212,191,0.05)', border: '1px solid rgba(45,212,191,0.15)', padding: '4px 10px', borderRadius: '12px', color: '#2dd4bf' }}>
-                  <Globe size={11} /> GoDaddy DNS
-                </span>
-                <span style={{ color: 'rgba(255,255,255,0.08)', userSelect: 'none', fontSize: '0.8rem' }}>•</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)', padding: '4px 10px', borderRadius: '12px', color: '#f59e0b' }}>
-                  <GitBranch size={11} /> Azure DevOps CI/CD
-                </span>
+                position: 'absolute',
+                top: '-50%',
+                right: '-20%',
+                width: '320px',
+                height: '320px',
+                background: 'radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, transparent 70%)',
+                filter: 'blur(50px)',
+                pointerEvents: 'none'
+              }} />
+              
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <h1 style={{ 
+                  margin: 0,
+                  fontSize: '2.1rem', 
+                  fontWeight: 800, 
+                  letterSpacing: '-0.02em',
+                  background: 'linear-gradient(to right, var(--text-primary) 30%, rgba(167, 139, 250, 0.95))', 
+                  WebkitBackgroundClip: 'text', 
+                  WebkitTextFillColor: 'transparent',
+                  display: 'inline-block'
+                }}>
+                  DevOps Control Centre
+                </h1>
+                <p style={{
+                  margin: '10px 0 0 0',
+                  fontSize: '0.86rem',
+                  fontWeight: 500,
+                  color: 'var(--text-secondary)',
+                  letterSpacing: '0.03em',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  flexWrap: 'wrap'
+                }}>
+                  <span style={{ color: 'var(--text-primary)', opacity: 0.95 }}>Automated Environment Scanning</span>
+                  <span style={{ color: 'var(--accent-purple)', fontWeight: 800, opacity: 0.8 }}>·</span>
+                  <span style={{ color: 'var(--text-primary)', opacity: 0.95 }}>SWA Provisioning</span>
+                  <span style={{ color: 'var(--accent-teal)', fontWeight: 800, opacity: 0.8 }}>·</span>
+                  <span style={{ color: 'var(--text-primary)', opacity: 0.95 }}>GoDaddy DNS</span>
+                  <span style={{ color: 'var(--accent-blue)', fontWeight: 800, opacity: 0.8 }}>·</span>
+                  <span style={{ color: 'var(--text-primary)', opacity: 0.95 }}>Azure DevOps CI/CD</span>
+                </p>
               </div>
             </div>
 
