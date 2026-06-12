@@ -3461,8 +3461,23 @@ function App() {
           </p>
         </div>
 
+        {(scanning || scanProgress > 0) && apps.length > 0 && (
+          <div className="glass-panel" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px', borderColor: 'var(--accent-purple)', backgroundColor: 'rgba(139, 92, 246, 0.05)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <RefreshCw size={16} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
+                <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Scanning active cloud for updates and refreshing cost metrics...</span>
+              </div>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accent-purple)' }}>{Math.floor(scanProgress)}%</span>
+            </div>
+            <div style={{ width: '100%', height: '6px', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{ width: `${scanProgress}%`, height: '100%', backgroundColor: 'var(--accent-purple)', boxShadow: '0 0 8px var(--accent-purple-glow)', transition: 'width 0.15s ease-out', borderRadius: '3px' }} />
+            </div>
+          </div>
+        )}
+
         {/* Tabs */}
-      <div className="tabs-container">
+        <div className="tabs-container">
         <button className={`tab-btn ${activeTab === 'scan' ? 'active' : ''}`} onClick={() => setActiveTab('scan')}>
           <Server size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
           Cloud Resource Scanning
@@ -3498,20 +3513,7 @@ function App() {
               </div>
             )}
 
-            {(scanning || scanProgress > 0) && apps.length > 0 && (
-              <div className="glass-panel" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px', borderColor: 'var(--accent-purple)', backgroundColor: 'rgba(139, 92, 246, 0.05)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <RefreshCw size={16} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
-                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Scanning active cloud for updates and refreshing cost metrics...</span>
-                  </div>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accent-purple)' }}>{Math.floor(scanProgress)}%</span>
-                </div>
-                <div style={{ width: '100%', height: '6px', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
-                  <div style={{ width: `${scanProgress}%`, height: '100%', backgroundColor: 'var(--accent-purple)', boxShadow: '0 0 8px var(--accent-purple-glow)', transition: 'width 0.15s ease-out', borderRadius: '3px' }} />
-                </div>
-              </div>
-            )}
+
 
             {(scanning || scanProgress > 0) && apps.length === 0 ? (
               <div className="glass-panel" style={{ padding: '60px 40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
