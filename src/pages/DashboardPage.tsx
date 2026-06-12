@@ -17,6 +17,24 @@ import {
   X
 } from 'lucide-react';
 
+const Github = ({ size = 12, ...props }: { size?: number; [key: string]: any }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+    <path d="M9 18c-4.51 2-5-2-7-2" />
+  </svg>
+);
+
 interface AppResource {
   name: string;
   type: 'frontend' | 'backend';
@@ -474,6 +492,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             {/* Name & Domain Details */}
                             <div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                {item.type === 'frontend' ? (
+                                  <Globe size={12} style={{ color: 'var(--accent-purple)', opacity: 0.8, flexShrink: 0 }} />
+                                ) : (
+                                  <Cpu size={12} style={{ color: 'var(--accent-teal)', opacity: 0.8, flexShrink: 0 }} />
+                                )}
                                 <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)' }}>{item.name}</span>
                                 {item.isTestResource && (
                                   <span style={{
@@ -537,26 +560,35 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 )}
                               </div>
                               {item.dnsDetails?.fqdn && (
-                                <div style={{ fontSize: '0.75rem', color: 'var(--accent-purple)', fontWeight: 400, marginTop: '2px', paddingLeft: '22px' }}>
-                                  {item.dnsDetails.fqdn}
+                                <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
+                                  <Globe size={12} style={{ opacity: 0.7, color: 'var(--accent-purple)', flexShrink: 0 }} />
+                                  <span>Domain: <a 
+                                    href={`https://${item.dnsDetails.fqdn}`} 
+                                    target="_blank" 
+                                    rel="noreferrer" 
+                                    style={{ color: 'var(--accent-purple)', textDecoration: 'none', fontWeight: 600 }}
+                                  >
+                                    {item.dnsDetails.fqdn}
+                                  </a></span>
                                 </div>
                               )}
                               {item.repositoryUrl && (
-                                <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 400, paddingLeft: '22px' }}>
-                                  <a 
+                                <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
+                                  <Github size={12} style={{ opacity: 0.7, color: 'var(--accent-blue)', flexShrink: 0 }} />
+                                  <span>GitHub: <a 
                                     href={item.repositoryUrl} 
                                     target="_blank" 
                                     rel="noreferrer" 
-                                    style={{ color: 'var(--accent-blue)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                    style={{ color: 'var(--accent-blue)', textDecoration: 'none', fontWeight: 600 }}
                                   >
                                     {item.repositoryUrl.replace('https://github.com/', '')}
-                                  </a>
+                                  </a></span>
                                 </div>
                               )}
 
                               {/* Branch Details */}
-                              <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 400, paddingLeft: '22px', color: 'var(--text-secondary)' }}>
-                                <GitBranch size={12} style={{ opacity: 0.7 }} />
+                              <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
+                                <GitBranch size={12} style={{ opacity: 0.7, color: 'var(--accent-purple)', flexShrink: 0 }} />
                                 <span>Branch: <strong style={{ color: 'var(--text-primary)' }}>{resolveBranchName(item)}</strong></span>
                                 {item.pipelineRun && isBuildActive(item.pipelineRun) && (
                                   <span style={{ 
@@ -579,14 +611,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               </div>
 
                               {/* Pipeline Details */}
-                              <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 400, paddingLeft: '22px', color: 'var(--text-secondary)' }}>
-                                <Server size={12} style={{ opacity: 0.7 }} />
-                                <span>Pipeline: </span>
-                                {item.pipelineName ? (
-                                  <span style={{ color: 'var(--success)', fontWeight: 600 }}>{item.pipelineName}</span>
-                                ) : (
-                                  <span style={{ color: '#ef4444', fontWeight: 600 }}>Not Set</span>
-                                )}
+                              <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
+                                <Server size={12} style={{ opacity: 0.7, color: 'var(--accent-teal)', flexShrink: 0 }} />
+                                <span>Pipeline: <strong style={{ color: item.pipelineName ? 'var(--success)' : '#ef4444' }}>{item.pipelineName || 'Not Set'}</strong></span>
                               </div>
                             </div>
                           </div>
@@ -761,7 +788,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             ) : (
                               <button 
                                 className="btn-secondary" 
-                                disabled
+                                onClick={() => openPipelineModal(item, group)}
                                 style={{ 
                                   padding: '6px 10px', 
                                   fontSize: '0.75rem', 
@@ -769,12 +796,22 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                   alignItems: 'center', 
                                   justifyContent: 'center', 
                                   gap: '4px', 
-                                  opacity: 0.5, 
-                                  cursor: 'not-allowed'
+                                  borderColor: 'var(--accent-purple)',
+                                  color: 'var(--text-primary)',
+                                  background: 'rgba(139, 92, 246, 0.04)',
+                                  transition: 'all 0.25s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = 'rgba(139, 92, 246, 0.12)';
+                                  e.currentTarget.style.boxShadow = '0 0 10px rgba(139, 92, 246, 0.3)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = 'rgba(139, 92, 246, 0.04)';
+                                  e.currentTarget.style.boxShadow = 'none';
                                 }}
                               >
-                                <GitBranch size={12} />
-                                CI/CD
+                                <PlusCircle size={12} style={{ color: 'var(--accent-purple)' }} />
+                                Setup CI/CD
                               </button>
                             )}
 
