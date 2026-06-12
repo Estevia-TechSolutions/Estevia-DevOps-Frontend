@@ -463,6 +463,19 @@ function App() {
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
+  // Confirmation Modal and sync timer states
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    type: 'danger' | 'warning' | 'info';
+    onConfirm: () => void;
+  } | null>(null);
+
+  const [syncCountdown, setSyncCountdown] = useState<number>(60);
+
   // Authentication states
   const [token, setToken] = useState<string | null>(localStorage.getItem('devops_token'));
   const [user, setUser] = useState<any>(() => {
@@ -1184,13 +1197,20 @@ function App() {
     }
   }, [organizationId, token]);
 
-  // Auto-scan cloud resources and refresh costs every 1 minute
+  // Auto-scan cloud resources and refresh costs with a 1-minute countdown timer
   useEffect(() => {
     if (token) {
+      setSyncCountdown(60);
       const interval = setInterval(() => {
-        console.log('[DevOps Auto Refresh] Running scheduled 1-minute cloud and cost scan...');
-        handleScan();
-      }, 60000);
+        setSyncCountdown((prev) => {
+          if (prev <= 1) {
+            console.log('[DevOps Auto Refresh] Timer reached 0. Triggering auto cloud & cost scan...');
+            handleScan();
+            return 60;
+          }
+          return prev - 1;
+        });
+      }, 1000);
       return () => clearInterval(interval);
     }
   }, [token, organizationId]);
@@ -1415,32 +1435,44 @@ function App() {
 
   const handleProvisionDatabase = async () => {
     if (!selectedDbServer || !newDbName.trim()) return;
-    setDeployingDb(true);
-    setDeployDbSuccess(null);
-    setDeployDbError(null);
-    try {
-      const res = await fetch(`${API_BASE}/apps/databases`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          organizationId,
-          serverName: selectedDbServer.name,
-          dbName: newDbName.trim()
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setDeployDbSuccess(data.message || `Database '${newDbName}' deployed successfully.`);
-        setNewDbName('');
-        fetchDatabases(selectedDbServer.name);
-      } else {
-        setDeployDbError(data.message || 'Failed to deploy database.');
+    const dbName = newDbName.trim();
+    
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Deploy New Database Schema',
+      message: `Are you sure you want to deploy a new MySQL database schema named '${dbName}' on server '${selectedDbServer.name}'?`,
+      confirmLabel: 'Deploy Database',
+      cancelLabel: 'Cancel',
+      type: 'info',
+      onConfirm: async () => {
+        setDeployingDb(true);
+        setDeployDbSuccess(null);
+        setDeployDbError(null);
+        try {
+          const res = await fetch(`${API_BASE}/apps/databases`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              organizationId,
+              serverName: selectedDbServer.name,
+              dbName: dbName
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            setDeployDbSuccess(data.message || `Database '${dbName}' deployed successfully.`);
+            setNewDbName('');
+            fetchDatabases(selectedDbServer.name);
+          } else {
+            setDeployDbError(data.message || 'Failed to deploy database.');
+          }
+        } catch (e: any) {
+          setDeployDbError(e.message || 'Error occurred while deploying database.');
+        } finally {
+          setDeployingDb(false);
+        }
       }
-    } catch (e: any) {
-      setDeployDbError(e.message || 'Error occurred while deploying database.');
-    } finally {
-      setDeployingDb(false);
-    }
+    });
   };
 
   const getTableNameFromQuery = (sql: string) => {
@@ -1538,98 +1570,125 @@ function App() {
   };
 
   const handleDropTable = async (tableName: string) => {
-    const confirmed = window.confirm(`Are you absolutely sure you want to DROP the table '${tableName}'? This will permanently delete all data in it!`);
-    if (!confirmed) return;
-    
-    try {
-      const sql = `DROP TABLE \`${tableName}\`;`;
-      const res = await fetch(`${API_BASE}/apps/execute-query`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          serverName: selectedDbServer.name,
-          dbName: selectedDatabase.name,
-          query: sql
-        })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        // Clear schema selections or details tab query outputs if open
-        setQueryResult(null);
-        fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name);
-      } else {
-        alert(`Failed to drop table: ${data.message || 'Unknown error'}`);
+    setConfirmDialog({
+      isOpen: true,
+      title: 'DROP Table (Destructive Action)',
+      message: `Are you absolutely sure you want to DROP the table '${tableName}'? This will permanently delete all data and structure associated with this table. This action cannot be undone.`,
+      confirmLabel: 'DROP TABLE',
+      cancelLabel: 'Cancel',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          const sql = `DROP TABLE \`${tableName}\`;`;
+          const res = await fetch(`${API_BASE}/apps/execute-query`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              serverName: selectedDbServer.name,
+              dbName: selectedDatabase.name,
+              query: sql
+            })
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setQueryResult(null);
+            fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name);
+          } else {
+            alert(`Failed to drop table: ${data.message || 'Unknown error'}`);
+          }
+        } catch (e: any) {
+          alert(`Error dropping table: ${e.message}`);
+        }
       }
-    } catch (e: any) {
-      alert(`Error dropping table: ${e.message}`);
-    }
+    });
   };
 
   const handleAddColumn = async (tableName: string) => {
     if (!alterNewColName.trim()) return;
-    try {
-      const nullability = alterNewColNullable ? 'NULL' : 'NOT NULL';
-      const sql = `ALTER TABLE \`${tableName}\` ADD COLUMN \`${alterNewColName.trim()}\` ${alterNewColType} ${nullability};`;
-      const res = await fetch(`${API_BASE}/apps/execute-query`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          serverName: selectedDbServer.name,
-          dbName: selectedDatabase.name,
-          query: sql
-        })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setAlteringTable(null);
-        setAlterNewColName('');
-        fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name);
-      } else {
-        alert(`Failed to add column: ${data.message || 'Unknown error'}`);
+    const columnName = alterNewColName.trim();
+    const columnType = alterNewColType;
+    const nullability = alterNewColNullable ? 'NULL' : 'NOT NULL';
+    
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Alter Table (Add Attribute)',
+      message: `Are you sure you want to add the attribute '${columnName}' of type '${columnType}' (${nullability}) to the table '${tableName}'?`,
+      confirmLabel: 'Add Column',
+      cancelLabel: 'Cancel',
+      type: 'info',
+      onConfirm: async () => {
+        try {
+          const sql = `ALTER TABLE \`${tableName}\` ADD COLUMN \`${columnName}\` ${columnType} ${nullability};`;
+          const res = await fetch(`${API_BASE}/apps/execute-query`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              serverName: selectedDbServer.name,
+              dbName: selectedDatabase.name,
+              query: sql
+            })
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setAlteringTable(null);
+            setAlterNewColName('');
+            fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name);
+          } else {
+            alert(`Failed to add column: ${data.message || 'Unknown error'}`);
+          }
+        } catch (e: any) {
+          alert(`Error adding column: ${e.message}`);
+        }
       }
-    } catch (e: any) {
-      alert(`Error adding column: ${e.message}`);
-    }
+    });
   };
 
   const handleDropColumn = async (tableName: string, columnName: string) => {
-    const confirmed = window.confirm(`Are you sure you want to drop column '${columnName}' from table '${tableName}'?`);
-    if (!confirmed) return;
-    
-    try {
-      const sql = `ALTER TABLE \`${tableName}\` DROP COLUMN \`${columnName}\`;`;
-      const res = await fetch(`${API_BASE}/apps/execute-query`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          serverName: selectedDbServer.name,
-          dbName: selectedDatabase.name,
-          query: sql
-        })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name);
-      } else {
-        alert(`Failed to drop column: ${data.message || 'Unknown error'}`);
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Drop Column/Attribute (Destructive Action)',
+      message: `Are you sure you want to drop the column '${columnName}' from the table '${tableName}'? This will permanently delete all data stored in this column.`,
+      confirmLabel: 'Drop Column',
+      cancelLabel: 'Cancel',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          const sql = `ALTER TABLE \`${tableName}\` DROP COLUMN \`${columnName}\`;`;
+          const res = await fetch(`${API_BASE}/apps/execute-query`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              serverName: selectedDbServer.name,
+              dbName: selectedDatabase.name,
+              query: sql
+            })
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name);
+          } else {
+            alert(`Failed to drop column: ${data.message || 'Unknown error'}`);
+          }
+        } catch (e: any) {
+          alert(`Error dropping column: ${e.message}`);
+        }
       }
-    } catch (e: any) {
-      alert(`Error dropping column: ${e.message}`);
-    }
+    });
   };
 
   const handleScan = async () => {
     setScanning(true);
     setScanError(null);
+    setSyncCountdown(60); // Reset timer on manual scan
     const scanUrl = `${API_BASE}/apps/scan?organizationId=${organizationId}`;
     console.log('[DevOps Scan] [START] Initiating Cloud Scan.', { organizationId, scanUrl });
     try {
@@ -2802,6 +2861,16 @@ function App() {
 
           {/* Right-side actions */}
           <div className="site-header-actions">
+
+            {/* Auto-sync countdown display */}
+            {token && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '8px', padding: '4px 12px', borderRadius: '20px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.15)', fontSize: '0.74rem', height: '36px' }}>
+                <span className="site-header-org-dot" style={{ width: '6px', height: '6px', margin: 0 }} />
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
+                  Sync in <strong style={{ color: 'var(--success)' }}>{syncCountdown}s</strong>
+                </span>
+              </div>
+            )}
 
             {/* Scan button */}
             <button
@@ -7804,7 +7873,7 @@ function App() {
     </>
   )}
 
-      {/* Embedded Spin Animation CSS rule */}
+      {/* Embedded Animation CSS rules */}
       <style>{`
         @keyframes spin {
           from { transform: rotate(0deg); }
@@ -7813,7 +7882,101 @@ function App() {
         .spin-anim {
           animation: spin 1.5s linear infinite;
         }
+        @keyframes fade-in-anim {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
       `}</style>
+
+      {/* Confirmation Modal Overlay */}
+      {confirmDialog && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(2, 6, 23, 0.75)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+          animation: 'fade-in-anim 0.2s ease-out'
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: '440px',
+            width: '100%',
+            padding: '24px',
+            border: `1px solid ${confirmDialog.type === 'danger' ? 'rgba(239, 68, 68, 0.25)' : 'var(--glass-border)'}`,
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
+            animation: 'pulse-anim 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)'
+          }}>
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                backgroundColor: confirmDialog.type === 'danger' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                border: `1px solid ${confirmDialog.type === 'danger' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(59, 130, 246, 0.3)'}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                {confirmDialog.type === 'danger' ? (
+                  <AlertTriangle size={20} style={{ color: 'var(--error)' }} />
+                ) : (
+                  <Database size={20} style={{ color: 'var(--accent-blue)' }} />
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+                  {confirmDialog.title}
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.5', margin: 0 }}>
+                  {confirmDialog.message}
+                </p>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
+              <button
+                className="btn-secondary"
+                onClick={() => setConfirmDialog(null)}
+                style={{ padding: '8px 16px', fontSize: '0.82rem', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                {confirmDialog.cancelLabel || 'Cancel'}
+              </button>
+              <button
+                onClick={() => {
+                  confirmDialog.onConfirm();
+                  setConfirmDialog(null);
+                }}
+                style={{
+                  background: confirmDialog.type === 'danger' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  padding: '8px 16px',
+                  fontSize: '0.82rem',
+                  height: '34px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: confirmDialog.type === 'danger' ? '0 4px 12px rgba(239, 68, 68, 0.25)' : '0 4px 12px var(--accent-blue-glow)',
+                  cursor: 'pointer'
+                }}
+              >
+                {confirmDialog.confirmLabel || 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       </div>
     </div>
