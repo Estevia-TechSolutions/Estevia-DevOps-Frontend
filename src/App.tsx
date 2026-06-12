@@ -839,12 +839,28 @@ function App() {
 
   const handleDeployBranchFromDashboard = async (repoPath: string, branchName: string, type: 'frontend' | 'backend') => {
     isGuidedProvisionRef.current = true;
-    setAppType(type);
+    
+    // Auto-detect deployment type based on branch name and repo name heuristics
+    const branchLower = branchName.toLowerCase();
+    const repoLower = repoPath.toLowerCase();
+    let detectedType = type;
+    
+    if (branchLower.includes('backend') || branchLower.includes('api') || branchLower.includes('server')) {
+      detectedType = 'backend';
+    } else if (branchLower.includes('frontend') || branchLower.includes('web') || branchLower.includes('swa') || branchLower.includes('client')) {
+      detectedType = 'frontend';
+    } else if (repoLower.includes('backend') || repoLower.includes('api') || repoLower.includes('server')) {
+      detectedType = 'backend';
+    } else if (repoLower.includes('frontend') || repoLower.includes('web') || repoLower.includes('swa') || repoLower.includes('client')) {
+      detectedType = 'frontend';
+    }
+    
+    setAppType(detectedType);
     setSelectedRepo(repoPath);
     
     const shortName = repoPath.split('/').pop() || '';
     const cleanBranch = branchName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-    const suffix = type === 'frontend' ? 'swa' : 'api';
+    const suffix = detectedType === 'frontend' ? 'swa' : 'api';
     setNewName(`${shortName}-${cleanBranch}-${suffix}`.substring(0, 60));
     
     setProvisionStep(1);
