@@ -32,6 +32,16 @@ import {
 } from 'lucide-react';
 import './App.css';
 
+// Import modular frontend components and pages
+import { ConfirmationModal } from './components/ConfirmationModal';
+import { SiteHeader, ControlBanner } from './components/DevOpsHeader';
+import { SettingsPage } from './pages/SettingsPage';
+import { CredentialsPage } from './pages/CredentialsPage';
+import { DatabaseCatalogPage } from './pages/DatabaseCatalogPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { CostPage } from './pages/CostPage';
+import { ProvisionWizard } from './pages/ProvisionWizard';
+
 const Github = ({ size = 24, ...props }: { size?: number; [key: string]: any }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -493,6 +503,186 @@ function App() {
   const [githubOwner, setGithubOwner] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // New Organization Settings State Columns
+  const [azureContainerRegistry, setAzureContainerRegistry] = useState('');
+  const [azureDevopsServiceConnection, setAzureDevopsServiceConnection] = useState('');
+  const [dockerRegistryServiceConnection, setDockerRegistryServiceConnection] = useState('');
+
+  // Dynamic Provisioning Metadata States
+  const [locations, setLocations] = useState<any[]>([]);
+  const [resourceGroups, setResourceGroups] = useState<string[]>([]);
+  const [managedEnvironments, setManagedEnvironments] = useState<any[]>([]);
+  const [containerRegistries, setContainerRegistries] = useState<any[]>([]);
+  const [serviceConnections, setServiceConnections] = useState<{ arm: any[]; docker: any[] }>({ arm: [], docker: [] });
+  const [loadingMetadata, setLoadingMetadata] = useState(false);
+
+  // Wizard Step 3 Config States
+  const [selectedResourceGroup, setSelectedResourceGroup] = useState('');
+  const [selectedManagedEnvironment, setSelectedManagedEnvironment] = useState('');
+  const [selectedCpu, setSelectedCpu] = useState('0.25');
+  const [selectedMemory, setSelectedMemory] = useState('0.5Gi');
+  const [minReplicas, setMinReplicas] = useState(0);
+  const [maxReplicas, setMaxReplicas] = useState(10);
+
+  // SWA Custom Build Paths
+  const [customAppLocation, setCustomAppLocation] = useState('');
+  const [customApiLocation, setCustomApiLocation] = useState('');
+  const [customOutputLocation, setCustomOutputLocation] = useState('');
+
+  // Dockerfile checks
+  const [dockerfileMissing, setDockerfileMissing] = useState(false);
+  const [committingDockerfile, setCommittingDockerfile] = useState(false);
+  const [dockerfileCheckError, setDockerfileCheckError] = useState<string | null>(null);
+
+  const fetchProvisioningMetadata = async () => {
+    setLoadingMetadata(true);
+    try {
+      const res = await fetch(`${API_BASE}/apps/provisioning-metadata?organizationId=${organizationId}`);
+      const data = await res.json();
+      if (data.success) {
+        setLocations(data.locations || []);
+        setResourceGroups(data.resourceGroups || []);
+        setManagedEnvironments(data.managedEnvironments || []);
+        setContainerRegistries(data.containerRegistries || []);
+        setServiceConnections(data.serviceConnections || { arm: [], docker: [] });
+        
+        // Auto-select defaults if empty
+        if (data.resourceGroups && data.resourceGroups.length > 0 && !selectedResourceGroup) {
+          setSelectedResourceGroup(data.resourceGroups[0]);
+        }
+        if (data.locations && data.locations.length > 0 && !newLocation) {
+          setNewLocation(data.locations[0].name);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load provisioning metadata:', e);
+    } finally {
+      setLoadingMetadata(false);
+    }
+  };
+
+  const checkDockerfile = async (repo: string, branch: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/apps/check-yml?organizationId=${organizationId}&githubRepo=${encodeURIComponent(repo)}&branch=${encodeURIComponent(branch)}`);
+      const data = await res.json();
+      if (data.code === 'DOCKERFILE_MISSING') {
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('Failed to check Dockerfile:', e);
+      return false;
+    }
+  };
+
+  const commitDefaultDockerfile = async (repo: string, branch: string, port: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/apps/create-dockerfile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationId,
+          githubRepo: repo,
+          branch,
+          targetPort: parseInt(port, 10)
+        })
+      });
+      const data = await res.json();
+      return !!data.success;
+    } catch (e) {
+      console.error('Failed to commit default Dockerfile:', e);
+      return false;
+    }
+  };
+
+  const [dockerfileChecked, setDockerfileChecked] = useState(false);
+  const [dockerfileContent, setDockerfileContent] = useState('');
+  const [dockerfileLoading, setDockerfileLoading] = useState(false);
+  const [provisionErrorDetail, setProvisionErrorDetail] = useState<string | null>(null);
+
+  const fetchDockerfileContent = async (repo: string, branch: string) => {
+    setDockerfileLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/apps/get-dockerfile?organizationId=${organizationId}&githubRepo=${encodeURIComponent(repo)}&branch=${encodeURIComponent(branch)}`);
+      const data = await res.json();
+      if (data.success) {
+        setDockerfileContent(data.content || '');
+      }
+    } catch (e) {
+      console.error('Failed to fetch Dockerfile content:', e);
+    } finally {
+      setDockerfileLoading(false);
+    }
+  };
+
+  const pushDockerfileContent = async (repo: string, branch: string, content: string, commitMsg?: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await fetch(`${API_BASE}/apps/update-dockerfile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationId,
+          githubRepo: repo,
+          branch,
+          content,
+          commitMessage: commitMsg || 'chore: update Dockerfile [via EvaOps DevOps Hub]'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDockerfileContent(content); // update local state
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data.message || 'Failed to push Dockerfile.' };
+    } catch (e: any) {
+      return { success: false, message: e.message || 'Network error pushing Dockerfile.' };
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'provision' || activeTab === 'credentials') {
+      fetchProvisioningMetadata();
+    }
+    if (activeTab === 'provision') {
+      // Reset the entire wizard to a clean initial state
+      setProvisionStep(1);
+      setAppType('frontend');
+      setNewName('');
+      setSelectedRepo('');
+      setSelectedBranch('');
+      setSelectedBranches([]);
+      setYmlContent('');
+      setTargetPort('5005');
+      setDnsBinding(false);
+      setDomainInput(defaultDnsDomain || 'esteviatech.com');
+      setProvisionSuccess(null);
+      setProvisionError(null);
+      setProvisionErrorDetail(null);
+      // Pipeline & DNS
+      setPipelineRegSuccess(false);
+      setPipelineRegError(null);
+      setDnsBindSuccess(false);
+      setDnsBindError(null);
+      // ACA resource config
+      setSelectedResourceGroup('');
+      setSelectedManagedEnvironment('');
+      setSelectedCpu('0.25');
+      setSelectedMemory('0.5Gi');
+      setMinReplicas(0);
+      setMaxReplicas(10);
+      // Custom build paths
+      setCustomAppLocation('');
+      setCustomApiLocation('');
+      setCustomOutputLocation('');
+      // Dockerfile state
+      setDockerfileMissing(false);
+      setDockerfileChecked(false);
+      setDockerfileContent('');
+      setCommittingDockerfile(false);
+      setDockerfileCheckError(null);
+    }
+  }, [activeTab]);
 
   // Confirmation Modal and sync timer states
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -1267,6 +1457,9 @@ function App() {
         setAzureDevopsProject(data.settings.azure_devops_project || '');
         setPipelineVariableGroup(data.settings.pipeline_variable_group || '');
         setGithubOwner(data.settings.github_owner || '');
+        setAzureContainerRegistry(data.settings.azure_container_registry || '');
+        setAzureDevopsServiceConnection(data.settings.azure_devops_service_connection || '');
+        setDockerRegistryServiceConnection(data.settings.docker_registry_service_connection || '');
         
         // Auto-configure default inputs
         setDomainInput(data.settings.default_dns_domain || 'esteviatech.com');
@@ -1338,7 +1531,10 @@ function App() {
           azureDevopsOrgUrl,
           azureDevopsProject,
           pipelineVariableGroup,
-          githubOwner
+          githubOwner,
+          azureContainerRegistry,
+          azureDevopsServiceConnection,
+          dockerRegistryServiceConnection
         })
       });
       const data = await res.json();
@@ -1901,7 +2097,7 @@ function App() {
       } else {
         // 2. Fetch the default template populated with trigger branches list
         const branchesParam = allBranches.join(',');
-        const templateRes = await fetch(`${API_BASE}/apps/default-yml?organizationId=${organizationId}&githubRepo=${encodeURIComponent(repo)}&branches=${encodeURIComponent(branchesParam)}&appType=${appType}`);
+        const templateRes = await fetch(`${API_BASE}/apps/default-yml?organizationId=${organizationId}&githubRepo=${encodeURIComponent(repo)}&branches=${encodeURIComponent(branchesParam)}&appType=${appType}&customAppLocation=${encodeURIComponent(customAppLocation)}&customApiLocation=${encodeURIComponent(customApiLocation)}&customOutputLocation=${encodeURIComponent(customOutputLocation)}`);
         const templateData = await templateRes.json();
         if (templateData.success) {
           setYmlContent(templateData.content);
@@ -1952,7 +2148,24 @@ function App() {
     }
   };
 
-  const handleMoveToStep2 = () => {
+  const handleMoveToStep2 = async () => {
+    if (appType === 'backend') {
+      setYmlLoading(true);
+      const isMissing = await checkDockerfile(selectedRepo, selectedBranch || selectedBranches[0]);
+      setDockerfileMissing(isMissing);
+      setDockerfileChecked(true);
+      setYmlLoading(false);
+      if (isMissing) {
+        setDockerfileContent('');
+        setProvisionStep(2);
+        return;
+      } else {
+        await fetchDockerfileContent(selectedRepo, selectedBranch || selectedBranches[0]);
+      }
+    } else {
+      setDockerfileMissing(false);
+      setDockerfileChecked(false);
+    }
     setProvisionStep(2);
     loadYmlForStep2(selectedRepo, selectedBranch || selectedBranches[0], selectedBranches);
   };
@@ -2033,6 +2246,7 @@ function App() {
     if (!newName) return;
     setProvisioning(true);
     setProvisionError(null);
+    setProvisionErrorDetail(null);
     setProvisionSuccess(null);
     try {
       const res = await fetch(`${API_BASE}/apps/provision`, {
@@ -2044,19 +2258,27 @@ function App() {
           type: appType,
           location: newLocation,
           githubRepo: selectedRepo,
-          targetPort: appType === 'backend' ? parseInt(targetPort, 10) : undefined
+          targetPort: appType === 'backend' ? parseInt(targetPort, 10) : undefined,
+          resourceGroup: selectedResourceGroup,
+          managedEnvironment: selectedManagedEnvironment,
+          cpu: selectedCpu,
+          memory: selectedMemory,
+          minReplicas: minReplicas,
+          maxReplicas: maxReplicas
         })
       });
       const data = await res.json();
       if (data.success) {
         setProvisionSuccess(`Successfully provisioned ${newName} in Azure.`);
         handleScan();
-        setProvisionStep(4);
+        setProvisionStep(appType === 'backend' ? 5 : 4); // Shift Step 4 SWA vs Step 5 Backend Finalize
       } else {
         setProvisionError(data.message || 'Failed to provision application.');
+        setProvisionErrorDetail(data.error || data.details || null);
       }
     } catch (e: any) {
       setProvisionError(e.message || 'Error connecting to backend.');
+      setProvisionErrorDetail(e.stack || null);
     } finally {
       setProvisioning(false);
     }
@@ -2391,28 +2613,56 @@ function App() {
     }
   };
 
-  const handleDeleteApp = async (name: string, type: 'frontend' | 'backend') => {
-    const confirmed = window.confirm(`Are you sure you want to permanently delete '${name}' (${type}) from Azure and your database? This action cannot be undone.`);
-    if (!confirmed) return;
-
-    setDeletingAppName(name);
-    try {
-      const res = await fetch(`${API_BASE}/apps/${name}?organizationId=${organizationId}&type=${type}`, {
-        method: 'DELETE'
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert(`Application '${name}' deleted successfully.`);
-        handleScan();
-        fetchCostData();
-      } else {
-        alert(data.message || 'Failed to delete application.');
+  const handleDeleteApp = (name: string, type: 'frontend' | 'backend') => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Application',
+      message: `Are you sure you want to permanently delete '${name}' (${type}) from Azure and your database? This action cannot be undone.`,
+      confirmLabel: 'Delete Permanently',
+      cancelLabel: 'Cancel',
+      type: 'danger',
+      onConfirm: async () => {
+        setDeletingAppName(name);
+        try {
+          const res = await fetch(`${API_BASE}/apps/${name}?organizationId=${organizationId}&type=${type}`, {
+            method: 'DELETE'
+          });
+          const data = await res.json();
+          if (data.success) {
+            setConfirmDialog({
+              isOpen: true,
+              title: 'Success',
+              message: `Application '${name}' deleted successfully.`,
+              confirmLabel: 'Dismiss',
+              type: 'info',
+              onConfirm: () => {}
+            });
+            handleScan();
+            fetchCostData();
+          } else {
+            setConfirmDialog({
+              isOpen: true,
+              title: 'Deletion Failed',
+              message: data.message || 'Failed to delete application.',
+              confirmLabel: 'Dismiss',
+              type: 'danger',
+              onConfirm: () => {}
+            });
+          }
+        } catch (e: any) {
+          setConfirmDialog({
+            isOpen: true,
+            title: 'Error',
+            message: e.message || 'Error occurred during deletion request.',
+            confirmLabel: 'Dismiss',
+            type: 'danger',
+            onConfirm: () => {}
+          });
+        } finally {
+          setDeletingAppName(null);
+        }
       }
-    } catch (e: any) {
-      alert(e.message || 'Error occurred during deletion request.');
-    } finally {
-      setDeletingAppName(null);
-    }
+    });
   };
 
   const openDnsModal = (app: AppResource) => {
@@ -2883,84 +3133,18 @@ function App() {
         </div>
       )}
       {/* ── Sticky Header ── */}
-      <header className="site-header">
-        <div className="site-header-inner">
-
-          {/* Brand */}
-          <div className="site-header-brand">
-            <div className="site-header-logo">
-              <Cpu size={18} color="#fff" />
-            </div>
-            <div>
-              <div className="site-header-title">EvaOps</div>
-              <div className="site-header-subtitle">Cloud Control Centre</div>
-            </div>
-          </div>
-
-          <div className="site-header-divider" />
-
-          {/* Organisation badge */}
-          <div className="site-header-org">
-            <Building2 size={13} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
-            <span className="site-header-org-label">Org</span>
-            <span className="site-header-org-name">
-              {orgName || organizationId}
-            </span>
-            <span className="site-header-org-dot" />
-          </div>
-
-          {/* Right-side actions */}
-          <div className="site-header-actions">
-
-            {/* Auto-sync countdown display */}
-            {token && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '8px', padding: '4px 12px', borderRadius: '20px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.15)', fontSize: '0.74rem', height: '36px' }}>
-                <span className="site-header-org-dot" style={{ width: '6px', height: '6px', margin: 0 }} />
-                <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
-                  Sync in <strong style={{ color: 'var(--success)' }}>{syncCountdown}s</strong>
-                </span>
-              </div>
-            )}
-
-            {/* Scan button */}
-            <button
-              className="btn-primary"
-              onClick={handleScan}
-              disabled={scanning}
-              style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '8px 16px', fontSize: '0.82rem', height: '36px' }}
-            >
-              <RefreshCw size={14} className={scanning ? 'spin-anim' : ''} />
-              {scanning ? 'Scanning…' : 'Scan Cloud'}
-            </button>
-
-            {/* Theme toggle */}
-            <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
-              {theme === 'dark'
-                ? <Sun size={16} />
-                : <Moon size={16} />}
-            </button>
-
-            {/* User chip */}
-            {user && (
-              <div className="user-chip">
-                <div className="user-chip-info">
-                  <span className="user-chip-name">{user.name}</span>
-                  <span className="user-chip-role">{user.role === 'admin' ? 'Admin' : 'Developer'}</span>
-                </div>
-                <div className="user-chip-avatar">
-                  {user.name?.charAt(0)?.toUpperCase() || 'U'}
-                </div>
-              </div>
-            )}
-
-            {/* Sign out */}
-            <button className="btn-signout" onClick={handleLogout}>
-              <LogOut size={13} />
-              Sign out
-            </button>
-          </div>
-        </div>
-      </header>
+      <SiteHeader
+        token={token}
+        syncCountdown={syncCountdown}
+        scanning={scanning}
+        handleScan={handleScan}
+        theme={theme}
+        toggleTheme={toggleTheme}
+        orgName={orgName}
+        organizationId={organizationId}
+        user={user}
+        handleLogout={handleLogout}
+      />
 
       {/* ── Page Content ── */}
       <div className="page-content">
@@ -3455,87 +3639,11 @@ function App() {
         ) : (
           <>
             {/* Hero */}
-            <div className="page-hero" style={{
-              position: 'relative',
-              padding: (scanning || scanProgress > 0) && apps.length > 0 ? '28px 36px 36px 36px' : '28px 36px',
-              borderRadius: '16px',
-              background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.04) 0%, rgba(20, 184, 166, 0.04) 100%)',
-              border: (scanning || scanProgress > 0) && apps.length > 0 ? '1px solid rgba(139, 92, 246, 0.3)' : '1px solid var(--glass-border)',
-              boxShadow: (scanning || scanProgress > 0) && apps.length > 0 ? '0 8px 32px 0 rgba(139, 92, 246, 0.1)' : '0 8px 32px 0 rgba(0, 0, 0, 0.15)',
-              marginBottom: '32px',
-              overflow: 'hidden',
-              transition: 'all 0.3s ease'
-            }}>
-              {/* Decorative background glow */}
-              <div style={{
-                position: 'absolute',
-                top: '-50%',
-                right: '-20%',
-                width: '320px',
-                height: '320px',
-                background: (scanning || scanProgress > 0) && apps.length > 0
-                  ? 'radial-gradient(circle, rgba(139, 92, 246, 0.2) 0%, transparent 70%)'
-                  : 'radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, transparent 70%)',
-                filter: 'blur(50px)',
-                pointerEvents: 'none',
-                transition: 'background 0.3s ease'
-              }} />
-              
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <h1 style={{ 
-                  margin: 0,
-                  fontSize: '2.1rem', 
-                  fontWeight: 800, 
-                  letterSpacing: '-0.02em',
-                  background: 'linear-gradient(to right, var(--text-primary) 30%, rgba(167, 139, 250, 0.95))', 
-                  WebkitBackgroundClip: 'text', 
-                  WebkitTextFillColor: 'transparent',
-                  display: 'inline-block'
-                }}>
-                  DevOps Control Centre
-                </h1>
-                <p style={{
-                  margin: '10px 0 0 0',
-                  fontSize: '0.86rem',
-                  fontWeight: 500,
-                  color: 'var(--text-secondary)',
-                  letterSpacing: '0.03em',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  flexWrap: 'wrap'
-                }}>
-                  <span style={{ color: 'var(--text-primary)', opacity: 0.95 }}>Automated Environment Scanning</span>
-                  <span style={{ color: 'var(--accent-purple)', fontWeight: 800, opacity: 0.8 }}>·</span>
-                  <span style={{ color: 'var(--text-primary)', opacity: 0.95 }}>SWA Provisioning</span>
-                  <span style={{ color: 'var(--accent-teal)', fontWeight: 800, opacity: 0.8 }}>·</span>
-                  <span style={{ color: 'var(--text-primary)', opacity: 0.95 }}>GoDaddy DNS</span>
-                  <span style={{ color: 'var(--accent-blue)', fontWeight: 800, opacity: 0.8 }}>·</span>
-                  <span style={{ color: 'var(--text-primary)', opacity: 0.95 }}>Azure DevOps CI/CD</span>
-                </p>
-
-                {(scanning || scanProgress > 0) && apps.length > 0 && (
-                  <div style={{ 
-                    marginTop: '20px', 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    gap: '10px',
-                    animation: 'pulse-anim 1.5s infinite alternate'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <RefreshCw size={14} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
-                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Scanning active cloud for updates and refreshing cost metrics...</span>
-                      </div>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-purple)' }}>{Math.floor(scanProgress)}%</span>
-                    </div>
-                    <div style={{ width: '100%', height: '5px', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ width: `${scanProgress}%`, height: '100%', backgroundColor: 'var(--accent-purple)', boxShadow: '0 0 8px var(--accent-purple-glow)', transition: 'width 0.15s ease-out', borderRadius: '3px' }} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            <ControlBanner
+              scanning={scanning}
+              scanProgress={scanProgress}
+              hasApps={apps.length > 0}
+            />
 
         {/* Tabs */}
         <div className="tabs-container">
@@ -3561,9 +3669,10 @@ function App() {
         </button>
         <button className={`tab-btn tab-btn-credentials ${activeTab === 'credentials' ? 'active' : ''}`} onClick={() => setActiveTab('credentials')}>
           <ShieldCheck size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-          Decryption Secrets & Credentials
-          <span className="tab-tooltip">Configure Entra ID authentication and manage secure encryption credentials.</span>
+          Credentials
+          <span className="tab-tooltip">Manage API keys, access tokens, and organization infrastructure settings.</span>
         </button>
+
       </div>
 
       {/* Tab Contents */}
@@ -3571,4455 +3680,270 @@ function App() {
         
         {/* TAB 1: CLOUD RESOURCE SCANNING */}
         {activeTab === 'scan' && (
-          <div>
-            {scanError && (
-              <div className="glass-panel" style={{ padding: '16px', borderColor: 'var(--error)', backgroundColor: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-                <AlertCircle style={{ color: 'var(--error)' }} />
-                <span>{scanError}</span>
-              </div>
-            )}
-
-
-
-            {(scanning || scanProgress > 0) && apps.length === 0 ? (
-              <div className="glass-panel" style={{ padding: '60px 40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-                <RefreshCw size={48} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
-                <div>
-                  <h3 style={{ margin: 0 }}>Fetching Live Subscriptions... {Math.floor(scanProgress)}%</h3>
-                  <p style={{ color: 'var(--text-secondary)', marginTop: '8px', marginBottom: 0 }}>Scanning Static Web Apps and Container Apps in resource group Estevia-Prod-RG...</p>
-                </div>
-                <div style={{ width: '100%', maxWidth: '400px', height: '8px', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: '4px', overflow: 'hidden', marginTop: '8px' }}>
-                  <div style={{ width: `${scanProgress}%`, height: '100%', backgroundColor: 'var(--accent-purple)', boxShadow: '0 0 10px var(--accent-purple-glow)', transition: 'width 0.15s ease-out', borderRadius: '4px' }} />
-                </div>
-              </div>
-            ) : apps.length === 0 ? (
-              <div className="glass-panel" style={{ padding: '60px', textAlign: 'center' }}>
-                <Search size={48} style={{ color: 'var(--text-secondary)', marginBottom: '16px' }} />
-                <h3>No active resources discovered</h3>
-                <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>Click the "Scan Active Cloud" button above to query Azure subscription.</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {appGroups.map((group) => {
-                  const isMultiEnv = group.envs.length > 1;
-                  const accentColor = group.type === 'frontend' ? 'var(--accent-purple)' : 'var(--accent-teal)';
-                  const accentBg = group.type === 'frontend' ? 'rgba(139,92,246,0.1)' : 'rgba(20,184,166,0.1)';
-                  const accentGlow = group.type === 'frontend' ? '0 0 10px var(--accent-purple-glow)' : '0 0 10px var(--accent-teal-glow)';
-
-                  const ENV_COLORS: Record<string, { color: string; bg: string; border: string; label: string }> = {
-                    dev:  { color: '#60a5fa', bg: 'rgba(96,165,250,0.08)',  border: 'rgba(96,165,250,0.3)',  label: 'DEV'  },
-                    qa:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.3)',  label: 'QA'   },
-                    prod: { color: '#34d399', bg: 'rgba(52,211,153,0.08)',  border: 'rgba(52,211,153,0.3)',  label: 'PROD' },
-                  };
-
-                  const getEnvTag = (name: string): { color: string; bg: string; border: string; label: string } => {
-                    const n = name.toLowerCase();
-                    if (n.includes('-dev')) return ENV_COLORS.dev;
-                    if (n.includes('-qa'))  return ENV_COLORS.qa;
-                    if (n.includes('-prod')) return ENV_COLORS.prod;
-                    const noSuffix = !n.endsWith('-dev') && !n.includes('-dev-') &&
-                                     !n.endsWith('-qa')  && !n.includes('-qa-')  &&
-                                     !n.endsWith('-prod') && !n.includes('-prod-') &&
-                                     !n.endsWith('-staging') && !n.endsWith('-test');
-                    if (noSuffix) return ENV_COLORS.prod;
-                    return { color: 'var(--text-secondary)', bg: 'rgba(255,255,255,0.05)', border: 'var(--glass-border)', label: 'ENV' };
-                  };
-
-                  const isCollapsed = collapsedScanGroups[group.key] !== false;
-                  const groupHasActiveDeployment = group.envs.some(app => !!(app.pipelineRun && (app.pipelineRun.state === 'inProgress' || app.pipelineRun.state === 'canceling')));
-
-                  return (
-                    <div key={group.key} className="glass-panel" style={{ padding: '0', position: 'relative', overflow: 'hidden' }}>
-                      {/* Left accent strip */}
-                      <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', backgroundColor: accentColor, boxShadow: accentGlow }} />
-
-                      {/* Group Header */}
-                      <div 
-                        onClick={() => toggleGroupScan(group.key)}
-                        style={{ 
-                          padding: '20px 24px 14px 28px', 
-                          borderBottom: isCollapsed ? 'none' : '1px solid var(--glass-border)', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'space-between', 
-                          flexWrap: 'wrap', 
-                          gap: '10px',
-                          cursor: 'pointer',
-                          userSelect: 'none',
-                          transition: 'background-color 0.2s ease'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleGroupScan(group.key);
-                            }}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: 'var(--text-secondary)',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              padding: '4px',
-                              borderRadius: '4px',
-                              transition: 'all 0.2s ease'
-                            }}
-                          >
-                            {isCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
-                          </button>
-                          
-                          <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: accentColor, backgroundColor: accentBg, padding: '3px 8px', borderRadius: '4px' }}>{group.type}</span>
-                              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>{group.label}</h3>
-                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', backgroundColor: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }}>
-                                {group.envs.length} active environments
-                              </span>
-                              {groupHasActiveDeployment && (
-                                <span style={{
-                                  fontSize: '0.7rem',
-                                  fontWeight: 700,
-                                  letterSpacing: '0.05em',
-                                  color: '#fbbf24',
-                                  backgroundColor: 'rgba(251, 191, 36, 0.12)',
-                                  border: '1px solid rgba(251, 191, 36, 0.3)',
-                                  padding: '3px 10px',
-                                  borderRadius: '12px',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '5px',
-                                  animation: 'pulse-anim 1.5s infinite alternate',
-                                  boxShadow: '0 0 8px rgba(251, 191, 36, 0.2)'
-                                }}>
-                                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#fbbf24', display: 'inline-block', boxShadow: '0 0 6px #fbbf24' }}></span>
-                                  Active Deployment...
-                                </span>
-                              )}
-                            </div>
-                            {group.repoPath && (
-                              <a 
-                                href={group.repoUrl} 
-                                target="_blank" 
-                                rel="noreferrer" 
-                                title={group.repoPath}
-                                onClick={(e) => e.stopPropagation()}
-                                style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}
-                              >
-                                <GitBranch size={11} /> {group.repoPath} <ExternalLink size={10} />
-                              </a>
-                            )}
-                          </div>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
-                          {group.pipelineId ? (
-                            <span style={{ fontSize: '0.8rem', color: accentColor, backgroundColor: accentBg, padding: '5px 12px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '6px', border: `1px solid ${accentColor}44` }}>
-                              <GitBranch size={13} /> {group.pipelineName || `Pipeline #${group.pipelineId}`}
-                            </span>
-                          ) : (
-                            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>ℹ️ No pipeline registered</span>
-                          )}
-                          <button className="btn-secondary" onClick={() => openPipelineModal(group.envs[0], group)}
-                            style={{ padding: '6px 14px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                            <GitBranch size={13} /> CI/CD
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Collapsible content body */}
-                      {!isCollapsed && (() => {
-                        const displayBranches = group.branches && group.branches.length > 0
-                          ? [...group.branches].sort((a, b) => {
-                              const getBranchOrder = (name: string) => {
-                                const n = name.toLowerCase();
-                                if (n === 'dev' || n === 'development') return 0;
-                                if (n === 'qa' || n === 'testing') return 1;
-                                if (n === 'main' || n === 'master' || n === 'prod' || n === 'production') return 2;
-                                return 3;
-                              };
-                              const orderA = getBranchOrder(a.name);
-                              const orderB = getBranchOrder(b.name);
-                              if (orderA !== orderB) return orderA - orderB;
-                              return a.name.localeCompare(b.name);
-                            }).map(b => b.name)
-                          : ['dev', 'qa', 'prod'];
-
-                        const isDark = theme === 'dark';
-
-                        return (
-                          <div style={{ 
-                            display: 'grid', 
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
-                            gap: '16px',
-                            padding: '20px',
-                            backgroundColor: isDark ? 'rgba(0,0,0,0.1)' : 'rgba(0,0,0,0.02)',
-                            borderTop: '1px solid var(--glass-border)'
-                          }}>
-                            {displayBranches.map((branchName, idx) => {
-                              const app = group.envs.find(e => {
-                                const nameLower = e.name.toLowerCase();
-                                const bLower = branchName.toLowerCase();
-                                if (nameLower.endsWith(`-${bLower}`) || nameLower.includes(`-${bLower}-`)) return true;
-                                if (['main', 'master', 'prod', 'production'].includes(bLower)) {
-                                  if (nameLower.endsWith('-prod') || nameLower.includes('-prod-') || nameLower.endsWith('-main') || nameLower.includes('-main-')) return true;
-                                  const hasNoEnvSuffix = !nameLower.endsWith('-dev') && !nameLower.includes('-dev-') && !nameLower.endsWith('-qa')  && !nameLower.includes('-qa-')  && !nameLower.endsWith('-prod') && !nameLower.includes('-prod-') && !nameLower.endsWith('-staging') && !nameLower.endsWith('-test');
-                                  if (hasNoEnvSuffix) return true;
-                                }
-                                return false;
-                              });
-
-                              const getEnvMeta = (bName: string) => {
-                                const n = bName.toLowerCase();
-                                if (n === 'dev' || n === 'development') return { color: '#60a5fa', bg: 'rgba(96,165,250,0.08)', border: 'rgba(96,165,250,0.3)', label: 'DEV' };
-                                if (n === 'qa' || n === 'testing') return { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', label: 'QA' };
-                                if (['main', 'master', 'prod', 'production'].includes(n)) return { color: '#34d399', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.3)', label: 'PROD' };
-                                return { color: 'var(--text-secondary)', bg: 'rgba(255,255,255,0.05)', border: 'var(--glass-border)', label: bName.toUpperCase() };
-                              };
-                              const envTag = getEnvMeta(branchName);
-
-                              if (!app) {
-                                const canDeploy = !!group.repoPath;
-                                return (
-                                  <div key={branchName} className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', justifyContent: 'center', alignItems: 'center', minHeight: '180px', border: `1px dashed ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(15,23,42,0.15)'}`, backgroundColor: 'transparent', borderRadius: '12px', boxSizing: 'border-box' }}>
-                                    <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', color: envTag.color, backgroundColor: envTag.bg, border: `1px solid ${envTag.border}`, padding: '2px 8px', borderRadius: '10px' }}>{envTag.label}</span>
-                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '6px' }}><AlertCircle size={12} style={{ opacity: 0.6 }} /> Not Deployed</span>
-                                    {canDeploy && (
-                                      <button className="btn-secondary" onClick={() => group.type === 'backend' ? openBackendDeployModal(group, branchName) : openScannerProvisionModal(group, branchName)} style={{ padding: '6px 12px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '5px', marginTop: '4px', borderStyle: 'dashed' }}>
-                                        <PlusCircle size={12} /> Deploy Branch
-                                      </button>
-                                    )}
-                                  </div>
-                                );
-                              }
-
-                              const isDeploying = !!(app.pipelineRun && (app.pipelineRun.state === 'inProgress' || app.pipelineRun.state === 'canceling'));
-                              const accentBarColor = isDeploying ? '#fbbf24' : envTag.color;
-                              const getStatusMeta = (statusStr: string) => {
-                                const s = (statusStr || '').toLowerCase();
-                                if (s.includes('deployed') || s.includes('ready') || s.includes('running') || s.includes('succeeded') || s.includes('active')) return { color: 'var(--success)', icon: <CheckCircle2 size={12} />, label: s === 'deployed' ? 'Deployed' : (statusStr || 'Ready') };
-                                if (s.includes('fail') || s.includes('error') || s.includes('stop') || s.includes('degrad')) return { color: 'var(--error)', icon: <AlertCircle size={12} />, label: statusStr || 'Error' };
-                                if (s.includes('pend') || s.includes('updat') || s.includes('deploy') || s.includes('progress')) return { color: '#fbbf24', icon: <RefreshCw size={12} className="spin-anim" />, label: statusStr || 'Pending' };
-                                return { color: 'var(--text-secondary)', icon: <AlertCircle size={12} />, label: statusStr || 'Unknown' };
-                              };
-                              const statusMeta = getStatusMeta(isDeploying ? 'deploying' : app.status);
-
-                              return (
-                                <div key={app.name} className="glass-panel" style={{ 
-                                  padding: '20px', 
-                                  position: 'relative', 
-                                  display: 'flex', 
-                                  flexDirection: 'column', 
-                                  gap: '12px', 
-                                  borderRadius: '12px', 
-                                  border: isDeploying ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid var(--glass-border)', 
-                                  boxShadow: isDeploying ? '0 0 15px rgba(251, 191, 36, 0.15)' : 'none',
-                                  backgroundColor: isDark ? 'rgba(255,255,255,0.015)' : 'rgba(15,23,42,0.01)', 
-                                  boxSizing: 'border-box', 
-                                  overflow: 'hidden' 
-                                }}>
-                                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', backgroundColor: accentBarColor }} />
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                      <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', color: envTag.color, backgroundColor: envTag.bg, border: `1px solid ${envTag.border}`, padding: '2px 8px', borderRadius: '10px' }}>{envTag.label}</span>
-                                      {app.pipelineRun?.webUrl && <a href={app.pipelineRun.webUrl} target="_blank" rel="noreferrer" title="View Pipeline Run Details" style={{ color: 'var(--accent-blue)', display: 'inline-flex', alignItems: 'center', textDecoration: 'none', fontSize: '0.7rem', gap: '2px' }}><ExternalLink size={10} style={{ flexShrink: 0 }} /> View Details</a>}
-                                    </div>
-                                    <span style={{ fontSize: '0.72rem', color: statusMeta.color, display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>{statusMeta.icon} {isDeploying ? 'DEPLOYING...' : statusMeta.label}</span>
-                                  </div>
-                                  {isDeploying && (
-                                    <div style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '8px',
-                                      padding: '8px 12px',
-                                      backgroundColor: 'rgba(251, 191, 36, 0.08)',
-                                      border: '1px solid rgba(251, 191, 36, 0.3)',
-                                      borderRadius: '8px',
-                                      color: '#fbbf24',
-                                      fontSize: '0.75rem',
-                                      fontWeight: 600,
-                                      animation: 'pulse-anim 1.5s infinite alternate',
-                                      boxShadow: '0 2px 6px rgba(251, 191, 36, 0.05)'
-                                    }}>
-                                      <RefreshCw size={12} className="spin-anim" />
-                                      <span>Active deployment in progress...</span>
-                                    </div>
-                                  )}
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                    <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resource Name</span>
-                                    <div style={{ fontSize: '0.78rem', color: 'var(--text-primary)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }} title={app.name}>{app.name}</div>
-                                  </div>
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                    {app.hostname ? (
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <ExternalLink size={11} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
-                                        <a href={`https://${app.hostname}`} target="_blank" rel="noreferrer" title={app.hostname} style={{ fontSize: '0.78rem', color: 'var(--accent-blue)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{app.hostname}</a>
-                                      </div>
-                                    ) : (
-                                      <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}><ExternalLink size={11} style={{ opacity: 0.5 }} /><span>No endpoint configured</span></div>
-                                    )}
-                                    {app.dnsDetails?.fqdn ? (
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        <Globe size={11} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
-                                        <a href={`https://${app.dnsDetails.fqdn}`} target="_blank" rel="noreferrer" title={app.dnsDetails.fqdn} style={{ fontSize: '0.78rem', color: 'var(--accent-teal)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{app.dnsDetails.fqdn}</a>
-                                      </div>
-                                    ) : (
-                                      <div style={{ fontSize: '0.75rem', color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '6px', fontStyle: 'italic' }}><Globe size={11} style={{ color: 'var(--warning)' }} /><span>No custom domain bound</span></div>
-                                    )}
-                                  </div>
-                                  <div style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'}`, paddingTop: '8px' }}>{renderPipelineRunStatus(app)}</div>
-                                  <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', paddingTop: '10px', borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'}` }}>
-                                    <button className="btn-secondary" onClick={() => openDnsModal(app)} style={{ flex: 1, padding: '6px 8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}><Globe size={12} /> DNS Map</button>
-                                    <button className="btn-secondary" onClick={() => handleDeleteApp(app.name, app.type)} disabled={deletingAppName === app.name} style={{ padding: '6px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--error)', borderColor: 'rgba(239,68,68,0.2)', backgroundColor: 'rgba(239,68,68,0.03)' }}>{deletingAppName === app.name ? <RefreshCw size={12} className="spin-anim" /> : <Trash2 size={12} />}</button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* SCANNER PROVISIONING MODAL */}
-            {scannerProvisionOpen && scannerProvisionGroup && scannerProvisionEnv && (
-              <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, overflowY: 'auto', padding: '20px' }}>
-                <div className="glass-panel" style={{ padding: '32px', width: '100%', maxWidth: '560px', position: 'relative' }}>
-                  
-                  {/* Close button */}
-                  {(scannerDeployStep <= 0 || scannerDeployStep === 0.5 || scannerDeployStep === 4) && (
-                    <button 
-                      onClick={() => setScannerProvisionOpen(false)} 
-                      style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.3rem' }}
-                    >
-                      ✕
-                    </button>
-                  )}
-
-                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                    <PlusCircle size={24} style={{ color: 'var(--accent-purple)' }} />
-                    Deploy {scannerProvisionEnv.toUpperCase()} Environment
-                  </h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '20px' }}>
-                    Provision Static Web App resource, bind GoDaddy DNS custom domain, and sync CI/CD credentials.
-                  </p>
-
-                  {/* Deployment Step Tracker */}
-                  {(scannerDeployStep >= 1 || scannerDeployStep === -1) && (
-                    <div style={{ marginBottom: '24px', backgroundColor: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
-                      <h4 style={{ fontSize: '0.9rem', marginBottom: '16px', fontWeight: 600 }}>Deployment Progress</h4>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        
-                        {/* Step 1 */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.88rem' }}>
-                          {scannerDeployStep === 1 ? (
-                            <RefreshCw size={16} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
-                          ) : scannerDeployStep > 1 ? (
-                            <CheckCircle2 size={16} style={{ color: 'var(--success)' }} />
-                          ) : scannerDeployStep === -1 ? (
-                            <AlertCircle size={16} style={{ color: 'var(--error)' }} />
-                          ) : (
-                            <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid var(--text-secondary)', opacity: 0.4 }} />
-                          )}
-                          <span style={{ color: scannerDeployStep === 1 ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: scannerDeployStep === 1 ? 600 : 400 }}>
-                            1. Provision Azure Static Web App resource
-                          </span>
-                        </div>
-
-                        {/* Step 2 */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.88rem' }}>
-                          {scannerDeployStep === 2 ? (
-                            <RefreshCw size={16} className="spin-anim" style={{ color: 'var(--accent-teal)' }} />
-                          ) : scannerDeployStep > 2 ? (
-                            <CheckCircle2 size={16} style={{ color: 'var(--success)' }} />
-                          ) : scannerDeployStep === -1 ? (
-                            <AlertCircle size={16} style={{ color: 'var(--error)' }} />
-                          ) : (
-                            <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid var(--text-secondary)', opacity: 0.4 }} />
-                          )}
-                          <span style={{ color: scannerDeployStep === 2 ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: scannerDeployStep === 2 ? 600 : 400 }}>
-                            2. Bind GoDaddy Custom Domain DNS CNAME
-                          </span>
-                        </div>
-
-                        {/* Step 3 */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.88rem' }}>
-                          {scannerDeployStep === 3 ? (
-                            <RefreshCw size={16} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
-                          ) : scannerDeployStep > 3 ? (
-                            <CheckCircle2 size={16} style={{ color: 'var(--success)' }} />
-                          ) : scannerDeployStep === -1 ? (
-                            <AlertCircle size={16} style={{ color: 'var(--error)' }} />
-                          ) : (
-                            <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid var(--text-secondary)', opacity: 0.4 }} />
-                          )}
-                          <span style={{ color: scannerDeployStep === 3 ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: scannerDeployStep === 3 ? 600 : 400 }}>
-                            3. Link DevOps CI/CD pipeline & update variables group
-                          </span>
-                        </div>
-
-                      </div>
-
-                      {/* Success / Error Messages */}
-                      {scannerDeployStep === 4 && (
-                        <div style={{ marginTop: '20px', padding: '12px 16px', backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid var(--success)', borderRadius: '8px', color: 'var(--success)', fontSize: '0.88rem' }}>
-                          🎉 Environment <strong>{scannerProvisionEnv.toUpperCase()}</strong> has been successfully provisioned and linked to CI/CD pipeline.
-                        </div>
-                      )}
-
-                      {scannerDeployError && (
-                        <div style={{ marginTop: '20px', padding: '12px 16px', backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid var(--error)', borderRadius: '8px', color: 'var(--error)', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                          <span>{scannerDeployError}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                   {/* Form (only shown when idle) */}
-                  {scannerDeployStep === 0 && (
-                    <form onSubmit={(e) => { e.preventDefault(); handleStartScannerDeploy(); }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>GitHub Repository</label>
-                          <input type="text" value={scannerProvisionGroup.repoPath} disabled style={{ opacity: 0.7 }} />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Environment Target</label>
-                          <input type="text" value={scannerProvisionEnv.toUpperCase()} disabled style={{ opacity: 0.7 }} />
-                        </div>
-                      </div>
-
-                      <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Source Repository Branch</label>
-                        {loadingBranches ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.88rem', color: 'var(--text-secondary)', padding: '10px 0' }}>
-                            <RefreshCw size={14} className="spin-anim" /> Loading branches from GitHub...
-                          </div>
-                        ) : (
-                          <select 
-                            value={scannerProvisionBranch} 
-                            onChange={(e) => handleScannerBranchChange(e.target.value)}
-                            style={{ background: 'var(--glass-input-bg)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '10px', width: '100%' }}
-                          >
-                            {branches.length > 0 ? (
-                              branches.map(b => (
-                                <option key={b.name} value={b.name} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
-                                  {b.name} {b.protected ? '(protected)' : ''}
-                                </option>
-                              ))
-                            ) : (
-                              <option value={scannerProvisionBranch} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
-                                {scannerProvisionBranch}
-                              </option>
-                            )}
-                          </select>
-                        )}
-                      </div>
-
-                      <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Azure SWA Resource Name</label>
-                        <input 
-                          type="text" 
-                          value={scannerProvisionSwaName} 
-                          onChange={(e) => setScannerProvisionSwaName(e.target.value)} 
-                          placeholder="e.g. estevia-app-qa" 
-                          required 
-                        />
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '16px', marginBottom: '16px' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Subdomain Binding</label>
-                          <input 
-                            type="text" 
-                            value={scannerProvisionSubdomain} 
-                            onChange={(e) => setScannerProvisionSubdomain(e.target.value)} 
-                            placeholder="e.g. qa-app" 
-                            required 
-                          />
-                        </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>GoDaddy Zone Domain</label>
-                          <input 
-                            type="text" 
-                            value={scannerProvisionDomain} 
-                            onChange={(e) => setScannerProvisionDomain(e.target.value)} 
-                            placeholder="e.g. esteviatech.com" 
-                            required 
-                          />
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Azure Region</label>
-                          <select 
-                            value={scannerProvisionRegion} 
-                            onChange={(e) => setScannerProvisionRegion(e.target.value)}
-                            style={{ background: 'var(--glass-input-bg)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '10px', width: '100%' }}
-                          >
-                            <option value="eastus2" style={{ background: '#1c1924', color: '#fff' }}>East US 2</option>
-                            <option value="westus2" style={{ background: '#1c1924', color: '#fff' }}>West US 2</option>
-                            <option value="centralus" style={{ background: '#1c1924', color: '#fff' }}>Central US</option>
-                            <option value="westeurope" style={{ background: '#1c1924', color: '#fff' }}>West Europe</option>
-                            <option value="southeastasia" style={{ background: '#1c1924', color: '#fff' }}>Southeast Asia</option>
-                          </select>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                          <div style={{ display: 'flex', gap: '6px', fontSize: '0.78rem', color: 'var(--text-secondary)', backgroundColor: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
-                            <span>ℹ️ Shared pipeline variables will be updated in group <strong>{pipelineVariableGroup || 'devops-frontend-vars'}</strong></span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                        <button 
-                          type="button" 
-                          className="btn-secondary" 
-                          onClick={() => setScannerProvisionOpen(false)}
-                        >
-                          Cancel
-                        </button>
-                        <button 
-                          type="submit" 
-                          className="btn-primary"
-                        >
-                          Verify Pipeline YAML
-                        </button>
-                      </div>
-                    </form>
-                  )}
-
-                  {/* STEP 0.5: SCANNER YML EDITOR */}
-                  {scannerDeployStep === 0.5 && (
-                    <div>
-                      <h4 style={{ fontSize: '0.9rem', marginBottom: '12px', fontWeight: 600 }}>Verify & Customize Pipeline YML</h4>
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginBottom: '12px' }}>
-                        We will commit the custom <code>azure-pipelines.yml</code> file to branch <strong>{scannerProvisionBranch}</strong> before resource provisioning.
-                      </p>
-                      
-                      {scannerYmlLoading ? (
-                        <div style={{ padding: '20px 0', textAlign: 'center' }}>
-                          <RefreshCw size={24} className="spin-anim" style={{ color: 'var(--accent-purple)', marginBottom: '8px' }} />
-                          <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>Loading YML build configuration...</p>
-                        </div>
-                      ) : (
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                              Status: {scannerYmlSource === 'github' ? (
-                                <strong style={{ color: 'var(--success)' }}>✓ Loaded existing YML from GitHub</strong>
-                              ) : (
-                                <strong style={{ color: 'var(--accent-purple)' }}>ℹ Custom pipeline template generated</strong>
-                              )}
-                            </span>
-                          </div>
-
-                          <div className="glass-panel" style={{ padding: '12px', backgroundColor: '#0f172a', border: '1px solid var(--glass-border)', borderRadius: '8px', marginBottom: '16px' }}>
-                            <textarea
-                              value={scannerYmlContent}
-                              onChange={(e) => setScannerYmlContent(e.target.value)}
-                              rows={12}
-                              style={{
-                                width: '100%',
-                                fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-                                fontSize: '0.82rem',
-                                color: '#e2e8f0',
-                                background: 'transparent',
-                                border: 'none',
-                                outline: 'none',
-                                resize: 'vertical',
-                                lineHeight: '1.5'
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {scannerDeployError && (
-                        <div style={{ marginBottom: '16px', padding: '8px 12px', backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid var(--error)', borderRadius: '6px', color: 'var(--error)', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <AlertCircle size={14} style={{ flexShrink: 0 }} />
-                          <span>{scannerDeployError}</span>
-                        </div>
-                      )}
-
-                      <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                        <button 
-                          type="button" 
-                          className="btn-secondary" 
-                          onClick={() => setScannerDeployStep(0)}
-                          disabled={creatingYml}
-                        >
-                          Back
-                        </button>
-                        <button 
-                          type="button" 
-                          className="btn-primary"
-                          onClick={handleScannerCommitAndDeploy}
-                          disabled={scannerYmlLoading || creatingYml || !scannerYmlContent}
-                          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                        >
-                          {creatingYml ? (
-                            <>
-                              <RefreshCw size={12} className="spin-anim" /> Committing & Deploying...
-                            </>
-                          ) : (
-                            <>
-                              Commit & Deploy <ArrowRight size={14} />
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Actions footer when done or error */}
-                  {(scannerDeployStep === 4 || scannerDeployStep === -1) && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px', borderTop: '1px solid var(--glass-border)', paddingTop: '16px' }}>
-                      <button 
-                        className="btn-primary" 
-                        onClick={() => setScannerProvisionOpen(false)}
-                      >
-                        Close
-                      </button>
-                    </div>
-                  )}
-
-                </div>
-              </div>
-            )}
-
-            {/* DOMAIN BIND MODAL */}
-            {selectedApp && (
-              <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-                <div className="glass-panel" style={{ padding: '32px', width: '100%', maxWidth: '500px', margin: '20px' }}>
-                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                    <Globe size={24} style={{ color: 'var(--accent-teal)' }} />
-                    Map GoDaddy Domain CNAME
-                  </h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '20px' }}>
-                    This binds a custom subdomain record on GoDaddy pointing directly to {selectedApp.type === 'frontend' ? 'SWA' : 'Container App'} <strong>{selectedApp.name}</strong>.
-                  </p>
-
-                  {bindSuccess && (
-                    <div className="glass-panel" style={{ padding: '12px', borderColor: 'var(--success)', backgroundColor: 'rgba(34, 197, 94, 0.1)', color: 'var(--text-primary)', marginBottom: '16px', fontSize: '0.9rem' }}>
-                      {bindSuccess}
-                    </div>
-                  )}
-
-                  {bindError && (
-                    <div className="glass-panel" style={{ padding: '12px', borderColor: 'var(--error)', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--text-primary)', marginBottom: '16px', fontSize: '0.9rem' }}>
-                      {bindError}
-                    </div>
-                  )}
-
-                  <form onSubmit={handleBindDomainSubmit}>
-                    <div style={{ marginBottom: '16px' }}>
-                      <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Subdomain (e.g. dev-protrack)</label>
-                      <input 
-                        type="text" 
-                        value={subdomainInput} 
-                        onChange={(e) => setSubdomainInput(e.target.value)} 
-                        placeholder="dev-app-name" 
-                        required 
-                      />
-                    </div>
-                    <div style={{ marginBottom: '24px' }}>
-                      <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>GoDaddy Zone Domain</label>
-                      <input 
-                        type="text" 
-                        value={domainInput} 
-                        onChange={(e) => setDomainInput(e.target.value)} 
-                        placeholder="esteviatech.com" 
-                        required 
-                      />
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                      <button 
-                        type="button" 
-                        className="btn-secondary" 
-                        onClick={() => setSelectedApp(null)}
-                      >
-                        Cancel
-                      </button>
-                      <button 
-                        type="submit" 
-                        className="btn-primary" 
-                        disabled={binding}
-                      >
-                        {binding ? 'Updating DNS...' : 'Apply DNS Mapping'}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            )}            {/* PIPELINE MODAL */}
-            {pipelineApp && (
-              <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, overflowY: 'auto', padding: '20px' }}>
-                <div className="glass-panel" style={{ padding: '32px', width: '100%', maxWidth: '560px' }}>
-                  
-                  {/* Dynamic Wizard Header */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
-                    <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
-                      <GitBranch size={24} style={{ color: 'var(--accent-purple)' }} />
-                      {pipelineWizardStep === 1 && 'Setup DevOps Pipeline'}
-                      {pipelineWizardStep === 2 && 'Review Build YML'}
-                      {pipelineWizardStep === 3 && 'Pipeline Setup Completed'}
-                    </h3>
-                    <button onClick={() => setPipelineApp(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.3rem', lineHeight: 1, padding: '2px 6px' }}>✕</button>
-                  </div>
-
-                  {/* Stepper Progress Indicator */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid var(--glass-border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{
-                        width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        backgroundColor: pipelineWizardStep >= 1 ? 'var(--accent-purple)' : 'rgba(255,255,255,0.05)',
-                        color: '#fff', fontSize: '0.8rem', fontWeight: 600
-                      }}>1</span>
-                      <span style={{ fontSize: '0.82rem', color: pipelineWizardStep >= 1 ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: pipelineWizardStep === 1 ? 600 : 400 }}>Configure</span>
-                    </div>
-                    <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--glass-border)', margin: '0 12px' }} />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{
-                        width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        backgroundColor: pipelineWizardStep >= 2 ? 'var(--accent-purple)' : 'rgba(255,255,255,0.05)',
-                        color: '#fff', fontSize: '0.8rem', fontWeight: 600
-                      }}>2</span>
-                      <span style={{ fontSize: '0.82rem', color: pipelineWizardStep >= 2 ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: pipelineWizardStep === 2 ? 600 : 400 }}>Review YML</span>
-                    </div>
-                    <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--glass-border)', margin: '0 12px' }} />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{
-                        width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        backgroundColor: pipelineWizardStep >= 3 ? 'var(--success)' : 'rgba(255,255,255,0.05)',
-                        color: '#fff', fontSize: '0.8rem', fontWeight: 600
-                      }}>3</span>
-                      <span style={{ fontSize: '0.82rem', color: pipelineWizardStep >= 3 ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: pipelineWizardStep === 3 ? 600 : 400 }}>Done</span>
-                    </div>
-                  </div>
-
-                  <form onSubmit={handleCreatePipelineSubmit}>
-                    
-                    {/* STEP 1: CONFIGURATION FORM */}
-                    {pipelineWizardStep === 1 && (
-                      <div>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '18px' }}>
-                          Configure settings to link <strong style={{ color: 'var(--text-primary)' }}>{pipelineApp.name}</strong> to Azure DevOps.
-                        </p>
-
-                        {/* MULTI-ENV SIBLING PANEL */}
-                        {siblingApps.length > 0 && (
-                          <div style={{
-                            backgroundColor: 'rgba(20, 184, 166, 0.07)',
-                            border: '1px solid rgba(20, 184, 166, 0.3)',
-                            borderRadius: '10px',
-                            padding: '14px 16px',
-                            marginBottom: '16px'
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '10px' }}>
-                              <span style={{ fontSize: '1rem' }}>🔗</span>
-                              <strong style={{ color: 'var(--accent-teal)', fontSize: '0.9rem' }}>Multi-Environment Deployment</strong>
-                            </div>
-                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginBottom: '10px', lineHeight: 1.5 }}>
-                              This repo also serves <strong>{siblingApps.length}</strong> other environment{siblingApps.length > 1 ? 's' : ''}. One pipeline handles all branches — registering it here will cover all of them automatically.
-                            </p>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                              <span style={{
-                                padding: '4px 10px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 600,
-                                backgroundColor: 'rgba(168, 85, 247, 0.15)', border: '1px solid rgba(168, 85, 247, 0.4)', color: 'var(--accent-purple)'
-                              }}>
-                                📍 {pipelineApp.name} {pipelineApp.pipelineId ? '✓' : ''}
-                              </span>
-                              {siblingApps.map(sib => (
-                                <span key={sib.name} style={{
-                                  padding: '4px 10px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 500,
-                                  backgroundColor: sib.pipelineId ? 'rgba(34, 197, 94, 0.1)' : 'rgba(255,255,255,0.05)',
-                                  border: `1px solid ${sib.pipelineId ? 'rgba(34,197,94,0.3)' : 'var(--glass-border)'}`,
-                                  color: sib.pipelineId ? 'var(--success)' : 'var(--text-secondary)'
-                                }}>
-                                  {sib.name} {sib.pipelineId ? '✓' : '○'}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* ACTIVE PIPELINE BADGE */}
-                        {pipelineApp.pipelineId && (
-                          <div style={{
-                            backgroundColor: 'rgba(168, 85, 247, 0.08)',
-                            padding: '10px 14px',
-                            borderRadius: '8px',
-                            border: '1px solid rgba(168, 85, 247, 0.25)',
-                            color: 'var(--text-primary)',
-                            marginBottom: '14px',
-                            fontSize: '0.88rem',
-                            display: 'flex', alignItems: 'center', gap: '8px'
-                          }}>
-                            <CheckCircle2 size={15} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
-                            <span><strong>Active Pipeline:</strong> {pipelineApp.pipelineName || 'Linked'} (ID: {pipelineApp.pipelineId})</span>
-                          </div>
-                        )}
-
-                        {pipelineError && (
-                          <div className="glass-panel" style={{ padding: '12px', borderColor: 'var(--error)', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--text-primary)', marginBottom: '14px', fontSize: '0.9rem' }}>
-                            {pipelineError}
-                          </div>
-                        )}
-
-                        {/* GitHub Repo Selector */}
-                        <div style={{ marginBottom: '14px' }}>
-                          <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>GitHub Repository</label>
-                          {!useCustomRepo ? (
-                            <div>
-                              <select
-                                value={githubRepo}
-                                onChange={(e) => {
-                                  if (e.target.value === 'custom') {
-                                    setUseCustomRepo(true);
-                                    setGithubRepo('');
-                                  } else {
-                                    setGithubRepo(e.target.value);
-                                    checkYmlExists(e.target.value);
-                                    loadYmlForPipelineModal(e.target.value, pipelineBranch);
-                                  }
-                                }}
-                                required
-                              >
-                                <option value="" disabled>Select a repository...</option>
-                                {(() => {
-                                  const { recommended, other } = getCategorizedRepos(pipelineApp?.type);
-                                  return (
-                                    <>
-                                      {recommended.length > 0 && (
-                                        <optgroup label="Recommended Repositories">
-                                          {recommended.map(repo => (
-                                            <option key={repo.fullName} value={repo.fullName}>{repo.fullName}</option>
-                                          ))}
-                                        </optgroup>
-                                      )}
-                                      {other.length > 0 && (
-                                        <optgroup label="Other Repositories">
-                                          {other.map(repo => (
-                                            <option key={repo.fullName} value={repo.fullName}>{repo.fullName}</option>
-                                          ))}
-                                        </optgroup>
-                                      )}
-                                    </>
-                                  );
-                                })()}
-                                <option value="custom">✍️ Enter Custom Repository...</option>
-                              </select>
-                            </div>
-                          ) : (
-                            <div>
-                              <input
-                                type="text"
-                                value={githubRepo}
-                                onChange={(e) => setGithubRepo(e.target.value)}
-                                onBlur={(e) => { 
-                                  if (e.target.value) {
-                                    checkYmlExists(e.target.value); 
-                                    loadYmlForPipelineModal(e.target.value, pipelineBranch);
-                                  }
-                                }}
-                                placeholder="Owner/Repository (e.g. Estevia-TechSolutions/my-app)"
-                                required
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setUseCustomRepo(false);
-                                  setGithubRepo(githubRepos[0]?.fullName || '');
-                                  if (githubRepos[0]?.fullName) {
-                                    checkYmlExists(githubRepos[0].fullName);
-                                    loadYmlForPipelineModal(githubRepos[0].fullName, pipelineBranch);
-                                  }
-                                }}
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  color: 'var(--accent-blue)',
-                                  fontSize: '0.8rem',
-                                  textDecoration: 'underline',
-                                  cursor: 'pointer',
-                                  marginTop: '6px',
-                                  padding: 0
-                                }}
-                              >
-                                Select from predefined list
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Branch Input */}
-                        <div style={{ marginBottom: '14px' }}>
-                          <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Target Branch (triggers in YML)</label>
-                          <input
-                            type="text"
-                            value={pipelineBranch}
-                            onChange={(e) => {
-                              setPipelineBranch(e.target.value);
-                              if (githubRepo) {
-                                loadYmlForPipelineModal(githubRepo, e.target.value);
-                              }
-                            }}
-                            placeholder="e.g. main or dev"
-                            required
-                          />
-                        </div>
-
-                        {/* DevOps Settings */}
-                        <div style={{ marginBottom: '14px' }}>
-                          <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Azure DevOps Organization URL</label>
-                          <input
-                            type="text"
-                            value={devopsOrgUrl}
-                            onChange={(e) => setDevopsOrgUrl(e.target.value)}
-                            placeholder="https://dev.azure.com/esteviatech"
-                            required
-                          />
-                        </div>
-                        <div style={{ marginBottom: '20px' }}>
-                          <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Azure DevOps Project Name</label>
-                          <input
-                            type="text"
-                            value={devopsProject}
-                            onChange={(e) => setDevopsProject(e.target.value)}
-                            placeholder="Estevia-Platform"
-                            required
-                          />
-                        </div>
-
-                        {/* Step 1 Actions */}
-                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
-                          <button
-                            type="button"
-                            className="btn-secondary"
-                            onClick={() => setPipelineApp(null)}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-primary"
-                            onClick={() => {
-                              if (!githubRepo) {
-                                setPipelineError('Please select or specify a GitHub repository.');
-                                return;
-                              }
-                              setPipelineError(null);
-                              checkYmlExists(githubRepo);
-                              loadYmlForPipelineModal(githubRepo, pipelineBranch);
-                              setPipelineWizardStep(2);
-                            }}
-                          >
-                            Next: Review YML
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* STEP 2: REVIEW & EDIT PIPELINE YAML */}
-                    {pipelineWizardStep === 2 && (
-                      <div>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '18px' }}>
-                          Verify and edit the build configuration in <code>azure-pipelines.yml</code> before registering the pipeline.
-                        </p>
-
-                        {pipelineError && (
-                          <div className="glass-panel" style={{ padding: '12px', borderColor: 'var(--error)', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--text-primary)', marginBottom: '14px', fontSize: '0.9rem' }}>
-                            {pipelineError}
-                          </div>
-                        )}
-
-                        {ymlFound && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', padding: '10px 14px', backgroundColor: 'rgba(34, 197, 94, 0.07)', borderRadius: '8px', border: '1px solid rgba(34,197,94,0.3)' }}>
-                            <CheckCircle2 size={15} style={{ color: 'var(--success)', flexShrink: 0 }} />
-                            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                              Pipeline definition found:{' '}
-                              <a
-                                href={ymlFound}
-                                target="_blank"
-                                rel="noreferrer"
-                                style={{ color: 'var(--success)', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
-                              >
-                                azure-pipelines.yml
-                                <ExternalLink size={11} />
-                              </a>
-                            </span>
-                          </div>
-                        )}
-
-                        <div style={{ marginBottom: '16px' }}>
-                          <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Edit YAML File Content</label>
-                          {pipelineModalYmlLoading ? (
-                            <div style={{ padding: '40px 0', textAlign: 'center' }}>
-                              <RefreshCw size={20} className="spin-anim" style={{ color: 'var(--accent-purple)', marginBottom: '6px' }} />
-                              <p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem' }}>Loading YML build configuration...</p>
-                            </div>
-                          ) : (
-                            <div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                                  Source: {pipelineModalYmlSource === 'github' ? (
-                                    <strong style={{ color: 'var(--success)' }}>✓ Loaded from GitHub</strong>
-                                  ) : (
-                                    <strong style={{ color: 'var(--accent-purple)' }}>ℹ Custom template generated</strong>
-                                  )}
-                                </span>
-                              </div>
-                              <div className="glass-panel" style={{ padding: '10px', backgroundColor: '#0f172a', border: '1px solid var(--glass-border)', borderRadius: '8px' }}>
-                                <textarea
-                                  value={pipelineModalYmlContent}
-                                  onChange={(e) => setPipelineModalYmlContent(e.target.value)}
-                                  rows={12}
-                                  style={{
-                                    width: '100%',
-                                    fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-                                    fontSize: '0.78rem',
-                                    color: '#e2e8f0',
-                                    background: 'transparent',
-                                    border: 'none',
-                                    outline: 'none',
-                                    resize: 'vertical',
-                                    lineHeight: '1.4'
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Step 2 Actions */}
-                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
-                          <button
-                            type="button"
-                            className="btn-secondary"
-                            onClick={() => setPipelineWizardStep(1)}
-                            disabled={creatingPipeline}
-                          >
-                            Back
-                          </button>
-                          <button
-                            type="submit"
-                            className="btn-primary"
-                            disabled={creatingPipeline || pipelineModalYmlLoading || !pipelineModalYmlContent}
-                            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                          >
-                            {creatingPipeline ? (
-                              <>
-                                <RefreshCw size={12} className="spin-anim" /> Committing & Registering...
-                              </>
-                            ) : (
-                              'Commit YML & Register Pipeline'
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* STEP 3: DONE / SUCCESS SUMMARY */}
-                    {pipelineWizardStep === 3 && (
-                      <div>
-                        {pipelineSuccess && (
-                          <div className="glass-panel" style={{ padding: '16px', borderColor: 'var(--success)', backgroundColor: 'rgba(34, 197, 94, 0.08)', color: 'var(--text-primary)', marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                            <CheckCircle2 size={18} style={{ color: 'var(--success)', flexShrink: 0, marginTop: '2px' }} />
-                            <div style={{ fontSize: '0.88rem', lineHeight: 1.5 }}>
-                              {pipelineSuccess}
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="glass-panel" style={{ padding: '16px', marginBottom: '20px', border: '1px solid var(--glass-border)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                          <h4 style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '12px', color: 'var(--text-primary)' }}>Configuration Summary</h4>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.82rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ color: 'var(--text-secondary)' }}>GitHub Repository:</span>
-                              <strong style={{ color: 'var(--text-primary)' }}>{githubRepo}</strong>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ color: 'var(--text-secondary)' }}>Target Branch:</span>
-                              <strong style={{ color: 'var(--text-primary)' }}>{pipelineBranch}</strong>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ color: 'var(--text-secondary)' }}>DevOps Organization:</span>
-                              <strong style={{ color: 'var(--text-primary)' }}>{devopsOrgUrl}</strong>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ color: 'var(--text-secondary)' }}>DevOps Project:</span>
-                              <strong style={{ color: 'var(--text-primary)' }}>{devopsProject}</strong>
-                            </div>
-                          </div>
-                        </div>
-
-                        {siblingApps.length > 0 && (
-                          <div style={{
-                            backgroundColor: 'rgba(20, 184, 166, 0.04)',
-                            border: '1px solid rgba(20, 184, 166, 0.15)',
-                            borderRadius: '8px',
-                            padding: '12px 14px',
-                            marginBottom: '20px',
-                            fontSize: '0.82rem'
-                          }}>
-                            <span style={{ color: 'var(--accent-teal)', fontWeight: 600 }}>ℹ️ Multi-Environment Sync:</span> Sibling app environments sharing this repository will automatically deploy when trigger branches are matched.
-                          </div>
-                        )}
-
-                        {/* Step 3 Actions */}
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
-                          <button
-                            type="button"
-                            className="btn-primary"
-                            onClick={() => {
-                              setPipelineApp(null);
-                              setPipelineSuccess(null);
-                              setPipelineError(null);
-                            }}
-                          >
-                            Finish & Close
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                  </form>
-                </div>
-              </div>
-            )}
-
-            {/* BACKEND DEPLOYMENT INFO MODAL */}
-            {backendDeployModalOpen && backendDeployGroup && (
-              <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, overflowY: 'auto', padding: '20px' }}>
-                <div className="glass-panel" style={{ padding: '32px', width: '100%', maxWidth: '560px', position: 'relative' }}>
-                  
-                  {/* Close button */}
-                  <button 
-                    onClick={() => setBackendDeployModalOpen(false)} 
-                    style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.3rem' }}
-                  >
-                    ✕
-                  </button>
-
-                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                    <PlusCircle size={24} style={{ color: 'var(--accent-purple)' }} />
-                    Deploy Backend Container
-                  </h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '20px' }}>
-                    Deployment instructions and design options for the backend container environment.
-                  </p>
-
-                  <div style={{ marginBottom: '24px', backgroundColor: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px', border: '1px solid var(--glass-border)', fontSize: '0.9rem', lineHeight: '1.6' }}>
-                    <p style={{ marginBottom: '12px' }}>
-                      Automated Azure Container App (ACA) provisioning from custom branch templates is not supported in the current version of the DevOps hub.
-                    </p>
-                    <p style={{ marginBottom: '12px' }}>
-                      To deploy the <strong>{backendDeployBranch}</strong> branch of the repository <strong>{backendDeployGroup.repoPath}</strong>:
-                    </p>
-                    <ol style={{ paddingLeft: '20px', marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <li>
-                        <strong>Create / Update Pipeline:</strong> Register or update the Azure DevOps build pipeline targeting the branch <code>{backendDeployBranch}</code>.
-                      </li>
-                      <li>
-                        <strong>Trigger build run:</strong> Triggering a pipeline run will build the Docker container image, push it to Azure Container Registry (ACR), and deploy/update the revision on Azure Container Apps.
-                      </li>
-                    </ol>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                    <button 
-                      type="button" 
-                      className="btn-secondary" 
-                      onClick={() => setBackendDeployModalOpen(false)}
-                    >
-                      Close
-                    </button>
-                    <button 
-                      type="button" 
-                      className="btn-primary" 
-                      onClick={() => {
-                        setBackendDeployModalOpen(false);
-                        // Open the pipeline modal prefilled with details
-                        const appMock: AppResource = {
-                          name: `${backendDeployGroup.key}-${backendDeployBranch}`,
-                          type: 'backend',
-                          location: 'eastus2',
-                          hostname: '',
-                          resourceId: '',
-                          status: 'Not Deployed',
-                          repositoryUrl: backendDeployGroup.repoUrl,
-                          pipelineId: backendDeployGroup.pipelineId,
-                          pipelineName: backendDeployGroup.pipelineName
-                        };
-                        openPipelineModal(appMock, backendDeployGroup);
-                      }}
-                    >
-                      Configure Pipeline
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* PIPELINE JOBS MASTER-DETAIL MODAL */}
-            {selectedStageForJobs && (
-              <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, overflowY: 'auto', padding: '20px' }}>
-                <div className="glass-panel" style={{ padding: '32px', width: '100%', maxWidth: '750px', position: 'relative', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
-                  
-                  {/* Close button */}
-                  <button 
-                    onClick={() => {
-                      setSelectedStageForJobs(null);
-                      setSelectedJobForDetails(null);
-                    }} 
-                    style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.3rem' }}
-                  >
-                    ✕
-                  </button>
-
-                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px', color: 'var(--text-primary)' }}>
-                    <GitBranch style={{ color: 'var(--accent-purple)' }} />
-                    {selectedStageForJobs.displayName} Pipeline Jobs
-                  </h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '24px' }}>
-                    Select a job from the list to view its execution details, execution duration, and timeline events.
-                  </p>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', flexGrow: 1, minHeight: 0, overflow: 'hidden' }}>
-                    
-                    {/* Left Panel: Jobs List */}
-                    <div style={{ 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      gap: '8px', 
-                      overflowY: 'auto',
-                      paddingRight: '8px',
-                      borderRight: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)'}`
-                    }}>
-                      {!selectedStageForJobs.jobs || selectedStageForJobs.jobs.length === 0 ? (
-                        <div style={{ padding: '20px', color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.88rem' }}>
-                          No jobs registered for this stage.
-                        </div>
-                      ) : (
-                        selectedStageForJobs.jobs.map((job: any) => {
-                          const isSelected = selectedJobForDetails?.id === job.id;
-                          const isDark = theme === 'dark';
-                          
-                          // Determine status color
-                          let statusColor = 'var(--text-secondary)';
-                          let statusBg = 'rgba(255,255,255,0.03)';
-                          let statusBorder = 'rgba(255,255,255,0.08)';
-                          let icon = <Minus size={12} />;
-
-                          if (job.state === 'inProgress') {
-                            statusColor = isDark ? '#fbbf24' : '#b45309';
-                            statusBg = isDark ? 'rgba(251,191,36,0.12)' : 'rgba(251,191,36,0.06)';
-                            statusBorder = isDark ? 'rgba(251,191,36,0.3)' : 'rgba(251,191,36,0.2)';
-                            icon = <RefreshCw size={12} className="spin-anim" />;
-                          } else if (job.state === 'completed') {
-                            if (job.result === 'succeeded') {
-                              statusColor = isDark ? 'var(--success)' : '#15803d';
-                              statusBg = isDark ? 'rgba(34,197,94,0.12)' : 'rgba(34,197,94,0.06)';
-                              statusBorder = isDark ? 'rgba(34,197,94,0.3)' : 'rgba(34,197,94,0.2)';
-                              icon = <Check size={12} />;
-                            } else if (job.result === 'failed') {
-                              statusColor = isDark ? 'var(--error)' : '#b91c1c';
-                              statusBg = isDark ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.06)';
-                              statusBorder = isDark ? 'rgba(239,68,68,0.3)' : 'rgba(239,68,68,0.2)';
-                              icon = <X size={12} />;
-                            } else {
-                              statusColor = isDark ? '#94a3b8' : '#4b5563';
-                              statusBg = isDark ? 'rgba(148,163,184,0.08)' : 'rgba(75,85,99,0.05)';
-                              statusBorder = isDark ? 'rgba(148,163,184,0.2)' : 'rgba(75,85,99,0.12)';
-                              icon = <AlertTriangle size={12} />;
-                            }
-                          }
-
-                          return (
-                            <div
-                              key={job.id}
-                              onClick={() => setSelectedJobForDetails(job)}
-                              style={{
-                                padding: '12px',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '10px',
-                                border: isSelected 
-                                  ? '1px solid var(--accent-purple)' 
-                                  : `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'}`,
-                                backgroundColor: isSelected
-                                  ? 'rgba(168, 85, 247, 0.08)'
-                                  : isDark ? 'rgba(255,255,255,0.01)' : 'rgba(15,23,42,0.01)',
-                                transition: 'all 0.2s ease'
-                              }}
-                            >
-                              <div style={{
-                                width: '22px',
-                                height: '22px',
-                                borderRadius: '50%',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                backgroundColor: statusBg,
-                                border: `1px solid ${statusBorder}`,
-                                color: statusColor,
-                                flexShrink: 0
-                              }}>
-                                {icon}
-                              </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flexGrow: 1 }}>
-                                <span style={{ 
-                                  fontSize: '0.85rem', 
-                                  fontWeight: isSelected ? 600 : 500,
-                                  color: 'var(--text-primary)',
-                                  whiteSpace: 'nowrap',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  textAlign: 'left'
-                                }}>
-                                  {job.displayName}
-                                </span>
-                                <span style={{ 
-                                  fontSize: '0.72rem', 
-                                  color: 'var(--text-secondary)',
-                                  marginTop: '2px',
-                                  textAlign: 'left',
-                                  textTransform: 'capitalize'
-                                }}>
-                                  {job.state === 'completed' ? job.result : job.state}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-
-                    {/* Right Panel: Selected Job Details */}
-                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflowY: 'auto' }}>
-                      {!selectedJobForDetails ? (
-                        <div style={{ 
-                          display: 'flex', 
-                          flexDirection: 'column', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          height: '100%', 
-                          color: 'var(--text-secondary)', 
-                          fontSize: '0.9rem',
-                          textAlign: 'center',
-                          gap: '12px'
-                        }}>
-                          <Cpu size={32} style={{ opacity: 0.4 }} />
-                          <span>Select a job to view run history and execution telemetry.</span>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
-                          <div>
-                            <span style={{ 
-                              fontSize: '0.72rem', 
-                              fontWeight: 600, 
-                              color: 'var(--accent-purple)', 
-                              textTransform: 'uppercase', 
-                              letterSpacing: '0.05em' 
-                            }}>
-                              Job Execution Details
-                            </span>
-                            <h4 style={{ fontSize: '1.1rem', fontWeight: 600, marginTop: '4px', color: 'var(--text-primary)' }}>
-                              {selectedJobForDetails.displayName}
-                            </h4>
-                          </div>
-
-                          <div style={{ 
-                            display: 'grid', 
-                            gridTemplateColumns: '1fr 1fr', 
-                            gap: '16px',
-                            backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.01)' : 'rgba(15,23,42,0.01)',
-                            padding: '16px',
-                            borderRadius: '8px',
-                            border: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'}`
-                          }}>
-                            <div>
-                              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Status State</div>
-                              <div style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '2px', color: 'var(--text-primary)', textTransform: 'capitalize' }}>
-                                {selectedJobForDetails.state}
-                              </div>
-                            </div>
-                            <div>
-                              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Result Status</div>
-                              <div style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '2px', color: selectedJobForDetails.result === 'succeeded' ? 'var(--success)' : selectedJobForDetails.result === 'failed' ? 'var(--error)' : 'var(--text-primary)', textTransform: 'capitalize' }}>
-                                {selectedJobForDetails.result || 'Active'}
-                              </div>
-                            </div>
-                            <div>
-                              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Start Time</div>
-                              <div style={{ fontSize: '0.82rem', marginTop: '2px', color: 'var(--text-primary)' }}>
-                                {selectedJobForDetails.startTime ? new Date(selectedJobForDetails.startTime).toLocaleString() : 'Not started'}
-                              </div>
-                            </div>
-                            <div>
-                              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Finish Time</div>
-                              <div style={{ fontSize: '0.82rem', marginTop: '2px', color: 'var(--text-primary)' }}>
-                                {selectedJobForDetails.finishTime ? new Date(selectedJobForDetails.finishTime).toLocaleString() : 'Active'}
-                              </div>
-                            </div>
-                            <div style={{ gridColumn: 'span 2' }}>
-                              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Execution Duration</div>
-                              <div style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '2px', color: 'var(--text-primary)' }}>
-                                {formatDuration(selectedJobForDetails.startTime, selectedJobForDetails.finishTime)}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                            Pipeline jobs run in secure corporate runners. You can view full execution logs, container images, build artifacts, and diagnostics logs directly inside Azure DevOps.
-                          </div>
-                        </div>
-                      )}
-
-                      <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
-                        <button 
-                          type="button" 
-                          className="btn-secondary" 
-                          onClick={() => {
-                            setSelectedStageForJobs(null);
-                            setSelectedJobForDetails(null);
-                          }}
-                        >
-                          Close
-                        </button>
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-              </div>
-            )}
-
-          </div>
+          <DashboardPage
+            apps={apps}
+            scanning={scanning}
+            scanProgress={scanProgress}
+            scanError={scanError}
+            appGroups={appGroups}
+            collapsedScanGroups={collapsedScanGroups}
+            toggleGroupScan={toggleGroupScan}
+            deletingAppName={deletingAppName}
+            handleDeleteApp={handleDeleteApp}
+            openDnsModal={openDnsModal}
+            openPipelineModal={openPipelineModal}
+            handleScan={handleScan}
+            theme={theme}
+            setSelectedStageForJobs={setSelectedStageForJobs}
+            azureDevopsOrgUrl={azureDevopsOrgUrl}
+            azureDevopsProject={azureDevopsProject}
+          />
         )}
 
         {/* TAB 2: PROVISION WEB APP WIZARD */}
         {activeTab === 'provision' && (
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: '280px 1fr', 
-            gap: '30px', 
-            maxWidth: '1200px', 
-            margin: '0 auto',
-            alignItems: 'stretch'
-          }}>
-            
-            {/* Left Column: Multi-step Vertical Stepper */}
-            <div className="glass-panel" style={{ 
-              padding: '36px 24px', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '0px',
-              height: '100%',
-              boxSizing: 'border-box'
-            }}>
-              {[
-                { stepNum: 1, label: 'GitHub Source Connection', sublabel: 'Select repository, triggers, and deployment target branch' },
-                { stepNum: 2, label: 'Verify Build Pipeline YML', sublabel: 'Review, modify, and commit azure-pipelines.yml configuration file' },
-                { stepNum: 3, label: appType === 'backend' ? 'Provision Azure ACA' : 'Provision Azure SWA', sublabel: 'Create managed container environments or static site hosts in the cloud' },
-                { stepNum: 4, label: 'Bindings & Launch Sequence', sublabel: 'Register Azure DevOps build pipelines and bind GoDaddy subdomains' }
-              ].map((s) => {
-                const isActive = provisionStep === s.stepNum;
-                const isCompleted = provisionStep > s.stepNum;
-                return (
-                  <div key={s.stepNum} style={{ 
-                    display: 'flex', 
-                    gap: '16px', 
-                    opacity: isActive || isCompleted ? 1 : 0.5,
-                    transition: 'opacity 0.3s ease'
-                  }}>
-                    {/* Stepper column line and circle */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
-                      <div style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        backgroundColor: isCompleted ? 'var(--accent-blue)' : isActive ? 'var(--bg-secondary)' : '#1e293b',
-                        border: `2px solid ${isCompleted ? 'var(--accent-blue)' : isActive ? 'var(--accent-purple)' : 'rgba(255,255,255,0.1)'}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: isCompleted || isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                        fontSize: '0.88rem',
-                        fontWeight: 600,
-                        boxShadow: isActive ? '0 0 12px var(--accent-purple-glow)' : 'none',
-                        transition: 'all 0.3s ease'
-                      }}>
-                        {isCompleted ? '✓' : s.stepNum}
-                      </div>
-                      {s.stepNum < 4 && (
-                        <div style={{ 
-                          width: '2px', 
-                          height: '38px',
-                          background: isCompleted 
-                            ? 'var(--accent-blue)' 
-                            : isActive 
-                              ? 'linear-gradient(180deg, var(--accent-purple), rgba(255,255,255,0.06))' 
-                              : 'rgba(255,255,255,0.06)', 
-                          margin: '4px 0' 
-                        }} />
-                      )}
-                    </div>
-                    
-                    {/* Label & Sublabel */}
-                    <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: s.stepNum < 4 ? '26px' : '0' }}>
-                      <span style={{ 
-                        fontSize: '0.88rem', 
-                        color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)', 
-                        fontWeight: isActive ? 600 : 400,
-                        lineHeight: '1.4'
-                      }}>
-                        {s.label}
-                      </span>
-                      <span style={{ 
-                        fontSize: '0.72rem', 
-                        color: 'var(--text-secondary)',
-                        marginTop: '4px',
-                        lineHeight: '1.4'
-                      }}>
-                        {s.sublabel}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Informative text at the bottom of the sidebar */}
-              <div style={{ 
-                marginTop: 'auto', 
-                paddingTop: '24px', 
-                borderTop: '1px solid var(--glass-border)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px'
-              }}>
-                <span style={{ 
-                  fontSize: '0.72rem', 
-                  color: 'var(--text-secondary)', 
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em'
-                }}>
-                  Security & Compliance
-                </span>
-                <p style={{ 
-                  fontSize: '0.72rem', 
-                  color: 'var(--text-secondary)', 
-                  lineHeight: '1.4', 
-                  margin: 0 
-                }}>
-                  All credentials and tokens are encrypted with AES-256-GCM keys. Generated build pipelines strictly conform to corporate DevOps security standards and automatically run dependency vulnerability checks.
-                </p>
-                <div style={{ 
-                  marginTop: '4px',
-                  fontSize: '0.72rem', 
-                  color: 'var(--accent-purple)', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '4px',
-                  fontWeight: 500
-                }}>
-                  <ShieldCheck size={12} /> Encrypted Credentials Active
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column: Active Step Content */}
-            <div className="glass-panel" style={{ padding: '36px', position: 'relative', overflow: 'hidden' }}>
-              
-              {/* Decorative top gradient border */}
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, var(--accent-purple), var(--accent-teal))' }} />
-
-              {/* STEP 1: GITHUB SOURCE SELECTION */}
-              {provisionStep === 1 && (
-                <div>
-                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                    <GitBranch style={{ color: 'var(--accent-purple)' }} />
-                    Select GitHub Repository & Branches
-                  </h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', marginBottom: '24px' }}>
-                    Choose the repository, target branches triggers, and the primary deploy branch. You can deploy frontends to Azure Static Web Apps or backends to Azure Container Apps.
-                  </p>
-
-                  <div style={{ marginBottom: '20px' }}>
-                    <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Application Type</label>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                      <button
-                        type="button"
-                        className={appType === 'frontend' ? 'btn-primary' : 'btn-secondary'}
-                        onClick={() => handleAppTypeChange('frontend')}
-                        style={{ flex: 1, padding: '10px', borderRadius: '8px', fontSize: '0.88rem', fontWeight: 600 }}
-                      >
-                        Frontend SWA
-                      </button>
-                      <button
-                        type="button"
-                        className={appType === 'backend' ? 'btn-primary' : 'btn-secondary'}
-                        onClick={() => handleAppTypeChange('backend')}
-                        style={{ flex: 1, padding: '10px', borderRadius: '8px', fontSize: '0.88rem', fontWeight: 600 }}
-                      >
-                        Backend ACA Container
-                      </button>
-                    </div>
-                  </div>
-
-                  <div style={{ marginBottom: '20px' }}>
-                    <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>GitHub Repository</label>
-                    <select 
-                      value={selectedRepo} 
-                      onChange={(e) => handleRepoChange(e.target.value)}
-                      style={{ background: 'var(--input-bg)', color: 'var(--text-primary)' }}
-                    >
-                      <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>-- Choose Repository --</option>
-                      {(() => {
-                        const { recommended, other } = getCategorizedRepos(appType);
-                        return (
-                          <>
-                            {recommended.length > 0 && (
-                              <optgroup label="Recommended Repositories" style={{ background: 'var(--bg-secondary)' }}>
-                                {recommended.map(repo => (
-                                  <option key={repo.id} value={repo.fullName} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{repo.fullName}</option>
-                                ))}
-                              </optgroup>
-                            )}
-                            {other.length > 0 && (
-                              <optgroup label="Other Repositories" style={{ background: 'var(--bg-secondary)' }}>
-                                {other.map(repo => (
-                                  <option key={repo.id} value={repo.fullName} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{repo.fullName}</option>
-                                ))}
-                              </optgroup>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </select>
-                  </div>
-
-                  {selectedRepo && (
-                    <div style={{ marginBottom: '24px' }}>
-                      <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Select Target Branches (triggers in YML)</label>
-                      {loadingBranches ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', background: 'rgba(15,23,42,0.4)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
-                          <RefreshCw size={14} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
-                          <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Loading repository branches...</span>
-                        </div>
-                      ) : (
-                        <div style={{ 
-                          display: 'flex', 
-                          flexDirection: 'column',
-                          gap: '6px', 
-                          maxHeight: '200px', 
-                          overflowY: 'auto', 
-                          overflowX: 'hidden',
-                          padding: '8px', 
-                          background: 'var(--input-bg)', 
-                          borderRadius: '8px', 
-                          border: '1px solid var(--glass-border)',
-                          width: '100%',
-                          boxSizing: 'border-box'
-                        }}>
-                          {branches.map((b) => {
-                            const isChecked = selectedBranches.includes(b.name);
-                            return (
-                              <label 
-                                key={b.name} 
-                                className={`branch-checkbox-item ${isChecked ? 'selected' : ''}`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setSelectedBranches([...selectedBranches, b.name]);
-                                    } else {
-                                      setSelectedBranches(selectedBranches.filter(x => x !== b.name));
-                                    }
-                                  }}
-                                  style={{ width: '16px', height: '16px', flexShrink: 0, marginTop: '2px', cursor: 'pointer' }}
-                                />
-                                <span style={{ 
-                                  minWidth: 0, 
-                                  wordBreak: 'break-all', 
-                                  whiteSpace: 'normal',
-                                  lineHeight: '1.4' 
-                                }}>
-                                  {b.name}{b.protected ? ' 🔒' : ''}
-                                </span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      )}
-                      
-                      {selectedBranches.length > 0 && (
-                        <div style={{ marginTop: '16px' }}>
-                          <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Primary Deploy Branch (Initial target)</label>
-                          <select
-                            value={selectedBranch}
-                            onChange={(e) => setSelectedBranch(e.target.value)}
-                            style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)' }}
-                          >
-                            {selectedBranches.map(bName => (
-                              <option key={bName} value={bName} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{bName}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* DUPLICATE DEPLOYMENT WARNING */}
-                  {(() => {
-                    const isRepoDeployed = selectedRepo && apps.some(a => a.repositoryUrl && a.repositoryUrl.toLowerCase().includes(selectedRepo.toLowerCase()));
-                    const matchingApp = isRepoDeployed ? apps.find(a => a.repositoryUrl && a.repositoryUrl.toLowerCase().includes(selectedRepo.toLowerCase())) : null;
-                    if (matchingApp) {
-                      return (
-                        <div className="glass-panel" style={{ padding: '16px', borderColor: 'var(--warning)', backgroundColor: 'rgba(245,158,11,0.08)', color: 'var(--text-primary)', marginBottom: '24px', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                          <AlertTriangle style={{ color: 'var(--warning)', flexShrink: 0, marginTop: '2px' }} size={18} />
-                          <div style={{ fontSize: '0.9rem', lineHeight: 1.5 }}>
-                            <strong style={{ color: 'var(--warning)' }}>Already Deployed Warning:</strong> This repository is already associated with {matchingApp.type} <strong style={{ color: 'var(--text-primary)' }}>{matchingApp.name}</strong>. Deploying again will configure a duplicate instance.
-                          </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
-
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px' }}>
-                    <button 
-                      type="button" 
-                      className="btn-primary" 
-                      disabled={!selectedRepo || selectedBranches.length === 0 || loadingBranches}
-                      onClick={() => handleMoveToStep2()}
-                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                    >
-                      Verify Pipeline YAML <ArrowRight size={16} />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 2: PIPELINE YAML CONFIGURATION */}
-              {provisionStep === 2 && (
-                <div>
-                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                    <Settings style={{ color: 'var(--accent-purple)' }} />
-                    Verify & Customize Build Pipeline YML
-                  </h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', marginBottom: '20px' }}>
-                    Configure the `azure-pipelines.yml` file to be committed to branch <strong>{selectedBranch}</strong>. This YML defines trigger branches and handles automated builds.
-                  </p>
-
-                  {ymlLoading ? (
-                    <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-                      <RefreshCw size={36} className="spin-anim" style={{ color: 'var(--accent-purple)', marginBottom: '12px' }} />
-                      <p style={{ color: 'var(--text-secondary)' }}>Loading azure-pipelines.yml configuration...</p>
-                    </div>
-                  ) : (
-                    <div>
-                      {ymlError && (
-                        <div className="glass-panel" style={{ padding: '16px', borderColor: 'var(--error)', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--text-primary)', marginBottom: '20px', fontSize: '0.9rem' }}>
-                          {ymlError}
-                        </div>
-                      )}
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                          Status: {ymlSource === 'github' ? (
-                            <strong style={{ color: 'var(--success)' }}>✓ Loaded existing YML from GitHub branch</strong>
-                          ) : (
-                            <strong style={{ color: 'var(--accent-purple)' }}>ℹ Custom pipeline template generated</strong>
-                          )}
-                        </span>
-                        
-                        <button
-                          type="button"
-                          className="btn-secondary"
-                          onClick={handleCommitCustomYml}
-                          disabled={creatingYml}
-                          style={{ padding: '4px 12px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '5px' }}
-                        >
-                          {creatingYml ? (
-                            <><RefreshCw size={12} className="spin-anim" /> Committing...</>
-                          ) : (
-                            'Commit YML to GitHub'
-                          )}
-                        </button>
-                      </div>
-
-                      <div className="glass-panel" style={{ padding: '16px', backgroundColor: '#0f172a', border: '1px solid var(--glass-border)', borderRadius: '8px', marginBottom: '20px' }}>
-                        <textarea
-                          value={ymlContent}
-                          onChange={(e) => setYmlContent(e.target.value)}
-                          rows={14}
-                          style={{
-                            width: '100%',
-                            fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-                            fontSize: '0.85rem',
-                            color: '#e2e8f0',
-                            background: 'transparent',
-                            border: 'none',
-                            outline: 'none',
-                            resize: 'vertical',
-                            lineHeight: '1.5'
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px', borderTop: '1px solid var(--glass-border)', paddingTop: '20px' }}>
-                    <button 
-                      type="button" 
-                      className="btn-secondary" 
-                      onClick={() => setProvisionStep(1)}
-                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                    >
-                      <ArrowLeft size={16} /> Back
-                    </button>
-                    
-                    <button 
-                      type="button" 
-                      className="btn-primary" 
-                      disabled={ymlLoading || creatingYml || !ymlContent}
-                      onClick={() => setProvisionStep(3)}
-                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                    >
-                      Azure Resource Setup <ArrowRight size={16} />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 3: AZURE SWA / ACA PROVISIONING */}
-              {provisionStep === 3 && (
-                <div>
-                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                    <PlusCircle style={{ color: 'var(--accent-purple)' }} />
-                    {appType === 'backend' ? 'Provision Azure Container App' : 'Provision Azure SWA Resource'}
-                  </h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', marginBottom: '24px' }}>
-                    {appType === 'backend' 
-                      ? 'Create a secure, managed container app on Azure to host your backend services. It runs in the regional container environment.' 
-                      : 'Create a high-availability Static Web App container in Azure. Azure will host the frontend bundle and supply a default hostname.'}
-                  </p>
-
-                  {provisionSuccess && (
-                    <div className="glass-panel" style={{ padding: '16px', borderColor: 'var(--success)', backgroundColor: 'rgba(34, 197, 94, 0.1)', color: 'var(--text-primary)', marginBottom: '20px', fontSize: '0.9rem' }}>
-                      {provisionSuccess}
-                    </div>
-                  )}
-
-                  {provisionError && (
-                    <div className="glass-panel" style={{ padding: '16px', borderColor: 'var(--error)', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--text-primary)', marginBottom: '20px', fontSize: '0.9rem' }}>
-                      {provisionError}
-                    </div>
-                  )}
-
-                  <form onSubmit={handleProvision}>
-                    <div style={{ marginBottom: '20px' }}>
-                      <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                        {appType === 'backend' ? 'Container App Name' : 'Static Web App Name'}
-                      </label>
-                      <input 
-                        type="text" 
-                        value={newName} 
-                        onChange={(e) => setNewName(e.target.value)} 
-                        placeholder={appType === 'backend' ? 'estevia-brand-api' : 'estevia-brand-site-swa'} 
-                        required 
-                        disabled={provisioning}
-                      />
-                    </div>
-
-                    {appType === 'backend' && (
-                      <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Target Ingress Port</label>
-                        <input 
-                          type="number" 
-                          value={targetPort} 
-                          onChange={(e) => setTargetPort(e.target.value)} 
-                          placeholder="5005" 
-                          required 
-                          disabled={provisioning}
-                        />
-                      </div>
-                    )}
-                    
-                    <div style={{ marginBottom: '24px' }}>
-                      <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Azure Region Location</label>
-                      <select value={newLocation} onChange={(e) => setNewLocation(e.target.value)} disabled={provisioning}>
-                        <option value="eastus2">East US 2 (Recommended)</option>
-                        <option value="centralus">Central US</option>
-                        <option value="westus2">West US 2</option>
-                      </select>
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px', borderTop: '1px solid var(--glass-border)', paddingTop: '20px' }}>
-                      <button 
-                        type="button" 
-                        className="btn-secondary" 
-                        onClick={() => setProvisionStep(2)}
-                        disabled={provisioning}
-                        style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                      >
-                        <ArrowLeft size={16} /> Back
-                      </button>
-                      
-                      <button 
-                        type="submit" 
-                        className="btn-primary" 
-                        disabled={provisioning || !newName}
-                        style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                      >
-                        {provisioning ? (
-                          <>
-                            <RefreshCw size={14} className="spin-anim" /> Allocating {appType === 'backend' ? 'Container App' : 'SWA'} (10-20s)...
-                          </>
-                        ) : (
-                          <>
-                            Deploy {appType === 'backend' ? 'Container App' : 'SWA'} Resource <ArrowRight size={16} />
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
-
-              {/* STEP 4: BINDINGS & CI/CD PIPELINE */}
-              {provisionStep === 4 && (
-                <div>
-                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                    <ShieldCheck style={{ color: 'var(--accent-teal)' }} />
-                    Finalize DNS Bindings & CI/CD Pipelines
-                  </h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', marginBottom: '24px' }}>
-                    The Azure resource is active! Now connect it to your Azure DevOps pipeline for CI/CD automation and link your GoDaddy custom subdomain.
-                  </p>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '32px' }}>
-                    
-                    {/* Pipeline Registration Card */}
-                    <div className="glass-panel" style={{ padding: '20px', border: pipelineRegSuccess ? '1px solid rgba(34,197,94,0.3)' : '1px solid var(--glass-border)', backgroundColor: pipelineRegSuccess ? 'rgba(34,197,94,0.02)' : 'transparent' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
-                        <div>
-                          <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', fontWeight: 600 }}>
-                            <GitBranch size={16} style={{ color: 'var(--accent-purple)' }} />
-                            1. Register CI/CD Build Pipeline
-                          </h4>
-                          <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginTop: '4px' }}>
-                            Creates the build configuration on Azure DevOps linked to branch <strong>{selectedBranch}</strong>.
-                          </p>
-                        </div>
-                        {pipelineRegSuccess && (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--success)', backgroundColor: 'rgba(34,197,94,0.1)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(34,197,94,0.2)' }}>
-                            Registered ✓
-                          </span>
-                        )}
-                      </div>
-
-                      {pipelineRegError && (
-                        <div style={{ color: 'var(--error)', fontSize: '0.82rem', marginBottom: '12px', padding: '8px 12px', borderRadius: '6px', backgroundColor: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                          {pipelineRegError}
-                        </div>
-                      )}
-
-                      {!pipelineRegSuccess ? (
-                        <button 
-                          className="btn-primary" 
-                          onClick={handleRegisterPipeline}
-                          disabled={pipelineRegistering}
-                          style={{ padding: '8px 16px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}
-                        >
-                          {pipelineRegistering ? (
-                            <>
-                              <RefreshCw size={12} className="spin-anim" /> Registering...
-                            </>
-                          ) : (
-                            'Create Pipeline in DevOps'
-                          )}
-                        </button>
-                      ) : (
-                        registeredPipelineUrl && (
-                          <a href={registeredPipelineUrl} target="_blank" rel="noreferrer" className="btn-secondary"
-                             style={{ padding: '8px 16px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}>
-                            Open Build Pipeline <ExternalLink size={12} />
-                          </a>
-                        )
-                      )}
-                    </div>
-
-                    {/* DNS Domain Binding Card */}
-                    <div className="glass-panel" style={{ padding: '20px', border: dnsBindSuccess ? '1px solid rgba(34,197,94,0.3)' : '1px solid var(--glass-border)', backgroundColor: dnsBindSuccess ? 'rgba(34,197,94,0.02)' : 'transparent' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
-                        <div>
-                          <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', fontWeight: 600 }}>
-                            <Globe size={16} style={{ color: 'var(--accent-teal)' }} />
-                            2. Configure GoDaddy Custom DNS Bindings
-                          </h4>
-                          <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginTop: '4px' }}>
-                            Binds FQDN subdomain <strong>{newName}.{domainInput}</strong> on GoDaddy zone file.
-                          </p>
-                        </div>
-                        {dnsBindSuccess && (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--success)', backgroundColor: 'rgba(34,197,94,0.1)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(34,197,94,0.2)' }}>
-                            Active ✓
-                          </span>
-                        )}
-                      </div>
-
-                      {dnsBindError && (
-                        <div style={{ color: 'var(--error)', fontSize: '0.82rem', marginBottom: '12px', padding: '8px 12px', borderRadius: '6px', backgroundColor: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                          {dnsBindError}
-                        </div>
-                      )}
-
-                      {!dnsBindSuccess ? (
-                        <button 
-                          className="btn-primary" 
-                          onClick={handleDnsBind}
-                          disabled={dnsBinding}
-                          style={{ padding: '8px 16px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}
-                        >
-                          {dnsBinding ? (
-                            <>
-                              <RefreshCw size={12} className="spin-anim" /> Mapping DNS...
-                            </>
-                          ) : (
-                            'Bind Domain & Map DNS'
-                          )}
-                        </button>
-                      ) : (
-                        <a href={`https://${newName}.${domainInput}`} target="_blank" rel="noreferrer" className="btn-secondary"
-                           style={{ padding: '8px 16px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}>
-                          Launch Custom Domain <ExternalLink size={12} />
-                        </a>
-                      )}
-                    </div>
-
-                  </div>
-
-                  {/* SUMMARY SECTION ONCE LAUNCHED */}
-                  <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                    <button 
-                      type="button" 
-                      className="btn-secondary"
-                      onClick={() => {
-                        // Reset all wizard states
-                        setSelectedRepo('');
-                        setSelectedBranch('');
-                        setBranches([]);
-                        setNewName('');
-                        setProvisionStep(1);
-                        setProvisionSuccess(null);
-                        setProvisionError(null);
-                        setPipelineRegSuccess(false);
-                        setPipelineRegError(null);
-                        setDnsBindSuccess(false);
-                        setDnsBindError(null);
-                        setYmlFound(null);
-                        setYmlMissing(null);
-                        setYmlCreated(false);
-                      }}
-                    >
-                      Provision Another App
-                    </button>
-                    <button 
-                      type="button" 
-                      className="btn-primary"
-                      onClick={() => {
-                        setActiveTab('scan');
-                        handleScan();
-                      }}
-                    >
-                      Go to Scanning Dashboard
-                    </button>
-                  </div>
-                </div>
-              )}
-
-            </div>
-          </div>
+          <ProvisionWizard
+            provisionStep={provisionStep}
+            setProvisionStep={setProvisionStep}
+            appType={appType}
+            setAppType={setAppType}
+            newName={newName}
+            setNewName={setNewName}
+            newLocation={newLocation}
+            setNewLocation={setNewLocation}
+            targetPort={targetPort}
+            setTargetPort={setTargetPort}
+            selectedRepo={selectedRepo}
+            setSelectedRepo={setSelectedRepo}
+            selectedBranch={selectedBranch}
+            setSelectedBranch={setSelectedBranch}
+            selectedBranches={selectedBranches}
+            setSelectedBranches={setSelectedBranches}
+            branches={branches}
+            setBranches={setBranches}
+            loadingBranches={loadingBranches}
+            apps={apps}
+            ymlLoading={ymlLoading}
+            ymlError={ymlError}
+            setYmlError={setYmlError}
+            ymlContent={ymlContent}
+            setYmlContent={setYmlContent}
+            ymlSource={ymlSource}
+            creatingYml={creatingYml}
+            provisioning={provisioning}
+            provisionSuccess={provisionSuccess}
+            setProvisionSuccess={setProvisionSuccess}
+            provisionError={provisionError}
+            setProvisionError={setProvisionError}
+            pipelineRegSuccess={pipelineRegSuccess}
+            pipelineRegError={pipelineRegError}
+            pipelineRegistering={pipelineRegistering}
+            registeredPipelineUrl={registeredPipelineUrl}
+            dnsBindSuccess={dnsBindSuccess}
+            dnsBindError={dnsBindError}
+            dnsBinding={dnsBinding}
+            domainInput={domainInput}
+            getCategorizedRepos={getCategorizedRepos}
+            handleAppTypeChange={handleAppTypeChange}
+            handleRepoChange={handleRepoChange}
+            handleMoveToStep2={handleMoveToStep2}
+            handleCommitCustomYml={handleCommitCustomYml}
+            handleProvision={handleProvision}
+            handleRegisterPipeline={handleRegisterPipeline}
+            handleDnsBind={handleDnsBind}
+            organizationId={organizationId}
+            API_BASE={API_BASE}
+            locations={locations}
+            resourceGroups={resourceGroups}
+            managedEnvironments={managedEnvironments}
+            containerRegistries={containerRegistries}
+            serviceConnections={serviceConnections}
+            loadingMetadata={loadingMetadata}
+            selectedResourceGroup={selectedResourceGroup}
+            setSelectedResourceGroup={setSelectedResourceGroup}
+            selectedManagedEnvironment={selectedManagedEnvironment}
+            setSelectedManagedEnvironment={setSelectedManagedEnvironment}
+            selectedCpu={selectedCpu}
+            setSelectedCpu={setSelectedCpu}
+            selectedMemory={selectedMemory}
+            setSelectedMemory={setSelectedMemory}
+            minReplicas={minReplicas}
+            setMinReplicas={setMinReplicas}
+            maxReplicas={maxReplicas}
+            setMaxReplicas={setMaxReplicas}
+            customAppLocation={customAppLocation}
+            setCustomAppLocation={setCustomAppLocation}
+            customApiLocation={customApiLocation}
+            setCustomApiLocation={setCustomApiLocation}
+            customOutputLocation={customOutputLocation}
+            setCustomOutputLocation={setCustomOutputLocation}
+            dockerfileMissing={dockerfileMissing}
+            setDockerfileMissing={setDockerfileMissing}
+            committingDockerfile={committingDockerfile}
+            setCommittingDockerfile={setCommittingDockerfile}
+            dockerfileCheckError={dockerfileCheckError}
+            setDockerfileCheckError={setDockerfileCheckError}
+            checkDockerfile={checkDockerfile}
+            commitDefaultDockerfile={commitDefaultDockerfile}
+            setPipelineRegSuccess={setPipelineRegSuccess}
+            setPipelineRegError={setPipelineRegError}
+            setDnsBindSuccess={setDnsBindSuccess}
+            setDnsBindError={setDnsBindError}
+            dockerfileChecked={dockerfileChecked}
+            dockerfileContent={dockerfileContent}
+            dockerfileLoading={dockerfileLoading}
+            fetchDockerfileContent={fetchDockerfileContent}
+            pushDockerfileContent={pushDockerfileContent}
+            provisionErrorDetail={provisionErrorDetail}
+            setConfirmDialog={setConfirmDialog}
+          />
         )}
 
         {/* TAB 3: CREDENTIALS MANAGEMENT */}
         {activeTab === 'credentials' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '30px' }}>
-            
-            {/* Combined Integration Keys & Registry Status */}
-            <div>
-              <div className="glass-panel" style={{ padding: '32px', height: '100%' }}>
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                  <Database style={{ color: 'var(--accent-teal)' }} />
-                  Database Credentials & Integration Keys
-                </h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '24px' }}>
-                  Manage decrypted API keys and integration tokens retrieved dynamically from the database via <strong>AES-256-GCM</strong>.
-                </p>
-
-                {credMsg && (
-                  <div className="glass-panel" style={{ 
-                    padding: '12px', 
-                    borderColor: credMsg.type === 'success' ? 'var(--success)' : 'var(--error)', 
-                    backgroundColor: credMsg.type === 'success' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                    color: 'var(--text-primary)', 
-                    marginBottom: '20px',
-                    fontSize: '0.9rem'
-                  }}>
-                    {credMsg.text}
-                  </div>
-                )}
-
-                <div style={{ display: 'grid', gap: '24px' }}>
-                  
-                  {/* GitHub Config */}
-                  <div style={{ borderBottom: '1px solid var(--glass-border)', paddingBottom: '20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                      <div>
-                        <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--accent-purple)' }}>GitHub Personal Access Token</h4>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '2px' }}>Powers pipeline templates commits & repo scanner.</p>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {credentialStatus.github && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (githubToken !== '' && showGithubToken) {
-                                setGithubToken('••••••••••••••••••••');
-                                setShowGithubToken(false);
-                              } else {
-                                handleLoadSavedCredential('github');
-                              }
-                            }}
-                            style={{
-                              background: 'rgba(255, 255, 255, 0.05)',
-                              border: '1px solid var(--glass-border)',
-                              color: 'var(--accent-purple)',
-                              fontSize: '0.75rem',
-                              padding: '4px 12px',
-                              borderRadius: '20px',
-                              cursor: 'pointer',
-                              fontWeight: 500,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px'
-                            }}
-                          >
-                            {githubToken !== '' && showGithubToken ? (
-                              <>
-                                <EyeOff size={12} />
-                                Hide Saved
-                              </>
-                            ) : (
-                              <>
-                                <Eye size={12} />
-                                Reveal Saved
-                              </>
-                            )}
-                          </button>
-                        )}
-                        <span style={{ 
-                          fontSize: '0.8rem', 
-                          color: credentialStatus.github ? 'var(--success)' : 'var(--error)', 
-                          background: credentialStatus.github ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                          padding: '4px 10px',
-                          borderRadius: '20px',
-                          fontWeight: 500
-                        }}>
-                          {credentialStatus.github ? 'ACTIVE (ENCRYPTED)' : 'NOT CONFIGURED'}
-                        </span>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                      <div style={{ position: 'relative', flex: 1 }}>
-                        <input 
-                          type={showGithubToken ? "text" : "password"} 
-                          value={githubToken} 
-                          onChange={(e) => setGithubToken(e.target.value)} 
-                          placeholder="ghp_...................................." 
-                          style={{ paddingRight: '40px' }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowGithubToken(!showGithubToken)}
-                          style={{
-                            position: 'absolute',
-                            right: '12px',
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            background: 'none',
-                            border: 'none',
-                            color: 'var(--text-secondary)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            padding: 0
-                          }}
-                        >
-                          {showGithubToken ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
-                      </div>
-                      <button 
-                        className="btn-primary" 
-                        onClick={() => handleSaveCredential('github', { token: githubToken }, 'GitHub Platform Token')}
-                        disabled={savingCredentials === 'github' || !githubToken || githubToken === '••••••••••••••••••••' || (!!decryptedGithubToken && githubToken === decryptedGithubToken)}
-                      >
-                        {savingCredentials === 'github' ? 'Saving...' : 'Save'}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* GoDaddy Config */}
-                  <div style={{ borderBottom: '1px solid var(--glass-border)', paddingBottom: '20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                      <div>
-                        <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--accent-teal)' }}>GoDaddy API Credentials</h4>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '2px' }}>Powers automatic DNS record binding.</p>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {credentialStatus.godaddy && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if ((godaddyKey !== '' || godaddySecret !== '') && showGodaddyKey) {
-                                setGodaddyKey('••••••••••••••••••••');
-                                setGodaddySecret('••••••••••••••••••••');
-                                setShowGodaddyKey(false);
-                                setShowGodaddySecret(false);
-                              } else {
-                                handleLoadSavedCredential('godaddy');
-                              }
-                            }}
-                            style={{
-                              background: 'rgba(255, 255, 255, 0.05)',
-                              border: '1px solid var(--glass-border)',
-                              color: 'var(--accent-teal)',
-                              fontSize: '0.75rem',
-                              padding: '4px 12px',
-                              borderRadius: '20px',
-                              cursor: 'pointer',
-                              fontWeight: 500,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px'
-                            }}
-                          >
-                            {(godaddyKey !== '' || godaddySecret !== '') && showGodaddyKey ? (
-                              <>
-                                <EyeOff size={12} />
-                                Hide Saved
-                              </>
-                            ) : (
-                              <>
-                                <Eye size={12} />
-                                Reveal Saved
-                              </>
-                            )}
-                          </button>
-                        )}
-                        <span style={{ 
-                          fontSize: '0.8rem', 
-                          color: credentialStatus.godaddy ? 'var(--success)' : 'var(--error)', 
-                          background: credentialStatus.godaddy ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                          padding: '4px 10px',
-                          borderRadius: '20px',
-                          fontWeight: 500
-                        }}>
-                          {credentialStatus.godaddy ? 'ACTIVE (ENCRYPTED)' : 'NOT CONFIGURED'}
-                        </span>
-                      </div>
-                    </div>
-                    <div style={{ display: 'grid', gap: '10px', marginBottom: '10px' }}>
-                      <div style={{ position: 'relative' }}>
-                        <input 
-                          type={showGodaddyKey ? "text" : "password"} 
-                          value={godaddyKey} 
-                          onChange={(e) => setGodaddyKey(e.target.value)} 
-                          placeholder="GoDaddy API Key" 
-                          style={{ paddingRight: '40px' }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowGodaddyKey(!showGodaddyKey)}
-                          style={{
-                            position: 'absolute',
-                            right: '12px',
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            background: 'none',
-                            border: 'none',
-                            color: 'var(--text-secondary)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            padding: 0
-                          }}
-                        >
-                          {showGodaddyKey ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
-                      </div>
-                      <div style={{ position: 'relative' }}>
-                        <input 
-                          type={showGodaddySecret ? "text" : "password"} 
-                          value={godaddySecret} 
-                          onChange={(e) => setGodaddySecret(e.target.value)} 
-                          placeholder="GoDaddy API Secret" 
-                          style={{ paddingRight: '40px' }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowGodaddySecret(!showGodaddySecret)}
-                          style={{
-                            position: 'absolute',
-                            right: '12px',
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            background: 'none',
-                            border: 'none',
-                            color: 'var(--text-secondary)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            padding: 0
-                          }}
-                        >
-                          {showGodaddySecret ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
-                      </div>
-                    </div>
-                    <button 
-                      className="btn-primary" 
-                      onClick={() => handleSaveCredential('godaddy', { apiKey: godaddyKey, apiSecret: godaddySecret }, 'GoDaddy Domain API Keys')}
-                      disabled={savingCredentials === 'godaddy' || !godaddyKey || !godaddySecret || godaddyKey === '••••••••••••••••••••' || godaddySecret === '••••••••••••••••••••' || (!!decryptedGodaddyKey && godaddyKey === decryptedGodaddyKey && godaddySecret === decryptedGodaddySecret)}
-                      style={{ width: '100%' }}
-                    >
-                      {savingCredentials === 'godaddy' ? 'Saving GoDaddy API Keys...' : 'Save GoDaddy Keys'}
-                    </button>
-                  </div>
-
-                  {/* Azure DevOps Config */}
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                      <div>
-                        <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--accent-blue)' }}>Azure DevOps PAT</h4>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '2px' }}>Registers pipelines & triggers builds.</p>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {credentialStatus.azure_devops && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (devopsPat !== '' && showDevopsPat) {
-                                setDevopsPat('••••••••••••••••••••');
-                                setShowDevopsPat(false);
-                              } else {
-                                handleLoadSavedCredential('azure_devops');
-                              }
-                            }}
-                            style={{
-                              background: 'rgba(255, 255, 255, 0.05)',
-                              border: '1px solid var(--glass-border)',
-                              color: 'var(--accent-blue)',
-                              fontSize: '0.75rem',
-                              padding: '4px 12px',
-                              borderRadius: '20px',
-                              cursor: 'pointer',
-                              fontWeight: 500,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px'
-                            }}
-                          >
-                            {devopsPat !== '' && showDevopsPat ? (
-                              <>
-                                <EyeOff size={12} />
-                                Hide Saved
-                              </>
-                            ) : (
-                              <>
-                                <Eye size={12} />
-                                Reveal Saved
-                              </>
-                            )}
-                          </button>
-                        )}
-                        <span style={{ 
-                          fontSize: '0.8rem', 
-                          color: credentialStatus.azure_devops ? 'var(--success)' : 'var(--error)', 
-                          background: credentialStatus.azure_devops ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                          padding: '4px 10px',
-                          borderRadius: '20px',
-                          fontWeight: 500
-                        }}>
-                          {credentialStatus.azure_devops ? 'ACTIVE (ENCRYPTED)' : 'NOT CONFIGURED'}
-                        </span>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                      <div style={{ position: 'relative', flex: 1 }}>
-                        <input 
-                          type={showDevopsPat ? "text" : "password"} 
-                          value={devopsPat} 
-                          onChange={(e) => setDevopsPat(e.target.value)} 
-                          placeholder="Azure DevOps PAT (Pipeline Scope)" 
-                          style={{ paddingRight: '40px' }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowDevopsPat(!showDevopsPat)}
-                          style={{
-                            position: 'absolute',
-                            right: '12px',
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            background: 'none',
-                            border: 'none',
-                            color: 'var(--text-secondary)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            padding: 0
-                          }}
-                        >
-                          {showDevopsPat ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
-                      </div>
-                      <button 
-                        className="btn-primary" 
-                        onClick={() => handleSaveCredential('azure_devops', { pat: devopsPat }, 'Azure DevOps Pipeline PAT')}
-                        disabled={savingCredentials === 'azure_devops' || !devopsPat || devopsPat === '••••••••••••••••••••' || (!!decryptedDevopsPat && devopsPat === decryptedDevopsPat)}
-                      >
-                        {savingCredentials === 'azure_devops' ? 'Saving...' : 'Save'}
-                      </button>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-            </div>
-
-            {/* Organization Settings Panel */}
-            <div>
-              <div className="glass-panel" style={{ padding: '32px', height: '100%' }}>
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                  <Settings style={{ color: 'var(--accent-teal)' }} />
-                  Organization Settings
-                </h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '20px' }}>
-                  Infrastructure config, DNS domain, DevOps settings, and GitHub owner mapping.
-                </p>
-
-                {settingsMsg && (
-                  <div className="glass-panel" style={{ 
-                    padding: '12px', 
-                    borderColor: settingsMsg.type === 'success' ? 'var(--success)' : 'var(--error)', 
-                    backgroundColor: settingsMsg.type === 'success' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                    color: 'var(--text-primary)', 
-                    marginBottom: '20px',
-                    fontSize: '0.9rem'
-                  }}>
-                    {settingsMsg.text}
-                  </div>
-                )}
-
-                <form onSubmit={handleSaveSettings}>
-                  <div style={{ display: 'grid', gap: '16px' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Azure Subscription ID</label>
-                      <input 
-                        type="text" 
-                        value={azureSubscriptionId} 
-                        onChange={(e) => setAzureSubscriptionId(e.target.value)} 
-                        placeholder="a812e8e3-34f9-4773-82ee-6398869533b0"
-                        required 
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Azure Target Resource Group</label>
-                      <input 
-                        type="text" 
-                        value={azureResourceGroup} 
-                        onChange={(e) => setAzureResourceGroup(e.target.value)} 
-                        placeholder="Estevia-Prod-RG"
-                        required 
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Default DNS Domain</label>
-                      <input 
-                        type="text" 
-                        value={defaultDnsDomain} 
-                        onChange={(e) => setDefaultDnsDomain(e.target.value)} 
-                        placeholder="esteviatech.com"
-                        required 
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Azure DevOps Org URL</label>
-                      <input 
-                        type="text" 
-                        value={azureDevopsOrgUrl} 
-                        onChange={(e) => setAzureDevopsOrgUrl(e.target.value)} 
-                        placeholder="https://dev.azure.com/esteviatech"
-                        required 
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Azure DevOps Project Name</label>
-                      <input 
-                        type="text" 
-                        value={azureDevopsProject} 
-                        onChange={(e) => setAzureDevopsProject(e.target.value)} 
-                        placeholder="Estevia-Platform"
-                        required 
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Pipeline Variable Group</label>
-                      <input 
-                        type="text" 
-                        value={pipelineVariableGroup} 
-                        onChange={(e) => setPipelineVariableGroup(e.target.value)} 
-                        placeholder="estevia-frontend-vars"
-                        required 
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>GitHub Owner/Org</label>
-                      <input 
-                        type="text" 
-                        value={githubOwner} 
-                        onChange={(e) => setGithubOwner(e.target.value)} 
-                        placeholder="Estevia-TechSolutions"
-                        required 
-                      />
-                    </div>
-
-                    <button 
-                      type="submit" 
-                      className="btn-primary" 
-                      disabled={savingSettings}
-                      style={{ width: '100%', marginTop: '8px' }}
-                    >
-                      {savingSettings ? 'Saving Settings...' : 'Save Settings'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-
-          </div>
+          <CredentialsPage
+            githubToken={githubToken}
+            setGithubToken={setGithubToken}
+            showGithubToken={showGithubToken}
+            setShowGithubToken={setShowGithubToken}
+            decryptedGithubToken={decryptedGithubToken}
+            credentialStatus={credentialStatus}
+            savingCredentials={savingCredentials}
+            credMsg={credMsg}
+            handleLoadSavedCredential={handleLoadSavedCredential}
+            handleSaveCredential={handleSaveCredential}
+            godaddyKey={godaddyKey}
+            setGodaddyKey={setGodaddyKey}
+            godaddySecret={godaddySecret}
+            setGodaddySecret={setGodaddySecret}
+            showGodaddyKey={showGodaddyKey}
+            setShowGodaddyKey={setShowGodaddyKey}
+            showGodaddySecret={showGodaddySecret}
+            setShowGodaddySecret={setShowGodaddySecret}
+            decryptedGodaddyKey={decryptedGodaddyKey}
+            decryptedGodaddySecret={decryptedGodaddySecret}
+            devopsPat={devopsPat}
+            setDevopsPat={setDevopsPat}
+            showDevopsPat={showDevopsPat}
+            setShowDevopsPat={setShowDevopsPat}
+            decryptedDevopsPat={decryptedDevopsPat}
+            azureSubscriptionId={azureSubscriptionId}
+            setAzureSubscriptionId={setAzureSubscriptionId}
+            azureResourceGroup={azureResourceGroup}
+            setAzureResourceGroup={setAzureResourceGroup}
+            defaultDnsDomain={defaultDnsDomain}
+            setDefaultDnsDomain={setDefaultDnsDomain}
+            azureDevopsOrgUrl={azureDevopsOrgUrl}
+            setAzureDevopsOrgUrl={setAzureDevopsOrgUrl}
+            azureDevopsProject={azureDevopsProject}
+            setAzureDevopsProject={setAzureDevopsProject}
+            pipelineVariableGroup={pipelineVariableGroup}
+            setPipelineVariableGroup={setPipelineVariableGroup}
+            githubOwner={githubOwner}
+            setGithubOwner={setGithubOwner}
+            azureContainerRegistry={azureContainerRegistry}
+            setAzureContainerRegistry={setAzureContainerRegistry}
+            azureDevopsServiceConnection={azureDevopsServiceConnection}
+            setAzureDevopsServiceConnection={setAzureDevopsServiceConnection}
+            dockerRegistryServiceConnection={dockerRegistryServiceConnection}
+            setDockerRegistryServiceConnection={setDockerRegistryServiceConnection}
+            savingSettings={savingSettings}
+            settingsMsg={settingsMsg}
+            handleSaveSettings={handleSaveSettings}
+            containerRegistries={containerRegistries}
+            serviceConnections={serviceConnections}
+            loadingMetadata={loadingMetadata}
+          />
         )}
+
+
 
         {/* TAB 4: COST MANAGEMENT */}
         {activeTab === 'cost' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-            
-            {/* Overview Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-              <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px' }}>
-                <div style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: '12px',
-                  background: 'rgba(139, 92, 246, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--accent-purple)'
-                }}>
-                  <Database size={28} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Monthly Run Rate</h3>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
-                    <span style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                      ${costSummary ? costSummary.monthlyRunRate.toFixed(2) : '0.00'}
-                    </span>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>/ month</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px' }}>
-                <div style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: '12px',
-                  background: 'rgba(16, 185, 129, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--success)'
-                }}>
-                  <CheckCircle2 size={28} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Potential Savings</h3>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
-                    <span style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--success)' }}>
-                      ${costSummary ? costSummary.potentialSavings.toFixed(2) : '0.00'}
-                    </span>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>/ month</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px' }}>
-                <div style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: '12px',
-                  background: 'rgba(59, 130, 246, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#3b82f6'
-                }}>
-                  <span style={{ fontSize: '1.5rem', fontWeight: 700 }}>
-                    {costSummary ? costSummary.optimizationScore : '100'}
-                  </span>
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Cost Optimization Score</h3>
-                  <div style={{ height: '6px', width: '120px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', marginTop: '8px', overflow: 'hidden' }}>
-                    <div style={{ 
-                      height: '100%', 
-                      width: `${costSummary ? costSummary.optimizationScore : 100}%`, 
-                      background: (costSummary?.optimizationScore || 100) > 80 ? 'var(--success)' : (costSummary?.optimizationScore || 100) > 60 ? 'var(--warning)' : 'var(--error)',
-                      transition: 'width 0.5s ease'
-                    }}></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Cost Sub-tabs */}
-            <div className="tabs-container" style={{ 
-              marginBottom: '10px', 
-              marginTop: '10px', 
-              background: 'rgba(255, 255, 255, 0.02)', 
-              padding: '6px', 
-              borderRadius: '12px', 
-              display: 'inline-flex', 
-              width: 'auto',
-              border: '1px solid var(--glass-border)'
-            }}>
-              <button 
-                type="button"
-                className={`tab-btn ${costTab === 'breakdown' ? 'active' : ''}`} 
-                onClick={() => setCostTab('breakdown')}
-                style={{ fontSize: '0.85rem', padding: '8px 20px', borderRadius: '8px' }}
-              >
-                Resource Cost Breakdown
-              </button>
-              <button 
-                type="button"
-                className={`tab-btn ${costTab === 'recommendations' ? 'active' : ''}`} 
-                onClick={() => setCostTab('recommendations')}
-                style={{ fontSize: '0.85rem', padding: '8px 20px', borderRadius: '8px' }}
-              >
-                Optimization Recommendations ({costSuggestions.length})
-              </button>
-            </div>
-
-            {/* Sub-tab content */}
-            {costTab === 'breakdown' ? (
-              /* Detailed Cost Table */
-              <div className="glass-panel" style={{ padding: '32px' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  Resource Cost Breakdown
-                </h3>
-
-                {loadingCosts ? (
-                  <div style={{ textAlign: 'center', padding: '40px' }}>
-                    <RefreshCw size={24} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
-                    <p style={{ marginTop: '12px', color: 'var(--text-secondary)' }}>Analyzing resource group costs...</p>
-                  </div>
-                ) : costError ? (
-                  <p style={{ color: 'var(--error)' }}>{costError}</p>
-                ) : (
-                  <div>
-                    {/* Filters Controls */}
-                    <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', alignItems: 'center', width: '100%' }}>
-                      <div style={{ position: 'relative', flex: 1 }}>
-                        <input 
-                          type="text" 
-                          placeholder="Search resources by name, FQDN or details..." 
-                          value={costSearch} 
-                          onChange={(e) => setCostSearch(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '10px 16px 10px 40px',
-                            borderRadius: '8px',
-                            border: '1px solid var(--glass-border)',
-                            background: 'rgba(255, 255, 255, 0.02)',
-                            color: 'var(--text-primary)',
-                            fontSize: '0.85rem'
-                          }}
-                        />
-                        <Search size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-                      </div>
-
-                      <select 
-                        value={envFilter} 
-                        onChange={(e) => setEnvFilter(e.target.value as any)}
-                        style={{
-                          width: '220px',
-                          padding: '10px 16px',
-                          borderRadius: '8px',
-                          border: '1px solid var(--glass-border)',
-                          background: theme === 'dark' ? '#1e293b' : '#ffffff',
-                          color: 'var(--text-primary)',
-                          fontSize: '0.85rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <option value="all">All Resources</option>
-                        <option value="production">Production Resources</option>
-                        <option value="test">Dev / Test Resources</option>
-                        <option value="stale">Stale / Unused Resources</option>
-                      </select>
-                    </div>
-
-                    {(() => {
-                      const isDark = theme === 'dark';
-                      const filtered = detailedCosts.filter(item => {
-                        const matchesSearch = item.name.toLowerCase().includes(costSearch.toLowerCase()) || 
-                                              (item.fqdn && item.fqdn.toLowerCase().includes(costSearch.toLowerCase())) ||
-                                              (item.details && item.details.toLowerCase().includes(costSearch.toLowerCase()));
-                        
-                        const isOrphaned = !item.repositoryUrl && !item.fqdn && 
-                          (item.type === 'frontend' || item.type === 'backend' || 
-                           item.name.toLowerCase().includes('test') || item.name.toLowerCase().includes('example'));
-
-                        if (envFilter === 'production') {
-                          return matchesSearch && !item.isTestResource;
-                        } else if (envFilter === 'test') {
-                          return matchesSearch && item.isTestResource;
-                        } else if (envFilter === 'stale') {
-                          return matchesSearch && isOrphaned;
-                        }
-                        return matchesSearch;
-                      });
-
-                      // Group by type
-                      const groups: { [key: string]: typeof filtered } = {};
-                      filtered.forEach(item => {
-                        const typeKey = item.type || 'other';
-                        if (!groups[typeKey]) {
-                          groups[typeKey] = [];
-                        }
-                        groups[typeKey].push(item);
-                      });
-
-                      // Order keys
-                      const order = ['frontend', 'backend', 'database', 'vm', 'registry', 'workspace', 'disk', 'network', 'other'];
-                      const orderedKeys = Object.keys(groups).sort((a, b) => {
-                        let indexA = order.indexOf(a);
-                        let indexB = order.indexOf(b);
-                        if (indexA === -1) indexA = 99;
-                        if (indexB === -1) indexB = 99;
-                        return indexA - indexB;
-                      });
-
-                      const getTypeLabel = (t: string) => {
-                        switch(t) {
-                          case 'frontend': return 'Frontend Web Apps (SWA)';
-                          case 'backend': return 'Backend Services (ACA)';
-                          case 'database': return 'Database Flexible Servers';
-                          case 'vm': return 'Virtual Machines';
-                          case 'registry': return 'Container Registries';
-                          case 'workspace': return 'Log Analytics Workspaces';
-                          case 'disk': return 'Managed Disks';
-                          case 'network': return 'Networking';
-                          default: return 'Other Resources';
-                        }
-                      };
-
-                      if (filtered.length === 0) {
-                        return (
-                          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-                            <p>No resources match the selected filters.</p>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div style={{ overflowX: 'auto' }}>
-                          <style>{`
-                            .cost-row {
-                              transition: background-color 0.15s ease-in-out;
-                            }
-                            .cost-row:hover {
-                              background-color: ${isDark ? 'rgba(255, 255, 255, 0.02)' : 'rgba(15, 23, 42, 0.02)'} !important;
-                            }
-                            .cost-group-header {
-                              transition: background-color 0.15s ease-in-out;
-                            }
-                            .cost-group-header:hover {
-                              background-color: ${isDark ? 'rgba(255, 255, 255, 0.035)' : 'rgba(15, 23, 42, 0.035)'} !important;
-                            }
-                          `}</style>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                            <thead>
-                              <tr style={{ borderBottom: `2px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)'}` }}>
-                                <th style={{ padding: '14px 12px', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resource</th>
-                                <th style={{ padding: '14px 12px', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Type</th>
-                                <th style={{ padding: '14px 12px', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Config / Details</th>
-                                <th style={{ padding: '14px 12px', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Compute</th>
-                                <th style={{ padding: '14px 12px', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>DNS</th>
-                                <th style={{ padding: '14px 12px', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Total</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {orderedKeys.map(typeKey => {
-                                const items = groups[typeKey];
-                                const groupCost = items.reduce((sum, item) => sum + item.totalCost, 0);
-                                const isCostExpanded = expandedGroups[typeKey] === true;
-
-                                return (
-                                  <Fragment key={typeKey}>
-                                    {/* Group Header Row */}
-                                    <tr 
-                                      className="cost-group-header"
-                                      onClick={() => {
-                                        setExpandedGroups(prev => ({
-                                          ...prev,
-                                          [typeKey]: !prev[typeKey]
-                                        }));
-                                      }}
-                                      style={{ 
-                                        background: isDark ? 'rgba(255, 255, 255, 0.015)' : 'rgba(15, 23, 42, 0.015)', 
-                                        borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)'}`,
-                                        cursor: 'pointer',
-                                        userSelect: 'none'
-                                      }}
-                                    >
-                                      <td colSpan={5} style={{ padding: '14px 12px', fontWeight: 600, fontSize: '0.85rem', color: 'var(--accent-purple)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                          {isCostExpanded ? <ChevronDown size={14} style={{ color: 'var(--text-secondary)' }} /> : <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />}
-                                          <span>{getTypeLabel(typeKey)} ({items.length})</span>
-                                        </div>
-                                      </td>
-                                      <td style={{ padding: '14px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem' }}>
-                                        ${groupCost.toFixed(2)}
-                                      </td>
-                                    </tr>
-
-                                    {/* Group Rows (only if expanded) */}
-                                    {isCostExpanded && items.map((item) => {
-                                      const isOrphaned = !item.repositoryUrl && !item.fqdn && 
-                                        (item.type === 'frontend' || item.type === 'backend' || 
-                                         item.name.toLowerCase().includes('test') || item.name.toLowerCase().includes('example'));
-
-                                      return (
-                                        <tr key={item.id} className="cost-row" style={{ 
-                                          borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)'}`,
-                                          background: isOrphaned ? 'rgba(239, 68, 68, 0.03)' : 'transparent'
-                                        }}>
-                                          <td style={{ padding: '16px 12px', fontWeight: 600 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                              {/* Dynamic Resource Type Icon */}
-                                              {(() => {
-                                                switch(item.type) {
-                                                  case 'frontend': return <Globe size={14} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />;
-                                                  case 'backend': return <Server size={14} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />;
-                                                  case 'database': return <Database size={14} style={{ color: '#f59e0b', flexShrink: 0 }} />;
-                                                  case 'vm': return <Cpu size={14} style={{ color: '#3b82f6', flexShrink: 0 }} />;
-                                                  case 'registry': return <Server size={14} style={{ color: '#fbbf24', flexShrink: 0 }} />;
-                                                  case 'workspace': return <Eye size={14} style={{ color: '#38bdf8', flexShrink: 0 }} />;
-                                                  case 'disk': return <Database size={14} style={{ color: '#a78bfa', flexShrink: 0 }} />;
-                                                  case 'network': return <Globe size={14} style={{ color: '#f43f5e', flexShrink: 0 }} />;
-                                                  default: return <Settings size={14} style={{ color: 'var(--text-secondary)', opacity: 0.7, flexShrink: 0 }} />;
-                                                }
-                                              })()}
-                                              <span style={{ color: isOrphaned ? 'var(--error)' : 'inherit' }}>{item.name}</span>
-                                              {item.isTestResource && (
-                                                <span style={{
-                                                  fontSize: '0.62rem',
-                                                  fontWeight: 700,
-                                                  textTransform: 'uppercase',
-                                                  color: '#94a3b8',
-                                                  background: 'rgba(148, 163, 184, 0.12)',
-                                                  padding: '2px 6px',
-                                                  borderRadius: '4px',
-                                                  border: '1px solid rgba(148, 163, 184, 0.2)'
-                                                }}>
-                                                  Dev / Test
-                                                </span>
-                                              )}
-                                              {isOrphaned && (
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                  <span style={{
-                                                    fontSize: '0.62rem',
-                                                    fontWeight: 700,
-                                                    textTransform: 'uppercase',
-                                                    color: 'var(--error)',
-                                                    background: 'rgba(239, 68, 68, 0.12)',
-                                                    padding: '2px 6px',
-                                                    borderRadius: '4px',
-                                                    border: '1px solid rgba(239, 68, 68, 0.2)'
-                                                  }}>
-                                                    Stale / Not In Use
-                                                  </span>
-                                                  {(item.type === 'frontend' || item.type === 'backend') && (
-                                                    <button
-                                                      type="button"
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDeleteApp(item.name, item.type);
-                                                      }}
-                                                      disabled={deletingAppName === item.name}
-                                                      style={{
-                                                        background: 'rgba(239, 68, 68, 0.15)',
-                                                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                                                        color: 'var(--error)',
-                                                        borderRadius: '4px',
-                                                        padding: '2px 8px',
-                                                        fontSize: '0.65rem',
-                                                        cursor: 'pointer',
-                                                        fontWeight: 600,
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        gap: '4px'
-                                                      }}
-                                                    >
-                                                      {deletingAppName === item.name ? (
-                                                        <RefreshCw size={10} className="spin-anim" />
-                                                      ) : (
-                                                        <Trash2 size={10} />
-                                                      )}
-                                                      Delete
-                                                    </button>
-                                                  )}
-                                                </div>
-                                              )}
-                                            </div>
-                                            {item.fqdn && (
-                                              <div style={{ fontSize: '0.75rem', color: 'var(--accent-purple)', fontWeight: 400, marginTop: '2px', paddingLeft: '22px' }}>
-                                                {item.fqdn}
-                                              </div>
-                                            )}
-                                            {item.repositoryUrl && (
-                                              <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 400, paddingLeft: '22px' }}>
-                                                <a 
-                                                  href={item.repositoryUrl} 
-                                                  target="_blank" 
-                                                  rel="noreferrer" 
-                                                  style={{ color: 'var(--accent-blue)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                                                >
-                                                  <Github size={12} />
-                                                  {item.repositoryUrl.replace('https://github.com/', '')}
-                                                </a>
-                                              </div>
-                                            )}
-                                          </td>
-                                          <td style={{ padding: '16px 12px' }}>
-                                            <span style={{ 
-                                              display: 'inline-block',
-                                              padding: '2px 8px', 
-                                              borderRadius: '4px', 
-                                              fontSize: '0.75rem', 
-                                              fontWeight: 500,
-                                              textTransform: 'capitalize',
-                                              background: getBadgeBgColor(item.type, theme),
-                                              color: getBadgeTextColor(item.type, theme)
-                                            }}>
-                                              {item.type}
-                                            </span>
-                                          </td>
-                                          <td style={{ padding: '16px 12px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                            {item.details}
-                                          </td>
-                                          <td style={{ padding: '16px 12px', textAlign: 'right', fontWeight: 500 }}>
-                                            ${item.resourceCost.toFixed(2)}
-                                          </td>
-                                          <td style={{ padding: '16px 12px', textAlign: 'right', fontWeight: 500, color: 'var(--text-secondary)' }}>
-                                            ${item.dnsCost.toFixed(2)}
-                                          </td>
-                                          <td style={{ padding: '16px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}>
-                                            ${item.totalCost.toFixed(2)}
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                  </Fragment>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                )}
-              </div>
-            ) : (
-              /* Cost Optimization Recommendations */
-              <div className="glass-panel" style={{ padding: '36px' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <TrendingDown style={{ color: 'var(--accent-teal)' }} />
-                  Cost Optimization Recommendations
-                </h3>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {costSuggestions.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '60px 40px', color: 'var(--text-secondary)' }}>
-                      <CheckCircle2 size={42} style={{ color: 'var(--success)', marginBottom: '16px' }} />
-                      <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '1.1rem' }}>Excellent Configuration!</p>
-                      <p style={{ fontSize: '0.88rem', marginTop: '6px', maxWidth: '400px', margin: '6px auto 0' }}>All deployment environments are optimized for minimum idle costs.</p>
-                    </div>
-                  ) : (
-                    <div style={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', 
-                      gap: '24px' 
-                    }}>
-                      {costSuggestions.map((suggestion) => {
-                        const isHigh = suggestion.impact === 'high';
-                        const isMedium = suggestion.impact === 'medium';
-                        const color = isHigh ? 'var(--error)' : isMedium ? 'var(--warning)' : 'var(--accent-blue)';
-                        const bg = isHigh ? 'rgba(239, 68, 68, 0.08)' : isMedium ? 'rgba(245, 158, 11, 0.08)' : 'rgba(96, 165, 250, 0.08)';
-                        const border = isHigh ? 'rgba(239, 68, 68, 0.25)' : isMedium ? 'rgba(245, 158, 11, 0.25)' : 'rgba(96, 165, 250, 0.25)';
-                        const icon = isHigh ? <AlertCircle size={14} /> : isMedium ? <AlertTriangle size={14} /> : <Settings size={14} />;
-
-                        return (
-                          <div 
-                            key={suggestion.id} 
-                            className="glass-panel" 
-                            style={{ 
-                              padding: '24px', 
-                              display: 'flex', 
-                              flexDirection: 'column', 
-                              justifyContent: 'space-between',
-                              borderLeft: `4px solid ${color}`,
-                              background: 'rgba(255,255,255,0.01)',
-                              transition: 'all 0.3s ease',
-                              position: 'relative',
-                              overflow: 'hidden'
-                            }}
-                          >
-                            <div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                <span style={{ 
-                                  fontSize: '0.7rem', 
-                                  fontWeight: 700, 
-                                  textTransform: 'uppercase', 
-                                  color: color,
-                                  background: bg,
-                                  border: `1px solid ${border}`,
-                                  padding: '3px 8px',
-                                  borderRadius: '12px',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  letterSpacing: '0.04em'
-                                }}>
-                                  {icon} {suggestion.impact} Impact
-                                </span>
-                                <span style={{ fontWeight: 700, color: 'var(--success)', fontSize: '1.05rem' }}>
-                                  Save ${suggestion.savings.toFixed(2)}/mo
-                                </span>
-                              </div>
-                              
-                              <h4 style={{ fontWeight: 600, fontSize: '0.98rem', marginBottom: '8px', color: 'var(--text-primary)', lineHeight: '1.4' }}>
-                                {suggestion.recommendation}
-                              </h4>
-                              
-                              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.5' }}>
-                                {suggestion.description}
-                              </p>
-                            </div>
-
-                            <button 
-                              onClick={() => handleApplyRemediation(suggestion.id, suggestion.type, suggestion.appName)}
-                              disabled={remediating === suggestion.id}
-                              className="btn-primary"
-                              style={{ 
-                                width: '100%', 
-                                padding: '10px 16px', 
-                                fontSize: '0.85rem', 
-                                fontWeight: 600,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '6px',
-                                background: 'transparent',
-                                border: `1px solid ${color}`,
-                                color: 'var(--text-primary)',
-                                cursor: 'pointer',
-                                borderRadius: '8px',
-                                transition: 'all 0.2s ease'
-                              }}
-                              onMouseEnter={(e) => {
-                                if (remediating !== suggestion.id) {
-                                  e.currentTarget.style.background = color;
-                                  e.currentTarget.style.borderColor = color;
-                                  e.currentTarget.style.boxShadow = `0 0 10px ${color}80`;
-                                }
-                              }}
-                              onMouseLeave={(e) => {
-                                if (remediating !== suggestion.id) {
-                                  e.currentTarget.style.background = 'transparent';
-                                  e.currentTarget.style.borderColor = color;
-                                  e.currentTarget.style.boxShadow = 'none';
-                                }
-                              }}
-                            >
-                              {remediating === suggestion.id ? (
-                                <>
-                                  <RefreshCw size={14} className="spin-anim" />
-                                  <span>Applying...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <TrendingDown size={14} />
-                                  <span>Apply Recommendation</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-          </div>
+          <CostPage
+            costSummary={costSummary}
+            detailedCosts={detailedCosts}
+            costSuggestions={costSuggestions}
+            loadingCosts={loadingCosts}
+            costError={costError}
+            remediating={remediating}
+            costTab={costTab}
+            setCostTab={setCostTab}
+            costSearch={costSearch}
+            setCostSearch={setCostSearch}
+            envFilter={envFilter}
+            setEnvFilter={setEnvFilter}
+            handleApplyRemediation={handleApplyRemediation}
+            theme={theme}
+            deletingAppName={deletingAppName}
+            handleDeleteApp={handleDeleteApp}
+          />
         )}
 
+        {/* TAB 5: DATABASE CATALOG */}
         {activeTab === 'databases' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', alignItems: 'stretch', marginTop: '20px' }}>
-            {/* Left Column: Servers & Databases */}
-            <div ref={leftColRef} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              {/* Server Selection Card */}
-              <div className="glass-panel" style={{ padding: '20px' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-                  <Server size={18} style={{ color: 'var(--accent-purple)' }} />
-                  Database Server
-                </h3>
-                
-                {loadingDbServers ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 0', color: 'var(--text-secondary)' }}>
-                    <RefreshCw size={16} className="spin-anim" />
-                    <span style={{ fontSize: '0.85rem' }}>Listing database servers...</span>
-                  </div>
-                ) : dbServers.length === 0 ? (
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', padding: '12px 0' }}>
-                    No MySQL Flexible Servers found in resource group.
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <select
-                      value={selectedDbServer?.name || ''}
-                      onChange={(e) => {
-                        const s = dbServers.find(srv => srv.name === e.target.value);
-                        if (s) {
-                          setSelectedDbServer(s);
-                          fetchDatabases(s.name);
-                        }
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid var(--glass-border)',
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        color: 'var(--text-primary)',
-                        fontSize: '0.88rem',
-                        outline: 'none'
-                      }}
-                    >
-                      {dbServers.map(srv => (
-                        <option key={srv.name} value={srv.name} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{srv.name}</option>
-                      ))}
-                    </select>
-
-                    {selectedDbServer && (
-                      <div style={{ 
-                        marginTop: '4px',
-                        padding: '12px',
-                        borderRadius: '8px',
-                        backgroundColor: 'var(--input-bg)',
-                        border: '1px solid var(--glass-border)',
-                        fontSize: '0.78rem',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '6px'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span style={{ color: 'var(--text-secondary)' }}>Status:</span>
-                          <span style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
-                            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--success)', boxShadow: '0 0 8px var(--success-glow)' }}></span>
-                            {selectedDbServer.state}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span style={{ color: 'var(--text-secondary)' }}>Version:</span>
-                          <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>MySQL {selectedDbServer.version}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span style={{ color: 'var(--text-secondary)' }}>Region:</span>
-                          <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{selectedDbServer.location}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span style={{ color: 'var(--text-secondary)' }}>Tier / Size:</span>
-                          <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{selectedDbServer.tier} ({selectedDbServer.sku})</span>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid var(--divider)', paddingTop: '6px', marginTop: '2px' }}>
-                          <span style={{ color: 'var(--text-secondary)' }}>Endpoint Host:</span>
-                          <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontFamily: 'monospace', wordBreak: 'break-all', fontSize: '0.72rem' }}>{selectedDbServer.host}</span>
-                        </div>
-                        {selectedDbServer.privateNetwork && (
-                          <div style={{
-                            marginTop: '4px',
-                            padding: '8px',
-                            borderRadius: '6px',
-                            backgroundColor: 'rgba(245, 158, 11, 0.08)',
-                            border: '1px solid rgba(245, 158, 11, 0.2)',
-                            color: 'var(--accent-orange)',
-                            fontSize: '0.72rem',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '4px'
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
-                              <AlertTriangle size={12} style={{ color: 'var(--accent-orange)', flexShrink: 0 }} />
-                              Private Link Network
-                            </div>
-                            <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', lineHeight: '1.2' }}>
-                              Local access requires an active corporate VPN connection.
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Databases List Card */}
-              <div className="glass-panel" style={{ padding: '20px' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-                  <Database size={18} style={{ color: 'var(--accent-blue)' }} />
-                  Schemas / Databases
-                </h3>
-
-                {/* Schema Search Filter */}
-                <div style={{ position: 'relative', marginBottom: '12px' }}>
-                  <Search size={14} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--text-secondary)' }} />
-                  <input
-                    type="text"
-                    placeholder="Search schemas..."
-                    value={dbSearchQuery}
-                    onChange={(e) => setDbSearchQuery(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px 8px 30px',
-                      borderRadius: '6px',
-                      border: '1px solid var(--glass-border)',
-                      background: 'var(--input-bg)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.8rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-
-                {loadingDatabases ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '16px 0', color: 'var(--text-secondary)' }}>
-                    <RefreshCw size={16} className="spin-anim" />
-                    <span style={{ fontSize: '0.85rem' }}>Loading schemas...</span>
-                  </div>
-                ) : databases.length === 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '8px 0' }}>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                      No databases deployed yet.
-                    </div>
-                    {selectedDbServer?.privateNetwork && (
-                      <div style={{
-                        padding: '10px',
-                        borderRadius: '6px',
-                        backgroundColor: 'rgba(239, 68, 68, 0.04)',
-                        border: '1px dashed rgba(239, 68, 68, 0.25)',
-                        fontSize: '0.76rem',
-                        color: 'var(--text-primary)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '6px'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: 'var(--error)' }}>
-                          <AlertCircle size={14} />
-                          Network Unreachable
-                        </div>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', lineHeight: '1.3' }}>
-                          Unable to retrieve schema catalog. Server is isolated on a private VNet endpoint. Check your Azure VPN.
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '130px', overflowY: 'auto', paddingRight: '4px' }}>
-                    {databases
-                      .filter(db => db.name.toLowerCase().includes(dbSearchQuery.toLowerCase()))
-                      .map(db => {
-                        const isSelected = selectedDatabase?.name === db.name;
-                        return (
-                          <div
-                            key={db.name}
-                            onClick={() => {
-                              setSelectedDatabase(db);
-                              if (selectedDbServer) {
-                                fetchDatabaseSchema(selectedDbServer.name, db.name);
-                              }
-                            }}
-                            style={{
-                              padding: '10px 12px',
-                              borderRadius: '8px',
-                              cursor: 'pointer',
-                              background: isSelected ? 'var(--accent-blue)' : 'var(--input-bg)',
-                              border: `1px solid ${isSelected ? 'var(--accent-blue)' : 'var(--glass-border)'}`,
-                              color: isSelected ? '#ffffff' : 'var(--text-primary)',
-                              fontSize: '0.85rem',
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              transition: 'all 0.15s ease'
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: isSelected ? 600 : 500 }}>
-                              <Database size={14} />
-                              {db.name}
-                            </div>
-                            <span style={{ fontSize: '0.7rem', color: isSelected ? 'rgba(255,255,255,0.7)' : 'var(--text-secondary)' }}>
-                              {db.charset}
-                            </span>
-                          </div>
-                        );
-                      })}
-                  </div>
-                )}
-
-                {/* Provision Database Sub-form */}
-                <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--glass-border)' }}>
-                  <h4 style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.05em' }}>
-                    Deploy New Database
-                  </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <input
-                      type="text"
-                      value={newDbName}
-                      onChange={(e) => setNewDbName(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
-                      placeholder="database_name"
-                      style={{
-                        width: '100%',
-                        padding: '8px 10px',
-                        borderRadius: '6px',
-                        border: '1px solid var(--glass-border)',
-                        background: 'var(--input-bg)',
-                        color: 'var(--text-primary)',
-                        fontSize: '0.82rem',
-                        outline: 'none'
-                      }}
-                    />
-                    <button
-                      className="btn-primary"
-                      onClick={handleProvisionDatabase}
-                      disabled={deployingDb || !newDbName.trim() || !selectedDbServer}
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        borderRadius: '6px',
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {deployingDb ? (
-                        <>
-                          <RefreshCw size={14} className="spin-anim" />
-                          Deploying...
-                        </>
-                      ) : (
-                        <>
-                          <PlusCircle size={14} />
-                          Deploy Database
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  
-                  {deployDbSuccess && (
-                    <div style={{ marginTop: '12px', padding: '10px', borderRadius: '6px', backgroundColor: 'rgba(34, 197, 94, 0.1)', border: '1px solid var(--success)', color: 'var(--success)', fontSize: '0.78rem' }}>
-                      {deployDbSuccess}
-                    </div>
-                  )}
-
-                  {deployDbError && (
-                    <div style={{ marginTop: '12px', padding: '10px', borderRadius: '6px', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid var(--error)', color: 'var(--error)', fontSize: '0.78rem' }}>
-                      {deployDbError}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column: Database details & schema */}
-            <div className="glass-panel" style={{ padding: '24px', height: `${Math.max(650, leftColHeight)}px`, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              {!selectedDatabase ? (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', padding: '60px' }}>
-                  <Database size={48} style={{ color: 'var(--glass-border)', marginBottom: '16px' }} />
-                  <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '1.05rem' }}>No Database Selected</p>
-                  <p style={{ fontSize: '0.85rem', marginTop: '6px', textAlign: 'center', maxWidth: '380px' }}>
-                    Select an existing database schema from the left panel or deploy a new one to begin exploring.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  {/* Header Detail Info */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--glass-border)', paddingBottom: '16px', marginBottom: '20px' }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                          {selectedDatabase.name}
-                        </h2>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--accent-blue)', background: 'rgba(96, 165, 250, 0.1)', border: '1px solid rgba(96, 165, 250, 0.2)', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>
-                          Active Schema
-                        </span>
-                        {selectedDbServer?.privateNetwork && (
-                          <span style={{ fontSize: '0.72rem', color: 'var(--accent-orange)', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', padding: '2px 8px', borderRadius: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <AlertTriangle size={10} /> Private VNet Endpoint
-                          </span>
-                        )}
-                      </div>
-                      <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                        Deployed on: <code style={{ color: 'var(--accent-purple)', fontWeight: 600 }}>{selectedDbServer?.host}</code>
-                      </p>
-                    </div>
-
-                    {/* Sub-tab Selection */}
-                    <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-primary)', border: '1px solid var(--glass-border)', padding: '4px', borderRadius: '8px' }}>
-                      {[
-                        { id: 'schema', label: 'Schema Catalog' },
-                        { id: 'query', label: 'SQL Query Console' },
-                        { id: 'create-table', label: 'Visual Table Builder' },
-                        { id: 'connect', label: 'Connection settings' }
-                      ].map(tab => (
-                        <button
-                          key={tab.id}
-                          onClick={() => setDbDetailTab(tab.id as any)}
-                          style={{
-                            padding: '6px 12px',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontSize: '0.8rem',
-                            fontWeight: 600,
-                            background: dbDetailTab === tab.id ? 'var(--bg-secondary)' : 'transparent',
-                            boxShadow: dbDetailTab === tab.id ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-                            color: dbDetailTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
-                            transition: 'all 0.2s ease'
-                          }}
-                        >
-                          {tab.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Schema Explorer Tab */}
-                  {dbDetailTab === 'schema' && (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', paddingRight: '4px' }}>
-                      {selectedDbServer?.privateNetwork && (
-                        <div style={{
-                          marginBottom: '16px',
-                          padding: '12px 16px',
-                          borderRadius: '8px',
-                          backgroundColor: 'rgba(245, 158, 11, 0.05)',
-                          border: '1px solid rgba(245, 158, 11, 0.15)',
-                          color: 'var(--text-primary)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px'
-                        }}>
-                          <AlertTriangle size={18} style={{ color: 'var(--accent-orange)', flexShrink: 0 }} />
-                          <div style={{ fontSize: '0.78rem', lineHeight: '1.4' }}>
-                            <strong>Private Link Resource:</strong> Connection to <code>{selectedDbServer.host}</code> is restricted. Local visual inspection and schema updates require connecting to the corporate Azure VPN.
-                          </div>
-                        </div>
-                      )}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                        <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          Tables in database ({databaseSchema.length})
-                        </h4>
-                        <button 
-                          onClick={() => {
-                            setNewTableName('');
-                            setDbDetailTab('create-table');
-                          }}
-                          style={{
-                            fontSize: '0.75rem',
-                            color: 'var(--accent-teal)',
-                            background: 'rgba(20, 184, 166, 0.1)',
-                            border: '1px solid rgba(20, 184, 166, 0.2)',
-                            borderRadius: '4px',
-                            padding: '4px 10px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}
-                        >
-                          <PlusCircle size={12} /> Add Table
-                        </button>
-                      </div>
-
-                      {loadingSchema ? (
-                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
-                          <RefreshCw size={20} className="spin-anim" />
-                          <span>Retrieving schema catalog...</span>
-                        </div>
-                      ) : schemaError ? (
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--error)', border: '1px dashed var(--error)', borderRadius: '8px', padding: '40px', backgroundColor: 'rgba(239, 68, 68, 0.05)' }}>
-                          <AlertCircle size={32} style={{ color: 'var(--error)', marginBottom: '12px' }} />
-                          <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>Database Connection Failed</p>
-                          <p style={{ fontSize: '0.8rem', marginTop: '6px', textAlign: 'center', maxWidth: '380px', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-                            {schemaError}
-                          </p>
-                          <p style={{ fontSize: '0.75rem', marginTop: '12px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                            Please verify that you are connected to the Azure VPN or that target network security group rules allow connection to this database server.
-                          </p>
-                        </div>
-                      ) : databaseSchema.length === 0 ? (
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', border: '1px dashed var(--glass-border)', borderRadius: '8px', padding: '40px' }}>
-                          <Database size={32} style={{ color: 'var(--glass-border)', marginBottom: '12px' }} />
-                          <p style={{ fontWeight: 500, fontSize: '0.9rem' }}>Empty Database</p>
-                          <p style={{ fontSize: '0.78rem', marginTop: '4px', textAlign: 'center', maxWidth: '300px' }}>No tables have been created inside this schema yet.</p>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          {databaseSchema.map((tbl) => {
-                            const isExpanded = !!expandedTables[tbl.table];
-                            const isAltering = alteringTable === tbl.table;
-                            return (
-                              <div
-                                key={tbl.table}
-                                style={{
-                                  borderRadius: '8px',
-                                  border: `1px solid ${isExpanded ? 'var(--glass-border)' : 'var(--divider)'}`,
-                                  background: isExpanded ? 'var(--bg-primary)' : 'transparent',
-                                  overflow: 'hidden',
-                                  transition: 'all 0.2s ease'
-                                }}
-                              >
-                                {/* Table Row Header */}
-                                <div
-                                  style={{
-                                    padding: '12px 16px',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    cursor: 'pointer',
-                                    userSelect: 'none',
-                                    backgroundColor: isExpanded ? 'var(--bg-secondary)' : 'transparent'
-                                  }}
-                                  onClick={() => setExpandedTables(prev => ({ ...prev, [tbl.table]: !prev[tbl.table] }))}
-                                >
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, fontSize: '0.88rem', color: isExpanded ? 'var(--accent-teal)' : 'var(--text-primary)' }}>
-                                    {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                                    <Database size={14} style={{ color: 'var(--text-secondary)' }} />
-                                    {tbl.table}
-                                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 400 }}>
-                                      ({tbl.columns.length} columns)
-                                    </span>
-                                  </div>
-
-                                  {/* Table Level Actions (Drop & Query) */}
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
-                                    <button
-                                      onClick={() => {
-                                        setQuerySql(`SELECT * FROM \`${tbl.table}\` LIMIT 10;`);
-                                        setDbDetailTab('query');
-                                        handleExecuteQuery(`SELECT * FROM \`${tbl.table}\` LIMIT 10;`);
-                                      }}
-                                      style={{
-                                        fontSize: '0.72rem',
-                                        color: 'var(--text-primary)',
-                                        background: 'rgba(255,255,255,0.05)',
-                                        border: '1px solid var(--glass-border)',
-                                        borderRadius: '4px',
-                                        padding: '3px 8px',
-                                        cursor: 'pointer'
-                                      }}
-                                    >
-                                      View Data
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        setAlteringTable(isAltering ? null : tbl.table);
-                                        setAlterNewColName('');
-                                      }}
-                                      style={{
-                                        fontSize: '0.72rem',
-                                        color: 'var(--accent-blue)',
-                                        background: 'rgba(59, 130, 246, 0.1)',
-                                        border: '1px solid rgba(59, 130, 246, 0.2)',
-                                        borderRadius: '4px',
-                                        padding: '3px 8px',
-                                        cursor: 'pointer'
-                                      }}
-                                    >
-                                      {isAltering ? 'Cancel' : 'Alter'}
-                                    </button>
-                                    <button
-                                      onClick={() => handleDropTable(tbl.table)}
-                                      style={{
-                                        background: 'rgba(239, 68, 68, 0.1)',
-                                        border: '1px solid rgba(239, 68, 68, 0.2)',
-                                        color: 'var(--error)',
-                                        borderRadius: '4px',
-                                        padding: '3px',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                      }}
-                                      title="Drop Table"
-                                    >
-                                      <Trash2 size={12} />
-                                    </button>
-                                  </div>
-                                </div>
-
-                                {/* Columns Details Grid */}
-                                {isExpanded && (
-                                  <div style={{ padding: '0 16px 16px', borderTop: '1px solid var(--divider)' }}>
-                                    
-                                    {/* Visual Alter Panel: Add Column inline */}
-                                    {isAltering && (
-                                      <div style={{
-                                        marginTop: '12px',
-                                        padding: '12px',
-                                        borderRadius: '6px',
-                                        backgroundColor: 'var(--bg-primary)',
-                                        border: '1px solid var(--glass-border)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '12px',
-                                        flexWrap: 'wrap'
-                                      }}>
-                                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Add Column:</span>
-                                        <input
-                                          type="text"
-                                          placeholder="column_name"
-                                          value={alterNewColName}
-                                          onChange={(e) => setAlterNewColName(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
-                                          style={{
-                                            padding: '4px 8px',
-                                            borderRadius: '4px',
-                                            border: '1px solid var(--glass-border)',
-                                            background: 'var(--input-bg)',
-                                            color: 'var(--text-primary)',
-                                            fontSize: '0.75rem',
-                                            outline: 'none',
-                                            width: '120px'
-                                          }}
-                                        />
-                                        <select
-                                          value={alterNewColType}
-                                          onChange={(e) => setAlterNewColType(e.target.value)}
-                                          style={{
-                                            padding: '4px 8px',
-                                            borderRadius: '4px',
-                                            border: '1px solid var(--glass-border)',
-                                            background: 'var(--input-bg)',
-                                            color: 'var(--text-primary)',
-                                            fontSize: '0.75rem',
-                                            outline: 'none'
-                                          }}
-                                        >
-                                          <option value="INT">INT</option>
-                                          <option value="VARCHAR(50)">VARCHAR(50)</option>
-                                          <option value="VARCHAR(255)">VARCHAR(255)</option>
-                                          <option value="TEXT">TEXT</option>
-                                          <option value="TIMESTAMP">TIMESTAMP</option>
-                                          <option value="BOOLEAN">BOOLEAN</option>
-                                          <option value="DECIMAL(10,2)">DECIMAL(10,2)</option>
-                                        </select>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                                          <input
-                                            type="checkbox"
-                                            checked={alterNewColNullable}
-                                            onChange={(e) => setAlterNewColNullable(e.target.checked)}
-                                          />
-                                          Nullable
-                                        </label>
-                                        <button
-                                          onClick={() => handleAddColumn(tbl.table)}
-                                          disabled={!alterNewColName.trim()}
-                                          style={{
-                                            padding: '4px 10px',
-                                            borderRadius: '4px',
-                                            background: 'var(--accent-teal)',
-                                            color: '#ffffff',
-                                            border: 'none',
-                                            fontSize: '0.72rem',
-                                            fontWeight: 600,
-                                            cursor: 'pointer'
-                                          }}
-                                        >
-                                          Add
-                                        </button>
-                                      </div>
-                                    )}
-
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '12px', fontSize: '0.8rem', textAlign: 'left' }}>
-                                      <thead>
-                                        <tr style={{ borderBottom: '1px solid var(--divider)' }}>
-                                          <th style={{ padding: '8px', color: 'var(--text-secondary)', fontWeight: 600 }}>Field</th>
-                                          <th style={{ padding: '8px', color: 'var(--text-secondary)', fontWeight: 600 }}>Type</th>
-                                          <th style={{ padding: '8px', color: 'var(--text-secondary)', fontWeight: 600 }}>Null</th>
-                                          <th style={{ padding: '8px', color: 'var(--text-secondary)', fontWeight: 600 }}>Key</th>
-                                          <th style={{ padding: '8px', color: 'var(--text-secondary)', fontWeight: 600 }}>Extra</th>
-                                          <th style={{ padding: '8px', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'right' }}>Actions</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {tbl.columns.map((col: any) => (
-                                          <tr key={col.name} style={{ borderBottom: '1px solid var(--divider)' }}>
-                                            <td style={{ padding: '8px', fontWeight: col.key === 'PRI' ? 600 : 400, color: col.key === 'PRI' ? 'var(--warning)' : 'var(--text-primary)' }}>
-                                              {col.name}
-                                            </td>
-                                            <td style={{ padding: '8px', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>{col.type}</td>
-                                            <td style={{ padding: '8px', color: 'var(--text-secondary)' }}>{col.nullable}</td>
-                                            <td style={{ padding: '8px' }}>
-                                              {col.key === 'PRI' && (
-                                                <span style={{ fontSize: '0.65rem', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.3)', color: 'var(--warning)', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
-                                                  PK
-                                                </span>
-                                              )}
-                                              {col.key === 'UNI' && (
-                                                <span style={{ fontSize: '0.65rem', background: 'rgba(96, 165, 250, 0.15)', border: '1px solid rgba(96, 165, 250, 0.3)', color: 'var(--accent-blue)', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
-                                                  UK
-                                                </span>
-                                              )}
-                                              {col.key === 'MUL' && (
-                                                <span style={{ fontSize: '0.65rem', background: 'rgba(168, 85, 247, 0.15)', border: '1px solid rgba(168, 85, 247, 0.3)', color: 'var(--accent-purple)', padding: '1px 5px', borderRadius: '4px', fontWeight: 700 }}>
-                                                  FK
-                                                </span>
-                                              )}
-                                            </td>
-                                            <td style={{ padding: '8px', fontStyle: 'italic', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>{col.extra}</td>
-                                            <td style={{ padding: '8px', textAlign: 'right' }}>
-                                              <button
-                                                onClick={() => handleDropColumn(tbl.table, col.name)}
-                                                style={{
-                                                  background: 'none',
-                                                  border: 'none',
-                                                  color: 'var(--text-secondary)',
-                                                  cursor: 'pointer',
-                                                  padding: '2px 4px',
-                                                  borderRadius: '4px'
-                                                }}
-                                                title="Drop Column"
-                                              >
-                                                <X size={12} />
-                                              </button>
-                                            </td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* SQL Query Console Tab */}
-                  {dbDetailTab === 'query' && (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', paddingRight: '4px' }}>
-                      {selectedDbServer?.privateNetwork && (
-                        <div style={{
-                          padding: '12px 16px',
-                          borderRadius: '8px',
-                          backgroundColor: 'rgba(245, 158, 11, 0.05)',
-                          border: '1px solid rgba(245, 158, 11, 0.15)',
-                          color: 'var(--text-primary)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px'
-                        }}>
-                          <AlertTriangle size={18} style={{ color: 'var(--accent-orange)', flexShrink: 0 }} />
-                          <div style={{ fontSize: '0.78rem', lineHeight: '1.4' }}>
-                            <strong>Private Network Resource:</strong> Query execution requests require routing to the private virtual network. Please connect your Azure VPN to submit queries.
-                          </div>
-                        </div>
-                      )}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          Execute Custom SQL Query
-                        </span>
-                        
-                        {/* Quick Query Templates */}
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <button
-                            onClick={() => setQuerySql('SHOW TABLES;')}
-                            style={{ fontSize: '0.72rem', background: 'var(--input-bg)', color: 'var(--text-secondary)', border: '1px solid var(--glass-border)', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}
-                          >
-                            List Tables
-                          </button>
-                          {databaseSchema.length > 0 && (
-                            <button
-                              onClick={() => setQuerySql(`SELECT * FROM \`${databaseSchema[0].table}\` LIMIT 10;`)}
-                              style={{ fontSize: '0.72rem', background: 'var(--input-bg)', color: 'var(--text-secondary)', border: '1px solid var(--glass-border)', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}
-                            >
-                              Select Sample
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* SQL Code Input */}
-                      <div style={{ position: 'relative' }}>
-                        <textarea
-                          value={querySql}
-                          onChange={(e) => setQuerySql(e.target.value)}
-                          placeholder="-- Write SQL here e.g. SELECT * FROM users;\nSELECT * FROM organizations;"
-                          style={{
-                            width: '100%',
-                            height: '120px',
-                            padding: '12px',
-                            borderRadius: '8px',
-                            border: '1px solid var(--glass-border)',
-                            background: 'var(--input-bg)',
-                            color: 'var(--text-primary)',
-                            fontFamily: 'Courier New, Courier, monospace',
-                            fontSize: '0.85rem',
-                            outline: 'none',
-                            resize: 'vertical',
-                            lineHeight: '1.4'
-                          }}
-                        />
-                      </div>
-
-                      {/* Query Buttons */}
-                      <div style={{ display: 'flex', gap: '10px' }}>
-                        <button
-                          className="btn-primary"
-                          onClick={() => handleExecuteQuery(querySql)}
-                          disabled={queryExecuting || !querySql.trim()}
-                          style={{
-                            padding: '8px 20px',
-                            borderRadius: '6px',
-                            fontSize: '0.82rem',
-                            fontWeight: 600,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          {queryExecuting ? (
-                            <>
-                              <RefreshCw size={14} className="spin-anim" />
-                              Running...
-                            </>
-                          ) : (
-                            <>
-                              <Check size={14} />
-                              Run Query
-                            </>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setQuerySql('');
-                            setQueryResult(null);
-                            setQueryError(null);
-                          }}
-                          style={{
-                            padding: '8px 16px',
-                            borderRadius: '6px',
-                            background: 'var(--input-bg)',
-                            border: '1px solid var(--glass-border)',
-                            color: 'var(--text-secondary)',
-                            fontSize: '0.82rem',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Clear
-                        </button>
-                      </div>
-
-                      {/* Error Alert Box */}
-                      {queryError && (
-                        <div style={{ padding: '12px', borderRadius: '6px', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid var(--error)', color: 'var(--error)', fontSize: '0.8rem', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, marginBottom: '4px' }}>
-                            <AlertCircle size={14} /> Database Query Error:
-                          </div>
-                          {queryError}
-                        </div>
-                      )}
-
-                      {/* Results Box */}
-                      {queryResult && (
-                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: '220px', marginTop: '10px' }}>
-                          {queryResult.type === 'dml' ? (
-                            <div style={{ padding: '12px', borderRadius: '6px', backgroundColor: 'rgba(34, 197, 94, 0.1)', border: '1px solid var(--success)', color: 'var(--success)', fontSize: '0.82rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, marginBottom: '4px' }}>
-                                <Check size={14} /> Query Executed Successfully!
-                              </div>
-                              <p style={{ margin: 0, fontSize: '0.78rem' }}>{queryResult.message}</p>
-                              <div style={{ display: 'flex', gap: '16px', marginTop: '8px', fontSize: '0.72rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-                                <span>Rows Affected: {queryResult.affectedRows}</span>
-                                {queryResult.insertId && <span>Inserted ID: {queryResult.insertId}</span>}
-                              </div>
-                            </div>
-                          ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                                <span>Query returned <strong>{queryResult.rows.length}</strong> rows.</span>
-                              </div>
-
-                              <div style={{ border: '1px solid var(--glass-border)', borderRadius: '8px', overflow: 'hidden', background: 'var(--input-bg)' }}>
-                                <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '300px' }}>
-                                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', textAlign: 'left' }}>
-                                      <thead>
-                                        <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid var(--glass-border)' }}>
-                                          {/* Actions Header if delete is possible */}
-                                          {(() => {
-                                            const tableName = getTableNameFromQuery(querySql);
-                                            return tableName ? (
-                                              <th style={{ padding: '10px 12px', color: 'var(--text-secondary)', fontWeight: 600, width: '50px' }}>Action</th>
-                                            ) : null;
-                                          })()}
-
-                                          {queryResult.fields.map((field: string) => (
-                                            <th key={field} style={{ padding: '10px 12px', color: 'var(--text-secondary)', fontWeight: 600 }}>{field}</th>
-                                          ))}
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {queryResult.rows.map((row: any, idx: number) => {
-                                          return (
-                                            <tr key={idx} style={{ borderBottom: '1px solid var(--divider)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
-                                              {/* Action Cell (Delete Row) */}
-                                              {(() => {
-                                                const tableName = getTableNameFromQuery(querySql);
-                                                if (!tableName) return null;
-                                                
-                                                const tblSchema = databaseSchema.find(t => t.table === tableName);
-                                                const pkCol = tblSchema?.columns.find((c: any) => c.key === 'PRI')?.name;
-
-                                                return (
-                                                  <td style={{ padding: '8px 12px' }}>
-                                                    <button
-                                                      onClick={async () => {
-                                                        let confirmed = false;
-                                                        let deleteSql = '';
-                                                        
-                                                        if (pkCol) {
-                                                          const pkVal = row[pkCol];
-                                                          confirmed = window.confirm(`Are you sure you want to delete this row where ${pkCol} = '${pkVal}'?`);
-                                                          if (!confirmed) return;
-                                                          deleteSql = `DELETE FROM \`${tableName}\` WHERE \`${pkCol}\` = ${typeof pkVal === 'number' ? pkVal : `'${String(pkVal).replace(/'/g, "\\'")}'`};`;
-                                                        } else {
-                                                          confirmed = window.confirm(`This table has no primary key. Are you sure you want to delete this row by matching all column values?`);
-                                                          if (!confirmed) return;
-                                                          
-                                                          const conditions = queryResult.fields.map((field: string) => {
-                                                            const val = row[field];
-                                                            if (val === null) {
-                                                              return `\`${field}\` IS NULL`;
-                                                            } else if (typeof val === 'number') {
-                                                              return `\`${field}\` = ${val}`;
-                                                            } else {
-                                                              return `\`${field}\` = '${String(val).replace(/'/g, "\\'")}'`;
-                                                            }
-                                                          });
-                                                          deleteSql = `DELETE FROM \`${tableName}\` WHERE ${conditions.join(' AND ')} LIMIT 1;`;
-                                                        }
-                                                        
-                                                        try {
-                                                          const deleteRes = await fetch(`${API_BASE}/apps/execute-query`, {
-                                                            method: 'POST',
-                                                            headers: {
-                                                              'Content-Type': 'application/json',
-                                                              'Authorization': `Bearer ${token}`
-                                                            },
-                                                            body: JSON.stringify({
-                                                              serverName: selectedDbServer.name,
-                                                              dbName: selectedDatabase.name,
-                                                              query: deleteSql
-                                                            })
-                                                          });
-                                                          const deleteData = await deleteRes.json();
-                                                          if (deleteRes.ok && deleteData.success) {
-                                                            // Re-execute SELECT
-                                                            handleExecuteQuery(querySql);
-                                                          } else {
-                                                            alert(`Failed to delete row: ${deleteData.message || 'Unknown error'}`);
-                                                           }
-                                                         } catch (e: any) {
-                                                          alert(`Error deleting row: ${e.message}`);
-                                                        }
-                                                      }}
-                                                      style={{
-                                                        background: 'none',
-                                                        border: 'none',
-                                                        color: 'var(--text-secondary)',
-                                                        cursor: 'pointer',
-                                                        padding: '2px',
-                                                        display: 'flex',
-                                                        alignItems: 'center'
-                                                      }}
-                                                      title={pkCol ? `Delete Row by Primary Key (${pkCol})` : 'Delete Row (No PK, matches all columns)'}
-                                                    >
-                                                      <Trash2 size={12} style={{ color: 'var(--error)' }} />
-                                                    </button>
-                                                  </td>
-                                                );
-                                              })()}
-
-                                            {queryResult.fields.map((field: string) => {
-                                              const val = row[field];
-                                              let displayVal = '';
-                                              if (val === null) {
-                                                displayVal = 'NULL';
-                                              } else if (typeof val === 'object') {
-                                                displayVal = JSON.stringify(val);
-                                              } else {
-                                                displayVal = String(val);
-                                              }
-                                              return (
-                                                <td key={field} style={{ padding: '8px 12px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: '300px', color: val === null ? 'var(--text-secondary)' : 'var(--text-primary)', fontStyle: val === null ? 'italic' : 'normal' }}>
-                                                  {displayVal}
-                                                </td>
-                                              );
-                                            })}
-                                          </tr>
-                                        );
-                                      })}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Visual Table Builder Tab */}
-                  {dbDetailTab === 'create-table' && (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', paddingRight: '4px' }}>
-                      {selectedDbServer?.privateNetwork && (
-                        <div style={{
-                          padding: '12px 16px',
-                          borderRadius: '8px',
-                          backgroundColor: 'rgba(245, 158, 11, 0.05)',
-                          border: '1px solid rgba(245, 158, 11, 0.15)',
-                          color: 'var(--text-primary)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px'
-                        }}>
-                          <AlertTriangle size={18} style={{ color: 'var(--accent-orange)', flexShrink: 0 }} />
-                          <div style={{ fontSize: '0.78rem', lineHeight: '1.4' }}>
-                            <strong>Private Network Resource:</strong> Structural catalog updates require routing to the private virtual network. Please connect your Azure VPN to create tables.
-                          </div>
-                        </div>
-                      )}
-                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        Create Table Schema
-                      </span>
-
-                      <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                        <div style={{ flex: 1 }}>
-                          <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Table Name</label>
-                          <input
-                            type="text"
-                            placeholder="table_name"
-                            value={newTableName}
-                            onChange={(e) => setNewTableName(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
-                            style={{
-                              width: '100%',
-                              padding: '8px 10px',
-                              borderRadius: '6px',
-                              border: '1px solid var(--glass-border)',
-                              background: 'rgba(255, 255, 255, 0.03)',
-                              color: 'var(--text-primary)',
-                              fontSize: '0.82rem',
-                              outline: 'none'
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Columns visual rows list */}
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Columns Definition</span>
-                          <button
-                            onClick={() => {
-                              setTableColumns([...tableColumns, { name: '', type: 'VARCHAR(255)', nullable: true, isPrimary: false, extra: '' }]);
-                            }}
-                            style={{
-                              fontSize: '0.72rem',
-                              color: 'var(--accent-blue)',
-                              background: 'rgba(59, 130, 246, 0.1)',
-                              border: '1px solid rgba(59, 130, 246, 0.2)',
-                              borderRadius: '4px',
-                              padding: '2px 8px',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            + Add Column
-                          </button>
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          {tableColumns.map((col, idx) => (
-                            <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.02)', padding: '8px', borderRadius: '6px' }}>
-                              <input
-                                type="text"
-                                placeholder="col_name"
-                                value={col.name}
-                                onChange={(e) => {
-                                  const updated = [...tableColumns];
-                                  updated[idx].name = e.target.value.replace(/[^a-zA-Z0-9_]/g, '');
-                                  setTableColumns(updated);
-                                }}
-                                style={{
-                                  flex: 1.5,
-                                  padding: '6px 8px',
-                                  borderRadius: '4px',
-                                  border: '1px solid var(--glass-border)',
-                                  background: 'rgba(0,0,0,0.15)',
-                                  color: 'var(--text-primary)',
-                                  fontSize: '0.78rem',
-                                  outline: 'none'
-                                }}
-                              />
-                              <select
-                                value={col.type}
-                                onChange={(e) => {
-                                  const updated = [...tableColumns];
-                                  updated[idx].type = e.target.value;
-                                  setTableColumns(updated);
-                                }}
-                                style={{
-                                  flex: 1,
-                                  padding: '6px 8px',
-                                  borderRadius: '4px',
-                                  border: '1px solid var(--glass-border)',
-                                  background: 'rgba(0,0,0,0.15)',
-                                  color: 'var(--text-primary)',
-                                  fontSize: '0.78rem',
-                                  outline: 'none'
-                                }}
-                              >
-                                <option value="INT">INT</option>
-                                <option value="VARCHAR(50)">VARCHAR(50)</option>
-                                <option value="VARCHAR(255)">VARCHAR(255)</option>
-                                <option value="TEXT">TEXT</option>
-                                <option value="TIMESTAMP">TIMESTAMP</option>
-                                <option value="BOOLEAN">BOOLEAN</option>
-                                <option value="DECIMAL(10,2)">DECIMAL(10,2)</option>
-                              </select>
-                              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                                <input
-                                  type="checkbox"
-                                  checked={col.nullable}
-                                  onChange={(e) => {
-                                    const updated = [...tableColumns];
-                                    updated[idx].nullable = e.target.checked;
-                                    setTableColumns(updated);
-                                  }}
-                                />
-                                Null
-                              </label>
-                              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                                <input
-                                  type="checkbox"
-                                  checked={col.isPrimary}
-                                  onChange={(e) => {
-                                    const updated = [...tableColumns];
-                                    updated[idx].isPrimary = e.target.checked;
-                                    if (e.target.checked) {
-                                      updated[idx].nullable = false;
-                                    }
-                                    setTableColumns(updated);
-                                  }}
-                                />
-                                PK
-                              </label>
-                              <select
-                                value={col.extra || ''}
-                                onChange={(e) => {
-                                  const updated = [...tableColumns];
-                                  updated[idx].extra = e.target.value;
-                                  setTableColumns(updated);
-                                }}
-                                style={{
-                                  flex: 1,
-                                  padding: '6px 8px',
-                                  borderRadius: '4px',
-                                  border: '1px solid var(--glass-border)',
-                                  background: 'rgba(0,0,0,0.15)',
-                                  color: 'var(--text-primary)',
-                                  fontSize: '0.75rem',
-                                  outline: 'none'
-                                }}
-                              >
-                                <option value="">(extra)</option>
-                                <option value="AUTO_INCREMENT">AUTO_INCREMENT</option>
-                                <option value="DEFAULT CURRENT_TIMESTAMP">CURRENT_TIMESTAMP</option>
-                                <option value="DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">ON UPDATE TS</option>
-                              </select>
-                              
-                              <button
-                                onClick={() => {
-                                  const updated = tableColumns.filter((_, i) => i !== idx);
-                                  setTableColumns(updated);
-                                }}
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  color: 'var(--text-secondary)',
-                                  cursor: 'pointer',
-                                  padding: '4px'
-                                }}
-                              >
-                                <X size={14} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {createTableError && (
-                        <div style={{ padding: '10px', borderRadius: '6px', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid var(--error)', color: 'var(--error)', fontSize: '0.78rem' }}>
-                          {createTableError}
-                        </div>
-                      )}
-
-                      <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                        <button
-                          className="btn-primary"
-                          onClick={handleCreateTable}
-                          disabled={creatingTable || !newTableName.trim() || tableColumns.some(c => !c.name.trim())}
-                          style={{
-                            padding: '8px 20px',
-                            borderRadius: '6px',
-                            fontSize: '0.82rem',
-                            fontWeight: 600,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          {creatingTable ? (
-                            <>
-                              <RefreshCw size={14} className="spin-anim" />
-                              Creating Table...
-                            </>
-                          ) : (
-                            <>
-                              <Check size={14} />
-                              Create Table
-                            </>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setNewTableName('');
-                            setTableColumns([
-                              { name: 'id', type: 'INT', nullable: false, isPrimary: true, extra: 'AUTO_INCREMENT' },
-                              { name: 'name', type: 'VARCHAR(255)', nullable: false, isPrimary: false, extra: '' }
-                            ]);
-                            setDbDetailTab('schema');
-                          }}
-                          style={{
-                            padding: '8px 16px',
-                            borderRadius: '6px',
-                            background: 'var(--input-bg)',
-                            border: '1px solid var(--glass-border)',
-                            color: 'var(--text-secondary)',
-                            fontSize: '0.82rem',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Connection Settings Tab */}
-                  {dbDetailTab === 'connect' && (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto', paddingRight: '4px' }}>
-                      {/* Connection Params Box */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-                        <div style={{ padding: '14px', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)' }}>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Host Address</span>
-                          <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'monospace', overflowWrap: 'anywhere' }}>
-                            {selectedDbServer?.host}
-                          </p>
-                        </div>
-                        <div style={{ padding: '14px', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)' }}>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Port</span>
-                          <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'monospace' }}>
-                            3306
-                          </p>
-                        </div>
-                        <div style={{ padding: '14px', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)' }}>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Default Database</span>
-                          <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--accent-blue)', marginTop: '4px', fontFamily: 'monospace' }}>
-                            {selectedDatabase.name}
-                          </p>
-                        </div>
-                        <div style={{ padding: '14px', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)' }}>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Admin Username</span>
-                          <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'monospace' }}>
-                            {selectedDbServer?.administratorLogin || 'estevia'}
-                          </p>
-                        </div>
-                        <div style={{ padding: '14px', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)' }}>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Password</span>
-                          <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'monospace' }}>
-                            {selectedDbServer?.password || 'Ewco26INCP'}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Code Snippets Block */}
-                      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                          <h4 style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                            Connection Code Snippets
-                          </h4>
-                          
-                          {copiedText && (
-                            <span style={{ fontSize: '0.75rem', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
-                              <Check size={12} /> Copied to clipboard!
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Snippets Code Tab Selector */}
-                        <div style={{ display: 'flex', gap: '1px', background: 'var(--glass-border)', padding: '1px', borderRadius: '6px', marginBottom: '8px', width: 'fit-content' }}>
-                          {(['cli', 'node', 'python', 'php'] as const).map(tab => (
-                            <button
-                              key={tab}
-                              onClick={() => setConnectCodeTab(tab)}
-                              style={{
-                                padding: '6px 14px',
-                                border: 'none',
-                                cursor: 'pointer',
-                                fontSize: '0.75rem',
-                                fontWeight: 700,
-                                textTransform: 'uppercase',
-                                background: connectCodeTab === tab ? 'var(--accent-purple)' : 'rgba(0,0,0,0.2)',
-                                color: '#ffffff',
-                                borderTopLeftRadius: tab === 'cli' ? '5px' : '0',
-                                borderBottomLeftRadius: tab === 'cli' ? '5px' : '0',
-                                borderTopRightRadius: tab === 'php' ? '5px' : '0',
-                                borderBottomRightRadius: tab === 'php' ? '5px' : '0',
-                                transition: 'all 0.15s ease'
-                              }}
-                            >
-                              {tab === 'cli' ? 'MySQL CLI' : tab === 'node' ? 'Node.js' : tab === 'python' ? 'Python' : 'PHP PDO'}
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* Code Block Container */}
-                        {(() => {
-                          const adminUser = selectedDbServer?.administratorLogin || 'estevia';
-                          const adminPass = selectedDbServer?.password || 'Ewco26INCP';
-                          let code = '';
-                          if (connectCodeTab === 'cli') {
-                            code = `mysql -h ${selectedDbServer?.host || 'localhost'} -u ${adminUser} -p -D ${selectedDatabase.name}`;
-                          } else if (connectCodeTab === 'node') {
-                            code = `const mysql = require('mysql2/promise');\n\nasync function connect() {\n  const connection = await mysql.createConnection({\n    host: '${selectedDbServer?.host || 'localhost'}',\n    port: 3306,\n    user: '${adminUser}',\n    password: '${adminPass}',\n    database: '${selectedDatabase.name}',\n    ssl: {\n      rejectUnauthorized: false\n    }\n  });\n  console.log('Successfully connected to MySQL database.');\n}`;
-                          } else if (connectCodeTab === 'python') {
-                            code = `import pymysql\n\nconnection = pymysql.connect(\n    host='${selectedDbServer?.host || 'localhost'}',\n    port=3306,\n    user='${adminUser}',\n    password='${adminPass}',\n    database='${selectedDatabase.name}',\n    ssl={'ssl': {}}\n)\ntry:\n    with connection.cursor() as cursor:\n        print("Successfully connected to MySQL database.")\nfinally:\n    connection.close()`;
-                          } else {
-                            code = `<?php\ntry {\n    $dsn = "mysql:host=${selectedDbServer?.host || 'localhost'};dbname=${selectedDatabase.name};port=3306";\n    $pdo = new PDO($dsn, "${adminUser}", "${adminPass}", [\n        PDO::MYSQL_ATTR_SSL_CA => true\n    ]);\n    echo "Successfully connected to MySQL database.";\n} catch (PDOException $e) {\n    echo "Connection failed: " . $e->getMessage();\n}`;
-                          }
-
-                          return (
-                            <div style={{ position: 'relative', flex: 1 }}>
-                              <pre 
-                                onClick={() => {
-                                  navigator.clipboard.writeText(code);
-                                  setCopiedText(connectCodeTab);
-                                  setTimeout(() => setCopiedText(null), 2000);
-                                }}
-                                style={{
-                                  margin: 0,
-                                  padding: '16px',
-                                  borderRadius: '8px',
-                                  background: 'rgba(0,0,0,0.25)',
-                                  border: '1px solid var(--glass-border)',
-                                  color: 'var(--text-primary)',
-                                  fontFamily: 'monospace',
-                                  fontSize: '0.8rem',
-                                  overflowX: 'auto',
-                                  cursor: 'pointer',
-                                  userSelect: 'all',
-                                  lineHeight: '1.45',
-                                  maxHeight: '260px'
-                                }}
-                              >
-                                {code}
-                              </pre>
-                              <div style={{ position: 'absolute', right: '8px', top: '8px', fontSize: '0.62rem', color: 'var(--text-secondary)', background: 'rgba(0,0,0,0.4)', padding: '2px 6px', borderRadius: '4px', pointerEvents: 'none' }}>
-                                Click to Copy
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
+          <DatabaseCatalogPage
+            dbServers={dbServers}
+            selectedDbServer={selectedDbServer}
+            setSelectedDbServer={setSelectedDbServer}
+            databases={databases}
+            selectedDatabase={selectedDatabase}
+            setSelectedDatabase={setSelectedDatabase}
+            databaseSchema={databaseSchema}
+            loadingDbServers={loadingDbServers}
+            loadingDatabases={loadingDatabases}
+            loadingSchema={loadingSchema}
+            schemaError={schemaError}
+            newDbName={newDbName}
+            setNewDbName={setNewDbName}
+            deployingDb={deployingDb}
+            deployDbSuccess={deployDbSuccess}
+            deployDbError={deployDbError}
+            expandedTables={expandedTables}
+            setExpandedTables={setExpandedTables}
+            copiedText={copiedText}
+            setCopiedText={setCopiedText}
+            dbDetailTab={dbDetailTab}
+            setDbDetailTab={setDbDetailTab}
+            connectCodeTab={connectCodeTab}
+            setConnectCodeTab={setConnectCodeTab}
+            querySql={querySql}
+            setQuerySql={setQuerySql}
+            queryExecuting={queryExecuting}
+            queryResult={queryResult}
+            queryError={queryError}
+            dbSearchQuery={dbSearchQuery}
+            setDbSearchQuery={setDbSearchQuery}
+            newTableName={newTableName}
+            setNewTableName={setNewTableName}
+            tableColumns={tableColumns}
+            setTableColumns={setTableColumns}
+            creatingTable={creatingTable}
+            createTableError={createTableError}
+            alteringTable={alteringTable}
+            setAlteringTable={setAlteringTable}
+            alterNewColName={alterNewColName}
+            setAlterNewColName={setAlterNewColName}
+            alterNewColType={alterNewColType}
+            setAlterNewColType={setAlterNewColType}
+            alterNewColNullable={alterNewColNullable}
+            setAlterNewColNullable={setAlterNewColNullable}
+            token={token}
+            API_BASE={API_BASE}
+            handleDeployDb={handleProvisionDatabase}
+            handleDropTable={handleDropTable}
+            handleDropColumn={handleDropColumn}
+            handleExecuteQuery={handleExecuteQuery}
+            handleCreateTable={handleCreateTable}
+            handleAddColumn={handleAddColumn}
+            fetchDatabases={fetchDatabases}
+            fetchDatabaseSchema={fetchDatabaseSchema}
+            setConfirmDialog={setConfirmDialog}
+            leftColRef={leftColRef}
+            leftColHeight={leftColHeight}
+          />
         )}
+
 
       </main>
     </>
@@ -8041,7 +3965,19 @@ function App() {
       `}</style>
 
       {/* Confirmation Modal Overlay */}
-      {confirmDialog && (
+      <ConfirmationModal
+        isOpen={!!confirmDialog}
+        title={confirmDialog?.title || ''}
+        message={confirmDialog?.message || ''}
+        confirmLabel={confirmDialog?.confirmLabel}
+        cancelLabel={confirmDialog?.cancelLabel}
+        type={confirmDialog?.type || 'info'}
+        onConfirm={confirmDialog?.onConfirm || (() => {})}
+        onClose={() => setConfirmDialog(null)}
+      />
+
+      {/* DNS Binding Modal Overlay */}
+      {selectedApp && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -8059,73 +3995,196 @@ function App() {
           animation: 'fade-in-anim 0.2s ease-out'
         }}>
           <div className="glass-panel" style={{
-            maxWidth: '440px',
+            maxWidth: '500px',
             width: '100%',
-            padding: '24px',
-            border: `1px solid ${confirmDialog.type === 'danger' ? 'rgba(239, 68, 68, 0.25)' : 'var(--glass-border)'}`,
+            padding: '28px',
+            border: '1px solid var(--glass-border)',
             boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
-            animation: 'pulse-anim 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)'
+            position: 'relative'
           }}>
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                backgroundColor: confirmDialog.type === 'danger' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(59, 130, 246, 0.15)',
-                border: `1px solid ${confirmDialog.type === 'danger' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(59, 130, 246, 0.3)'}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                {confirmDialog.type === 'danger' ? (
-                  <AlertTriangle size={20} style={{ color: 'var(--error)' }} />
-                ) : (
-                  <Database size={20} style={{ color: 'var(--accent-blue)' }} />
-                )}
-              </div>
-              <div style={{ flex: 1 }}>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
-                  {confirmDialog.title}
-                </h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.5', margin: 0 }}>
-                  {confirmDialog.message}
-                </p>
-              </div>
-            </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
-              <button
-                className="btn-secondary"
-                onClick={() => setConfirmDialog(null)}
-                style={{ padding: '8px 16px', fontSize: '0.82rem', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                {confirmDialog.cancelLabel || 'Cancel'}
-              </button>
-              <button
-                onClick={() => {
-                  confirmDialog.onConfirm();
-                  setConfirmDialog(null);
-                }}
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Globe size={20} style={{ color: 'var(--accent-purple)' }} />
+                Bind Custom Domain
+              </h3>
+              <button 
+                onClick={() => setSelectedApp(null)}
                 style={{
-                  background: confirmDialog.type === 'danger' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))',
-                  color: '#ffffff',
+                  background: 'transparent',
                   border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  padding: '4px'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Helper Text */}
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '20px' }}>
+              Add a custom subdomain CNAME mapping. This will automatically update records via GoDaddy API and link the domain to your active Azure resource.
+            </p>
+
+            <form onSubmit={handleBindDomainSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Target App */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                  Target Application
+                </label>
+                <div style={{
+                  padding: '10px 12px',
                   borderRadius: '8px',
-                  fontWeight: 600,
-                  padding: '8px 16px',
-                  fontSize: '0.82rem',
-                  height: '34px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--glass-border)',
+                  fontSize: '0.86rem',
+                  color: 'var(--text-primary)',
+                  fontWeight: 500
+                }}>
+                  {selectedApp.name}
+                </div>
+              </div>
+
+              {/* Hostname Info */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                  Azure App Hostname
+                </label>
+                <div style={{
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid var(--glass-border)',
+                  fontSize: '0.86rem',
+                  color: 'var(--text-secondary)',
+                  fontFamily: 'monospace'
+                }}>
+                  {selectedApp.hostname}
+                </div>
+              </div>
+
+              {/* Subdomain Input & Domain Select */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                  Custom Domain Mapping
+                </label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. dev-api"
+                    value={subdomainInput}
+                    onChange={(e) => setSubdomainInput(e.target.value)}
+                    style={{
+                      flex: 1,
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                      border: '1px solid var(--glass-border)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.86rem',
+                      outline: 'none'
+                    }}
+                  />
+                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>.</span>
+                  <input
+                    type="text"
+                    required
+                    placeholder="domain.com"
+                    value={domainInput}
+                    onChange={(e) => setDomainInput(e.target.value)}
+                    style={{
+                      flex: 1.2,
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                      border: '1px solid var(--glass-border)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.86rem',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '6px', fontStyle: 'italic' }}>
+                  Mapped FQDN: <span style={{ color: 'var(--accent-purple)', fontWeight: 600 }}>{subdomainInput ? `${subdomainInput}.${domainInput}` : `[subdomain].${domainInput}`}</span>
+                </div>
+              </div>
+
+              {/* Alerts */}
+              {bindError && (
+                <div style={{
+                  padding: '12px',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  color: 'var(--error)',
+                  fontSize: '0.8rem',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: confirmDialog.type === 'danger' ? '0 4px 12px rgba(239, 68, 68, 0.25)' : '0 4px 12px var(--accent-blue-glow)',
-                  cursor: 'pointer'
-                }}
-              >
-                {confirmDialog.confirmLabel || 'Confirm'}
-              </button>
-            </div>
+                  gap: '8px'
+                }}>
+                  <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                  <span>{bindError}</span>
+                </div>
+              )}
+
+              {bindSuccess && (
+                <div style={{
+                  padding: '12px',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  color: 'var(--success)',
+                  fontSize: '0.8rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                  <span>{bindSuccess}</span>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setSelectedApp(null)}
+                  style={{ padding: '10px 20px', fontSize: '0.85rem' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={binding}
+                  style={{
+                    background: 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                    padding: '10px 24px',
+                    fontSize: '0.85rem',
+                    boxShadow: '0 4px 12px var(--accent-blue-glow)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  {binding ? (
+                    <>
+                      <RefreshCw size={14} className="spin-anim" />
+                      Binding DNS...
+                    </>
+                  ) : (
+                    'Link Custom Domain'
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
