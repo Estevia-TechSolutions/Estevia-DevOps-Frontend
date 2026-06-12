@@ -1184,6 +1184,17 @@ function App() {
     }
   }, [organizationId, token]);
 
+  // Auto-scan cloud resources and refresh costs every 1 minute
+  useEffect(() => {
+    if (token) {
+      const interval = setInterval(() => {
+        console.log('[DevOps Auto Refresh] Running scheduled 1-minute cloud and cost scan...');
+        handleScan();
+      }, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [token, organizationId]);
+
   // Apply theme to document root
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -1635,6 +1646,10 @@ function App() {
           console.warn('[DevOps Scan] [WARN] Scan returned 0 active resources. Check Azure subscription permissions or resource group filters.');
         }
         setApps(data.apps || []);
+        
+        // Auto-update cost management metrics as part of the scan flow
+        console.log('[DevOps Scan] Triggering cost metrics refresh...');
+        await fetchCostData();
       } else {
         console.error('[DevOps Scan] [API ERROR] Backend reported failure:', data.message || data.error);
         setScanError(data.message || 'Failed to scan Azure resources.');
@@ -3361,6 +3376,13 @@ function App() {
               <div className="glass-panel" style={{ padding: '16px', borderColor: 'var(--error)', backgroundColor: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
                 <AlertCircle style={{ color: 'var(--error)' }} />
                 <span>{scanError}</span>
+              </div>
+            )}
+
+            {scanning && apps.length > 0 && (
+              <div className="glass-panel" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', borderColor: 'var(--accent-purple)', backgroundColor: 'rgba(139, 92, 246, 0.05)' }}>
+                <RefreshCw size={16} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
+                <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Scanning active cloud for updates and refreshing cost metrics...</span>
               </div>
             )}
 
