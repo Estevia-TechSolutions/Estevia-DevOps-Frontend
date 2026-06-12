@@ -3542,22 +3542,27 @@ function App() {
         <button className={`tab-btn tab-btn-scan ${activeTab === 'scan' ? 'active' : ''}`} onClick={() => setActiveTab('scan')}>
           <Server size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
           Cloud Resource Scanning
+          <span className="tab-tooltip">Scan active Azure subscriptions for app services, container resources, and cost metrics.</span>
         </button>
         <button className={`tab-btn tab-btn-provision ${activeTab === 'provision' ? 'active' : ''}`} onClick={() => setActiveTab('provision')}>
           <PlusCircle size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
           Provision Web App
+          <span className="tab-tooltip">Create and provision new Azure Static Web Apps automatically.</span>
         </button>
         <button className={`tab-btn tab-btn-cost ${activeTab === 'cost' ? 'active' : ''}`} onClick={() => setActiveTab('cost')}>
           <Database size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
           Cost Management
+          <span className="tab-tooltip">Monitor infrastructure cost trends, resource footprints, and budget insights.</span>
         </button>
         <button className={`tab-btn tab-btn-databases ${activeTab === 'databases' ? 'active' : ''}`} onClick={() => setActiveTab('databases')}>
           <Database size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
           Database Hub
+          <span className="tab-tooltip">Manage databases, query schemas, and perform secure backups.</span>
         </button>
         <button className={`tab-btn tab-btn-credentials ${activeTab === 'credentials' ? 'active' : ''}`} onClick={() => setActiveTab('credentials')}>
           <ShieldCheck size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
           Decryption Secrets & Credentials
+          <span className="tab-tooltip">Configure Entra ID authentication and manage secure encryption credentials.</span>
         </button>
       </div>
 
