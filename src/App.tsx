@@ -115,6 +115,15 @@ interface AppResource {
         result: string;
         startTime?: string | null;
         finishTime?: string | null;
+        steps?: {
+          id: string;
+          name: string;
+          displayName: string;
+          state: string;
+          result: string;
+          startTime?: string | null;
+          finishTime?: string | null;
+        }[];
       }[];
     }[];
   } | null;

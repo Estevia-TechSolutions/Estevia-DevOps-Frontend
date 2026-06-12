@@ -13,7 +13,8 @@ import {
   ChevronDown, 
   CheckCircle2, 
   Building2,
-  Cpu
+  Cpu,
+  X
 } from 'lucide-react';
 
 interface AppResource {
@@ -56,6 +57,15 @@ interface AppResource {
         result: string;
         startTime?: string | null;
         finishTime?: string | null;
+        steps?: {
+          id: string;
+          name: string;
+          displayName: string;
+          state: string;
+          result: string;
+          startTime?: string | null;
+          finishTime?: string | null;
+        }[];
       }[];
     }[];
   } | null;
@@ -112,6 +122,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   azureDevopsOrgUrl,
   azureDevopsProject
 }) => {
+
+  const [activeStageInfo, setActiveStageInfo] = React.useState<{appName: string, stageId: string} | null>(null);
+  const [selectedJobForModal, setSelectedJobForModal] = React.useState<any | null>(null);
 
   const resolveBranchName = (app: AppResource) => {
     const n = app.name.toLowerCase();
@@ -520,33 +533,102 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               
                               {/* Visual Pipeline Stages */}
                               {item.pipelineRun.stages && item.pipelineRun.stages.length > 0 && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
                                   {item.pipelineRun.stages.map((stage) => {
                                     const stageColor = getStageColor(stage.result, stage.state);
+                                    const isSelected = activeStageInfo?.appName === item.name && activeStageInfo?.stageId === stage.id;
                                     return (
                                       <div
                                         key={stage.id}
-                                        onClick={() => setSelectedStageForJobs(stage)}
+                                        onClick={() => {
+                                          if (isSelected) {
+                                            setActiveStageInfo(null);
+                                          } else {
+                                            setActiveStageInfo({ appName: item.name, stageId: stage.id });
+                                          }
+                                          setSelectedStageForJobs(stage);
+                                        }}
                                         style={{
-                                          flex: 1,
-                                          height: '14px',
-                                          borderRadius: '3px',
-                                          backgroundColor: stage.state === 'inProgress' ? 'transparent' : stageColor,
-                                          border: stage.state === 'inProgress' ? `1px solid ${stageColor}` : 'none',
-                                          display: 'flex',
+                                          padding: '4px 8px',
+                                          borderRadius: '6px',
+                                          backgroundColor: isSelected ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
+                                          border: `1px solid ${isSelected ? 'var(--accent-purple)' : (stage.state === 'inProgress' ? stageColor : 'var(--glass-border)')}`,
+                                          display: 'inline-flex',
                                           alignItems: 'center',
-                                          justifyContent: 'center',
+                                          gap: '6px',
                                           cursor: 'pointer',
-                                          position: 'relative'
+                                          fontSize: '0.7rem',
+                                          color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                          transition: 'all 0.2s ease',
+                                          flex: '1 1 auto',
+                                          justifyContent: 'center'
                                         }}
                                         title={`${stage.displayName}: ${stage.result || stage.state}`}
                                       >
                                         {getStageIcon(stage.result, stage.state)}
+                                        <span style={{ fontWeight: isSelected ? 600 : 400 }}>{stage.displayName || stage.name}</span>
                                       </div>
                                     );
                                   })}
                                 </div>
                               )}
+
+                              {/* Selected Stage Jobs list */}
+                              {activeStageInfo?.appName === item.name && (() => {
+                                const activeStage = item.pipelineRun.stages?.find(s => s.id === activeStageInfo.stageId);
+                                if (!activeStage || !activeStage.jobs || activeStage.jobs.length === 0) return null;
+                                return (
+                                  <div style={{
+                                    marginTop: '8px',
+                                    padding: '8px 10px',
+                                    borderRadius: '6px',
+                                    backgroundColor: 'rgba(0,0,0,0.15)',
+                                    borderLeft: '2px solid var(--accent-purple)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '6px',
+                                    animation: 'fade-in-anim 0.2s ease-out'
+                                  }}>
+                                    <div style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                      Jobs in "{activeStage.displayName || activeStage.name}"
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                      {activeStage.jobs.map(job => (
+                                        <div 
+                                          key={job.id} 
+                                          onClick={() => setSelectedJobForModal(job)}
+                                          style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            justifyContent: 'space-between', 
+                                            fontSize: '0.7rem',
+                                            padding: '4px 6px',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            transition: 'background-color 0.15s ease',
+                                            userSelect: 'none',
+                                            backgroundColor: 'transparent'
+                                          }}
+                                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)'}
+                                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)' }}>
+                                            {getStageIcon(job.result, job.state)}
+                                            <span>{job.displayName || job.name}</span>
+                                          </div>
+                                          <span style={{
+                                            fontSize: '0.62rem',
+                                            fontWeight: 600,
+                                            color: getStageColor(job.result, job.state)
+                                          }}>
+                                            {job.state === 'inProgress' ? 'RUNNING' : job.result || job.state}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           )}
 
@@ -649,6 +731,122 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               </div>
             );
           })}
+        </div>
+      )}
+      {/* Job Steps Modal Overlay */}
+      {selectedJobForModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(2, 6, 23, 0.75)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+          animation: 'fade-in-anim 0.2s ease-out'
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: '600px',
+            width: '100%',
+            padding: '28px',
+            border: '1px solid var(--glass-border)',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
+            position: 'relative'
+          }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                <GitBranch size={18} style={{ color: 'var(--accent-purple)' }} />
+                Job Steps: {selectedJobForModal.displayName || selectedJobForModal.name}
+              </h3>
+              <button 
+                onClick={() => setSelectedJobForModal(null)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  padding: '4px'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Steps List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
+              {!selectedJobForModal.steps || selectedJobForModal.steps.length === 0 ? (
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontStyle: 'italic', margin: 0, textAlign: 'center', padding: '20px' }}>
+                  No step details found for this job.
+                </p>
+              ) : (
+                selectedJobForModal.steps.map((step: any, idx: number) => {
+                  const stepColor = getStageColor(step.result, step.state);
+                  return (
+                    <div 
+                      key={step.id || idx} 
+                      style={{
+                        padding: '12px 16px',
+                        borderRadius: '8px',
+                        backgroundColor: 'rgba(255,255,255,0.015)',
+                        border: '1px solid var(--glass-border)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {getStageIcon(step.result, step.state)}
+                        </div>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-primary)' }}>
+                          {step.displayName || step.name}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          color: stepColor
+                        }}>
+                          {step.state === 'inProgress' ? 'RUNNING' : step.result || step.state}
+                        </span>
+                        {step.startTime && (
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                            {(() => {
+                              const start = new Date(step.startTime).getTime();
+                              const end = step.finishTime ? new Date(step.finishTime).getTime() : Date.now();
+                              const dur = Math.max(0, Math.floor((end - start) / 1000));
+                              return `${dur}s`;
+                            })()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+              <button
+                className="btn-secondary"
+                onClick={() => setSelectedJobForModal(null)}
+                style={{ padding: '8px 20px', fontSize: '0.85rem' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
