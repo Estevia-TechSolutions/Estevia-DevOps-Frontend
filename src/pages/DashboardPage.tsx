@@ -223,8 +223,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     if (n.includes('-dev')) {
       return {
         background: isLight 
-          ? 'linear-gradient(135deg, rgba(219, 234, 254, 0.9) 0%, rgba(239, 246, 255, 0.95) 100%)' 
-          : 'linear-gradient(135deg, rgba(96, 165, 250, 0.15) 0%, rgba(15, 23, 42, 0.85) 100%)',
+          ? 'linear-gradient(135deg, rgba(219, 234, 254, 0.95) 0%, rgba(239, 246, 255, 0.99) 100%)' 
+          : 'linear-gradient(135deg, rgba(96, 165, 250, 0.22) 0%, rgba(59, 130, 246, 0.05) 100%)',
         border: isLight ? 'rgba(96, 165, 250, 0.45)' : 'rgba(96, 165, 250, 0.35)',
         color: '#60a5fa'
       };
@@ -232,8 +232,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     if (n.includes('-qa')) {
       return {
         background: isLight 
-          ? 'linear-gradient(135deg, rgba(254, 243, 199, 0.9) 0%, rgba(255, 251, 235, 0.95) 100%)' 
-          : 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(15, 23, 42, 0.85) 100%)',
+          ? 'linear-gradient(135deg, rgba(254, 243, 199, 0.95) 0%, rgba(255, 251, 235, 0.99) 100%)' 
+          : 'linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.05) 100%)',
         border: isLight ? 'rgba(245, 158, 11, 0.45)' : 'rgba(245, 158, 11, 0.35)',
         color: '#f59e0b'
       };
@@ -241,8 +241,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     if (n.includes('-prod')) {
       return {
         background: isLight 
-          ? 'linear-gradient(135deg, rgba(209, 250, 229, 0.9) 0%, rgba(240, 253, 250, 0.95) 100%)' 
-          : 'linear-gradient(135deg, rgba(52, 211, 153, 0.15) 0%, rgba(15, 23, 42, 0.85) 100%)',
+          ? 'linear-gradient(135deg, rgba(209, 250, 229, 0.95) 0%, rgba(240, 253, 250, 0.99) 100%)' 
+          : 'linear-gradient(135deg, rgba(52, 211, 153, 0.2) 0%, rgba(16, 185, 129, 0.05) 100%)',
         border: isLight ? 'rgba(52, 211, 153, 0.45)' : 'rgba(52, 211, 153, 0.35)',
         color: '#34d399'
       };
@@ -254,8 +254,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     if (noSuffix) {
       return {
         background: isLight 
-          ? 'linear-gradient(135deg, rgba(209, 250, 229, 0.9) 0%, rgba(240, 253, 250, 0.95) 100%)' 
-          : 'linear-gradient(135deg, rgba(52, 211, 153, 0.15) 0%, rgba(15, 23, 42, 0.85) 100%)',
+          ? 'linear-gradient(135deg, rgba(209, 250, 229, 0.95) 0%, rgba(240, 253, 250, 0.99) 100%)' 
+          : 'linear-gradient(135deg, rgba(52, 211, 153, 0.2) 0%, rgba(16, 185, 129, 0.05) 100%)',
         border: isLight ? 'rgba(52, 211, 153, 0.45)' : 'rgba(52, 211, 153, 0.35)',
         color: '#34d399'
       };
@@ -263,8 +263,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     
     return {
       background: isLight 
-        ? 'linear-gradient(135deg, rgba(248, 250, 252, 0.9) 0%, rgba(255, 255, 255, 0.95) 100%)' 
-        : 'linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(15, 23, 42, 0.85) 100%)',
+        ? 'linear-gradient(135deg, rgba(248, 250, 252, 0.95) 0%, rgba(255, 255, 255, 0.99) 100%)' 
+        : 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%)',
       border: isLight ? '#e2e8f0' : 'var(--glass-border)',
       color: 'var(--text-secondary)'
     };
@@ -274,8 +274,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     const isLight = theme === 'light';
     return {
       background: isLight 
-        ? 'linear-gradient(135deg, rgba(254, 226, 226, 0.9) 0%, rgba(254, 242, 242, 0.95) 100%)' 
-        : 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(15, 23, 42, 0.85) 100%)',
+        ? 'linear-gradient(135deg, rgba(254, 226, 226, 0.95) 0%, rgba(254, 242, 242, 0.99) 100%)' 
+        : 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.05) 100%)',
       border: isLight ? 'rgba(239, 68, 68, 0.45)' : 'rgba(239, 68, 68, 0.35)',
       color: isLight ? '#dc2626' : '#ef4444'
     };
