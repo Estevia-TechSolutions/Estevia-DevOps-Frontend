@@ -3457,13 +3457,14 @@ function App() {
             {/* Hero */}
             <div className="page-hero" style={{
               position: 'relative',
-              padding: '28px 36px',
+              padding: (scanning || scanProgress > 0) && apps.length > 0 ? '28px 36px 36px 36px' : '28px 36px',
               borderRadius: '16px',
               background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.04) 0%, rgba(20, 184, 166, 0.04) 100%)',
-              border: '1px solid var(--glass-border)',
-              boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.15)',
+              border: (scanning || scanProgress > 0) && apps.length > 0 ? '1px solid rgba(139, 92, 246, 0.3)' : '1px solid var(--glass-border)',
+              boxShadow: (scanning || scanProgress > 0) && apps.length > 0 ? '0 8px 32px 0 rgba(139, 92, 246, 0.1)' : '0 8px 32px 0 rgba(0, 0, 0, 0.15)',
               marginBottom: '32px',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              transition: 'all 0.3s ease'
             }}>
               {/* Decorative background glow */}
               <div style={{
@@ -3472,9 +3473,12 @@ function App() {
                 right: '-20%',
                 width: '320px',
                 height: '320px',
-                background: 'radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, transparent 70%)',
+                background: (scanning || scanProgress > 0) && apps.length > 0
+                  ? 'radial-gradient(circle, rgba(139, 92, 246, 0.2) 0%, transparent 70%)'
+                  : 'radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, transparent 70%)',
                 filter: 'blur(50px)',
-                pointerEvents: 'none'
+                pointerEvents: 'none',
+                transition: 'background 0.3s ease'
               }} />
               
               <div style={{ position: 'relative', zIndex: 1 }}>
@@ -3509,23 +3513,49 @@ function App() {
                   <span style={{ color: 'var(--accent-blue)', fontWeight: 800, opacity: 0.8 }}>·</span>
                   <span style={{ color: 'var(--text-primary)', opacity: 0.95 }}>Azure DevOps CI/CD</span>
                 </p>
-              </div>
-            </div>
 
-        {(scanning || scanProgress > 0) && apps.length > 0 && (
-          <div className="glass-panel" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px', borderColor: 'var(--accent-purple)', backgroundColor: 'rgba(139, 92, 246, 0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <RefreshCw size={16} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
-                <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Scanning active cloud for updates and refreshing cost metrics...</span>
+                {(scanning || scanProgress > 0) && apps.length > 0 && (
+                  <div style={{ 
+                    marginTop: '20px', 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    gap: '10px',
+                    animation: 'pulse-anim 1.5s infinite alternate'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <RefreshCw size={14} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Scanning active cloud for updates and refreshing cost metrics...</span>
+                      </div>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-purple)' }}>{Math.floor(scanProgress)}%</span>
+                    </div>
+                    <div style={{ width: '100%', height: '5px', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ width: `${scanProgress}%`, height: '100%', backgroundColor: 'var(--accent-purple)', boxShadow: '0 0 8px var(--accent-purple-glow)', transition: 'width 0.15s ease-out', borderRadius: '3px' }} />
+                    </div>
+                  </div>
+                )}
               </div>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accent-purple)' }}>{Math.floor(scanProgress)}%</span>
+
+              {/* Integrated progress bar at the very bottom edge of the card */}
+              {(scanning || scanProgress > 0) && apps.length > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: '4px',
+                  backgroundColor: 'rgba(255,255,255,0.04)'
+                }}>
+                  <div style={{
+                    width: `${scanProgress}%`,
+                    height: '100%',
+                    backgroundColor: 'var(--accent-purple)',
+                    boxShadow: '0 0 10px var(--accent-purple-glow)',
+                    transition: 'width 0.15s ease-out'
+                  }} />
+                </div>
+              )}
             </div>
-            <div style={{ width: '100%', height: '6px', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
-              <div style={{ width: `${scanProgress}%`, height: '100%', backgroundColor: 'var(--accent-purple)', boxShadow: '0 0 8px var(--accent-purple-glow)', transition: 'width 0.15s ease-out', borderRadius: '3px' }} />
-            </div>
-          </div>
-        )}
 
         {/* Tabs */}
         <div className="tabs-container">
