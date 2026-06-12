@@ -3540,7 +3540,8 @@ function App() {
                                 );
                               }
 
-                              const accentBarColor = envTag.color;
+                              const isDeploying = !!(app.pipelineRun && (app.pipelineRun.state === 'inProgress' || app.pipelineRun.state === 'canceling'));
+                              const accentBarColor = isDeploying ? '#fbbf24' : envTag.color;
                               const getStatusMeta = (statusStr: string) => {
                                 const s = (statusStr || '').toLowerCase();
                                 if (s.includes('ready') || s.includes('running') || s.includes('succeeded') || s.includes('active')) return { color: 'var(--success)', icon: <CheckCircle2 size={12} />, label: statusStr || 'Ready' };
@@ -3548,18 +3549,49 @@ function App() {
                                 if (s.includes('pend') || s.includes('updat') || s.includes('deploy') || s.includes('progress')) return { color: '#fbbf24', icon: <RefreshCw size={12} className="spin-anim" />, label: statusStr || 'Pending' };
                                 return { color: 'var(--text-secondary)', icon: <AlertCircle size={12} />, label: statusStr || 'Unknown' };
                               };
-                              const statusMeta = getStatusMeta(app.status);
+                              const statusMeta = getStatusMeta(isDeploying ? 'deploying' : app.status);
 
                               return (
-                                <div key={app.name} className="glass-panel" style={{ padding: '20px', position: 'relative', display: 'flex', flexDirection: 'column', gap: '12px', borderRadius: '12px', border: '1px solid var(--glass-border)', backgroundColor: isDark ? 'rgba(255,255,255,0.015)' : 'rgba(15,23,42,0.01)', boxSizing: 'border-box', overflow: 'hidden' }}>
+                                <div key={app.name} className="glass-panel" style={{ 
+                                  padding: '20px', 
+                                  position: 'relative', 
+                                  display: 'flex', 
+                                  flexDirection: 'column', 
+                                  gap: '12px', 
+                                  borderRadius: '12px', 
+                                  border: isDeploying ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid var(--glass-border)', 
+                                  boxShadow: isDeploying ? '0 0 15px rgba(251, 191, 36, 0.15)' : 'none',
+                                  backgroundColor: isDark ? 'rgba(255,255,255,0.015)' : 'rgba(15,23,42,0.01)', 
+                                  boxSizing: 'border-box', 
+                                  overflow: 'hidden' 
+                                }}>
                                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', backgroundColor: accentBarColor }} />
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                       <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', color: envTag.color, backgroundColor: envTag.bg, border: `1px solid ${envTag.border}`, padding: '2px 8px', borderRadius: '10px' }}>{envTag.label}</span>
                                       {app.pipelineRun?.webUrl && <a href={app.pipelineRun.webUrl} target="_blank" rel="noreferrer" title="View Pipeline Run Details" style={{ color: 'var(--accent-blue)', display: 'inline-flex', alignItems: 'center', textDecoration: 'none', fontSize: '0.7rem', gap: '2px' }}><ExternalLink size={10} style={{ flexShrink: 0 }} /> View Details</a>}
                                     </div>
-                                    <span style={{ fontSize: '0.72rem', color: statusMeta.color, display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>{statusMeta.icon} {statusMeta.label}</span>
+                                    <span style={{ fontSize: '0.72rem', color: statusMeta.color, display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>{statusMeta.icon} {isDeploying ? 'DEPLOYING...' : statusMeta.label}</span>
                                   </div>
+                                  {isDeploying && (
+                                    <div style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '8px',
+                                      padding: '8px 12px',
+                                      backgroundColor: 'rgba(251, 191, 36, 0.08)',
+                                      border: '1px solid rgba(251, 191, 36, 0.3)',
+                                      borderRadius: '8px',
+                                      color: '#fbbf24',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 600,
+                                      animation: 'pulse-anim 1.5s infinite alternate',
+                                      boxShadow: '0 2px 6px rgba(251, 191, 36, 0.05)'
+                                    }}>
+                                      <RefreshCw size={12} className="spin-anim" />
+                                      <span>Active deployment in progress...</span>
+                                    </div>
+                                  )}
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                     <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Resource Name</span>
                                     <div style={{ fontSize: '0.78rem', color: 'var(--text-primary)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }} title={app.name}>{app.name}</div>
