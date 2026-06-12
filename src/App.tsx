@@ -3755,26 +3755,6 @@ function App() {
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '4px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                       <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', color: envTag.color, backgroundColor: envTag.bg, border: `1px solid ${envTag.border}`, padding: '2px 8px', borderRadius: '10px' }}>{envTag.label}</span>
-                                      {isDeploying && (
-                                        <span style={{
-                                          fontSize: '0.68rem',
-                                          fontWeight: 700,
-                                          letterSpacing: '0.05em',
-                                          color: '#fbbf24',
-                                          backgroundColor: 'rgba(251, 191, 36, 0.12)',
-                                          border: '1px solid rgba(251, 191, 36, 0.3)',
-                                          padding: '2px 8px',
-                                          borderRadius: '10px',
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          gap: '5px',
-                                          animation: 'pulse-anim 1.5s infinite alternate',
-                                          boxShadow: '0 0 8px rgba(251, 191, 36, 0.2)'
-                                        }}>
-                                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#fbbf24', display: 'inline-block', boxShadow: '0 0 6px #fbbf24' }}></span>
-                                          Active Deployment...
-                                        </span>
-                                      )}
                                       {app.pipelineRun?.webUrl && <a href={app.pipelineRun.webUrl} target="_blank" rel="noreferrer" title="View Pipeline Run Details" style={{ color: 'var(--accent-blue)', display: 'inline-flex', alignItems: 'center', textDecoration: 'none', fontSize: '0.7rem', gap: '2px' }}><ExternalLink size={10} style={{ flexShrink: 0 }} /> View Details</a>}
                                     </div>
                                     <span style={{ fontSize: '0.72rem', color: statusMeta.color, display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>{statusMeta.icon} {isDeploying ? 'DEPLOYING...' : statusMeta.label}</span>
