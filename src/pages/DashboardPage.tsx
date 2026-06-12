@@ -142,6 +142,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     return match ? match.name : targetSimpleName;
   };
 
+  const isBuildActive = (run: any) => {
+    if (!run || !run.state) return false;
+    const s = run.state.toLowerCase();
+    return s === 'inprogress' || s === 'running' || s === 'canceling' || s === 'cancelling' || s === 'notstarted' || s === 'queued';
+  };
+
   const getBadgeBgColor = (type: string) => {
     const isLight = theme === 'light';
     switch (type.toLowerCase()) {
@@ -242,7 +248,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             const accentGlow = group.type === 'frontend' ? '0 0 10px var(--accent-purple-glow)' : '0 0 10px var(--accent-teal-glow)';
 
             const isCollapsed = collapsedScanGroups[group.key] !== false;
-            const groupHasActiveDeployment = group.envs.some(app => !!(app.pipelineRun && (app.pipelineRun.state === 'inProgress' || app.pipelineRun.state === 'canceling')));
+            const groupHasActiveDeployment = group.envs.some(app => !!(app.pipelineRun && isBuildActive(app.pipelineRun)));
 
             return (
               <div key={group.key} className="glass-panel" style={{ padding: '0', position: 'relative', overflow: 'hidden' }}>
@@ -483,7 +489,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 400, paddingLeft: '22px', color: 'var(--text-secondary)' }}>
                                 <GitBranch size={12} style={{ opacity: 0.7 }} />
                                 <span>Branch: <strong style={{ color: 'var(--text-primary)' }}>{resolveBranchName(item)}</strong></span>
-                                {item.pipelineRun && (item.pipelineRun.state === 'inProgress' || item.pipelineRun.state === 'canceling') && (
+                                {item.pipelineRun && isBuildActive(item.pipelineRun) && (
                                   <span style={{ 
                                     marginLeft: '8px', 
                                     display: 'inline-flex', 
@@ -527,7 +533,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                   textTransform: 'uppercase', 
                                   color: getStageColor(item.pipelineRun.result, item.pipelineRun.state) 
                                 }}>
-                                  {item.pipelineRun.state === 'inProgress' ? 'BUILDING' : item.pipelineRun.result || item.pipelineRun.state}
+                                  {isBuildActive(item.pipelineRun) ? 'BUILDING' : item.pipelineRun.result || item.pipelineRun.state}
                                 </span>
                               </div>
                               
