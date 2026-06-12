@@ -3667,7 +3667,7 @@ function App() {
                               const accentBarColor = isDeploying ? '#fbbf24' : envTag.color;
                               const getStatusMeta = (statusStr: string) => {
                                 const s = (statusStr || '').toLowerCase();
-                                if (s.includes('ready') || s.includes('running') || s.includes('succeeded') || s.includes('active')) return { color: 'var(--success)', icon: <CheckCircle2 size={12} />, label: statusStr || 'Ready' };
+                                if (s.includes('deployed') || s.includes('ready') || s.includes('running') || s.includes('succeeded') || s.includes('active')) return { color: 'var(--success)', icon: <CheckCircle2 size={12} />, label: statusStr || 'Ready' };
                                 if (s.includes('fail') || s.includes('error') || s.includes('stop') || s.includes('degrad')) return { color: 'var(--error)', icon: <AlertCircle size={12} />, label: statusStr || 'Error' };
                                 if (s.includes('pend') || s.includes('updat') || s.includes('deploy') || s.includes('progress')) return { color: '#fbbf24', icon: <RefreshCw size={12} className="spin-anim" />, label: statusStr || 'Pending' };
                                 return { color: 'var(--text-secondary)', icon: <AlertCircle size={12} />, label: statusStr || 'Unknown' };
