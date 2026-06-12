@@ -291,7 +291,38 @@ function App() {
   // Scanned Apps State
   const [apps, setApps] = useState<AppResource[]>([]);
   const [scanning, setScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
   const [scanError, setScanError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let interval: any = null;
+    if (scanning) {
+      setScanProgress(0);
+      interval = setInterval(() => {
+        setScanProgress((prev) => {
+          if (prev < 40) {
+            return prev + Math.floor(Math.random() * 4) + 2;
+          } else if (prev < 80) {
+            return prev + Math.floor(Math.random() * 2) + 1;
+          } else if (prev < 96) {
+            return prev + 0.5;
+          }
+          return prev;
+        });
+      }, 150);
+    } else {
+      if (scanProgress > 0) {
+        setScanProgress(100);
+        const timeout = setTimeout(() => {
+          setScanProgress(0);
+        }, 500);
+        return () => clearTimeout(timeout);
+      }
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [scanning]);
 
   // Bind Domain Modal State
   const [selectedApp, setSelectedApp] = useState<AppResource | null>(null);
@@ -2832,6 +2863,25 @@ function App() {
 
   return (
     <div>
+      {scanProgress > 0 && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '3px',
+          backgroundColor: 'transparent',
+          zIndex: 9999
+        }}>
+          <div style={{
+            width: `${scanProgress}%`,
+            height: '100%',
+            backgroundColor: 'var(--accent-purple)',
+            boxShadow: '0 0 10px var(--accent-purple-glow), 0 0 5px var(--accent-purple)',
+            transition: 'width 0.15s ease-out'
+          }} />
+        </div>
+      )}
       {/* ── Sticky Header ── */}
       <header className="site-header">
         <div className="site-header-inner">
@@ -3448,18 +3498,31 @@ function App() {
               </div>
             )}
 
-            {scanning && apps.length > 0 && (
-              <div className="glass-panel" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', borderColor: 'var(--accent-purple)', backgroundColor: 'rgba(139, 92, 246, 0.05)' }}>
-                <RefreshCw size={16} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
-                <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Scanning active cloud for updates and refreshing cost metrics...</span>
+            {(scanning || scanProgress > 0) && apps.length > 0 && (
+              <div className="glass-panel" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px', borderColor: 'var(--accent-purple)', backgroundColor: 'rgba(139, 92, 246, 0.05)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <RefreshCw size={16} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
+                    <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Scanning active cloud for updates and refreshing cost metrics...</span>
+                  </div>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--accent-purple)' }}>{Math.floor(scanProgress)}%</span>
+                </div>
+                <div style={{ width: '100%', height: '6px', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ width: `${scanProgress}%`, height: '100%', backgroundColor: 'var(--accent-purple)', boxShadow: '0 0 8px var(--accent-purple-glow)', transition: 'width 0.15s ease-out', borderRadius: '3px' }} />
+                </div>
               </div>
             )}
 
-            {scanning && apps.length === 0 ? (
-              <div className="glass-panel" style={{ padding: '60px', textAlign: 'center' }}>
-                <RefreshCw size={48} className="spin-anim" style={{ color: 'var(--accent-purple)', marginBottom: '16px' }} />
-                <h3>Fetching Live Subscriptions...</h3>
-                <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>Scanning Static Web Apps and Container Apps in resource group Estevia-Prod-RG...</p>
+            {(scanning || scanProgress > 0) && apps.length === 0 ? (
+              <div className="glass-panel" style={{ padding: '60px 40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                <RefreshCw size={48} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
+                <div>
+                  <h3 style={{ margin: 0 }}>Fetching Live Subscriptions... {Math.floor(scanProgress)}%</h3>
+                  <p style={{ color: 'var(--text-secondary)', marginTop: '8px', marginBottom: 0 }}>Scanning Static Web Apps and Container Apps in resource group Estevia-Prod-RG...</p>
+                </div>
+                <div style={{ width: '100%', maxWidth: '400px', height: '8px', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: '4px', overflow: 'hidden', marginTop: '8px' }}>
+                  <div style={{ width: `${scanProgress}%`, height: '100%', backgroundColor: 'var(--accent-purple)', boxShadow: '0 0 10px var(--accent-purple-glow)', transition: 'width 0.15s ease-out', borderRadius: '4px' }} />
+                </div>
               </div>
             ) : apps.length === 0 ? (
               <div className="glass-panel" style={{ padding: '60px', textAlign: 'center' }}>
@@ -3667,7 +3730,7 @@ function App() {
                               const accentBarColor = isDeploying ? '#fbbf24' : envTag.color;
                               const getStatusMeta = (statusStr: string) => {
                                 const s = (statusStr || '').toLowerCase();
-                                if (s.includes('deployed') || s.includes('ready') || s.includes('running') || s.includes('succeeded') || s.includes('active')) return { color: 'var(--success)', icon: <CheckCircle2 size={12} />, label: statusStr || 'Ready' };
+                                if (s.includes('deployed') || s.includes('ready') || s.includes('running') || s.includes('succeeded') || s.includes('active')) return { color: 'var(--success)', icon: <CheckCircle2 size={12} />, label: s === 'deployed' ? 'Deployed' : (statusStr || 'Ready') };
                                 if (s.includes('fail') || s.includes('error') || s.includes('stop') || s.includes('degrad')) return { color: 'var(--error)', icon: <AlertCircle size={12} />, label: statusStr || 'Error' };
                                 if (s.includes('pend') || s.includes('updat') || s.includes('deploy') || s.includes('progress')) return { color: '#fbbf24', icon: <RefreshCw size={12} className="spin-anim" />, label: statusStr || 'Pending' };
                                 return { color: 'var(--text-secondary)', icon: <AlertCircle size={12} />, label: statusStr || 'Unknown' };
