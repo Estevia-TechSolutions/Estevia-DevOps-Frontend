@@ -377,8 +377,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             justifyContent: 'space-between', 
                             padding: '12px 18px', 
                             borderRadius: '10px', 
-                            border: '1px solid var(--glass-border)', 
-                            backgroundColor: 'rgba(255,255,255,0.015)',
+                            border: `1px solid ${tag.border}`, 
+                            borderLeft: `4px solid ${tag.color}`,
+                            backgroundColor: tag.bg,
                             transition: 'all 0.25s ease',
                             flexWrap: 'wrap',
                             gap: '12px'
@@ -752,8 +753,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               justifyContent: 'space-between', 
                               padding: '12px 18px', 
                               borderRadius: '10px', 
-                              border: '1px dashed var(--glass-border)', 
-                              backgroundColor: 'rgba(255,255,255,0.005)',
+                              border: '1px dashed rgba(168, 85, 247, 0.25)', 
+                              borderLeft: '4px solid rgba(168, 85, 247, 0.5)',
+                              backgroundColor: theme === 'light' ? 'rgba(168, 85, 247, 0.02)' : 'rgba(168, 85, 247, 0.04)',
                               transition: 'all 0.25s ease',
                               flexWrap: 'wrap',
                               gap: '12px'
@@ -762,8 +764,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '280px' }}>
                               {/* Git Icon / Branch details */}
                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <GitBranch size={16} style={{ color: 'var(--text-secondary)', opacity: 0.8 }} />
-                                <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                <GitBranch size={16} style={{ color: '#a855f7', opacity: 0.9 }} />
+                                <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                                   {branch.name}
                                 </span>
                               </div>
@@ -773,11 +775,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 fontSize: '0.62rem',
                                 fontWeight: 700,
                                 textTransform: 'uppercase',
-                                color: '#94a3b8',
-                                background: 'rgba(148, 163, 184, 0.12)',
+                                color: '#a855f7',
+                                background: 'rgba(168, 85, 247, 0.12)',
                                 padding: '2px 6px',
                                 borderRadius: '4px',
-                                border: '1px dashed rgba(148, 163, 184, 0.3)',
+                                border: '1px dashed rgba(168, 85, 247, 0.3)',
                                 letterSpacing: '0.04em'
                               }}>
                                 UNLINKED
