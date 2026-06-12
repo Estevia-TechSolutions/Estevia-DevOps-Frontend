@@ -3495,6 +3495,7 @@ function App() {
                   };
 
                   const isCollapsed = collapsedScanGroups[group.key] !== false;
+                  const groupHasActiveDeployment = group.envs.some(app => !!(app.pipelineRun && (app.pipelineRun.state === 'inProgress' || app.pipelineRun.state === 'canceling')));
 
                   return (
                     <div key={group.key} className="glass-panel" style={{ padding: '0', position: 'relative', overflow: 'hidden' }}>
@@ -3545,6 +3546,26 @@ function App() {
                               <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', backgroundColor: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '10px', border: '1px solid var(--glass-border)' }}>
                                 {group.envs.length} active environments
                               </span>
+                              {groupHasActiveDeployment && (
+                                <span style={{
+                                  fontSize: '0.7rem',
+                                  fontWeight: 700,
+                                  letterSpacing: '0.05em',
+                                  color: '#fbbf24',
+                                  backgroundColor: 'rgba(251, 191, 36, 0.12)',
+                                  border: '1px solid rgba(251, 191, 36, 0.3)',
+                                  padding: '3px 10px',
+                                  borderRadius: '12px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                  animation: 'pulse-anim 1.5s infinite alternate',
+                                  boxShadow: '0 0 8px rgba(251, 191, 36, 0.2)'
+                                }}>
+                                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#fbbf24', display: 'inline-block', boxShadow: '0 0 6px #fbbf24' }}></span>
+                                  Active Deployment...
+                                </span>
+                              )}
                             </div>
                             {group.repoPath && (
                               <a 
