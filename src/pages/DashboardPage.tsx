@@ -222,22 +222,28 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     
     if (n.includes('-dev')) {
       return {
-        bg: isLight ? '#f0f6ff' : 'rgba(16, 24, 48, 0.7)',
-        border: isLight ? '#bfdbfe' : 'rgba(96, 165, 250, 0.25)',
+        background: isLight 
+          ? 'linear-gradient(135deg, rgba(219, 234, 254, 0.9) 0%, rgba(239, 246, 255, 0.95) 100%)' 
+          : 'linear-gradient(135deg, rgba(96, 165, 250, 0.15) 0%, rgba(15, 23, 42, 0.85) 100%)',
+        border: isLight ? 'rgba(96, 165, 250, 0.45)' : 'rgba(96, 165, 250, 0.35)',
         color: '#60a5fa'
       };
     }
     if (n.includes('-qa')) {
       return {
-        bg: isLight ? '#fef3c7' : 'rgba(35, 20, 10, 0.7)',
-        border: isLight ? '#fde68a' : 'rgba(245, 158, 11, 0.25)',
+        background: isLight 
+          ? 'linear-gradient(135deg, rgba(254, 243, 199, 0.9) 0%, rgba(255, 251, 235, 0.95) 100%)' 
+          : 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(15, 23, 42, 0.85) 100%)',
+        border: isLight ? 'rgba(245, 158, 11, 0.45)' : 'rgba(245, 158, 11, 0.35)',
         color: '#f59e0b'
       };
     }
     if (n.includes('-prod')) {
       return {
-        bg: isLight ? '#ecfdf5' : 'rgba(10, 30, 20, 0.7)',
-        border: isLight ? '#a7f3d0' : 'rgba(52, 211, 153, 0.25)',
+        background: isLight 
+          ? 'linear-gradient(135deg, rgba(209, 250, 229, 0.9) 0%, rgba(240, 253, 250, 0.95) 100%)' 
+          : 'linear-gradient(135deg, rgba(52, 211, 153, 0.15) 0%, rgba(15, 23, 42, 0.85) 100%)',
+        border: isLight ? 'rgba(52, 211, 153, 0.45)' : 'rgba(52, 211, 153, 0.35)',
         color: '#34d399'
       };
     }
@@ -247,14 +253,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                      !n.endsWith('-staging') && !n.endsWith('-test');
     if (noSuffix) {
       return {
-        bg: isLight ? '#ecfdf5' : 'rgba(10, 30, 20, 0.7)',
-        border: isLight ? '#a7f3d0' : 'rgba(52, 211, 153, 0.25)',
+        background: isLight 
+          ? 'linear-gradient(135deg, rgba(209, 250, 229, 0.9) 0%, rgba(240, 253, 250, 0.95) 100%)' 
+          : 'linear-gradient(135deg, rgba(52, 211, 153, 0.15) 0%, rgba(15, 23, 42, 0.85) 100%)',
+        border: isLight ? 'rgba(52, 211, 153, 0.45)' : 'rgba(52, 211, 153, 0.35)',
         color: '#34d399'
       };
     }
     
     return {
-      bg: isLight ? '#f8fafc' : 'rgba(30, 41, 59, 0.4)',
+      background: isLight 
+        ? 'linear-gradient(135deg, rgba(248, 250, 252, 0.9) 0%, rgba(255, 255, 255, 0.95) 100%)' 
+        : 'linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(15, 23, 42, 0.85) 100%)',
       border: isLight ? '#e2e8f0' : 'var(--glass-border)',
       color: 'var(--text-secondary)'
     };
@@ -263,9 +273,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const getUnlinkedCardStyles = (theme: 'dark' | 'light') => {
     const isLight = theme === 'light';
     return {
-      bg: isLight ? '#faf5ff' : 'rgba(24, 18, 40, 0.7)',
-      border: isLight ? '#e9d5ff' : 'rgba(168, 85, 247, 0.25)',
-      color: '#a855f7'
+      background: isLight 
+        ? 'linear-gradient(135deg, rgba(254, 226, 226, 0.9) 0%, rgba(254, 242, 242, 0.95) 100%)' 
+        : 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(15, 23, 42, 0.85) 100%)',
+      border: isLight ? 'rgba(239, 68, 68, 0.45)' : 'rgba(239, 68, 68, 0.35)',
+      color: isLight ? '#dc2626' : '#ef4444'
     };
   };
 
@@ -433,7 +445,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             borderRadius: '10px', 
                             border: `1px solid ${cardStyle.border}`, 
                             borderLeft: `4px solid ${cardStyle.color}`,
-                            backgroundColor: cardStyle.bg,
+                            background: cardStyle.background,
                             transition: 'all 0.25s ease',
                             flexWrap: 'wrap',
                             gap: '12px'
@@ -811,7 +823,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               borderRadius: '10px', 
                               border: `1px dashed ${unlinkedStyle.border}`, 
                               borderLeft: `4px solid ${unlinkedStyle.color}`,
-                              backgroundColor: unlinkedStyle.bg,
+                              background: unlinkedStyle.background,
                               transition: 'all 0.25s ease',
                               flexWrap: 'wrap',
                               gap: '12px'
@@ -820,7 +832,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '280px' }}>
                               {/* Git Icon / Branch details */}
                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <GitBranch size={16} style={{ color: '#a855f7', opacity: 0.9 }} />
+                                <GitBranch size={16} style={{ color: unlinkedStyle.color, opacity: 0.9 }} />
                                 <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                                   {branch.name}
                                 </span>
@@ -831,18 +843,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 fontSize: '0.62rem',
                                 fontWeight: 700,
                                 textTransform: 'uppercase',
-                                color: '#a855f7',
-                                background: 'rgba(168, 85, 247, 0.12)',
+                                color: unlinkedStyle.color,
+                                background: theme === 'light' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.15)',
                                 padding: '2px 6px',
                                 borderRadius: '4px',
-                                border: '1px dashed rgba(168, 85, 247, 0.3)',
+                                border: `1px dashed ${unlinkedStyle.border}`,
                                 letterSpacing: '0.04em'
                               }}>
                                 UNLINKED
                               </span>
                             </div>
 
-                            {/* Provision Branch Button */}
+                             {/* Provision Branch Button */}
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                               <button 
                                 className="btn-secondary" 
@@ -854,20 +866,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                   alignItems: 'center', 
                                   justifyContent: 'center', 
                                   gap: '6px',
-                                  borderColor: 'var(--accent-purple)',
+                                  borderColor: unlinkedStyle.color,
                                   color: 'var(--text-primary)',
-                                  background: 'rgba(139, 92, 246, 0.05)'
+                                  background: theme === 'light' ? 'rgba(239, 68, 68, 0.03)' : 'rgba(239, 68, 68, 0.05)'
                                 }}
                                 onMouseEnter={(e) => {
-                                  e.currentTarget.style.background = 'rgba(139, 92, 246, 0.15)';
-                                  e.currentTarget.style.boxShadow = '0 0 8px var(--accent-purple-glow)';
+                                  e.currentTarget.style.background = theme === 'light' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.15)';
+                                  e.currentTarget.style.boxShadow = `0 0 8px ${theme === 'light' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.4)'}`;
                                 }}
                                 onMouseLeave={(e) => {
-                                  e.currentTarget.style.background = 'rgba(139, 92, 246, 0.05)';
+                                  e.currentTarget.style.background = theme === 'light' ? 'rgba(239, 68, 68, 0.03)' : 'rgba(239, 68, 68, 0.05)';
                                   e.currentTarget.style.boxShadow = 'none';
                                 }}
                               >
-                                <PlusCircle size={12} style={{ color: 'var(--accent-purple)' }} />
+                                <PlusCircle size={12} style={{ color: unlinkedStyle.color }} />
                                 Provision Branch
                               </button>
                             </div>
