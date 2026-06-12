@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, Fragment } from 'react';
+import { useState, useEffect, useMemo, Fragment, useRef } from 'react';
 import { 
   Settings, 
   Cpu, 
@@ -396,14 +396,57 @@ function App() {
   const [loadingDbServers, setLoadingDbServers] = useState(false);
   const [loadingDatabases, setLoadingDatabases] = useState(false);
   const [loadingSchema, setLoadingSchema] = useState(false);
+  const [schemaError, setSchemaError] = useState<string | null>(null);
   const [newDbName, setNewDbName] = useState('');
   const [deployingDb, setDeployingDb] = useState(false);
   const [deployDbSuccess, setDeployDbSuccess] = useState<string | null>(null);
   const [deployDbError, setDeployDbError] = useState<string | null>(null);
   const [expandedTables, setExpandedTables] = useState<Record<string, boolean>>({});
   const [copiedText, setCopiedText] = useState<string | null>(null);
-  const [dbDetailTab, setDbDetailTab] = useState<'schema' | 'connect'>('schema');
+  const [dbDetailTab, setDbDetailTab] = useState<'schema' | 'query' | 'create-table' | 'connect'>('schema');
   const [connectCodeTab, setConnectCodeTab] = useState<'cli' | 'node' | 'python' | 'php'>('cli');
+
+  // Custom SQL Query Console States
+  const [querySql, setQuerySql] = useState('');
+  const [queryExecuting, setQueryExecuting] = useState(false);
+  const [queryResult, setQueryResult] = useState<any | null>(null);
+  const [queryError, setQueryError] = useState<string | null>(null);
+
+  // Database search filter state
+  const [dbSearchQuery, setDbSearchQuery] = useState('');
+
+  // Ref and effect to auto-adjust Right Panel height to match Left Column height
+  const leftColRef = useRef<HTMLDivElement>(null);
+  const [leftColHeight, setLeftColHeight] = useState<number>(650);
+
+  useEffect(() => {
+    if (!leftColRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        const height = entry.contentRect.height;
+        if (height > 0) {
+          setLeftColHeight(height);
+        }
+      }
+    });
+    observer.observe(leftColRef.current);
+    return () => observer.disconnect();
+  }, [activeTab]);
+
+  // Table Creator Visual Form States
+  const [newTableName, setNewTableName] = useState('');
+  const [tableColumns, setTableColumns] = useState<any[]>([
+    { name: 'id', type: 'INT', nullable: false, isPrimary: true, extra: 'AUTO_INCREMENT' },
+    { name: 'name', type: 'VARCHAR(255)', nullable: false, isPrimary: false, extra: '' }
+  ]);
+  const [creatingTable, setCreatingTable] = useState(false);
+  const [createTableError, setCreateTableError] = useState<string | null>(null);
+
+  // Alter Table Actions States
+  const [alteringTable, setAlteringTable] = useState<string | null>(null);
+  const [alterNewColName, setAlterNewColName] = useState('');
+  const [alterNewColType, setAlterNewColType] = useState('VARCHAR(255)');
+  const [alterNewColNullable, setAlterNewColNullable] = useState(true);
 
   // Dynamic Organization Settings State
   const [orgName, setOrgName] = useState<string>('');
@@ -423,7 +466,7 @@ function App() {
     const stored = localStorage.getItem('devops_user');
     try {
       return stored ? JSON.parse(stored) : null;
-    } catch (e) {
+    } catch (e: any) {
       return null;
     }
   });
@@ -1325,19 +1368,29 @@ function App() {
   const fetchDatabaseSchema = async (serverName: string, dbName: string) => {
     setLoadingSchema(true);
     setDatabaseSchema([]);
+    setSchemaError(null);
     try {
       const res = await fetch(`${API_BASE}/apps/database-schema?organizationId=${organizationId}&serverName=${serverName}&dbName=${dbName}`);
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
-          setDatabaseSchema(data.schema || []);
-          if (data.schema && data.schema.length > 0) {
-            setExpandedTables({ [data.schema[0].table]: true });
+          if (data.error) {
+            setSchemaError(data.error);
+          } else {
+            setDatabaseSchema(data.schema || []);
+            if (data.schema && data.schema.length > 0) {
+              setExpandedTables({ [data.schema[0].table]: true });
+            }
           }
+        } else {
+          setSchemaError(data.message || 'Failed to retrieve schema');
         }
+      } else {
+        setSchemaError(`HTTP Error: ${res.status}`);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to load database schema:', e);
+      setSchemaError(e.message || 'Connection failed');
     } finally {
       setLoadingSchema(false);
     }
@@ -1370,6 +1423,190 @@ function App() {
       setDeployDbError(e.message || 'Error occurred while deploying database.');
     } finally {
       setDeployingDb(false);
+    }
+  };
+
+  const getTableNameFromQuery = (sql: string) => {
+    if (!sql) return null;
+    const regex = /\bfrom\b/gi;
+    let match;
+    let lastFromIdx = -1;
+    while ((match = regex.exec(sql)) !== null) {
+      lastFromIdx = match.index;
+    }
+    if (lastFromIdx === -1) return null;
+    const afterFrom = sql.substring(lastFromIdx + 4).trim();
+    const tableMatch = afterFrom.match(/^(?:\`?([a-zA-Z0-9_-]+)\`?\.)?\`?([a-zA-Z0-9_-]+)\`?/);
+    return tableMatch ? tableMatch[2] : null;
+  };
+
+  const handleExecuteQuery = async (customSql: string, reloadSchemaAfter = false) => {
+    if (!selectedDbServer || !selectedDatabase || !customSql.trim()) return;
+    setQueryExecuting(true);
+    setQueryResult(null);
+    setQueryError(null);
+    try {
+      const res = await fetch(`${API_BASE}/apps/execute-query`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          serverName: selectedDbServer.name,
+          dbName: selectedDatabase.name,
+          query: customSql.trim()
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setQueryResult(data);
+        if (reloadSchemaAfter) {
+          fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name);
+        }
+      } else {
+        setQueryError(data.message || 'Query execution failed.');
+      }
+    } catch (e: any) {
+      setQueryError(e.message || 'Error occurred executing query.');
+    } finally {
+      setQueryExecuting(false);
+    }
+  };
+
+  const handleCreateTable = async () => {
+    if (!selectedDbServer || !selectedDatabase || !newTableName.trim()) return;
+    setCreatingTable(true);
+    setCreateTableError(null);
+    try {
+      const columnsSql = tableColumns.map(col => {
+        let sql = `\`${col.name}\` ${col.type}`;
+        if (!col.nullable) sql += ' NOT NULL';
+        if (col.isPrimary) sql += ' PRIMARY KEY';
+        if (col.extra) sql += ` ${col.extra}`;
+        return sql;
+      }).join(', ');
+      
+      const sql = `CREATE TABLE \`${newTableName.trim()}\` (${columnsSql});`;
+      
+      const res = await fetch(`${API_BASE}/apps/execute-query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          serverName: selectedDbServer.name,
+          dbName: selectedDatabase.name,
+          query: sql
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setNewTableName('');
+        setTableColumns([
+          { name: 'id', type: 'INT', nullable: false, isPrimary: true, extra: 'AUTO_INCREMENT' },
+          { name: 'name', type: 'VARCHAR(255)', nullable: false, isPrimary: false, extra: '' }
+        ]);
+        setDbDetailTab('schema');
+        fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name);
+      } else {
+        setCreateTableError(data.message || 'Failed to create table.');
+      }
+    } catch (e: any) {
+      setCreateTableError(e.message || 'Error occurred creating table.');
+    } finally {
+      setCreatingTable(false);
+    }
+  };
+
+  const handleDropTable = async (tableName: string) => {
+    const confirmed = window.confirm(`Are you absolutely sure you want to DROP the table '${tableName}'? This will permanently delete all data in it!`);
+    if (!confirmed) return;
+    
+    try {
+      const sql = `DROP TABLE \`${tableName}\`;`;
+      const res = await fetch(`${API_BASE}/apps/execute-query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          serverName: selectedDbServer.name,
+          dbName: selectedDatabase.name,
+          query: sql
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        // Clear schema selections or details tab query outputs if open
+        setQueryResult(null);
+        fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name);
+      } else {
+        alert(`Failed to drop table: ${data.message || 'Unknown error'}`);
+      }
+    } catch (e: any) {
+      alert(`Error dropping table: ${e.message}`);
+    }
+  };
+
+  const handleAddColumn = async (tableName: string) => {
+    if (!alterNewColName.trim()) return;
+    try {
+      const nullability = alterNewColNullable ? 'NULL' : 'NOT NULL';
+      const sql = `ALTER TABLE \`${tableName}\` ADD COLUMN \`${alterNewColName.trim()}\` ${alterNewColType} ${nullability};`;
+      const res = await fetch(`${API_BASE}/apps/execute-query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          serverName: selectedDbServer.name,
+          dbName: selectedDatabase.name,
+          query: sql
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setAlteringTable(null);
+        setAlterNewColName('');
+        fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name);
+      } else {
+        alert(`Failed to add column: ${data.message || 'Unknown error'}`);
+      }
+    } catch (e: any) {
+      alert(`Error adding column: ${e.message}`);
+    }
+  };
+
+  const handleDropColumn = async (tableName: string, columnName: string) => {
+    const confirmed = window.confirm(`Are you sure you want to drop column '${columnName}' from table '${tableName}'?`);
+    if (!confirmed) return;
+    
+    try {
+      const sql = `ALTER TABLE \`${tableName}\` DROP COLUMN \`${columnName}\`;`;
+      const res = await fetch(`${API_BASE}/apps/execute-query`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          serverName: selectedDbServer.name,
+          dbName: selectedDatabase.name,
+          query: sql
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name);
+      } else {
+        alert(`Failed to drop column: ${data.message || 'Unknown error'}`);
+      }
+    } catch (e: any) {
+      alert(`Error dropping column: ${e.message}`);
     }
   };
 
@@ -6177,9 +6414,9 @@ function App() {
         )}
 
         {activeTab === 'databases' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', alignItems: 'flex-start', marginTop: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', alignItems: 'stretch', marginTop: '20px' }}>
             {/* Left Column: Servers & Databases */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div ref={leftColRef} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               {/* Server Selection Card */}
               <div className="glass-panel" style={{ padding: '20px' }}>
                 <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
@@ -6219,7 +6456,7 @@ function App() {
                       }}
                     >
                       {dbServers.map(srv => (
-                        <option key={srv.name} value={srv.name}>{srv.name}</option>
+                        <option key={srv.name} value={srv.name} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{srv.name}</option>
                       ))}
                     </select>
 
@@ -6228,8 +6465,8 @@ function App() {
                         marginTop: '4px',
                         padding: '12px',
                         borderRadius: '8px',
-                        backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                        border: '1px solid rgba(255, 255, 255, 0.04)',
+                        backgroundColor: 'var(--input-bg)',
+                        border: '1px solid var(--glass-border)',
                         fontSize: '0.78rem',
                         display: 'flex',
                         flexDirection: 'column',
@@ -6237,8 +6474,8 @@ function App() {
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                           <span style={{ color: 'var(--text-secondary)' }}>Status:</span>
-                          <span style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
-                            <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--success)' }}></span>
+                          <span style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--success)', boxShadow: '0 0 8px var(--success-glow)' }}></span>
                             {selectedDbServer.state}
                           </span>
                         </div>
@@ -6254,6 +6491,32 @@ function App() {
                           <span style={{ color: 'var(--text-secondary)' }}>Tier / Size:</span>
                           <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{selectedDbServer.tier} ({selectedDbServer.sku})</span>
                         </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid var(--divider)', paddingTop: '6px', marginTop: '2px' }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>Endpoint Host:</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 500, fontFamily: 'monospace', wordBreak: 'break-all', fontSize: '0.72rem' }}>{selectedDbServer.host}</span>
+                        </div>
+                        {selectedDbServer.privateNetwork && (
+                          <div style={{
+                            marginTop: '4px',
+                            padding: '8px',
+                            borderRadius: '6px',
+                            backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                            border: '1px solid rgba(245, 158, 11, 0.2)',
+                            color: 'var(--accent-orange)',
+                            fontSize: '0.72rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '4px'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                              <AlertTriangle size={12} style={{ color: 'var(--accent-orange)', flexShrink: 0 }} />
+                              Private Link Network
+                            </div>
+                            <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', lineHeight: '1.2' }}>
+                              Local access requires an active corporate VPN connection.
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -6267,52 +6530,98 @@ function App() {
                   Schemas / Databases
                 </h3>
 
+                {/* Schema Search Filter */}
+                <div style={{ position: 'relative', marginBottom: '12px' }}>
+                  <Search size={14} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--text-secondary)' }} />
+                  <input
+                    type="text"
+                    placeholder="Search schemas..."
+                    value={dbSearchQuery}
+                    onChange={(e) => setDbSearchQuery(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px 8px 30px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--glass-border)',
+                      background: 'var(--input-bg)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.8rem',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+
                 {loadingDatabases ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '16px 0', color: 'var(--text-secondary)' }}>
                     <RefreshCw size={16} className="spin-anim" />
                     <span style={{ fontSize: '0.85rem' }}>Loading schemas...</span>
                   </div>
                 ) : databases.length === 0 ? (
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', padding: '16px 0', fontStyle: 'italic' }}>
-                    No databases deployed yet.
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '8px 0' }}>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                      No databases deployed yet.
+                    </div>
+                    {selectedDbServer?.privateNetwork && (
+                      <div style={{
+                        padding: '10px',
+                        borderRadius: '6px',
+                        backgroundColor: 'rgba(239, 68, 68, 0.04)',
+                        border: '1px dashed rgba(239, 68, 68, 0.25)',
+                        fontSize: '0.76rem',
+                        color: 'var(--text-primary)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: 'var(--error)' }}>
+                          <AlertCircle size={14} />
+                          Network Unreachable
+                        </div>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', lineHeight: '1.3' }}>
+                          Unable to retrieve schema catalog. Server is isolated on a private VNet endpoint. Check your Azure VPN.
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '220px', overflowY: 'auto', paddingRight: '4px' }}>
-                    {databases.map(db => {
-                      const isSelected = selectedDatabase?.name === db.name;
-                      return (
-                        <div
-                          key={db.name}
-                          onClick={() => {
-                            setSelectedDatabase(db);
-                            if (selectedDbServer) {
-                              fetchDatabaseSchema(selectedDbServer.name, db.name);
-                            }
-                          }}
-                          style={{
-                            padding: '10px 12px',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            background: isSelected ? 'var(--accent-blue)' : 'rgba(255, 255, 255, 0.02)',
-                            border: `1px solid ${isSelected ? 'var(--accent-blue)' : 'rgba(255, 255, 255, 0.05)'}`,
-                            color: isSelected ? '#ffffff' : 'var(--text-primary)',
-                            fontSize: '0.85rem',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: isSelected ? 600 : 500 }}>
-                            <Database size={14} />
-                            {db.name}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '130px', overflowY: 'auto', paddingRight: '4px' }}>
+                    {databases
+                      .filter(db => db.name.toLowerCase().includes(dbSearchQuery.toLowerCase()))
+                      .map(db => {
+                        const isSelected = selectedDatabase?.name === db.name;
+                        return (
+                          <div
+                            key={db.name}
+                            onClick={() => {
+                              setSelectedDatabase(db);
+                              if (selectedDbServer) {
+                                fetchDatabaseSchema(selectedDbServer.name, db.name);
+                              }
+                            }}
+                            style={{
+                              padding: '10px 12px',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              background: isSelected ? 'var(--accent-blue)' : 'var(--input-bg)',
+                              border: `1px solid ${isSelected ? 'var(--accent-blue)' : 'var(--glass-border)'}`,
+                              color: isSelected ? '#ffffff' : 'var(--text-primary)',
+                              fontSize: '0.85rem',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: isSelected ? 600 : 500 }}>
+                              <Database size={14} />
+                              {db.name}
+                            </div>
+                            <span style={{ fontSize: '0.7rem', color: isSelected ? 'rgba(255,255,255,0.7)' : 'var(--text-secondary)' }}>
+                              {db.charset}
+                            </span>
                           </div>
-                          <span style={{ fontSize: '0.7rem', color: isSelected ? 'rgba(255,255,255,0.7)' : 'var(--text-secondary)' }}>
-                            {db.charset}
-                          </span>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
                   </div>
                 )}
 
@@ -6332,7 +6641,7 @@ function App() {
                         padding: '8px 10px',
                         borderRadius: '6px',
                         border: '1px solid var(--glass-border)',
-                        background: 'rgba(0,0,0,0.1)',
+                        background: 'var(--input-bg)',
                         color: 'var(--text-primary)',
                         fontSize: '0.82rem',
                         outline: 'none'
@@ -6385,7 +6694,7 @@ function App() {
             </div>
 
             {/* Right Column: Database details & schema */}
-            <div className="glass-panel" style={{ padding: '24px', minHeight: '520px', display: 'flex', flexDirection: 'column' }}>
+            <div className="glass-panel" style={{ padding: '24px', height: `${Math.max(650, leftColHeight)}px`, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               {!selectedDatabase ? (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', padding: '60px' }}>
                   <Database size={48} style={{ color: 'var(--glass-border)', marginBottom: '16px' }} />
@@ -6399,13 +6708,18 @@ function App() {
                   {/* Header Detail Info */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--glass-border)', paddingBottom: '16px', marginBottom: '20px' }}>
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                           {selectedDatabase.name}
                         </h2>
                         <span style={{ fontSize: '0.72rem', color: 'var(--accent-blue)', background: 'rgba(96, 165, 250, 0.1)', border: '1px solid rgba(96, 165, 250, 0.2)', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>
                           Active Schema
                         </span>
+                        {selectedDbServer?.privateNetwork && (
+                          <span style={{ fontSize: '0.72rem', color: 'var(--accent-orange)', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', padding: '2px 8px', borderRadius: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <AlertTriangle size={10} /> Private VNet Endpoint
+                          </span>
+                        )}
                       </div>
                       <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
                         Deployed on: <code style={{ color: 'var(--accent-purple)', fontWeight: 600 }}>{selectedDbServer?.host}</code>
@@ -6413,53 +6727,97 @@ function App() {
                     </div>
 
                     {/* Sub-tab Selection */}
-                    <div style={{ display: 'flex', gap: '4px', background: 'rgba(0,0,0,0.15)', padding: '4px', borderRadius: '8px' }}>
-                      <button
-                        onClick={() => setDbDetailTab('schema')}
-                        style={{
-                          padding: '6px 12px',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontSize: '0.8rem',
-                          fontWeight: 600,
-                          background: dbDetailTab === 'schema' ? 'rgba(255,255,255,0.08)' : 'transparent',
-                          color: dbDetailTab === 'schema' ? 'var(--text-primary)' : 'var(--text-secondary)',
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        Schema Explorer
-                      </button>
-                      <button
-                        onClick={() => setDbDetailTab('connect')}
-                        style={{
-                          padding: '6px 12px',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontSize: '0.8rem',
-                          fontWeight: 600,
-                          background: dbDetailTab === 'connect' ? 'rgba(255,255,255,0.08)' : 'transparent',
-                          color: dbDetailTab === 'connect' ? 'var(--text-primary)' : 'var(--text-secondary)',
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        Connection Settings
-                      </button>
+                    <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-primary)', border: '1px solid var(--glass-border)', padding: '4px', borderRadius: '8px' }}>
+                      {[
+                        { id: 'schema', label: 'Schema Catalog' },
+                        { id: 'query', label: 'SQL Query Console' },
+                        { id: 'create-table', label: 'Visual Table Builder' },
+                        { id: 'connect', label: 'Connection settings' }
+                      ].map(tab => (
+                        <button
+                          key={tab.id}
+                          onClick={() => setDbDetailTab(tab.id as any)}
+                          style={{
+                            padding: '6px 12px',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            background: dbDetailTab === tab.id ? 'var(--bg-secondary)' : 'transparent',
+                            boxShadow: dbDetailTab === tab.id ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                            color: dbDetailTab === tab.id ? 'var(--text-primary)' : 'var(--text-secondary)',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
                   {/* Schema Explorer Tab */}
                   {dbDetailTab === 'schema' && (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                      <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '14px', letterSpacing: '0.05em' }}>
-                        Tables in database ({databaseSchema.length})
-                      </h4>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', paddingRight: '4px' }}>
+                      {selectedDbServer?.privateNetwork && (
+                        <div style={{
+                          marginBottom: '16px',
+                          padding: '12px 16px',
+                          borderRadius: '8px',
+                          backgroundColor: 'rgba(245, 158, 11, 0.05)',
+                          border: '1px solid rgba(245, 158, 11, 0.15)',
+                          color: 'var(--text-primary)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px'
+                        }}>
+                          <AlertTriangle size={18} style={{ color: 'var(--accent-orange)', flexShrink: 0 }} />
+                          <div style={{ fontSize: '0.78rem', lineHeight: '1.4' }}>
+                            <strong>Private Link Resource:</strong> Connection to <code>{selectedDbServer.host}</code> is restricted. Local visual inspection and schema updates require connecting to the corporate Azure VPN.
+                          </div>
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                        <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Tables in database ({databaseSchema.length})
+                        </h4>
+                        <button 
+                          onClick={() => {
+                            setNewTableName('');
+                            setDbDetailTab('create-table');
+                          }}
+                          style={{
+                            fontSize: '0.75rem',
+                            color: 'var(--accent-teal)',
+                            background: 'rgba(20, 184, 166, 0.1)',
+                            border: '1px solid rgba(20, 184, 166, 0.2)',
+                            borderRadius: '4px',
+                            padding: '4px 10px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <PlusCircle size={12} /> Add Table
+                        </button>
+                      </div>
 
                       {loadingSchema ? (
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
                           <RefreshCw size={20} className="spin-anim" />
                           <span>Retrieving schema catalog...</span>
+                        </div>
+                      ) : schemaError ? (
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--error)', border: '1px dashed var(--error)', borderRadius: '8px', padding: '40px', backgroundColor: 'rgba(239, 68, 68, 0.05)' }}>
+                          <AlertCircle size={32} style={{ color: 'var(--error)', marginBottom: '12px' }} />
+                          <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>Database Connection Failed</p>
+                          <p style={{ fontSize: '0.8rem', marginTop: '6px', textAlign: 'center', maxWidth: '380px', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                            {schemaError}
+                          </p>
+                          <p style={{ fontSize: '0.75rem', marginTop: '12px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                            Please verify that you are connected to the Azure VPN or that target network security group rules allow connection to this database server.
+                          </p>
                         </div>
                       ) : databaseSchema.length === 0 ? (
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', border: '1px dashed var(--glass-border)', borderRadius: '8px', padding: '40px' }}>
@@ -6471,20 +6829,20 @@ function App() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                           {databaseSchema.map((tbl) => {
                             const isExpanded = !!expandedTables[tbl.table];
+                            const isAltering = alteringTable === tbl.table;
                             return (
                               <div
                                 key={tbl.table}
                                 style={{
                                   borderRadius: '8px',
-                                  border: `1px solid ${isExpanded ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.03)'}`,
-                                  background: isExpanded ? 'rgba(255, 255, 255, 0.01)' : 'transparent',
+                                  border: `1px solid ${isExpanded ? 'var(--glass-border)' : 'var(--divider)'}`,
+                                  background: isExpanded ? 'var(--bg-primary)' : 'transparent',
                                   overflow: 'hidden',
                                   transition: 'all 0.2s ease'
                                 }}
                               >
                                 {/* Table Row Header */}
                                 <div
-                                  onClick={() => setExpandedTables(prev => ({ ...prev, [tbl.table]: !prev[tbl.table] }))}
                                   style={{
                                     padding: '12px 16px',
                                     display: 'flex',
@@ -6492,8 +6850,9 @@ function App() {
                                     alignItems: 'center',
                                     cursor: 'pointer',
                                     userSelect: 'none',
-                                    backgroundColor: isExpanded ? 'rgba(255, 255, 255, 0.015)' : 'transparent'
+                                    backgroundColor: isExpanded ? 'var(--bg-secondary)' : 'transparent'
                                   }}
+                                  onClick={() => setExpandedTables(prev => ({ ...prev, [tbl.table]: !prev[tbl.table] }))}
                                 >
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, fontSize: '0.88rem', color: isExpanded ? 'var(--accent-teal)' : 'var(--text-primary)' }}>
                                     {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
@@ -6503,24 +6862,160 @@ function App() {
                                       ({tbl.columns.length} columns)
                                     </span>
                                   </div>
+
+                                  {/* Table Level Actions (Drop & Query) */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      onClick={() => {
+                                        setQuerySql(`SELECT * FROM \`${tbl.table}\` LIMIT 10;`);
+                                        setDbDetailTab('query');
+                                        handleExecuteQuery(`SELECT * FROM \`${tbl.table}\` LIMIT 10;`);
+                                      }}
+                                      style={{
+                                        fontSize: '0.72rem',
+                                        color: 'var(--text-primary)',
+                                        background: 'rgba(255,255,255,0.05)',
+                                        border: '1px solid var(--glass-border)',
+                                        borderRadius: '4px',
+                                        padding: '3px 8px',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      View Data
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setAlteringTable(isAltering ? null : tbl.table);
+                                        setAlterNewColName('');
+                                      }}
+                                      style={{
+                                        fontSize: '0.72rem',
+                                        color: 'var(--accent-blue)',
+                                        background: 'rgba(59, 130, 246, 0.1)',
+                                        border: '1px solid rgba(59, 130, 246, 0.2)',
+                                        borderRadius: '4px',
+                                        padding: '3px 8px',
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      {isAltering ? 'Cancel' : 'Alter'}
+                                    </button>
+                                    <button
+                                      onClick={() => handleDropTable(tbl.table)}
+                                      style={{
+                                        background: 'rgba(239, 68, 68, 0.1)',
+                                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                                        color: 'var(--error)',
+                                        borderRadius: '4px',
+                                        padding: '3px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                      }}
+                                      title="Drop Table"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
                                 </div>
 
                                 {/* Columns Details Grid */}
                                 {isExpanded && (
-                                  <div style={{ padding: '0 16px 16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                                  <div style={{ padding: '0 16px 16px', borderTop: '1px solid var(--divider)' }}>
+                                    
+                                    {/* Visual Alter Panel: Add Column inline */}
+                                    {isAltering && (
+                                      <div style={{
+                                        marginTop: '12px',
+                                        padding: '12px',
+                                        borderRadius: '6px',
+                                        backgroundColor: 'var(--bg-primary)',
+                                        border: '1px solid var(--glass-border)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '12px',
+                                        flexWrap: 'wrap'
+                                      }}>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Add Column:</span>
+                                        <input
+                                          type="text"
+                                          placeholder="column_name"
+                                          value={alterNewColName}
+                                          onChange={(e) => setAlterNewColName(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+                                          style={{
+                                            padding: '4px 8px',
+                                            borderRadius: '4px',
+                                            border: '1px solid var(--glass-border)',
+                                            background: 'var(--input-bg)',
+                                            color: 'var(--text-primary)',
+                                            fontSize: '0.75rem',
+                                            outline: 'none',
+                                            width: '120px'
+                                          }}
+                                        />
+                                        <select
+                                          value={alterNewColType}
+                                          onChange={(e) => setAlterNewColType(e.target.value)}
+                                          style={{
+                                            padding: '4px 8px',
+                                            borderRadius: '4px',
+                                            border: '1px solid var(--glass-border)',
+                                            background: 'var(--input-bg)',
+                                            color: 'var(--text-primary)',
+                                            fontSize: '0.75rem',
+                                            outline: 'none'
+                                          }}
+                                        >
+                                          <option value="INT">INT</option>
+                                          <option value="VARCHAR(50)">VARCHAR(50)</option>
+                                          <option value="VARCHAR(255)">VARCHAR(255)</option>
+                                          <option value="TEXT">TEXT</option>
+                                          <option value="TIMESTAMP">TIMESTAMP</option>
+                                          <option value="BOOLEAN">BOOLEAN</option>
+                                          <option value="DECIMAL(10,2)">DECIMAL(10,2)</option>
+                                        </select>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                                          <input
+                                            type="checkbox"
+                                            checked={alterNewColNullable}
+                                            onChange={(e) => setAlterNewColNullable(e.target.checked)}
+                                          />
+                                          Nullable
+                                        </label>
+                                        <button
+                                          onClick={() => handleAddColumn(tbl.table)}
+                                          disabled={!alterNewColName.trim()}
+                                          style={{
+                                            padding: '4px 10px',
+                                            borderRadius: '4px',
+                                            background: 'var(--accent-teal)',
+                                            color: '#ffffff',
+                                            border: 'none',
+                                            fontSize: '0.72rem',
+                                            fontWeight: 600,
+                                            cursor: 'pointer'
+                                          }}
+                                        >
+                                          Add
+                                        </button>
+                                      </div>
+                                    )}
+
                                     <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '12px', fontSize: '0.8rem', textAlign: 'left' }}>
                                       <thead>
-                                        <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <tr style={{ borderBottom: '1px solid var(--divider)' }}>
                                           <th style={{ padding: '8px', color: 'var(--text-secondary)', fontWeight: 600 }}>Field</th>
                                           <th style={{ padding: '8px', color: 'var(--text-secondary)', fontWeight: 600 }}>Type</th>
                                           <th style={{ padding: '8px', color: 'var(--text-secondary)', fontWeight: 600 }}>Null</th>
                                           <th style={{ padding: '8px', color: 'var(--text-secondary)', fontWeight: 600 }}>Key</th>
                                           <th style={{ padding: '8px', color: 'var(--text-secondary)', fontWeight: 600 }}>Extra</th>
+                                          <th style={{ padding: '8px', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'right' }}>Actions</th>
                                         </tr>
                                       </thead>
                                       <tbody>
                                         {tbl.columns.map((col: any) => (
-                                          <tr key={col.name} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                          <tr key={col.name} style={{ borderBottom: '1px solid var(--divider)' }}>
                                             <td style={{ padding: '8px', fontWeight: col.key === 'PRI' ? 600 : 400, color: col.key === 'PRI' ? 'var(--warning)' : 'var(--text-primary)' }}>
                                               {col.name}
                                             </td>
@@ -6544,6 +7039,22 @@ function App() {
                                               )}
                                             </td>
                                             <td style={{ padding: '8px', fontStyle: 'italic', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>{col.extra}</td>
+                                            <td style={{ padding: '8px', textAlign: 'right' }}>
+                                              <button
+                                                onClick={() => handleDropColumn(tbl.table, col.name)}
+                                                style={{
+                                                  background: 'none',
+                                                  border: 'none',
+                                                  color: 'var(--text-secondary)',
+                                                  cursor: 'pointer',
+                                                  padding: '2px 4px',
+                                                  borderRadius: '4px'
+                                                }}
+                                                title="Drop Column"
+                                              >
+                                                <X size={12} />
+                                              </button>
+                                            </td>
                                           </tr>
                                         ))}
                                       </tbody>
@@ -6558,33 +7069,562 @@ function App() {
                     </div>
                   )}
 
+                  {/* SQL Query Console Tab */}
+                  {dbDetailTab === 'query' && (
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', paddingRight: '4px' }}>
+                      {selectedDbServer?.privateNetwork && (
+                        <div style={{
+                          padding: '12px 16px',
+                          borderRadius: '8px',
+                          backgroundColor: 'rgba(245, 158, 11, 0.05)',
+                          border: '1px solid rgba(245, 158, 11, 0.15)',
+                          color: 'var(--text-primary)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px'
+                        }}>
+                          <AlertTriangle size={18} style={{ color: 'var(--accent-orange)', flexShrink: 0 }} />
+                          <div style={{ fontSize: '0.78rem', lineHeight: '1.4' }}>
+                            <strong>Private Network Resource:</strong> Query execution requests require routing to the private virtual network. Please connect your Azure VPN to submit queries.
+                          </div>
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Execute Custom SQL Query
+                        </span>
+                        
+                        {/* Quick Query Templates */}
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button
+                            onClick={() => setQuerySql('SHOW TABLES;')}
+                            style={{ fontSize: '0.72rem', background: 'var(--input-bg)', color: 'var(--text-secondary)', border: '1px solid var(--glass-border)', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                          >
+                            List Tables
+                          </button>
+                          {databaseSchema.length > 0 && (
+                            <button
+                              onClick={() => setQuerySql(`SELECT * FROM \`${databaseSchema[0].table}\` LIMIT 10;`)}
+                              style={{ fontSize: '0.72rem', background: 'var(--input-bg)', color: 'var(--text-secondary)', border: '1px solid var(--glass-border)', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                            >
+                              Select Sample
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* SQL Code Input */}
+                      <div style={{ position: 'relative' }}>
+                        <textarea
+                          value={querySql}
+                          onChange={(e) => setQuerySql(e.target.value)}
+                          placeholder="-- Write SQL here e.g. SELECT * FROM users;\nSELECT * FROM organizations;"
+                          style={{
+                            width: '100%',
+                            height: '120px',
+                            padding: '12px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--glass-border)',
+                            background: 'var(--input-bg)',
+                            color: 'var(--text-primary)',
+                            fontFamily: 'Courier New, Courier, monospace',
+                            fontSize: '0.85rem',
+                            outline: 'none',
+                            resize: 'vertical',
+                            lineHeight: '1.4'
+                          }}
+                        />
+                      </div>
+
+                      {/* Query Buttons */}
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button
+                          className="btn-primary"
+                          onClick={() => handleExecuteQuery(querySql)}
+                          disabled={queryExecuting || !querySql.trim()}
+                          style={{
+                            padding: '8px 20px',
+                            borderRadius: '6px',
+                            fontSize: '0.82rem',
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {queryExecuting ? (
+                            <>
+                              <RefreshCw size={14} className="spin-anim" />
+                              Running...
+                            </>
+                          ) : (
+                            <>
+                              <Check size={14} />
+                              Run Query
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setQuerySql('');
+                            setQueryResult(null);
+                            setQueryError(null);
+                          }}
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--glass-border)',
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.82rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Clear
+                        </button>
+                      </div>
+
+                      {/* Error Alert Box */}
+                      {queryError && (
+                        <div style={{ padding: '12px', borderRadius: '6px', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid var(--error)', color: 'var(--error)', fontSize: '0.8rem', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, marginBottom: '4px' }}>
+                            <AlertCircle size={14} /> Database Query Error:
+                          </div>
+                          {queryError}
+                        </div>
+                      )}
+
+                      {/* Results Box */}
+                      {queryResult && (
+                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: '220px', marginTop: '10px' }}>
+                          {queryResult.type === 'dml' ? (
+                            <div style={{ padding: '12px', borderRadius: '6px', backgroundColor: 'rgba(34, 197, 94, 0.1)', border: '1px solid var(--success)', color: 'var(--success)', fontSize: '0.82rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, marginBottom: '4px' }}>
+                                <Check size={14} /> Query Executed Successfully!
+                              </div>
+                              <p style={{ margin: 0, fontSize: '0.78rem' }}>{queryResult.message}</p>
+                              <div style={{ display: 'flex', gap: '16px', marginTop: '8px', fontSize: '0.72rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                                <span>Rows Affected: {queryResult.affectedRows}</span>
+                                {queryResult.insertId && <span>Inserted ID: {queryResult.insertId}</span>}
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                                <span>Query returned <strong>{queryResult.rows.length}</strong> rows.</span>
+                              </div>
+
+                              <div style={{ border: '1px solid var(--glass-border)', borderRadius: '8px', overflow: 'hidden', background: 'var(--input-bg)' }}>
+                                <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '300px' }}>
+                                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', textAlign: 'left' }}>
+                                      <thead>
+                                        <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid var(--glass-border)' }}>
+                                          {/* Actions Header if delete is possible */}
+                                          {(() => {
+                                            const tableName = getTableNameFromQuery(querySql);
+                                            return tableName ? (
+                                              <th style={{ padding: '10px 12px', color: 'var(--text-secondary)', fontWeight: 600, width: '50px' }}>Action</th>
+                                            ) : null;
+                                          })()}
+
+                                          {queryResult.fields.map((field: string) => (
+                                            <th key={field} style={{ padding: '10px 12px', color: 'var(--text-secondary)', fontWeight: 600 }}>{field}</th>
+                                          ))}
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {queryResult.rows.map((row: any, idx: number) => {
+                                          return (
+                                            <tr key={idx} style={{ borderBottom: '1px solid var(--divider)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
+                                              {/* Action Cell (Delete Row) */}
+                                              {(() => {
+                                                const tableName = getTableNameFromQuery(querySql);
+                                                if (!tableName) return null;
+                                                
+                                                const tblSchema = databaseSchema.find(t => t.table === tableName);
+                                                const pkCol = tblSchema?.columns.find((c: any) => c.key === 'PRI')?.name;
+
+                                                return (
+                                                  <td style={{ padding: '8px 12px' }}>
+                                                    <button
+                                                      onClick={async () => {
+                                                        let confirmed = false;
+                                                        let deleteSql = '';
+                                                        
+                                                        if (pkCol) {
+                                                          const pkVal = row[pkCol];
+                                                          confirmed = window.confirm(`Are you sure you want to delete this row where ${pkCol} = '${pkVal}'?`);
+                                                          if (!confirmed) return;
+                                                          deleteSql = `DELETE FROM \`${tableName}\` WHERE \`${pkCol}\` = ${typeof pkVal === 'number' ? pkVal : `'${String(pkVal).replace(/'/g, "\\'")}'`};`;
+                                                        } else {
+                                                          confirmed = window.confirm(`This table has no primary key. Are you sure you want to delete this row by matching all column values?`);
+                                                          if (!confirmed) return;
+                                                          
+                                                          const conditions = queryResult.fields.map((field: string) => {
+                                                            const val = row[field];
+                                                            if (val === null) {
+                                                              return `\`${field}\` IS NULL`;
+                                                            } else if (typeof val === 'number') {
+                                                              return `\`${field}\` = ${val}`;
+                                                            } else {
+                                                              return `\`${field}\` = '${String(val).replace(/'/g, "\\'")}'`;
+                                                            }
+                                                          });
+                                                          deleteSql = `DELETE FROM \`${tableName}\` WHERE ${conditions.join(' AND ')} LIMIT 1;`;
+                                                        }
+                                                        
+                                                        try {
+                                                          const deleteRes = await fetch(`${API_BASE}/apps/execute-query`, {
+                                                            method: 'POST',
+                                                            headers: {
+                                                              'Content-Type': 'application/json',
+                                                              'Authorization': `Bearer ${token}`
+                                                            },
+                                                            body: JSON.stringify({
+                                                              serverName: selectedDbServer.name,
+                                                              dbName: selectedDatabase.name,
+                                                              query: deleteSql
+                                                            })
+                                                          });
+                                                          const deleteData = await deleteRes.json();
+                                                          if (deleteRes.ok && deleteData.success) {
+                                                            // Re-execute SELECT
+                                                            handleExecuteQuery(querySql);
+                                                          } else {
+                                                            alert(`Failed to delete row: ${deleteData.message || 'Unknown error'}`);
+                                                           }
+                                                         } catch (e: any) {
+                                                          alert(`Error deleting row: ${e.message}`);
+                                                        }
+                                                      }}
+                                                      style={{
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        color: 'var(--text-secondary)',
+                                                        cursor: 'pointer',
+                                                        padding: '2px',
+                                                        display: 'flex',
+                                                        alignItems: 'center'
+                                                      }}
+                                                      title={pkCol ? `Delete Row by Primary Key (${pkCol})` : 'Delete Row (No PK, matches all columns)'}
+                                                    >
+                                                      <Trash2 size={12} style={{ color: 'var(--error)' }} />
+                                                    </button>
+                                                  </td>
+                                                );
+                                              })()}
+
+                                            {queryResult.fields.map((field: string) => {
+                                              const val = row[field];
+                                              let displayVal = '';
+                                              if (val === null) {
+                                                displayVal = 'NULL';
+                                              } else if (typeof val === 'object') {
+                                                displayVal = JSON.stringify(val);
+                                              } else {
+                                                displayVal = String(val);
+                                              }
+                                              return (
+                                                <td key={field} style={{ padding: '8px 12px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: '300px', color: val === null ? 'var(--text-secondary)' : 'var(--text-primary)', fontStyle: val === null ? 'italic' : 'normal' }}>
+                                                  {displayVal}
+                                                </td>
+                                              );
+                                            })}
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Visual Table Builder Tab */}
+                  {dbDetailTab === 'create-table' && (
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', paddingRight: '4px' }}>
+                      {selectedDbServer?.privateNetwork && (
+                        <div style={{
+                          padding: '12px 16px',
+                          borderRadius: '8px',
+                          backgroundColor: 'rgba(245, 158, 11, 0.05)',
+                          border: '1px solid rgba(245, 158, 11, 0.15)',
+                          color: 'var(--text-primary)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px'
+                        }}>
+                          <AlertTriangle size={18} style={{ color: 'var(--accent-orange)', flexShrink: 0 }} />
+                          <div style={{ fontSize: '0.78rem', lineHeight: '1.4' }}>
+                            <strong>Private Network Resource:</strong> Structural catalog updates require routing to the private virtual network. Please connect your Azure VPN to create tables.
+                          </div>
+                        </div>
+                      )}
+                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Create Table Schema
+                      </span>
+
+                      <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Table Name</label>
+                          <input
+                            type="text"
+                            placeholder="table_name"
+                            value={newTableName}
+                            onChange={(e) => setNewTableName(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px',
+                              borderRadius: '6px',
+                              border: '1px solid var(--glass-border)',
+                              background: 'rgba(255, 255, 255, 0.03)',
+                              color: 'var(--text-primary)',
+                              fontSize: '0.82rem',
+                              outline: 'none'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Columns visual rows list */}
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Columns Definition</span>
+                          <button
+                            onClick={() => {
+                              setTableColumns([...tableColumns, { name: '', type: 'VARCHAR(255)', nullable: true, isPrimary: false, extra: '' }]);
+                            }}
+                            style={{
+                              fontSize: '0.72rem',
+                              color: 'var(--accent-blue)',
+                              background: 'rgba(59, 130, 246, 0.1)',
+                              border: '1px solid rgba(59, 130, 246, 0.2)',
+                              borderRadius: '4px',
+                              padding: '2px 8px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            + Add Column
+                          </button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {tableColumns.map((col, idx) => (
+                            <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.02)', padding: '8px', borderRadius: '6px' }}>
+                              <input
+                                type="text"
+                                placeholder="col_name"
+                                value={col.name}
+                                onChange={(e) => {
+                                  const updated = [...tableColumns];
+                                  updated[idx].name = e.target.value.replace(/[^a-zA-Z0-9_]/g, '');
+                                  setTableColumns(updated);
+                                }}
+                                style={{
+                                  flex: 1.5,
+                                  padding: '6px 8px',
+                                  borderRadius: '4px',
+                                  border: '1px solid var(--glass-border)',
+                                  background: 'rgba(0,0,0,0.15)',
+                                  color: 'var(--text-primary)',
+                                  fontSize: '0.78rem',
+                                  outline: 'none'
+                                }}
+                              />
+                              <select
+                                value={col.type}
+                                onChange={(e) => {
+                                  const updated = [...tableColumns];
+                                  updated[idx].type = e.target.value;
+                                  setTableColumns(updated);
+                                }}
+                                style={{
+                                  flex: 1,
+                                  padding: '6px 8px',
+                                  borderRadius: '4px',
+                                  border: '1px solid var(--glass-border)',
+                                  background: 'rgba(0,0,0,0.15)',
+                                  color: 'var(--text-primary)',
+                                  fontSize: '0.78rem',
+                                  outline: 'none'
+                                }}
+                              >
+                                <option value="INT">INT</option>
+                                <option value="VARCHAR(50)">VARCHAR(50)</option>
+                                <option value="VARCHAR(255)">VARCHAR(255)</option>
+                                <option value="TEXT">TEXT</option>
+                                <option value="TIMESTAMP">TIMESTAMP</option>
+                                <option value="BOOLEAN">BOOLEAN</option>
+                                <option value="DECIMAL(10,2)">DECIMAL(10,2)</option>
+                              </select>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={col.nullable}
+                                  onChange={(e) => {
+                                    const updated = [...tableColumns];
+                                    updated[idx].nullable = e.target.checked;
+                                    setTableColumns(updated);
+                                  }}
+                                />
+                                Null
+                              </label>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={col.isPrimary}
+                                  onChange={(e) => {
+                                    const updated = [...tableColumns];
+                                    updated[idx].isPrimary = e.target.checked;
+                                    if (e.target.checked) {
+                                      updated[idx].nullable = false;
+                                    }
+                                    setTableColumns(updated);
+                                  }}
+                                />
+                                PK
+                              </label>
+                              <select
+                                value={col.extra || ''}
+                                onChange={(e) => {
+                                  const updated = [...tableColumns];
+                                  updated[idx].extra = e.target.value;
+                                  setTableColumns(updated);
+                                }}
+                                style={{
+                                  flex: 1,
+                                  padding: '6px 8px',
+                                  borderRadius: '4px',
+                                  border: '1px solid var(--glass-border)',
+                                  background: 'rgba(0,0,0,0.15)',
+                                  color: 'var(--text-primary)',
+                                  fontSize: '0.75rem',
+                                  outline: 'none'
+                                }}
+                              >
+                                <option value="">(extra)</option>
+                                <option value="AUTO_INCREMENT">AUTO_INCREMENT</option>
+                                <option value="DEFAULT CURRENT_TIMESTAMP">CURRENT_TIMESTAMP</option>
+                                <option value="DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP">ON UPDATE TS</option>
+                              </select>
+                              
+                              <button
+                                onClick={() => {
+                                  const updated = tableColumns.filter((_, i) => i !== idx);
+                                  setTableColumns(updated);
+                                }}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: 'var(--text-secondary)',
+                                  cursor: 'pointer',
+                                  padding: '4px'
+                                }}
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {createTableError && (
+                        <div style={{ padding: '10px', borderRadius: '6px', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid var(--error)', color: 'var(--error)', fontSize: '0.78rem' }}>
+                          {createTableError}
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                        <button
+                          className="btn-primary"
+                          onClick={handleCreateTable}
+                          disabled={creatingTable || !newTableName.trim() || tableColumns.some(c => !c.name.trim())}
+                          style={{
+                            padding: '8px 20px',
+                            borderRadius: '6px',
+                            fontSize: '0.82rem',
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {creatingTable ? (
+                            <>
+                              <RefreshCw size={14} className="spin-anim" />
+                              Creating Table...
+                            </>
+                          ) : (
+                            <>
+                              <Check size={14} />
+                              Create Table
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setNewTableName('');
+                            setTableColumns([
+                              { name: 'id', type: 'INT', nullable: false, isPrimary: true, extra: 'AUTO_INCREMENT' },
+                              { name: 'name', type: 'VARCHAR(255)', nullable: false, isPrimary: false, extra: '' }
+                            ]);
+                            setDbDetailTab('schema');
+                          }}
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            background: 'var(--input-bg)',
+                            border: '1px solid var(--glass-border)',
+                            color: 'var(--text-secondary)',
+                            fontSize: '0.82rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Connection Settings Tab */}
                   {dbDetailTab === 'connect' && (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', overflowY: 'auto', paddingRight: '4px' }}>
                       {/* Connection Params Box */}
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-                        <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(0,0,0,0.12)', border: '1px solid var(--glass-border)' }}>
+                        <div style={{ padding: '14px', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)' }}>
                           <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Host Address</span>
                           <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'monospace', overflowWrap: 'anywhere' }}>
                             {selectedDbServer?.host}
                           </p>
                         </div>
-                        <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(0,0,0,0.12)', border: '1px solid var(--glass-border)' }}>
+                        <div style={{ padding: '14px', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)' }}>
                           <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Port</span>
                           <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'monospace' }}>
                             3306
                           </p>
                         </div>
-                        <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(0,0,0,0.12)', border: '1px solid var(--glass-border)' }}>
+                        <div style={{ padding: '14px', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)' }}>
                           <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Default Database</span>
                           <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--accent-blue)', marginTop: '4px', fontFamily: 'monospace' }}>
                             {selectedDatabase.name}
                           </p>
                         </div>
-                        <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(0,0,0,0.12)', border: '1px solid var(--glass-border)' }}>
+                        <div style={{ padding: '14px', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)' }}>
                           <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Admin Username</span>
                           <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'monospace' }}>
-                            dbadmin
+                            {selectedDbServer?.administratorLogin || 'estevia'}
+                          </p>
+                        </div>
+                        <div style={{ padding: '14px', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)' }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Password</span>
+                          <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'monospace' }}>
+                            {selectedDbServer?.password || 'Ewco26INCP'}
                           </p>
                         </div>
                       </div>
@@ -6632,15 +7672,17 @@ function App() {
 
                         {/* Code Block Container */}
                         {(() => {
+                          const adminUser = selectedDbServer?.administratorLogin || 'estevia';
+                          const adminPass = selectedDbServer?.password || 'Ewco26INCP';
                           let code = '';
                           if (connectCodeTab === 'cli') {
-                            code = `mysql -h ${selectedDbServer?.host || 'localhost'} -u dbadmin -p -D ${selectedDatabase.name}`;
+                            code = `mysql -h ${selectedDbServer?.host || 'localhost'} -u ${adminUser} -p -D ${selectedDatabase.name}`;
                           } else if (connectCodeTab === 'node') {
-                            code = `const mysql = require('mysql2/promise');\n\nasync function connect() {\n  const connection = await mysql.createConnection({\n    host: '${selectedDbServer?.host || 'localhost'}',\n    port: 3306,\n    user: 'dbadmin',\n    password: 'YOUR_SECURE_PASSWORD',\n    database: '${selectedDatabase.name}',\n    ssl: {\n      rejectUnauthorized: false\n    }\n  });\n  console.log('Successfully connected to MySQL database.');\n}`;
+                            code = `const mysql = require('mysql2/promise');\n\nasync function connect() {\n  const connection = await mysql.createConnection({\n    host: '${selectedDbServer?.host || 'localhost'}',\n    port: 3306,\n    user: '${adminUser}',\n    password: '${adminPass}',\n    database: '${selectedDatabase.name}',\n    ssl: {\n      rejectUnauthorized: false\n    }\n  });\n  console.log('Successfully connected to MySQL database.');\n}`;
                           } else if (connectCodeTab === 'python') {
-                            code = `import pymysql\n\nconnection = pymysql.connect(\n    host='${selectedDbServer?.host || 'localhost'}',\n    port=3306,\n    user='dbadmin',\n    password='YOUR_SECURE_PASSWORD',\n    database='${selectedDatabase.name}',\n    ssl={'ssl': {}}\n)\ntry:\n    with connection.cursor() as cursor:\n        print("Successfully connected to MySQL database.")\nfinally:\n    connection.close()`;
+                            code = `import pymysql\n\nconnection = pymysql.connect(\n    host='${selectedDbServer?.host || 'localhost'}',\n    port=3306,\n    user='${adminUser}',\n    password='${adminPass}',\n    database='${selectedDatabase.name}',\n    ssl={'ssl': {}}\n)\ntry:\n    with connection.cursor() as cursor:\n        print("Successfully connected to MySQL database.")\nfinally:\n    connection.close()`;
                           } else {
-                            code = `<?php\ntry {\n    $dsn = "mysql:host=${selectedDbServer?.host || 'localhost'};dbname=${selectedDatabase.name};port=3306";\n    $pdo = new PDO($dsn, "dbadmin", "YOUR_SECURE_PASSWORD", [\n        PDO::MYSQL_ATTR_SSL_CA => true\n    ]);\n    echo "Successfully connected to MySQL database.";\n} catch (PDOException $e) {\n    echo "Connection failed: " . $e->getMessage();\n}`;
+                            code = `<?php\ntry {\n    $dsn = "mysql:host=${selectedDbServer?.host || 'localhost'};dbname=${selectedDatabase.name};port=3306";\n    $pdo = new PDO($dsn, "${adminUser}", "${adminPass}", [\n        PDO::MYSQL_ATTR_SSL_CA => true\n    ]);\n    echo "Successfully connected to MySQL database.";\n} catch (PDOException $e) {\n    echo "Connection failed: " . $e->getMessage();\n}`;
                           }
 
                           return (
