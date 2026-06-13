@@ -390,6 +390,8 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus {
 /* Tabs */
 .tabs-container {
   display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
   gap: 4px;
   margin-bottom: 24px;
   padding: 4px;
@@ -397,6 +399,11 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus {
   border: 1px solid var(--glass-border);
   border-radius: 12px;
   width: 100%;
+  scrollbar-width: none; /* Hide scrollbar Firefox */
+}
+
+.tabs-container::-webkit-scrollbar {
+  display: none; /* Hide scrollbar Chrome/Safari */
 }
 
 .tab-btn {
@@ -412,6 +419,7 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus {
   justify-content: center;
   gap: 6px;
   flex: 1;
+  white-space: nowrap; /* Prevent menu button text wrapping */
 }
 
 .tab-btn:hover {
