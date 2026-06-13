@@ -32,9 +32,13 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({ API_
     setSqlScript('');
     
     try {
+      const token = localStorage.getItem('devops_token');
       const res = await fetch(`${API_BASE}/database-hub/compare`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ sourceDb, targetDb })
       });
 
@@ -72,9 +76,13 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({ API_
         // Step 3: Execute
         setTimeout(async () => {
           try {
+            const token = localStorage.getItem('devops_token');
             const res = await fetch(`${API_BASE}/database-hub/migrate`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
               body: JSON.stringify({ targetDb, sqlScript })
             });
 
