@@ -28,7 +28,8 @@ import {
   ChevronRight,
   X,
   Minus,
-  TrendingDown
+  TrendingDown,
+  Info
 } from 'lucide-react';
 import './App.css';
 
@@ -4238,6 +4239,413 @@ function App() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Pipeline Setup Modal Overlay */}
+      {pipelineApp && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(2, 6, 23, 0.75)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+          animation: 'fade-in-anim 0.2s ease-out'
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: '600px',
+            width: '100%',
+            padding: '28px',
+            border: '1px solid var(--glass-border)',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
+            position: 'relative'
+          }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <GitBranch size={20} style={{ color: 'var(--accent-purple)' }} />
+                Setup CI/CD Pipeline - Step {pipelineWizardStep} of 3
+              </h3>
+              <button 
+                onClick={() => setPipelineApp(null)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  padding: '4px'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Step Indicators */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+              {[1, 2, 3].map((step) => (
+                <div 
+                  key={step} 
+                  style={{ 
+                    flex: 1, 
+                    height: '4px', 
+                    borderRadius: '2px', 
+                    background: pipelineWizardStep >= step 
+                      ? 'linear-gradient(90deg, var(--accent-purple), var(--accent-blue))' 
+                      : 'rgba(255, 255, 255, 0.1)',
+                    transition: 'all 0.3s ease'
+                  }} 
+                />
+              ))}
+            </div>
+
+            {/* Step 1: Configure Settings */}
+            {pipelineWizardStep === 1 && (
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                setPipelineWizardStep(2);
+                if (githubRepo) {
+                  loadYmlForPipelineModal(githubRepo, pipelineBranch);
+                }
+              }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                    Target Application
+                  </label>
+                  <div style={{
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid var(--glass-border)',
+                    fontSize: '0.86rem',
+                    color: 'var(--text-primary)',
+                    fontWeight: 500
+                  }}>
+                    {pipelineApp.name} ({pipelineApp.type === 'frontend' ? 'Static Web App' : 'Container App'})
+                  </div>
+                </div>
+
+                {/* GitHub Repo */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                      GitHub Repository
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setUseCustomRepo(!useCustomRepo)}
+                      style={{ background: 'transparent', border: 'none', color: 'var(--accent-blue)', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600 }}
+                    >
+                      {useCustomRepo ? 'Select from list' : 'Enter manually'}
+                    </button>
+                  </div>
+                  {useCustomRepo ? (
+                    <input
+                      type="text"
+                      required
+                      placeholder="owner/repository-name"
+                      value={githubRepo}
+                      onChange={(e) => setGithubRepo(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                        border: '1px solid var(--glass-border)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.86rem',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  ) : (
+                    <select
+                      value={githubRepo}
+                      onChange={(e) => setGithubRepo(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                        border: '1px solid var(--glass-border)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.86rem',
+                        outline: 'none'
+                      }}
+                    >
+                      <option value="">-- Select GitHub Repository --</option>
+                      {githubRepos.map(repo => (
+                        <option key={repo.id} value={repo.fullName}>{repo.fullName}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                {/* Git Branch */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                    Target Branch
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. main"
+                    value={pipelineBranch}
+                    onChange={(e) => setPipelineBranch(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                      border: '1px solid var(--glass-border)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.86rem',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                {/* DevOps Settings */}
+                <div style={{ display: 'flex', gap: '16px' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                      DevOps Org URL
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={devopsOrgUrl}
+                      onChange={(e) => setDevopsOrgUrl(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                        border: '1px solid var(--glass-border)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.86rem',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                      DevOps Project
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={devopsProject}
+                      onChange={(e) => setDevopsProject(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                        border: '1px solid var(--glass-border)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.86rem',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setPipelineApp(null)}
+                    style={{ padding: '10px 20px', fontSize: '0.85rem' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    style={{
+                      background: 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: 600,
+                      padding: '10px 24px',
+                      fontSize: '0.85rem',
+                      boxShadow: '0 4px 12px var(--accent-blue-glow)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Next
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Step 2: YAML Editor */}
+            {pipelineWizardStep === 2 && (
+              <form onSubmit={handleCreatePipelineSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                    azure-pipelines.yml Configuration
+                  </label>
+                  {pipelineModalYmlLoading ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '12px' }}>
+                      <RefreshCw className="spin-anim" size={24} style={{ color: 'var(--accent-purple)' }} />
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Loading YML configuration template...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <textarea
+                        rows={12}
+                        value={pipelineModalYmlContent}
+                        onChange={(e) => setPipelineModalYmlContent(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                          border: '1px solid var(--glass-border)',
+                          color: '#e2e8f0',
+                          fontSize: '0.82rem',
+                          fontFamily: 'monospace',
+                          lineHeight: '1.4',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                          resize: 'vertical'
+                        }}
+                      />
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Info size={12} style={{ color: 'var(--accent-blue)' }} />
+                        <span>
+                          {pipelineModalYmlSource === 'github' 
+                            ? 'Loaded existing YAML file found on GitHub.' 
+                            : 'Generated default YAML deployment template.'}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {pipelineError && (
+                  <div style={{
+                    padding: '12px',
+                    borderRadius: '8px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: 'var(--error)',
+                    fontSize: '0.8rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                    <span>{pipelineError}</span>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setPipelineWizardStep(1)}
+                    style={{ padding: '10px 20px', fontSize: '0.85rem' }}
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creatingPipeline || pipelineModalYmlLoading}
+                    style={{
+                      background: 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: 600,
+                      padding: '10px 24px',
+                      fontSize: '0.85rem',
+                      boxShadow: '0 4px 12px var(--accent-blue-glow)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    {creatingPipeline ? (
+                      <>
+                        <RefreshCw size={14} className="spin-anim" />
+                        Creating Pipeline...
+                      </>
+                    ) : (
+                      'Commit & Create Pipeline'
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Step 3: Success Screen */}
+            {pipelineWizardStep === 3 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{
+                  padding: '16px',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  color: 'var(--success)',
+                  fontSize: '0.86rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '8px',
+                  textAlign: 'center'
+                }}>
+                  <CheckCircle2 size={32} style={{ color: 'var(--success)' }} />
+                  <span style={{ fontWeight: 600, fontSize: '1rem' }}>CI/CD Pipeline Setup Complete!</span>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                    The `azure-pipelines.yml` file has been committed to branch `{pipelineBranch}` of `{githubRepo}`, and the build pipeline is fully configured in Azure DevOps.
+                  </p>
+                </div>
+
+                {pipelineSuccess && (
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+                    {pipelineSuccess}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setPipelineApp(null)}
+                    style={{
+                      background: 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: 600,
+                      padding: '10px 24px',
+                      fontSize: '0.85rem',
+                      boxShadow: '0 4px 12px var(--accent-blue-glow)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
