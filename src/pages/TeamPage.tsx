@@ -123,13 +123,18 @@ export const TeamPage: React.FC<TeamPageProps> = ({
   const matrixRows = [
     { cap: 'View dashboard, logs, costing & bill metrics', owner: true, admin: true, contributor: true, viewer: true },
     { cap: 'Scan active cloud resources', owner: true, admin: true, contributor: true, viewer: true },
+    { cap: 'Live tail Container App logs & sparkline metrics', owner: true, admin: true, contributor: true, viewer: true },
     { cap: 'Provision apps & microservice resources', owner: true, admin: true, contributor: true, viewer: false },
     { cap: 'Execute raw SQL & manage DB schemas', owner: true, admin: true, contributor: true, viewer: false },
     { cap: 'Link custom domain DNS mappings', owner: true, admin: true, contributor: true, viewer: false },
     { cap: 'Register CI/CD build pipelines', owner: true, admin: true, contributor: true, viewer: false },
+    { cap: 'Run database compare & schema migrations wizard', owner: true, admin: true, contributor: true, viewer: false },
     { cap: 'Sync directory users from Azure AD', owner: true, admin: true, contributor: false, viewer: false },
     { cap: 'Change user roles in EvaOps platform', owner: true, admin: true, contributor: false, viewer: false },
     { cap: 'Save/Update integration credentials', owner: true, admin: true, contributor: false, viewer: false },
+    { cap: 'Manage Cost Sleep Scheduler rules', owner: true, admin: true, contributor: false, viewer: false },
+    { cap: 'Map Key Vault secrets to Variable Groups', owner: true, admin: true, contributor: false, viewer: false },
+    { cap: 'View enterprise security audit trails', owner: true, admin: true, contributor: false, viewer: false },
     { cap: 'View decrypted secrets & configure org settings', owner: true, admin: false, contributor: false, viewer: false }
   ];
 

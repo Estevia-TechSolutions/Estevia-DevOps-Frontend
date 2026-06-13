@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Database, Eye, EyeOff, GitBranch, Settings, Globe, Cloud, AlertTriangle } from 'lucide-react';
+import { KeyVaultConfigurator } from '../components/credentials/KeyVaultConfigurator';
 
 interface CredentialsPageProps {
   currentUser?: { role: string; name?: string; email?: string } | null;
@@ -59,14 +60,17 @@ interface CredentialsPageProps {
   containerRegistries: any[];
   serviceConnections: { arm: any[]; docker: any[] };
   loadingMetadata: boolean;
+  API_BASE: string;
+  theme: 'dark' | 'light';
 }
 
-type CredTab = 'github' | 'godaddy' | 'azure';
+type CredTab = 'github' | 'godaddy' | 'azure' | 'keyvault';
 
 const TABS: { id: CredTab; label: string; icon: React.ReactNode; accentVar: string }[] = [
-  { id: 'github',  label: 'GitHub',  icon: <GitBranch size={15} />, accentVar: '#ca8a04' },
-  { id: 'godaddy', label: 'GoDaddy', icon: <Globe size={15} />,     accentVar: '#ca8a04' },
-  { id: 'azure',   label: 'Azure',   icon: <Cloud size={15} />,     accentVar: '#ca8a04' },
+  { id: 'github',   label: 'GitHub',    icon: <GitBranch size={15} />, accentVar: '#ca8a04' },
+  { id: 'godaddy',  label: 'GoDaddy',   icon: <Globe size={15} />,     accentVar: '#ca8a04' },
+  { id: 'azure',    label: 'Azure',     icon: <Cloud size={15} />,     accentVar: '#ca8a04' },
+  { id: 'keyvault', label: 'Key Vault', icon: <Database size={15} />,  accentVar: '#ca8a04' },
 ];
 
 /* ── Shared sub-components ── */
@@ -178,6 +182,8 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
   savingSettings, settingsMsg, handleSaveSettings,
   containerRegistries, serviceConnections, loadingMetadata,
   currentUser,
+  API_BASE,
+  theme
 }) => {
   const [activeTab, setActiveTab] = useState<CredTab>('github');
 
@@ -288,7 +294,7 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
         {TABS.map(tab => {
           const isActive = activeTab === tab.id;
           const keyMap: Record<string, string> = { github: 'github', godaddy: 'godaddy', azure: 'azure_devops' };
-          const configured = credentialStatus[keyMap[tab.id]];
+          const configured = tab.id === 'keyvault' ? true : credentialStatus[keyMap[tab.id]];
           return (
             <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} style={{
               flex: 1,
@@ -564,6 +570,19 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
             </div>
           </form>
 
+        </div>
+      )}
+
+      {/* ── KEY VAULT TAB ── */}
+      {activeTab === 'keyvault' && (
+        <div style={{ display: 'grid', gap: '20px' }}>
+          <SectionBlock
+            title="Azure Key Vault Secret Mappings"
+            subtitle="Sync target secret keys directly from Azure Key Vault into pipeline variable groups."
+            accent="#ca8a04"
+          >
+            <KeyVaultConfigurator API_BASE={API_BASE} theme={theme} canEdit={canEdit} />
+          </SectionBlock>
         </div>
       )}
 

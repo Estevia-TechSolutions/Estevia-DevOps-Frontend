@@ -376,7 +376,13 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                       { title: 'Automated DNS Provisioning', text: 'Updates GoDaddy DNS records and completes domain SSL verification.' },
                       { title: 'Git Pipeline Seeding', text: 'Generates and commits custom azure-pipelines.yml configurations directly to GitHub.' },
                       { title: 'Secret Sync Automation', text: 'Pulls deployment tokens from Azure and configures Azure DevOps variable groups.' },
-                      { title: 'Build Telemetry Dashboard', text: 'Tracks pipeline run stages, durations, and results in real time.' }
+                      { title: 'Build Telemetry Dashboard', text: 'Tracks pipeline run stages, durations, and results in real time.' },
+                      { title: 'Live Log Tailing & Metrics', text: 'Tails Container App system logs and displays real-time CPU/Memory sparkline charts.' },
+                      { title: 'Cost Sleep Scheduler', text: 'Scales container app replicas down to 0 during off-work hours to optimize subscription costs.' },
+                      { title: 'DB Schema Compare & Wizard', text: 'Analyzes differences between MySQL structures and executes migration scripts via a step-by-step wizard.' },
+                      { title: 'ERD Database Visualizer', text: 'Queries schema relationships to draw dynamic visual Entity-Relationship diagrams.' },
+                      { title: 'Key Vault Secrets Mapping', text: 'Syncs Azure Key Vault configurations directly to Azure DevOps Variable Groups.' },
+                      { title: 'Enterprise Audit Trail Logs', text: 'Maintains tamper-proof activity logs tracking SQL queries, domain bindings, and pipeline creation.' }
                     ].map((item, idx) => (
                       <div key={idx} style={{ display: 'flex', gap: '8px', fontSize: '0.82rem', lineHeight: '1.4' }}>
                         <ArrowRight size={14} style={{ color: 'var(--accent-teal)', marginTop: '2px', flexShrink: 0 }} />

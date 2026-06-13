@@ -14,7 +14,8 @@ import {
   CheckCircle2, 
   Building2,
   Cpu,
-  X
+  X,
+  Terminal
 } from 'lucide-react';
 
 const Github = ({ size = 12, ...props }: { size?: number; [key: string]: any }) => (
@@ -122,6 +123,8 @@ interface DashboardPageProps {
   azureDevopsProject?: string;
   onDeployBranch: (repoPath: string, branchName: string, type: 'frontend' | 'backend') => void;
   currentUser?: any;
+  onShowLogs?: (appName: string) => void;
+  onCloneApp?: (app: AppResource) => void;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
@@ -142,7 +145,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   azureDevopsOrgUrl,
   azureDevopsProject,
   onDeployBranch,
-  currentUser
+  currentUser,
+  onShowLogs,
+  onCloneApp
 }) => {
   const isViewer = currentUser?.role === 'viewer';
 
@@ -823,6 +828,38 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                  Setup CI/CD
                                </button>
                             )}
+
+                             {item.type === 'backend' && onShowLogs && (
+                               <button 
+                                 className="btn-secondary" 
+                                 onClick={() => onShowLogs(item.name)}
+                                 style={{ padding: '6px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+                               >
+                                 <Terminal size={12} style={{ color: 'var(--accent-blue)' }} />
+                                 Logs
+                               </button>
+                             )}
+
+                             {onCloneApp && (
+                               <button 
+                                 className="btn-secondary" 
+                                 disabled={isViewer}
+                                 onClick={() => onCloneApp(item)}
+                                 style={{ 
+                                   padding: '6px 10px', 
+                                   fontSize: '0.75rem', 
+                                   display: 'flex', 
+                                   alignItems: 'center', 
+                                   justifyContent: 'center', 
+                                   gap: '4px',
+                                   opacity: isViewer ? 0.6 : 1,
+                                   cursor: isViewer ? 'not-allowed' : 'pointer'
+                                 }}
+                               >
+                                 <GitBranch size={12} style={{ color: 'var(--success)' }} />
+                                 Clone
+                               </button>
+                             )}
 
                             {!isOrphaned && (
                               <button 

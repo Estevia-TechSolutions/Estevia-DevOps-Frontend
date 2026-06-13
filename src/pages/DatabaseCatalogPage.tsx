@@ -15,6 +15,8 @@ import {
   Database,
   Building2
 } from 'lucide-react';
+import { ErdVisualizer } from '../components/database/ErdVisualizer';
+import { CompareMigrateWizard } from '../components/database/CompareMigrateWizard';
 
 interface DatabaseCatalogPageProps {
   dbServers: any[];
@@ -37,8 +39,8 @@ interface DatabaseCatalogPageProps {
   setExpandedTables: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   copiedText: string | null;
   setCopiedText: (val: string | null) => void;
-  dbDetailTab: 'schema' | 'query' | 'create-table' | 'connect';
-  setDbDetailTab: (val: 'schema' | 'query' | 'create-table' | 'connect') => void;
+  dbDetailTab: 'schema' | 'query' | 'create-table' | 'connect' | 'erd' | 'compare';
+  setDbDetailTab: (val: 'schema' | 'query' | 'create-table' | 'connect' | 'erd' | 'compare') => void;
   connectCodeTab: 'cli' | 'node' | 'python' | 'php';
   setConnectCodeTab: (val: 'cli' | 'node' | 'python' | 'php') => void;
   querySql: string;
@@ -65,6 +67,7 @@ interface DatabaseCatalogPageProps {
   token: string | null;
   API_BASE: string;
   currentUser?: { role: string; name?: string; email?: string } | null;
+  theme: 'dark' | 'light';
 
   // Handlers
   handleDeployDb: (e: React.FormEvent) => void;
@@ -139,7 +142,8 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
   setConfirmDialog,
   leftColRef,
   leftColHeight,
-  currentUser
+  currentUser,
+  theme
 }) => {
 
   const isViewer = currentUser?.role === 'viewer';
@@ -466,6 +470,8 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                   { id: 'query',        label: 'SQL Console'          },
                   { id: 'create-table', label: '+ New Table'          },
                   { id: 'connect',      label: 'Connection Snippets'  },
+                  { id: 'erd',          label: 'ERD Visualizer'       },
+                  { id: 'compare',      label: 'Compare & Migrate'    },
                 ] as const).map(tab => {
                   const active = dbDetailTab === tab.id;
                   return (
@@ -1169,6 +1175,14 @@ mysqli_real_connect($conn, '${selectedDbServer.host}', 'estevia_db_user', $passw
                     </pre>
                   </div>
                 </div>
+              )}
+
+              {dbDetailTab === 'erd' && (
+                <ErdVisualizer API_BASE={API_BASE} theme={theme} />
+              )}
+
+              {dbDetailTab === 'compare' && (
+                <CompareMigrateWizard API_BASE={API_BASE} theme={theme} />
               )}
             </div>
           </div>

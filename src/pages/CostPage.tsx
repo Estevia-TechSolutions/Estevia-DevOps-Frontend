@@ -13,6 +13,7 @@ import {
   GitBranch,
   Trash2
 } from 'lucide-react';
+import { SleepScheduler } from '../components/cost/SleepScheduler';
 
 const getBadgeBgColor = (type: string, theme: 'dark' | 'light') => {
   const isLight = theme === 'light';
@@ -118,8 +119,8 @@ interface CostPageProps {
   loadingCosts: boolean;
   costError: string | null;
   remediating: string | null;
-  costTab: 'breakdown' | 'recommendations' | 'billing';
-  setCostTab: (val: 'breakdown' | 'recommendations' | 'billing') => void;
+  costTab: 'breakdown' | 'recommendations' | 'billing' | 'schedules';
+  setCostTab: (val: 'breakdown' | 'recommendations' | 'billing' | 'schedules') => void;
   costSearch: string;
   setCostSearch: (val: string) => void;
   envFilter: 'all' | 'production' | 'test' | 'stale';
@@ -129,6 +130,8 @@ interface CostPageProps {
   deletingAppName?: string | null;
   handleDeleteApp?: (name: string, type: 'frontend' | 'backend') => void;
   currentUser?: { role: string; name?: string; email?: string } | null;
+  API_BASE: string;
+  organizationId: string;
 }
 
 export const CostPage: React.FC<CostPageProps> = ({
@@ -149,7 +152,9 @@ export const CostPage: React.FC<CostPageProps> = ({
   theme,
   deletingAppName,
   handleDeleteApp,
-  currentUser
+  currentUser,
+  API_BASE,
+  organizationId
 }) => {
 
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
@@ -430,6 +435,14 @@ export const CostPage: React.FC<CostPageProps> = ({
           style={{ fontSize: '0.85rem', padding: '8px 20px', borderRadius: '8px' }}
         >
           Billing & Invoices History
+        </button>
+        <button 
+          type="button"
+          className={`tab-btn tab-btn-cost ${costTab === 'schedules' ? 'active' : ''}`} 
+          onClick={() => setCostTab('schedules')}
+          style={{ fontSize: '0.85rem', padding: '8px 20px', borderRadius: '8px' }}
+        >
+          Schedules & Budgets
         </button>
       </div>
 
@@ -732,6 +745,13 @@ export const CostPage: React.FC<CostPageProps> = ({
               </table>
             </div>
           )}
+        </div>
+      ) : costTab === 'schedules' ? (
+        <div className="glass-panel" style={{ padding: '32px' }}>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            Schedules & Budgets
+          </h3>
+          <SleepScheduler API_BASE={API_BASE} organizationId={organizationId} theme={theme} />
         </div>
       ) : (
         /* Optimization Recommendations */

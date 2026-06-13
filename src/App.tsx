@@ -30,7 +30,8 @@ import {
   Minus,
   TrendingDown,
   Info,
-  Users
+  Users,
+  Terminal
 } from 'lucide-react';
 import './App.css';
 
@@ -46,6 +47,8 @@ import { ProvisionWizard } from './pages/ProvisionWizard';
 import { GuidePage } from './pages/GuidePage';
 import { TeamPage } from './pages/TeamPage';
 import type { UserRecord } from './pages/TeamPage';
+import { LogDrawer } from './components/observability/LogDrawer';
+import { AuditLogsTable } from './components/team/AuditLogsTable';
 
 const Github = ({ size = 24, ...props }: { size?: number; [key: string]: any }) => (
   <svg
@@ -436,7 +439,14 @@ function App() {
     return (localStorage.getItem('devops_theme') as 'dark' | 'light') || 'dark';
   });
 
-  const [costTab, setCostTab] = useState<'breakdown' | 'recommendations' | 'billing'>('breakdown');
+  const [activeLogsAppName, setActiveLogsAppName] = useState<string | null>(null);
+
+  const [cloningApp, setCloningApp] = useState<any | null>(null);
+  const [cloneTargetEnv, setCloneTargetEnv] = useState<'qa' | 'prod' | 'sandbox'>('qa');
+  const [isCloning, setIsCloning] = useState(false);
+  const [cloneFeedback, setCloneFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const [costTab, setCostTab] = useState<'breakdown' | 'recommendations' | 'billing' | 'schedules'>('breakdown');
   const [invoices, setInvoices] = useState<any[]>([]);
   const [costSearch, setCostSearch] = useState('');
   const [envFilter, setEnvFilter] = useState<'all' | 'production' | 'test' | 'stale'>('all');
@@ -469,7 +479,7 @@ function App() {
   const [deployDbError, setDeployDbError] = useState<string | null>(null);
   const [expandedTables, setExpandedTables] = useState<Record<string, boolean>>({});
   const [copiedText, setCopiedText] = useState<string | null>(null);
-  const [dbDetailTab, setDbDetailTab] = useState<'schema' | 'query' | 'create-table' | 'connect'>('schema');
+  const [dbDetailTab, setDbDetailTab] = useState<'schema' | 'query' | 'create-table' | 'connect' | 'erd' | 'compare'>('schema');
   const [connectCodeTab, setConnectCodeTab] = useState<'cli' | 'node' | 'python' | 'php'>('cli');
 
   // Custom SQL Query Console States
@@ -2673,6 +2683,59 @@ function App() {
     }
   };
 
+  const handleCloneEnvironment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cloningApp) return;
+
+    setIsCloning(true);
+    setCloneFeedback(null);
+
+    const name = cloningApp.name.toLowerCase();
+    let sourceEnv = 'dev';
+    if (name.endsWith('-prod')) sourceEnv = 'prod';
+    else if (name.endsWith('-qa')) sourceEnv = 'qa';
+    else if (name.endsWith('-dev')) sourceEnv = 'dev';
+
+    try {
+      const res = await fetch(`${API_BASE}/environments/clone`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationId,
+          appName: cloningApp.name,
+          sourceEnv,
+          targetEnv: cloneTargetEnv
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setCloneFeedback({
+          type: 'success',
+          text: data.message || `Successfully cloned environment to ${cloneTargetEnv}!`
+        });
+        handleScan();
+        setTimeout(() => {
+          setCloningApp(null);
+          setCloneFeedback(null);
+        }, 3000);
+      } else {
+        setCloneFeedback({
+          type: 'error',
+          text: data.message || 'Failed to clone environment config.'
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      setCloneFeedback({
+        type: 'error',
+        text: 'Network error occurred while requesting environment clone.'
+      });
+    } finally {
+      setIsCloning(false);
+    }
+  };
+
   const handleCreatePipelineSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pipelineApp || !githubRepo) return;
@@ -3855,6 +3918,8 @@ function App() {
             azureDevopsProject={azureDevopsProject}
             onDeployBranch={handleDeployBranchFromDashboard}
             currentUser={user}
+            onShowLogs={setActiveLogsAppName}
+            onCloneApp={setCloningApp}
           />
         )}
 
@@ -4013,6 +4078,8 @@ function App() {
             serviceConnections={serviceConnections}
             loadingMetadata={loadingMetadata}
             currentUser={user}
+            API_BASE={API_BASE}
+            theme={theme}
           />
         )}
 
@@ -4039,6 +4106,8 @@ function App() {
             deletingAppName={deletingAppName}
             handleDeleteApp={handleDeleteApp}
             currentUser={user}
+            API_BASE={API_BASE}
+            organizationId={organizationId}
           />
         )}
 
@@ -4104,21 +4173,31 @@ function App() {
             leftColRef={leftColRef}
             leftColHeight={leftColHeight}
             currentUser={user}
+            theme={theme}
           />
         )}
 
 
         {/* TAB 7: TEAM SETTINGS */}
         {activeTab === 'users' && (user?.role === 'owner' || user?.role === 'admin') && (
-          <TeamPage
-            users={teamUsers}
-            currentUser={user}
-            loadingUsers={loadingUsers}
-            syncingTeam={syncingTeam}
-            handleSyncTeam={handleSyncTeam}
-            handleUpdateRole={handleUpdateRole}
-            theme={theme}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            <TeamPage
+              users={teamUsers}
+              currentUser={user}
+              loadingUsers={loadingUsers}
+              syncingTeam={syncingTeam}
+              handleSyncTeam={handleSyncTeam}
+              handleUpdateRole={handleUpdateRole}
+              theme={theme}
+            />
+            <div className="glass-panel" style={{ padding: '32px' }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '0 0 20px 0', fontSize: '1.25rem', fontWeight: 600 }}>
+                <Terminal style={{ color: 'var(--accent-purple)' }} />
+                Enterprise Security Audit Trail
+              </h3>
+              <AuditLogsTable API_BASE={API_BASE} theme={theme} />
+            </div>
+          </div>
         )}
 
         {/* TAB 6: USER GUIDE */}
@@ -4127,6 +4206,15 @@ function App() {
         )}
 
       </main>
+
+      {activeLogsAppName && (
+        <LogDrawer
+          appName={activeLogsAppName}
+          onClose={() => setActiveLogsAppName(null)}
+          API_BASE={API_BASE}
+          theme={theme}
+        />
+      )}
     </>
   )}
 
@@ -4156,6 +4244,123 @@ function App() {
         onConfirm={confirmDialog?.onConfirm || (() => {})}
         onClose={() => setConfirmDialog(null)}
       />
+
+      {/* Clone Environment Modal Overlay */}
+      {cloningApp && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(2, 6, 23, 0.75)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+          animation: 'fade-in-anim 0.2s ease-out'
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: '500px',
+            width: '100%',
+            padding: '28px',
+            border: '1px solid var(--glass-border)',
+            boxShadow: 'var(--modal-shadow)',
+            position: 'relative'
+          }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <GitBranch size={20} style={{ color: 'var(--success)' }} />
+                Clone App Environment
+              </h3>
+              <button 
+                onClick={() => setCloningApp(null)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  padding: '4px'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Helper Text */}
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '20px' }}>
+              Clone the environment configurations, scale properties, and metadata of <strong style={{ color: 'var(--text-primary)' }}>{cloningApp.name}</strong> to a new environment target.
+            </p>
+
+            <form onSubmit={handleCloneEnvironment} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Target Env */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                  Target Environment Tier
+                </label>
+                <select
+                  value={cloneTargetEnv}
+                  onChange={(e: any) => setCloneTargetEnv(e.target.value)}
+                  style={{
+                    width: '100%',
+                    fontSize: '0.86rem',
+                    height: '38px',
+                    borderRadius: '8px',
+                    background: 'rgba(255,255,255,0.02)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--glass-border)',
+                    padding: '0 10px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="qa">QA (Quality Assurance)</option>
+                  <option value="prod">Production</option>
+                  <option value="sandbox">Sandbox / Staging</option>
+                </select>
+              </div>
+
+              {/* Feedback messages */}
+              {cloneFeedback && (
+                <div style={{
+                  padding: '10px 14px',
+                  borderRadius: '6px',
+                  border: `1px solid ${cloneFeedback.type === 'success' ? 'var(--success)' : 'var(--error)'}`,
+                  background: cloneFeedback.type === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+                  color: cloneFeedback.type === 'success' ? 'var(--success)' : 'var(--error)',
+                  fontSize: '0.78rem'
+                }}>
+                  {cloneFeedback.text}
+                </div>
+              )}
+
+              {/* Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button 
+                  type="button" 
+                  className="btn-secondary" 
+                  onClick={() => setCloningApp(null)}
+                  style={{ height: '36px', padding: '0 16px', fontSize: '0.82rem' }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn-primary" 
+                  disabled={isCloning}
+                  style={{ height: '36px', padding: '0 20px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  {isCloning && <RefreshCw size={14} className="spin-anim" />}
+                  {isCloning ? 'Cloning Config...' : 'Clone Config'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* DNS Binding Modal Overlay */}
       {selectedApp && (
