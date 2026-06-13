@@ -387,7 +387,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                         category: 'Observability & Operations',
                         items: [
                           { title: 'Build Telemetry Dashboard', text: 'Tracks pipeline run stages, durations, and results in real time.' },
-                          { title: 'Live Log Tailing & Metrics', text: 'Tails Container App system logs and displays real-time CPU/Memory sparkline charts.' }
+                          { title: 'Live Log Tailing & Metrics', text: 'Tails Container App console logs in real time and streams actual CPU/Memory metrics polled directly from Azure Monitor.' }
                         ]
                       },
                       {
@@ -465,7 +465,6 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                       {
                         category: 'Observability & Operations',
                         items: [
-                          { title: 'Real-time Metrics Streaming', text: 'CPU/Memory sparklines are simulated client-side. Azure Monitor metrics are not polled in real time.' },
                           { title: 'Log Storage & Retention', text: 'Does NOT configure Log Analytics diagnostic settings. These must be pre-set in Azure Portal for ACA log routing.' }
                         ]
                       },
