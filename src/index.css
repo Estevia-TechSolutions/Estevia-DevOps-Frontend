@@ -28,6 +28,7 @@
   --input-bg: rgba(15, 23, 42, 0.6);
   --scrollbar-thumb: rgba(255, 255, 255, 0.1);
   --scrollbar-hover: rgba(255, 255, 255, 0.2);
+  --modal-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
 }
 
 /* ─── Light Theme ─── */
@@ -57,6 +58,7 @@
   --input-bg: rgba(248, 250, 252, 0.9);
   --scrollbar-thumb: rgba(0, 0, 0, 0.12);
   --scrollbar-hover: rgba(0, 0, 0, 0.22);
+  --modal-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
 }
 
 [data-theme="light"] .branch-checkbox-item:hover {
@@ -461,6 +463,13 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus {
   box-shadow: 0 4px 12px rgba(251, 191, 36, 0.15);
 }
 
+.tab-btn.active.tab-btn-guide {
+  color: #818cf8;
+  background: rgba(129, 140, 248, 0.08);
+  border: 1px solid rgba(129, 140, 248, 0.3);
+  box-shadow: 0 4px 12px rgba(129, 140, 248, 0.15);
+}
+
 [data-theme="light"] .tab-btn.active.tab-btn-scan {
   background: rgba(167, 139, 250, 0.15);
   color: #6d28d9;
@@ -480,6 +489,11 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus {
 [data-theme="light"] .tab-btn.active.tab-btn-credentials {
   background: rgba(251, 191, 36, 0.15);
   color: #b45309;
+}
+
+[data-theme="light"] .tab-btn.active.tab-btn-guide {
+  background: rgba(129, 140, 248, 0.15);
+  color: #4f46e5;
 }
 
 /* Branch Checklist */
@@ -599,6 +613,7 @@ select option {
 .tab-btn-cost:hover .tab-tooltip { border-top: 2px solid #34d399; }
 .tab-btn-databases:hover .tab-tooltip { border-top: 2px solid #fb7185; }
 .tab-btn-credentials:hover .tab-tooltip { border-top: 2px solid #fbbf24; }
+.tab-btn-guide:hover .tab-tooltip { border-top: 2px solid #818cf8; }
 
 [data-theme="light"] .tab-tooltip {
   background: rgba(255, 255, 255, 0.9);

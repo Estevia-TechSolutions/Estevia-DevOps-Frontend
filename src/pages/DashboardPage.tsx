@@ -954,7 +954,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             width: '100%',
             padding: '28px',
             border: '1px solid var(--glass-border)',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
+            boxShadow: 'var(--modal-shadow)',
             position: 'relative'
           }}>
             {/* Header */}
@@ -1008,7 +1008,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                       style={{
                         padding: '12px 16px',
                         borderRadius: '8px',
-                        backgroundColor: 'rgba(255,255,255,0.015)',
+                        backgroundColor: 'var(--bg-primary)',
                         border: '1px solid var(--glass-border)',
                         display: 'flex',
                         alignItems: 'center',

@@ -42,6 +42,7 @@ import { DatabaseCatalogPage } from './pages/DatabaseCatalogPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { CostPage } from './pages/CostPage';
 import { ProvisionWizard } from './pages/ProvisionWizard';
+import { GuidePage } from './pages/GuidePage';
 
 const Github = ({ size = 24, ...props }: { size?: number; [key: string]: any }) => (
   <svg
@@ -303,7 +304,7 @@ const getBadgeTextColor = (type: string, theme: 'dark' | 'light') => {
 };
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'scan' | 'provision' | 'credentials' | 'cost' | 'databases'>('scan');
+  const [activeTab, setActiveTab] = useState<'scan' | 'provision' | 'credentials' | 'cost' | 'databases' | 'guide'>('scan');
   const [organizationId, setOrganizationId] = useState<string>(
     new URLSearchParams(window.location.search).get('org') || 'estevia'
   );
@@ -3725,6 +3726,11 @@ function App() {
           Credentials
           <span className="tab-tooltip">Manage API keys, access tokens, and organization infrastructure settings.</span>
         </button>
+        <button className={`tab-btn tab-btn-guide ${activeTab === 'guide' ? 'active' : ''}`} onClick={() => setActiveTab('guide')}>
+          <Info size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+          User Guide
+          <span className="tab-tooltip">Step-by-step user instructions, capability scope, and system boundaries.</span>
+        </button>
 
       </div>
 
@@ -3999,6 +4005,11 @@ function App() {
         )}
 
 
+        {/* TAB 6: USER GUIDE */}
+        {activeTab === 'guide' && (
+          <GuidePage theme={theme} />
+        )}
+
       </main>
     </>
   )}
@@ -4053,7 +4064,7 @@ function App() {
             width: '100%',
             padding: '28px',
             border: '1px solid var(--glass-border)',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
+            boxShadow: 'var(--modal-shadow)',
             position: 'relative'
           }}>
             {/* Header */}
@@ -4090,7 +4101,7 @@ function App() {
                 <div style={{
                   padding: '10px 12px',
                   borderRadius: '8px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                  backgroundColor: 'var(--bg-primary)',
                   border: '1px solid var(--glass-border)',
                   fontSize: '0.86rem',
                   color: 'var(--text-primary)',
@@ -4108,7 +4119,7 @@ function App() {
                 <div style={{
                   padding: '10px 12px',
                   borderRadius: '8px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                  backgroundColor: 'var(--bg-primary)',
                   border: '1px solid var(--glass-border)',
                   fontSize: '0.86rem',
                   color: 'var(--text-secondary)',
@@ -4134,7 +4145,7 @@ function App() {
                       flex: 1,
                       padding: '10px 12px',
                       borderRadius: '8px',
-                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                      backgroundColor: 'var(--input-bg)',
                       border: '1px solid var(--glass-border)',
                       color: 'var(--text-primary)',
                       fontSize: '0.86rem',
@@ -4152,7 +4163,7 @@ function App() {
                       flex: 1.2,
                       padding: '10px 12px',
                       borderRadius: '8px',
-                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                      backgroundColor: 'var(--input-bg)',
                       border: '1px solid var(--glass-border)',
                       color: 'var(--text-primary)',
                       fontSize: '0.86rem',
@@ -4266,7 +4277,7 @@ function App() {
             width: '100%',
             padding: '28px',
             border: '1px solid var(--glass-border)',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
+            boxShadow: 'var(--modal-shadow)',
             position: 'relative'
           }}>
             {/* Header */}
@@ -4323,7 +4334,7 @@ function App() {
                   <div style={{
                     padding: '10px 12px',
                     borderRadius: '8px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                    backgroundColor: 'var(--bg-primary)',
                     border: '1px solid var(--glass-border)',
                     fontSize: '0.86rem',
                     color: 'var(--text-primary)',
@@ -4358,7 +4369,7 @@ function App() {
                         width: '100%',
                         padding: '10px 12px',
                         borderRadius: '8px',
-                        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                        backgroundColor: 'var(--input-bg)',
                         border: '1px solid var(--glass-border)',
                         color: 'var(--text-primary)',
                         fontSize: '0.86rem',
@@ -4374,7 +4385,7 @@ function App() {
                         width: '100%',
                         padding: '10px 12px',
                         borderRadius: '8px',
-                        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                        backgroundColor: 'var(--input-bg)',
                         border: '1px solid var(--glass-border)',
                         color: 'var(--text-primary)',
                         fontSize: '0.86rem',
@@ -4404,7 +4415,7 @@ function App() {
                       width: '100%',
                       padding: '10px 12px',
                       borderRadius: '8px',
-                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                      backgroundColor: 'var(--input-bg)',
                       border: '1px solid var(--glass-border)',
                       color: 'var(--text-primary)',
                       fontSize: '0.86rem',
@@ -4429,7 +4440,7 @@ function App() {
                         width: '100%',
                         padding: '10px 12px',
                         borderRadius: '8px',
-                        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                        backgroundColor: 'var(--input-bg)',
                         border: '1px solid var(--glass-border)',
                         color: 'var(--text-primary)',
                         fontSize: '0.86rem',
@@ -4451,7 +4462,7 @@ function App() {
                         width: '100%',
                         padding: '10px 12px',
                         borderRadius: '8px',
-                        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                        backgroundColor: 'var(--input-bg)',
                         border: '1px solid var(--glass-border)',
                         color: 'var(--text-primary)',
                         fontSize: '0.86rem',
@@ -4514,9 +4525,9 @@ function App() {
                           width: '100%',
                           padding: '12px',
                           borderRadius: '8px',
-                          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                          backgroundColor: 'var(--input-bg)',
                           border: '1px solid var(--glass-border)',
-                          color: '#e2e8f0',
+                          color: 'var(--text-primary)',
                           fontSize: '0.82rem',
                           fontFamily: 'monospace',
                           lineHeight: '1.4',
@@ -4619,7 +4630,7 @@ function App() {
                 </div>
 
                 {pipelineSuccess && (
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', background: 'var(--bg-primary)', padding: '12px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                     {pipelineSuccess}
                   </div>
                 )}

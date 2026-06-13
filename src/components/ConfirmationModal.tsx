@@ -45,7 +45,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         width: '100%',
         padding: '24px',
         border: `1px solid ${type === 'danger' ? 'rgba(239, 68, 68, 0.25)' : 'var(--glass-border)'}`,
-        boxShadow: '0 20px 50px rgba(0, 0, 0, 0.4)',
+        boxShadow: 'var(--modal-shadow)',
         animation: 'pulse-anim 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)'
       }}>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
