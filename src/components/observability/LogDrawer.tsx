@@ -107,42 +107,61 @@ export const LogDrawer: React.FC<LogDrawerProps> = ({ appName, onClose, API_BASE
     if (!isPlaying || isHistorical) return;
 
     const interval = setInterval(async () => {
-      // Simulate live metric fluctuations
-      const nextCpu = Math.max(5, Math.min(95, cpu + Math.floor(Math.random() * 7) - 3));
-      const nextMem = Math.max(100, Math.min(512, memory + Math.floor(Math.random() * 5) - 2));
+      // Simulate live metric fluctuations using functional state updates
+      setCpu(prevCpu => {
+        const nextCpu = Math.max(5, Math.min(95, prevCpu + Math.floor(Math.random() * 7) - 3));
+        setCpuHistory(history => [...history.slice(1), nextCpu]);
+        return nextCpu;
+      });
+      setMemory(prevMem => {
+        const nextMem = Math.max(100, Math.min(512, prevMem + Math.floor(Math.random() * 5) - 2));
+        setMemHistory(history => [...history.slice(1), nextMem]);
+        return nextMem;
+      });
 
-      setCpu(nextCpu);
-      setMemory(nextMem);
-      setCpuHistory(prev => [...prev.slice(1), nextCpu]);
-      setMemHistory(prev => [...prev.slice(1), nextMem]);
-
-      // Occasionally append a new live log line from the backend
-      if (Math.random() > 0.5) {
-        try {
-          const res = await fetch(`${API_BASE}/observability/${appName}/logs?timeRange=live`, {
-            headers: getAuthHeaders()
-          });
-          if (res.ok) {
-            const data = await res.json();
-            const newest = (data.logs || []).slice(-1)[0];
-            if (newest) {
-              setLogs(prev => {
-                // Avoid duplicate timestamps
-                const last = prev[prev.length - 1];
-                if (last?.timestamp === newest.timestamp && last?.message === newest.message) return prev;
-                return [...prev, newest];
-              });
-              setLogSource(data.source || 'log-analytics');
-            }
+      // Pull all new live log lines from the backend continuously
+      try {
+        const res = await fetch(`${API_BASE}/observability/${appName}/logs?timeRange=live`, {
+          headers: getAuthHeaders()
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const newLogs = (data.logs || []) as LogLine[];
+          if (newLogs.length > 0) {
+            setLogs(prev => {
+              if (prev.length === 0) return newLogs;
+              const lastLog = prev[prev.length - 1];
+              
+              // Find the index of the last log line in the fetched data to perform an exact match overlap check
+              let lastMatchIdx = -1;
+              for (let i = newLogs.length - 1; i >= 0; i--) {
+                if (newLogs[i].timestamp === lastLog.timestamp && newLogs[i].message === lastLog.message) {
+                  lastMatchIdx = i;
+                  break;
+                }
+              }
+              
+              if (lastMatchIdx !== -1) {
+                const toAppend = newLogs.slice(lastMatchIdx + 1);
+                if (toAppend.length === 0) return prev;
+                return [...prev, ...toAppend];
+              } else {
+                // Fallback: append only logs newer than the last timestamp
+                const toAppend = newLogs.filter(l => l.timestamp > lastLog.timestamp);
+                if (toAppend.length === 0) return prev;
+                return [...prev, ...toAppend];
+              }
+            });
+            setLogSource(data.source || 'log-analytics');
           }
-        } catch {
-          // Silently skip on network error
         }
+      } catch (err) {
+        console.warn('[LogDrawer] Failed to stream live logs interval check:', err);
       }
-    }, 4000);
+    }, 3000);
 
     return () => clearInterval(interval);
-  }, [isPlaying, isHistorical, cpu, memory, appName, API_BASE, getAuthHeaders]);
+  }, [isPlaying, isHistorical, appName, API_BASE, getAuthHeaders]);
 
   // Auto-scroll to bottom
   useEffect(() => {

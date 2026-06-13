@@ -1204,6 +1204,7 @@ mysqli_real_connect($conn, '${selectedDbServer.host}', 'estevia_db_user', $passw
                   selectedDbServer={selectedDbServer}
                   selectedDatabase={selectedDatabase}
                   databases={databases}
+                  dbServers={dbServers}
                 />
               )}
             </div>

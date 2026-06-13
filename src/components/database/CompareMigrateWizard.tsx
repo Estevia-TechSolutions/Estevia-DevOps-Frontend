@@ -16,9 +16,24 @@ interface CompareMigrateWizardProps {
   selectedDbServer: any;
   selectedDatabase: any;
   databases: any[];
+  dbServers: any[];
 }
 
-export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({ API_BASE, theme, selectedDbServer, selectedDatabase, databases }) => {
+export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({
+  API_BASE,
+  theme,
+  selectedDbServer,
+  selectedDatabase,
+  databases,
+  dbServers
+}) => {
+  const [sourceServer, setSourceServer] = useState('');
+  const [targetServer, setTargetServer] = useState('');
+  const [sourceDbsList, setSourceDbsList] = useState<any[]>([]);
+  const [targetDbsList, setTargetDbsList] = useState<any[]>([]);
+  const [loadingSourceDbs, setLoadingSourceDbs] = useState(false);
+  const [loadingTargetDbs, setLoadingTargetDbs] = useState(false);
+
   const [sourceDb, setSourceDb] = useState('');
   const [targetDb, setTargetDb] = useState('');
   const [isComparing, setIsComparing] = useState(false);
@@ -31,17 +46,102 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({ API_
 
   const isLight = theme === 'light';
 
-  // Automatically update source and target database when selected schema or databases change
+  // Initialize server selection based on selected server
   useEffect(() => {
-    if (selectedDatabase) {
-      setSourceDb(selectedDatabase.name);
-      const otherDb = databases.find(db => db.name !== selectedDatabase.name);
-      setTargetDb(otherDb?.name || '');
+    if (selectedDbServer) {
+      setSourceServer(selectedDbServer.name);
+      const otherServer = dbServers.find(s => s.name !== selectedDbServer.name);
+      setTargetServer(otherServer?.name || selectedDbServer.name);
     }
-  }, [selectedDatabase, databases]);
+  }, [selectedDbServer, dbServers]);
+
+  // Fetch source databases when sourceServer changes
+  const fetchSourceDbs = async (serverName: string) => {
+    if (!serverName) return;
+    setLoadingSourceDbs(true);
+    try {
+      const token = localStorage.getItem('devops_token');
+      const res = await fetch(`${API_BASE}/apps/databases?serverName=${serverName}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSourceDbsList(data.databases || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch source databases:', err);
+    } finally {
+      setLoadingSourceDbs(false);
+    }
+  };
+
+  // Fetch target databases when targetServer changes
+  const fetchTargetDbs = async (serverName: string) => {
+    if (!serverName) return;
+    setLoadingTargetDbs(true);
+    try {
+      const token = localStorage.getItem('devops_token');
+      const res = await fetch(`${API_BASE}/apps/databases?serverName=${serverName}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTargetDbsList(data.databases || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch target databases:', err);
+    } finally {
+      setLoadingTargetDbs(false);
+    }
+  };
+
+  useEffect(() => {
+    if (sourceServer) {
+      fetchSourceDbs(sourceServer);
+    }
+  }, [sourceServer]);
+
+  useEffect(() => {
+    if (targetServer) {
+      fetchTargetDbs(targetServer);
+    }
+  }, [targetServer]);
+
+  // Auto select appropriate source db
+  useEffect(() => {
+    if (selectedDatabase && selectedDbServer && sourceServer === selectedDbServer.name) {
+      setSourceDb(selectedDatabase.name);
+    } else if (sourceDbsList.length > 0) {
+      if (!sourceDbsList.some(d => d.name === sourceDb)) {
+        setSourceDb(sourceDbsList[0].name);
+      }
+    } else {
+      setSourceDb('');
+    }
+  }, [selectedDatabase, sourceDbsList, sourceServer, selectedDbServer]);
+
+  // Auto select appropriate target db
+  useEffect(() => {
+    if (targetDbsList.length > 0) {
+      if (!targetDbsList.some(d => d.name === targetDb)) {
+        if (sourceServer === targetServer) {
+          const other = targetDbsList.find(d => d.name !== sourceDb);
+          setTargetDb(other?.name || targetDbsList[0].name);
+        } else {
+          setTargetDb(targetDbsList[0].name);
+        }
+      }
+    } else {
+      setTargetDb('');
+    }
+  }, [targetDbsList, sourceDb, sourceServer, targetServer]);
 
   const compareSchemas = async () => {
-    if (!selectedDbServer || !sourceDb || !targetDb) return;
+    if (!sourceServer || !targetServer || !sourceDb || !targetDb) return;
     setIsComparing(true);
     setDiffs([]);
     setSqlScript('');
@@ -54,7 +154,12 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({ API_
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ serverName: selectedDbServer.name, sourceDb, targetDb })
+        body: JSON.stringify({ 
+          sourceServerName: sourceServer, 
+          sourceDb, 
+          targetServerName: targetServer, 
+          targetDb 
+        })
       });
 
       if (res.ok) {
@@ -72,7 +177,7 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({ API_
   };
 
   const startMigrationWizard = () => {
-    if (!selectedDbServer) return;
+    if (!targetServer || !targetDb) return;
     setIsWizardOpen(true);
     setCurrentStep(1);
     setRunLogs([]);
@@ -99,7 +204,11 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({ API_
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
               },
-              body: JSON.stringify({ serverName: selectedDbServer.name, targetDb, sqlScript })
+              body: JSON.stringify({ 
+                targetServerName: targetServer, 
+                targetDb, 
+                sqlScript 
+              })
             });
 
             if (res.ok) {
@@ -135,61 +244,139 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({ API_
           SELECT SCHEMAS TO COMPARE
         </h4>
         
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Source Selector */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>SOURCE SCHEMA (DEV/STAGING)</label>
-            <select
-              value={sourceDb}
-              onChange={(e) => setSourceDb(e.target.value)}
-              style={{
-                fontSize: '0.82rem',
-                height: '34px',
-                width: '240px',
-                borderRadius: '6px',
-                background: 'rgba(255,255,255,0.02)',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--glass-border)',
-                padding: '0 8px',
-                cursor: 'pointer'
-              }}
-            >
-              {databases.map(db => (
-                <option key={db.name} value={db.name}>{db.name}</option>
-              ))}
-            </select>
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          {/* Source Group */}
+          <div style={{ display: 'flex', gap: '12px' }}>
+            {/* Source Server Selector */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>SOURCE SERVER</label>
+              <select
+                value={sourceServer}
+                onChange={(e) => setSourceServer(e.target.value)}
+                style={{
+                  fontSize: '0.82rem',
+                  height: '34px',
+                  width: '200px',
+                  borderRadius: '6px',
+                  background: 'rgba(255,255,255,0.02)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--glass-border)',
+                  padding: '0 8px',
+                  cursor: 'pointer'
+                }}
+              >
+                {dbServers.map(srv => (
+                  <option key={srv.name} value={srv.name} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                    {srv.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Source DB Selector */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>SOURCE SCHEMA</label>
+              <select
+                value={sourceDb}
+                onChange={(e) => setSourceDb(e.target.value)}
+                disabled={loadingSourceDbs}
+                style={{
+                  fontSize: '0.82rem',
+                  height: '34px',
+                  width: '180px',
+                  borderRadius: '6px',
+                  background: 'rgba(255,255,255,0.02)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--glass-border)',
+                  padding: '0 8px',
+                  cursor: 'pointer'
+                }}
+              >
+                {loadingSourceDbs ? (
+                  <option value="">Loading...</option>
+                ) : sourceDbsList.length === 0 ? (
+                  <option value="">No databases</option>
+                ) : (
+                  sourceDbsList.map(db => (
+                    <option key={db.name} value={db.name} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                      {db.name}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
           </div>
 
-          <ArrowRight size={18} style={{ color: 'var(--text-muted)', marginTop: '20px' }} />
+          <div style={{ display: 'flex', alignItems: 'center', height: '56px' }}>
+            <ArrowRight size={18} style={{ color: 'var(--text-muted)' }} />
+          </div>
 
-          {/* Target Selector */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>TARGET SCHEMA (PRODUCTION)</label>
-            <select
-              value={targetDb}
-              onChange={(e) => setTargetDb(e.target.value)}
-              style={{
-                fontSize: '0.82rem',
-                height: '34px',
-                width: '240px',
-                borderRadius: '6px',
-                background: 'rgba(255,255,255,0.02)',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--glass-border)',
-                padding: '0 8px',
-                cursor: 'pointer'
-              }}
-            >
-              {databases.map(db => (
-                <option key={db.name} value={db.name}>{db.name}</option>
-              ))}
-            </select>
+          {/* Target Group */}
+          <div style={{ display: 'flex', gap: '12px' }}>
+            {/* Target Server Selector */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>TARGET SERVER</label>
+              <select
+                value={targetServer}
+                onChange={(e) => setTargetServer(e.target.value)}
+                style={{
+                  fontSize: '0.82rem',
+                  height: '34px',
+                  width: '200px',
+                  borderRadius: '6px',
+                  background: 'rgba(255,255,255,0.02)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--glass-border)',
+                  padding: '0 8px',
+                  cursor: 'pointer'
+                }}
+              >
+                {dbServers.map(srv => (
+                  <option key={srv.name} value={srv.name} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                    {srv.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Target DB Selector */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>TARGET SCHEMA</label>
+              <select
+                value={targetDb}
+                onChange={(e) => setTargetDb(e.target.value)}
+                disabled={loadingTargetDbs}
+                style={{
+                  fontSize: '0.82rem',
+                  height: '34px',
+                  width: '180px',
+                  borderRadius: '6px',
+                  background: 'rgba(255,255,255,0.02)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--glass-border)',
+                  padding: '0 8px',
+                  cursor: 'pointer'
+                }}
+              >
+                {loadingTargetDbs ? (
+                  <option value="">Loading...</option>
+                ) : targetDbsList.length === 0 ? (
+                  <option value="">No databases</option>
+                ) : (
+                  targetDbsList.map(db => (
+                    <option key={db.name} value={db.name} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                      {db.name}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
           </div>
 
           {/* Action button */}
           <button
             onClick={compareSchemas}
-            disabled={isComparing}
+            disabled={isComparing || !sourceDb || !targetDb}
             className="btn-primary"
             style={{ 
               display: 'flex', 
