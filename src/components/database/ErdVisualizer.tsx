@@ -32,29 +32,22 @@ interface ErdVisualizerProps {
   theme: 'dark' | 'light';
   selectedDbServer: any;
   selectedDatabase: any;
+  isExpanded: boolean;
+  setIsExpanded: (v: boolean) => void;
 }
 
-export const ErdVisualizer: React.FC<ErdVisualizerProps> = ({ API_BASE, theme, selectedDbServer, selectedDatabase }) => {
+export const ErdVisualizer: React.FC<ErdVisualizerProps> = ({ API_BASE, theme, selectedDbServer, selectedDatabase, isExpanded, setIsExpanded }) => {
   const [schema, setSchema] = useState<ErdSchema | null>(null);
   const [loading, setLoading] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [modalZoom, setModalZoom] = useState(1);
   const [activeTable, setActiveTable] = useState<string | null>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
 
   const isLight = theme === 'light';
 
-  // Close modal on ESC key
+  // Reset modal zoom when modal opens
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsExpanded(false); };
-    if (isExpanded) window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [isExpanded]);
-
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    document.body.style.overflow = isExpanded ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    if (isExpanded) setModalZoom(1);
   }, [isExpanded]);
 
   useEffect(() => {
@@ -276,8 +269,8 @@ export const ErdVisualizer: React.FC<ErdVisualizerProps> = ({ API_BASE, theme, s
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minHeight: '600px', width: '100%' }}>
 
-      {/* ── Controls strip ── */}
-      <div className="glass-panel" style={{ padding: '12px 20px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* ── Controls strip ── sticky so title stays visible while diagram scrolls */}
+      <div className="glass-panel" style={{ padding: '12px 20px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 50, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
         <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
           DATABASE SCHEMA: <span style={{ color: 'var(--accent-purple)', fontWeight: 700 }}>{selectedDatabase?.name || 'estevia_devops'}</span>
         </div>
@@ -288,15 +281,6 @@ export const ErdVisualizer: React.FC<ErdVisualizerProps> = ({ API_BASE, theme, s
           <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', width: '36px', textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
           <button onClick={() => handleZoom(0.1)} title="Zoom In" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <ZoomIn size={12} />
-          </button>
-          <div style={{ width: '1px', height: '20px', background: 'var(--glass-border)', margin: '0 4px' }} />
-          <button
-            onClick={() => { setModalZoom(1); setIsExpanded(true); }}
-            title="Open fullscreen view"
-            style={{ height: '28px', padding: '0 14px', borderRadius: '6px', border: '1px solid rgba(139,92,246,0.45)', background: 'rgba(139,92,246,0.12)', color: 'var(--accent-purple)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', fontWeight: 600 }}
-          >
-            <Maximize size={12} />
-            Expand View
           </button>
         </div>
       </div>

@@ -151,19 +151,22 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
 
   const isViewer = currentUser?.role === 'viewer';
   const [isResultsExpanded, setIsResultsExpanded] = React.useState(false);
+  const [isErdExpanded, setIsErdExpanded] = React.useState(false);
 
-  // Lock body scroll when results modal is open
+  // Lock body scroll when modals are open
   React.useEffect(() => {
-    document.body.style.overflow = isResultsExpanded ? 'hidden' : '';
+    document.body.style.overflow = (isResultsExpanded || isErdExpanded) ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
-  }, [isResultsExpanded]);
+  }, [isResultsExpanded, isErdExpanded]);
 
-  // Close results modal on ESC
+  // Close modals on ESC
   React.useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsResultsExpanded(false); };
-    if (isResultsExpanded) window.addEventListener('keydown', handler);
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setIsResultsExpanded(false); setIsErdExpanded(false); }
+    };
+    if (isResultsExpanded || isErdExpanded) window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isResultsExpanded]);
+  }, [isResultsExpanded, isErdExpanded]);
 
   const toggleTableExpand = (tableName: string) => {
     setExpandedTables(prev => ({
@@ -484,51 +487,62 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                 </div>
               </div>
 
-              {/* Row 2: Sub tabs */}
-              <div style={{ 
-                display: 'flex', 
-                gap: '2px', 
-                padding: '0 24px',
-                overflowX: 'auto',
-                scrollbarWidth: 'none',
-              }}>
-                {([
-                  { id: 'schema',       label: 'Tables & Schema'     },
-                  { id: 'query',        label: 'SQL Console'          },
-                  { id: 'create-table', label: '+ New Table'          },
-                  { id: 'connect',      label: 'Connection Snippets'  },
-                  { id: 'erd',          label: 'ERD Visualizer'       },
-                  { id: 'compare',      label: 'Compare & Migrate'    },
-                ] as const).map(tab => {
-                  const active = dbDetailTab === tab.id;
-                  return (
+              {/* Row 2: Sub tabs + always-visible action buttons */}
+              <div style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'space-between', padding: '0 24px', gap: '8px' }}>
+                {/* Tab pills */}
+                <div style={{ display: 'flex', gap: '2px', overflowX: 'auto', scrollbarWidth: 'none', flex: 1 }}>
+                  {([
+                    { id: 'schema',       label: 'Tables & Schema'     },
+                    { id: 'query',        label: 'SQL Console'          },
+                    { id: 'create-table', label: '+ New Table'          },
+                    { id: 'connect',      label: 'Connection Snippets'  },
+                    { id: 'erd',          label: 'ERD Visualizer'       },
+                    { id: 'compare',      label: 'Compare & Migrate'    },
+                  ] as const).map(tab => {
+                    const active = dbDetailTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setDbDetailTab(tab.id)}
+                        style={{
+                          padding: '10px 20px',
+                          fontSize: '0.82rem',
+                          fontWeight: active ? 700 : 500,
+                          border: 'none',
+                          background: active
+                            ? 'rgba(239, 68, 68, 0.22)'
+                            : 'rgba(255, 255, 255, 0.06)',
+                          borderTopLeftRadius: '8px',
+                          borderTopRightRadius: '8px',
+                          color: active ? '#fff' : 'rgba(255, 255, 255, 0.82)',
+                          cursor: 'pointer',
+                          borderBottom: active ? '2.5px solid #ef4444' : '2.5px solid transparent',
+                          textShadow: active ? '0 0 12px rgba(239,68,68,0.7)' : 'none',
+                          letterSpacing: active ? '0.01em' : 'normal',
+                          transition: 'all 0.15s ease',
+                          position: 'relative',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* ERD Expand button — always visible in tab bar when ERD tab is active */}
+                {dbDetailTab === 'erd' && (
+                  <div style={{ display: 'flex', alignItems: 'center', paddingBottom: '2px' }}>
                     <button
-                      key={tab.id}
-                      onClick={() => setDbDetailTab(tab.id)}
-                      style={{
-                        padding: '10px 20px',
-                        fontSize: '0.82rem',
-                        fontWeight: active ? 700 : 500,
-                        border: 'none',
-                        background: active
-                          ? 'rgba(239, 68, 68, 0.22)'
-                          : 'rgba(255, 255, 255, 0.06)',
-                        borderTopLeftRadius: '8px',
-                        borderTopRightRadius: '8px',
-                        color: active ? '#fff' : 'rgba(255, 255, 255, 0.82)',
-                        cursor: 'pointer',
-                        borderBottom: active ? '2.5px solid #ef4444' : '2.5px solid transparent',
-                        textShadow: active ? '0 0 12px rgba(239,68,68,0.7)' : 'none',
-                        letterSpacing: active ? '0.01em' : 'normal',
-                        transition: 'all 0.15s ease',
-                        position: 'relative',
-                        whiteSpace: 'nowrap',
-                      }}
+                      onClick={() => setIsErdExpanded(true)}
+                      title="Open ERD in fullscreen"
+                      style={{ height: '32px', padding: '0 16px', borderRadius: '8px', border: '1px solid rgba(139,92,246,0.5)', background: 'rgba(139,92,246,0.15)', color: '#a78bfa', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', fontWeight: 700, whiteSpace: 'nowrap' }}
                     >
-                      {tab.label}
+                      <Maximize size={13} />
+                      Expand View
                     </button>
-                  );
-                })}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -790,7 +804,19 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                           </span>
                         )}
                       </div>
-                      <div style={{ display: 'flex', gap: '8px' }}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {/* Expand Results — always visible in toolbar */}
+                        {queryResult && queryResult.rows.length > 0 && (
+                          <button
+                            onClick={() => setIsResultsExpanded(true)}
+                            title="Open results in fullscreen (X+Y scroll)"
+                            style={{ padding: '4px 10px', fontSize: '0.74rem', height: '26px', display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '6px', border: '1px solid rgba(139,92,246,0.45)', background: 'rgba(139,92,246,0.12)', color: 'var(--accent-purple)', cursor: 'pointer', fontWeight: 600 }}
+                          >
+                            <Maximize size={11} />
+                            Expand Results
+                          </button>
+                        )}
+                        <div style={{ width: '1px', height: '16px', background: 'var(--glass-border)' }} />
                         <button
                           onClick={() => setQuerySql('')}
                           className="btn-secondary"
@@ -852,16 +878,6 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                       <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                         {queryResult ? `Result Payload (${queryResult.rows.length} rows in ${queryResult.execTimeMs}ms)` : 'Query Output Grid'}
                       </span>
-                      {queryResult && queryResult.rows.length > 0 && (
-                        <button
-                          onClick={() => setIsResultsExpanded(true)}
-                          title="Expand results to fullscreen"
-                          style={{ height: '24px', padding: '0 10px', borderRadius: '5px', border: '1px solid rgba(139,92,246,0.4)', background: 'rgba(139,92,246,0.1)', color: 'var(--accent-purple)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.7rem', fontWeight: 600 }}
-                        >
-                          <Maximize size={10} />
-                          Expand
-                        </button>
-                      )}
                     </div>
 
                     <div style={{ flex: 1, overflowX: 'auto', overflowY: 'auto', padding: queryResult ? 0 : '24px', borderRadius: '0 0 8px 8px' }}>
@@ -1363,8 +1379,11 @@ mysqli_real_connect($conn, '${selectedDbServer.host}', 'estevia_db_user', $passw
                   theme={theme} 
                   selectedDbServer={selectedDbServer}
                   selectedDatabase={selectedDatabase}
+                  isExpanded={isErdExpanded}
+                  setIsExpanded={setIsErdExpanded}
                 />
               )}
+
 
               {dbDetailTab === 'compare' && (
                 <CompareMigrateWizard 
