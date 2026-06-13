@@ -1189,11 +1189,22 @@ mysqli_real_connect($conn, '${selectedDbServer.host}', 'estevia_db_user', $passw
               )}
 
               {dbDetailTab === 'erd' && (
-                <ErdVisualizer API_BASE={API_BASE} theme={theme} />
+                <ErdVisualizer 
+                  API_BASE={API_BASE} 
+                  theme={theme} 
+                  selectedDbServer={selectedDbServer}
+                  selectedDatabase={selectedDatabase}
+                />
               )}
 
               {dbDetailTab === 'compare' && (
-                <CompareMigrateWizard API_BASE={API_BASE} theme={theme} />
+                <CompareMigrateWizard 
+                  API_BASE={API_BASE} 
+                  theme={theme} 
+                  selectedDbServer={selectedDbServer}
+                  selectedDatabase={selectedDatabase}
+                  databases={databases}
+                />
               )}
             </div>
           </div>

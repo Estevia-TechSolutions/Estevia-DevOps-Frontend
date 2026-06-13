@@ -8,14 +8,19 @@ interface Difference {
   ddl: string;
 }
 
+import { useEffect } from 'react';
+
 interface CompareMigrateWizardProps {
   API_BASE: string;
   theme: 'dark' | 'light';
+  selectedDbServer: any;
+  selectedDatabase: any;
+  databases: any[];
 }
 
-export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({ API_BASE, theme }) => {
-  const [sourceDb, setSourceDb] = useState('estevia_devops_dev');
-  const [targetDb, setTargetDb] = useState('estevia_devops_prod');
+export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({ API_BASE, theme, selectedDbServer, selectedDatabase, databases }) => {
+  const [sourceDb, setSourceDb] = useState('');
+  const [targetDb, setTargetDb] = useState('');
   const [isComparing, setIsComparing] = useState(false);
   const [diffs, setDiffs] = useState<Difference[]>([]);
   const [sqlScript, setSqlScript] = useState('');
@@ -26,7 +31,17 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({ API_
 
   const isLight = theme === 'light';
 
+  // Automatically update source and target database when selected schema or databases change
+  useEffect(() => {
+    if (selectedDatabase) {
+      setSourceDb(selectedDatabase.name);
+      const otherDb = databases.find(db => db.name !== selectedDatabase.name);
+      setTargetDb(otherDb?.name || '');
+    }
+  }, [selectedDatabase, databases]);
+
   const compareSchemas = async () => {
+    if (!selectedDbServer || !sourceDb || !targetDb) return;
     setIsComparing(true);
     setDiffs([]);
     setSqlScript('');
@@ -39,7 +54,7 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({ API_
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ sourceDb, targetDb })
+        body: JSON.stringify({ serverName: selectedDbServer.name, sourceDb, targetDb })
       });
 
       if (res.ok) {
@@ -57,6 +72,7 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({ API_
   };
 
   const startMigrationWizard = () => {
+    if (!selectedDbServer) return;
     setIsWizardOpen(true);
     setCurrentStep(1);
     setRunLogs([]);
@@ -83,7 +99,7 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({ API_
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
               },
-              body: JSON.stringify({ targetDb, sqlScript })
+              body: JSON.stringify({ serverName: selectedDbServer.name, targetDb, sqlScript })
             });
 
             if (res.ok) {
@@ -138,8 +154,9 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({ API_
                 cursor: 'pointer'
               }}
             >
-              <option value="estevia_devops_dev">estevia_devops_dev</option>
-              <option value="estevia_devops_qa">estevia_devops_qa</option>
+              {databases.map(db => (
+                <option key={db.name} value={db.name}>{db.name}</option>
+              ))}
             </select>
           </div>
 
@@ -163,8 +180,9 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({ API_
                 cursor: 'pointer'
               }}
             >
-              <option value="estevia_devops_prod">estevia_devops_prod</option>
-              <option value="estevia_devops_sandbox">estevia_devops_sandbox</option>
+              {databases.map(db => (
+                <option key={db.name} value={db.name}>{db.name}</option>
+              ))}
             </select>
           </div>
 

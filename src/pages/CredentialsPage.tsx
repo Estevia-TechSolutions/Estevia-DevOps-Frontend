@@ -73,11 +73,11 @@ interface CredentialsPageProps {
 type CredTab = 'github' | 'godaddy' | 'azure' | 'keyvault' | 'teams';
 
 const TABS: { id: CredTab; label: string; icon: React.ReactNode; accentVar: string }[] = [
-  { id: 'github',   label: 'GitHub',     icon: <GitBranch size={15} />,    accentVar: '#ca8a04' },
-  { id: 'godaddy',  label: 'GoDaddy',    icon: <Globe size={15} />,        accentVar: '#ca8a04' },
-  { id: 'azure',    label: 'Azure',      icon: <Cloud size={15} />,        accentVar: '#ca8a04' },
-  { id: 'keyvault', label: 'Key Vault',  icon: <Database size={15} />,     accentVar: '#ca8a04' },
-  { id: 'teams',    label: 'MS Teams',   icon: <MessageSquare size={15} />, accentVar: '#6264a7' },
+  { id: 'github',   label: 'GitHub',       icon: <GitBranch size={15} />,    accentVar: '#ca8a04' },
+  { id: 'godaddy',  label: 'GoDaddy',      icon: <Globe size={15} />,        accentVar: '#ca8a04' },
+  { id: 'azure',    label: 'Azure',        icon: <Cloud size={15} />,        accentVar: '#ca8a04' },
+  { id: 'keyvault', label: 'Vault & Logs', icon: <Database size={15} />,     accentVar: '#ca8a04' },
+  { id: 'teams',    label: 'MS Teams',     icon: <MessageSquare size={15} />, accentVar: '#6264a7' },
 ];
 
 /* ── Shared sub-components ── */
@@ -583,7 +583,7 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
         </div>
       )}
 
-      {/* ── KEY VAULT TAB ── */}
+      {/* ── VAULT & LOGS TAB ── */}
       {activeTab === 'keyvault' && (
         <div style={{ display: 'grid', gap: '20px' }}>
           <SectionBlock
@@ -592,6 +592,60 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
             accent="#ca8a04"
           >
             <KeyVaultConfigurator API_BASE={API_BASE} theme={theme} canEdit={canEdit} />
+          </SectionBlock>
+
+          <SectionBlock
+            title="Log Analytics Workspace (Observability Logs)"
+            subtitle="Azure Monitor Log Analytics integration is dynamically resolved to query console logs with historical lookbacks."
+            accent="#ca8a04"
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid var(--glass-border)',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Integration Status</span>
+                  {logAnalyticsWorkspaceId ? (
+                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--success)', boxShadow: '0 0 8px var(--success-glow)' }}></span>
+                      Auto-Discovered & Active
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b', boxShadow: '0 0 8px #f59e0b' }}></span>
+                      Pending Discovery
+                    </span>
+                  )}
+                </div>
+
+                {logAnalyticsWorkspaceId && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start', minWidth: '220px' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Workspace Customer ID</span>
+                    <span style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{logAnalyticsWorkspaceId}</span>
+                  </div>
+                )}
+              </div>
+
+              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                {logAnalyticsWorkspaceId ? (
+                  <>
+                    ✓ EvaOps successfully scanned the Azure Container Apps environment in Resource Group <strong>{azureResourceGroup || 'Estevia-Prod-RG'}</strong> and auto-linked this workspace. Console logs are queryable via KQL in the Container Logs drawer.
+                  </>
+                ) : (
+                  <>
+                    ⚠️ No workspace discovered yet. Ensure your subscription credentials and Resource Group are configured under the <strong>Azure</strong> tab. Once valid, EvaOps will auto-discover the linked workspace.
+                  </>
+                )}
+              </p>
+            </div>
           </SectionBlock>
         </div>
       )}
@@ -797,31 +851,6 @@ const TeamsConfigPanel: React.FC<TeamsConfigPanelProps> = ({
         </div>
       </SectionBlock>
 
-      {/* Log Analytics Workspace ID */}
-      <SectionBlock
-        title="Log Analytics Workspace"
-        subtitle="Connect to your Azure Log Analytics workspace to query real ACA container console logs with historical time range lookbacks."
-        accent="#6264a7"
-      >
-        <div>
-          <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 500 }}>
-            Log Analytics Workspace ID
-          </label>
-          <input
-            id="log-analytics-workspace-id"
-            type="text"
-            placeholder="e.g. 7a3f2c90-1234-5678-abcd-ef0123456789"
-            value={logAnalyticsWorkspaceId}
-            onChange={e => setLogAnalyticsWorkspaceId(e.target.value)}
-            disabled={!canEdit}
-            style={inputStyle}
-          />
-          <p style={{ marginTop: '8px', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-            Found in Azure Portal → <strong>Log Analytics Workspaces → &lt;workspace&gt; → Overview → Workspace ID</strong>.
-            ACA Diagnostic Settings must route console logs to this workspace.
-          </p>
-        </div>
-      </SectionBlock>
 
       {/* Save button */}
       {canEdit && (

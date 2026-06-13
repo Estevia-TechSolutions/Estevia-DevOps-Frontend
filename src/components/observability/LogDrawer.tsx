@@ -27,8 +27,6 @@ const TIME_RANGE_LABELS: Record<TimeRange, string> = {
 
 const SOURCE_BADGE: Record<string, { label: string; color: string }> = {
   'log-analytics': { label: '⚡ Azure Log Analytics', color: '#36a64f' },
-  'mock':          { label: '🧪 Simulated',           color: '#6264a7' },
-  'mock-fallback': { label: '⚠ Simulated (fallback)', color: '#f59e0b' },
   'azure-fallback':{ label: '⚠ Azure (fallback)',     color: '#f59e0b' },
 };
 
@@ -39,7 +37,7 @@ export const LogDrawer: React.FC<LogDrawerProps> = ({ appName, onClose, API_BASE
   const [autoScroll, setAutoScroll] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>('live');
-  const [logSource, setLogSource] = useState<LogSource>('mock');
+  const [logSource, setLogSource] = useState<LogSource>('log-analytics');
   const [logInfo, setLogInfo] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -66,11 +64,28 @@ export const LogDrawer: React.FC<LogDrawerProps> = ({ appName, onClose, API_BASE
       if (res.ok) {
         const data = await res.json();
         setLogs(data.logs || []);
-        setLogSource(data.source || 'mock');
+        setLogSource(data.source || 'log-analytics');
         setLogInfo(data.info || data.warning || null);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        const errMsg = data.message || `HTTP ${res.status}: Failed to fetch logs.`;
+        setLogs([{
+          timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+          level: 'ERROR',
+          message: errMsg
+        }]);
+        setLogSource('log-analytics');
+        setLogInfo(null);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('[LogDrawer] Failed to fetch logs:', err);
+      setLogs([{
+        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        level: 'ERROR',
+        message: `Network Error: ${err.message || 'Failed to connect to backend api.'}`
+      }]);
+      setLogSource('log-analytics');
+      setLogInfo(null);
     } finally {
       setIsLoading(false);
     }
@@ -117,7 +132,7 @@ export const LogDrawer: React.FC<LogDrawerProps> = ({ appName, onClose, API_BASE
                 if (last?.timestamp === newest.timestamp && last?.message === newest.message) return prev;
                 return [...prev, newest];
               });
-              setLogSource(data.source || 'mock');
+              setLogSource(data.source || 'log-analytics');
             }
           }
         } catch {

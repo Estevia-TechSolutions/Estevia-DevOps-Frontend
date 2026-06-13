@@ -25,13 +25,14 @@ interface ErdSchema {
   tables: Table[];
   relations: Relation[];
 }
-
 interface ErdVisualizerProps {
   API_BASE: string;
   theme: 'dark' | 'light';
+  selectedDbServer: any;
+  selectedDatabase: any;
 }
 
-export const ErdVisualizer: React.FC<ErdVisualizerProps> = ({ API_BASE, theme }) => {
+export const ErdVisualizer: React.FC<ErdVisualizerProps> = ({ API_BASE, theme, selectedDbServer, selectedDatabase }) => {
   const [schema, setSchema] = useState<ErdSchema | null>(null);
   const [loading, setLoading] = useState(false);
   const [zoom, setZoom] = useState(1);
@@ -41,10 +42,11 @@ export const ErdVisualizer: React.FC<ErdVisualizerProps> = ({ API_BASE, theme })
 
   useEffect(() => {
     const fetchErdSchema = async () => {
+      if (!selectedDbServer || !selectedDatabase) return;
       setLoading(true);
       try {
         const token = localStorage.getItem('devops_token');
-        const res = await fetch(`${API_BASE}/database-hub/erd`, {
+        const res = await fetch(`${API_BASE}/database-hub/erd?serverName=${selectedDbServer.name}&dbName=${selectedDatabase.name}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -61,7 +63,7 @@ export const ErdVisualizer: React.FC<ErdVisualizerProps> = ({ API_BASE, theme })
     };
 
     fetchErdSchema();
-  }, [API_BASE]);
+  }, [API_BASE, selectedDbServer, selectedDatabase]);
 
   const handleZoom = (factor: number) => {
     setZoom(prev => Math.max(0.6, Math.min(1.4, prev + factor)));
@@ -92,7 +94,7 @@ export const ErdVisualizer: React.FC<ErdVisualizerProps> = ({ API_BASE, theme })
         alignItems: 'center'
       }}>
         <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-          DATABASE SCHEMA: <span style={{ color: 'var(--accent-purple)', fontWeight: 700 }}>estevia_devops</span>
+          DATABASE SCHEMA: <span style={{ color: 'var(--accent-purple)', fontWeight: 700 }}>{selectedDatabase?.name || 'estevia_devops'}</span>
         </div>
 
         {/* Zoom controls */}
