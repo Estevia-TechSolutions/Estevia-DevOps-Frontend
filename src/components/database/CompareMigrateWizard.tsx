@@ -636,8 +636,8 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({
                   <div style={{
                     flex: 1,
                     padding: '12px 16px',
-                    overflowY: 'auto',
-                    whiteSpace: 'pre-wrap',
+                    overflow: 'auto',
+                    whiteSpace: 'pre',
                     lineHeight: '1.4'
                   }}>
                     {sqlScript}
