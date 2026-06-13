@@ -230,6 +230,10 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
             <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
                 <XCircle size={14} style={{ color: 'var(--error)', opacity: 0.8, marginTop: '2px', flexShrink: 0 }} />
+                <span><strong>Core Infrastructure Provisioning</strong>: The platform does not create Resource Groups, Virtual Networks (VNets/VPCs), VPNs, or VPN Gateways. These network and resource boundary structures must be provisioned and configured beforehand.</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                <XCircle size={14} style={{ color: 'var(--error)', opacity: 0.8, marginTop: '2px', flexShrink: 0 }} />
                 <span><strong>Custom Repo Infrastructure (IaC)</strong>: The platform does not generate custom terraform or ARM/Bicep templates for arbitrary Azure resources.</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
