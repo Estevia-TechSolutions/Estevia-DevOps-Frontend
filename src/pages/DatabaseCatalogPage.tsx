@@ -797,6 +797,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                       value={querySql}
                       onChange={(e) => setQuerySql(e.target.value)}
                       placeholder="SELECT * FROM `users` WHERE `active` = 1 ORDER BY `id` DESC LIMIT 100;"
+                      wrap="off"
                       style={{
                         width: '100%',
                         height: '120px',
@@ -808,7 +809,9 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                         fontSize: '0.85rem',
                         lineHeight: '1.5',
                         resize: 'vertical',
-                        outline: 'none'
+                        outline: 'none',
+                        overflowX: 'auto',
+                        whiteSpace: 'pre'
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -848,9 +851,9 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', color: 'var(--text-primary)' }}>
                           <thead>
                             <tr style={{ borderBottom: '2px solid var(--divider)', fontSize: '0.8rem', position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 1, fontWeight: 600 }}>
-                              <th style={{ padding: '10px 12px', width: '50px', color: 'var(--text-primary)' }}>Actions</th>
+                              <th style={{ padding: '10px 12px', width: '50px', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>Actions</th>
                               {queryResult.fields.map((field: string) => (
-                                <th key={field} style={{ padding: '10px 12px', color: 'var(--text-primary)' }}>{field}</th>
+                                <th key={field} style={{ padding: '10px 12px', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{field}</th>
                               ))}
                             </tr>
                           </thead>
@@ -867,7 +870,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                     const pkCol = tblSchema?.columns.find((c: any) => c.key === 'PRI')?.name;
 
                                     return (
-                                      <td style={{ padding: '8px 12px' }}>
+                                      <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
                                         <button
                                           onClick={async () => {
                                             if (isViewer) return;
@@ -948,7 +951,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                   {queryResult.fields.map((field: string) => {
                                     const val = row[field];
                                     return (
-                                      <td key={field} style={{ padding: '10px 12px', fontSize: '0.82rem', fontFamily: 'monospace', color: val === null ? '#64748b' : 'var(--text-primary)' }}>
+                                      <td key={field} style={{ padding: '10px 12px', fontSize: '0.82rem', fontFamily: 'monospace', color: val === null ? '#64748b' : 'var(--text-primary)', whiteSpace: 'nowrap' }}>
                                         {val === null ? 'NULL' : String(val)}
                                       </td>
                                     );
