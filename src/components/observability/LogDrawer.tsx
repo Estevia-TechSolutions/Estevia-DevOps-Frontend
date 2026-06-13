@@ -28,6 +28,8 @@ const TIME_RANGE_LABELS: Record<TimeRange, string> = {
 const SOURCE_BADGE: Record<string, { label: string; color: string }> = {
   'log-analytics': { label: '⚡ Azure Log Analytics', color: '#36a64f' },
   'azure-fallback':{ label: '⚠ Azure (fallback)',     color: '#f59e0b' },
+  'local-process': { label: '🟢 Real-time Process Stdout', color: '#10b981' },
+  'mock-fallback': { label: '🔮 Simulated Streams (fallback)', color: '#8b5cf6' }
 };
 
 export const LogDrawer: React.FC<LogDrawerProps> = ({ appName, onClose, API_BASE, theme }) => {

@@ -516,7 +516,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
             </div>
 
             {/* Scrollable tab contents */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px', maxWidth: '100%', minWidth: 0 }}>
               {dbDetailTab === 'schema' && (
                 <div>
                   {/* Search Bar for Schema */}
@@ -753,7 +753,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
               )}
 
               {dbDetailTab === 'query' && (
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '16px', maxWidth: '100%', minWidth: 0 }}>
                   {/* Console SQL editor */}
                   <div style={{ border: '1px solid var(--glass-border)', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'var(--bg-secondary)' }}>
                     <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--divider)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.01)' }}>
@@ -848,119 +848,121 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                           Query executed successfully. Empty set returned (0 rows affected).
                         </div>
                       ) : (
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', color: 'var(--text-primary)' }}>
-                          <thead>
-                            <tr style={{ borderBottom: '2px solid var(--divider)', fontSize: '0.8rem', position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 1, fontWeight: 600 }}>
-                              <th style={{ padding: '10px 12px', width: '50px', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>Actions</th>
-                              {queryResult.fields.map((field: string) => (
-                                <th key={field} style={{ padding: '10px 12px', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{field}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {queryResult.rows.map((row: any, idx: number) => {
-                              return (
-                                <tr key={idx} style={{ borderBottom: '1px solid var(--divider)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
-                                  {/* Action Cell (Delete Row) */}
-                                  {(() => {
-                                    const tableName = getTableNameFromQuery(querySql);
-                                    if (!tableName) return <td style={{ padding: '8px 12px' }}>-</td>;
-                                    
-                                    const tblSchema = databaseSchema.find(t => t.table === tableName);
-                                    const pkCol = tblSchema?.columns.find((c: any) => c.key === 'PRI')?.name;
+                        <div style={{ width: '100%', overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', color: 'var(--text-primary)' }}>
+                            <thead>
+                              <tr style={{ borderBottom: '2px solid var(--divider)', fontSize: '0.8rem', position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 1, fontWeight: 600 }}>
+                                <th style={{ padding: '10px 12px', width: '50px', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>Actions</th>
+                                {queryResult.fields.map((field: string) => (
+                                  <th key={field} style={{ padding: '10px 12px', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{field}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {queryResult.rows.map((row: any, idx: number) => {
+                                return (
+                                  <tr key={idx} style={{ borderBottom: '1px solid var(--divider)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
+                                    {/* Action Cell (Delete Row) */}
+                                    {(() => {
+                                      const tableName = getTableNameFromQuery(querySql);
+                                      if (!tableName) return <td style={{ padding: '8px 12px' }}>-</td>;
+                                      
+                                      const tblSchema = databaseSchema.find(t => t.table === tableName);
+                                      const pkCol = tblSchema?.columns.find((c: any) => c.key === 'PRI')?.name;
 
-                                    return (
-                                      <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
-                                        <button
-                                          onClick={async () => {
-                                            if (isViewer) return;
-                                            let deleteSql = '';
-                                            let confirmMsg = '';
-                                            if (pkCol) {
-                                              const pkVal = row[pkCol];
-                                              confirmMsg = `Are you sure you want to delete this row where ${pkCol} = '${pkVal}'?`;
-                                              deleteSql = `DELETE FROM \`${tableName}\` WHERE \`${pkCol}\` = ${typeof pkVal === 'number' ? pkVal : `'${String(pkVal).replace(/'/g, "\\'")}'`};`;
-                                            } else {
-                                              confirmMsg = `This table has no primary key. Are you sure you want to delete this row by matching all column values?`;
-                                              const conditions = queryResult.fields.map((field: string) => {
-                                                const val = row[field];
-                                                if (val === null) {
-                                                  return `\`${field}\` IS NULL`;
-                                                } else if (typeof val === 'number') {
-                                                  return `\`${field}\` = ${val}`;
-                                                } else {
-                                                  return `\`${field}\` = '${String(val).replace(/'/g, "\\'")}'`;
+                                      return (
+                                        <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
+                                          <button
+                                            onClick={async () => {
+                                              if (isViewer) return;
+                                              let deleteSql = '';
+                                              let confirmMsg = '';
+                                              if (pkCol) {
+                                                const pkVal = row[pkCol];
+                                                confirmMsg = `Are you sure you want to delete this row where ${pkCol} = '${pkVal}'?`;
+                                                deleteSql = `DELETE FROM \`${tableName}\` WHERE \`${pkCol}\` = ${typeof pkVal === 'number' ? pkVal : `'${String(pkVal).replace(/'/g, "\\'")}'`};`;
+                                              } else {
+                                                confirmMsg = `This table has no primary key. Are you sure you want to delete this row by matching all column values?`;
+                                                const conditions = queryResult.fields.map((field: string) => {
+                                                  const val = row[field];
+                                                  if (val === null) {
+                                                    return `\`${field}\` IS NULL`;
+                                                  } else if (typeof val === 'number') {
+                                                    return `\`${field}\` = ${val}`;
+                                                  } else {
+                                                    return `\`${field}\` = '${String(val).replace(/'/g, "\\'")}'`;
+                                                  }
+                                                });
+                                                deleteSql = `DELETE FROM \`${tableName}\` WHERE ${conditions.join(' AND ')} LIMIT 1;`;
+                                              }
+
+                                              setConfirmDialog({
+                                                isOpen: true,
+                                                title: 'Delete Database Row (Destructive Action)',
+                                                message: confirmMsg,
+                                                confirmLabel: 'Delete Row',
+                                                cancelLabel: 'Cancel',
+                                                type: 'danger',
+                                                onConfirm: async () => {
+                                                  try {
+                                                    const deleteRes = await fetch(`${API_BASE}/apps/execute-query`, {
+                                                      method: 'POST',
+                                                      headers: {
+                                                        'Content-Type': 'application/json',
+                                                        'Authorization': `Bearer ${token}`
+                                                      },
+                                                      body: JSON.stringify({
+                                                        serverName: selectedDbServer.name,
+                                                        dbName: selectedDatabase.name,
+                                                        query: deleteSql
+                                                      })
+                                                    });
+                                                    const deleteData = await deleteRes.json();
+                                                    if (deleteRes.ok && deleteData.success) {
+                                                      // Re-execute SELECT
+                                                      handleExecuteQuery(querySql);
+                                                    } else {
+                                                      alert(`Failed to delete row: ${deleteData.message || 'Unknown error'}`);
+                                                    }
+                                                  } catch (e: any) {
+                                                    alert(`Error deleting row: ${e.message}`);
+                                                  }
                                                 }
                                               });
-                                              deleteSql = `DELETE FROM \`${tableName}\` WHERE ${conditions.join(' AND ')} LIMIT 1;`;
-                                            }
-
-                                            setConfirmDialog({
-                                              isOpen: true,
-                                              title: 'Delete Database Row (Destructive Action)',
-                                              message: confirmMsg,
-                                              confirmLabel: 'Delete Row',
-                                              cancelLabel: 'Cancel',
-                                              type: 'danger',
-                                              onConfirm: async () => {
-                                                try {
-                                                  const deleteRes = await fetch(`${API_BASE}/apps/execute-query`, {
-                                                    method: 'POST',
-                                                    headers: {
-                                                      'Content-Type': 'application/json',
-                                                      'Authorization': `Bearer ${token}`
-                                                    },
-                                                    body: JSON.stringify({
-                                                      serverName: selectedDbServer.name,
-                                                      dbName: selectedDatabase.name,
-                                                      query: deleteSql
-                                                    })
-                                                  });
-                                                  const deleteData = await deleteRes.json();
-                                                  if (deleteRes.ok && deleteData.success) {
-                                                    // Re-execute SELECT
-                                                    handleExecuteQuery(querySql);
-                                                  } else {
-                                                    alert(`Failed to delete row: ${deleteData.message || 'Unknown error'}`);
-                                                  }
-                                                } catch (e: any) {
-                                                  alert(`Error deleting row: ${e.message}`);
-                                                }
-                                              }
-                                            });
-                                          }}
-                                          style={{
-                                            border: 'none',
-                                            background: 'none',
-                                            cursor: isViewer ? 'not-allowed' : 'pointer',
-                                            padding: 0,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            opacity: isViewer ? 0.4 : 1
-                                          }}
-                                          disabled={isViewer}
-                                          title={isViewer ? "Delete Row (Viewer is read-only)" : "Delete Row"}
-                                        >
-                                          <Trash2 size={12} style={{ color: 'var(--error)' }} />
-                                        </button>
-                                      </td>
-                                    );
-                                  })()}
-                                  
-                                  {queryResult.fields.map((field: string) => {
-                                    const val = row[field];
-                                    return (
-                                      <td key={field} style={{ padding: '10px 12px', fontSize: '0.82rem', fontFamily: 'monospace', color: val === null ? '#64748b' : 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-                                        {val === null ? 'NULL' : String(val)}
-                                      </td>
-                                    );
-                                  })}
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                                            }}
+                                            style={{
+                                              border: 'none',
+                                              background: 'none',
+                                              cursor: isViewer ? 'not-allowed' : 'pointer',
+                                              padding: 0,
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              opacity: isViewer ? 0.4 : 1
+                                            }}
+                                            disabled={isViewer}
+                                            title={isViewer ? "Delete Row (Viewer is read-only)" : "Delete Row"}
+                                          >
+                                            <Trash2 size={12} style={{ color: 'var(--error)' }} />
+                                          </button>
+                                        </td>
+                                      );
+                                    })()}
+                                    
+                                    {queryResult.fields.map((field: string) => {
+                                      const val = row[field];
+                                      return (
+                                        <td key={field} style={{ padding: '10px 12px', fontSize: '0.82rem', fontFamily: 'monospace', color: val === null ? '#64748b' : 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                                          {val === null ? 'NULL' : String(val)}
+                                        </td>
+                                      );
+                                    })}
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
                       )}
                     </div>
                   </div>
