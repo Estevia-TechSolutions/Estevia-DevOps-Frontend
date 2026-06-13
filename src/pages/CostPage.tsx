@@ -114,11 +114,12 @@ interface CostPageProps {
   costSummary: any;
   detailedCosts: any[];
   costSuggestions: any[];
+  invoices: any[];
   loadingCosts: boolean;
   costError: string | null;
   remediating: string | null;
-  costTab: 'breakdown' | 'recommendations';
-  setCostTab: (val: 'breakdown' | 'recommendations') => void;
+  costTab: 'breakdown' | 'recommendations' | 'billing';
+  setCostTab: (val: 'breakdown' | 'recommendations' | 'billing') => void;
   costSearch: string;
   setCostSearch: (val: string) => void;
   envFilter: 'all' | 'production' | 'test' | 'stale';
@@ -133,6 +134,7 @@ export const CostPage: React.FC<CostPageProps> = ({
   costSummary,
   detailedCosts,
   costSuggestions,
+  invoices,
   loadingCosts,
   costError,
   remediating,
@@ -151,6 +153,12 @@ export const CostPage: React.FC<CostPageProps> = ({
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   const isLight = theme === 'light';
+
+  const nextDueInvoice = invoices && invoices.length > 0
+    ? [...invoices]
+        .filter(inv => inv.status.toLowerCase() === 'pending' || inv.status.toLowerCase() === 'overdue')
+        .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0]
+    : null;
 
   const filteredCosts = detailedCosts.filter(item => {
     // Search query
@@ -330,6 +338,41 @@ export const CostPage: React.FC<CostPageProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Next Due Bill Card */}
+        <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '12px',
+            background: 'rgba(16, 185, 129, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--success)'
+          }}>
+            <TrendingDown size={28} />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Next Bill Due</h3>
+            <div style={{ marginTop: '4px' }}>
+              {nextDueInvoice ? (
+                <>
+                  <span style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    ${nextDueInvoice.amount.toFixed(2)}
+                  </span>
+                  <div style={{ fontSize: '0.74rem', color: 'var(--warning)', marginTop: '2px', fontWeight: 600 }}>
+                    Due: {nextDueInvoice.due_date}
+                  </div>
+                </>
+              ) : (
+                <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  No pending bills
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Cost Sub-tabs */}
@@ -358,6 +401,14 @@ export const CostPage: React.FC<CostPageProps> = ({
           style={{ fontSize: '0.85rem', padding: '8px 20px', borderRadius: '8px' }}
         >
           Optimization Recommendations ({costSuggestions.length})
+        </button>
+        <button 
+          type="button"
+          className={`tab-btn tab-btn-cost ${costTab === 'billing' ? 'active' : ''}`} 
+          onClick={() => setCostTab('billing')}
+          style={{ fontSize: '0.85rem', padding: '8px 20px', borderRadius: '8px' }}
+        >
+          Billing & Invoices History
         </button>
       </div>
 
@@ -598,6 +649,65 @@ export const CostPage: React.FC<CostPageProps> = ({
                 })}
               </tbody>
             </table>
+          )}
+        </div>
+      ) : costTab === 'billing' ? (
+        /* Billing & Invoices Table */
+        <div className="glass-panel" style={{ padding: '32px', background: 'rgba(255, 255, 255, 0.01)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            Billing & Invoices History
+          </h3>
+          {!invoices || invoices.length === 0 ? (
+            <div style={{ color: 'var(--text-secondary)', padding: '20px 0' }}>No invoice records found.</div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--divider)', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>Invoice Number</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>Amount</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>Issue Date</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>Due Date</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>Payment Date</th>
+                    <th style={{ padding: '12px 16px', fontWeight: 600 }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoices.map((inv) => {
+                    const status = inv.status.toLowerCase();
+                    const badgeColor = status === 'paid' 
+                      ? { color: 'var(--success)', bg: isLight ? 'rgba(34,197,94,0.1)' : 'rgba(34,197,94,0.15)', border: 'rgba(34,197,94,0.2)' }
+                      : status === 'overdue'
+                      ? { color: 'var(--error)', bg: isLight ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.2)' }
+                      : { color: 'var(--warning)', bg: isLight ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.2)' };
+
+                    return (
+                      <tr key={inv.id} style={{ borderBottom: '1px solid var(--divider)', fontSize: '0.86rem' }}>
+                        <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--text-primary)' }}>{inv.invoice_number}</td>
+                        <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace' }}>${inv.amount.toFixed(2)}</td>
+                        <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{inv.issue_date}</td>
+                        <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{inv.due_date}</td>
+                        <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{inv.payment_date || '—'}</td>
+                        <td style={{ padding: '14px 16px' }}>
+                          <span style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            padding: '2px 8px',
+                            borderRadius: '8px',
+                            color: badgeColor.color,
+                            backgroundColor: badgeColor.bg,
+                            border: `1px solid ${badgeColor.border}`
+                          }}>
+                            {inv.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       ) : (

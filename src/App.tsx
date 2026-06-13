@@ -29,7 +29,8 @@ import {
   X,
   Minus,
   TrendingDown,
-  Info
+  Info,
+  Users
 } from 'lucide-react';
 import './App.css';
 
@@ -43,6 +44,8 @@ import { DashboardPage } from './pages/DashboardPage';
 import { CostPage } from './pages/CostPage';
 import { ProvisionWizard } from './pages/ProvisionWizard';
 import { GuidePage } from './pages/GuidePage';
+import { TeamPage } from './pages/TeamPage';
+import type { UserRecord } from './pages/TeamPage';
 
 const Github = ({ size = 24, ...props }: { size?: number; [key: string]: any }) => (
   <svg
@@ -304,7 +307,7 @@ const getBadgeTextColor = (type: string, theme: 'dark' | 'light') => {
 };
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'scan' | 'provision' | 'credentials' | 'cost' | 'databases' | 'guide'>('scan');
+  const [activeTab, setActiveTab] = useState<'scan' | 'provision' | 'credentials' | 'cost' | 'databases' | 'guide' | 'users'>('scan');
   const [organizationId, setOrganizationId] = useState<string>(
     new URLSearchParams(window.location.search).get('org') || 'estevia'
   );
@@ -433,9 +436,15 @@ function App() {
     return (localStorage.getItem('devops_theme') as 'dark' | 'light') || 'dark';
   });
 
-  const [costTab, setCostTab] = useState<'breakdown' | 'recommendations'>('breakdown');
+  const [costTab, setCostTab] = useState<'breakdown' | 'recommendations' | 'billing'>('breakdown');
+  const [invoices, setInvoices] = useState<any[]>([]);
   const [costSearch, setCostSearch] = useState('');
   const [envFilter, setEnvFilter] = useState<'all' | 'production' | 'test' | 'stale'>('all');
+
+  // Team Settings States
+  const [teamUsers, setTeamUsers] = useState<UserRecord[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [syncingTeam, setSyncingTeam] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [collapsedScanGroups, setCollapsedScanGroups] = useState<Record<string, boolean>>({});
   const toggleGroupScan = (key: string) => {
@@ -1387,6 +1396,13 @@ function App() {
       } else {
         throw new Error(data.message || 'Failed to retrieve cloud cost analytics.');
       }
+
+      // Also fetch billing history invoices
+      const billingRes = await fetch(`${API_BASE}/apps/billing?organizationId=${organizationId}`);
+      if (billingRes.ok) {
+        const billingData = await billingRes.json();
+        setInvoices(billingData);
+      }
     } catch (err: any) {
       console.error('[cost] Failed loading cost data:', err);
       setCostError(err.message || 'Failed loading cost metrics.');
@@ -1446,6 +1462,57 @@ function App() {
     }
   };
 
+  const fetchTeamUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/users`);
+      if (res.ok) {
+        const data = await res.json();
+        setTeamUsers(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch team users:', err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const handleSyncTeam = async () => {
+    setSyncingTeam(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/users/sync`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        await fetchTeamUsers();
+      }
+    } catch (err) {
+      console.error('Failed to sync team directory:', err);
+    } finally {
+      setSyncingTeam(false);
+    }
+  };
+
+  const handleUpdateRole = async (userId: string, newRole: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/users/${userId}/role`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ role: newRole })
+      });
+      if (res.ok) {
+        await fetchTeamUsers();
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Failed to update user role:', err);
+      return false;
+    }
+  };
+
   // Check query parameter ?code=... on mount for OAuth redirect callback
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -1465,8 +1532,11 @@ function App() {
       fetchGithubRepos();
       fetchCostData();
       fetchDbServers();
+      if (user?.role === 'owner' || user?.role === 'admin') {
+        fetchTeamUsers();
+      }
     }
-  }, [organizationId, token]);
+  }, [organizationId, token, user?.role]);
 
   // Auto-scan cloud resources and refresh costs with a 1-minute countdown timer
   useEffect(() => {
@@ -3731,6 +3801,13 @@ function App() {
           User Guide
           <span className="tab-tooltip">Step-by-step user instructions, capability scope, and system boundaries.</span>
         </button>
+        {(user?.role === 'owner' || user?.role === 'admin') && (
+          <button className={`tab-btn tab-btn-users ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>
+            <Users size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+            Team Settings
+            <span className="tab-tooltip">Manage organization directory users, sync from Azure Active Directory, and adjust roles.</span>
+          </button>
+        )}
 
       </div>
 
@@ -3924,6 +4001,7 @@ function App() {
             costSummary={costSummary}
             detailedCosts={detailedCosts}
             costSuggestions={costSuggestions}
+            invoices={invoices}
             loadingCosts={loadingCosts}
             costError={costError}
             remediating={remediating}
@@ -4008,6 +4086,19 @@ function App() {
         {/* TAB 6: USER GUIDE */}
         {activeTab === 'guide' && (
           <GuidePage theme={theme} />
+        )}
+
+        {/* TAB 7: TEAM SETTINGS */}
+        {activeTab === 'users' && (user?.role === 'owner' || user?.role === 'admin') && (
+          <TeamPage
+            users={teamUsers}
+            currentUser={user}
+            loadingUsers={loadingUsers}
+            syncingTeam={syncingTeam}
+            handleSyncTeam={handleSyncTeam}
+            handleUpdateRole={handleUpdateRole}
+            theme={theme}
+          />
         )}
 
       </main>
