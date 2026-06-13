@@ -1484,13 +1484,17 @@ function App() {
         method: 'POST'
       });
       if (res.ok) {
+        const data = await res.json();
         await fetchTeamUsers();
+        return data;
       } else {
         const errData = await res.json().catch(() => null);
         console.error('Failed to sync team directory. Server responded with status:', res.status, errData);
+        return null;
       }
     } catch (err) {
       console.error('Failed to sync team directory:', err);
+      return null;
     } finally {
       setSyncingTeam(false);
     }

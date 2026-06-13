@@ -14,7 +14,7 @@ interface TeamPageProps {
   currentUser: any;
   loadingUsers: boolean;
   syncingTeam: boolean;
-  handleSyncTeam: () => void;
+  handleSyncTeam: () => Promise<any>;
   handleUpdateRole: (userId: string, newRole: string) => Promise<boolean>;
   theme: 'dark' | 'light';
 }
@@ -34,6 +34,24 @@ export const TeamPage: React.FC<TeamPageProps> = ({
 
   const isLight = theme === 'light';
   const canManageRoles = currentUser?.role === 'owner' || currentUser?.role === 'admin';
+
+  const onSyncClick = async () => {
+    setUpdateMsg(null);
+    const result = await handleSyncTeam();
+    if (result) {
+      const { added, updated, removed } = result;
+      setUpdateMsg({
+        type: 'success',
+        text: `Directory sync completed successfully. Added: ${added ?? 0}, Updated: ${updated ?? 0}, Removed: ${removed ?? 0}.`
+      });
+      setTimeout(() => setUpdateMsg(null), 6000);
+    } else {
+      setUpdateMsg({
+        type: 'error',
+        text: 'Failed to sync team directory from Azure AD.'
+      });
+    }
+  };
 
   const onRoleChange = async (userId: string, currentRole: string, newRole: string) => {
     if (newRole === currentRole) return;
@@ -152,7 +170,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
               type="button" 
               className="btn-primary" 
               disabled={syncingTeam}
-              onClick={handleSyncTeam}
+              onClick={onSyncClick}
               style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '36px', padding: '0 16px', fontSize: '0.82rem' }}
             >
               <RefreshCw size={14} className={syncingTeam ? 'spin-anim' : ''} />
