@@ -91,7 +91,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                   <ShieldCheck size={14} style={{ color: 'var(--warning)', opacity: 0.8 }} />
                 </h4>
                 <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                  Navigate to the <strong>Credentials</strong> tab. Add your GitHub PAT (Personal Access Token), Azure DevOps PAT, GoDaddy API Key/Secret, and Azure Subscription details. Click <strong>Save Credentials</strong>.
+                  Navigate to the <strong>Credentials</strong> tab. Provide your GitHub Personal Access Token (PAT) with <code>repo</code> write scopes, Azure DevOps PAT with variable group read-write scopes, GoDaddy developer API Key & Secret for automated DNS record creation, and Azure Active Directory (Entra ID) Service Principal details (Client ID, Client Secret, Tenant ID, and Subscription ID). Click <strong>Save Credentials</strong> to securely validate the credentials and lock local browser-based encryption storage.
                 </p>
               </div>
             </div>
@@ -120,7 +120,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                   <Server size={14} style={{ color: 'var(--accent-purple)', opacity: 0.8 }} />
                 </h4>
                 <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                  On the <strong>Cloud Resource Scanning</strong> tab, click <strong>Scan Active Cloud</strong>. This crawls your Azure resources to auto-discover active Static Web Apps (SWA) and Container Apps (ACA), rendering them as environment cards.
+                  On the <strong>Cloud Resource Scanning</strong> dashboard, click <strong>Scan Active Cloud</strong>. This triggers a multi-threaded discovery crawler that queries the Azure Resource Manager APIs to find all active instances of Static Web Apps (SWA) and Container Apps (ACA) within your resource group. It retrieves their deployment hostnames, DNS binding statuses, and retrieves active build history, rendering them dynamically as operational cards.
                 </p>
               </div>
             </div>
@@ -149,7 +149,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                   <Globe size={14} style={{ color: 'var(--accent-blue)', opacity: 0.8 }} />
                 </h4>
                 <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                  On any environment card, click the <strong>DNS</strong> button. Enter your target subdomain (e.g. <code>dev-api</code>) and choose your domain name. Click <strong>Link Custom Domain</strong>. This automatically updates GoDaddy records and binds the domain in Azure.
+                  To establish custom domain mappings, click the <strong>DNS</strong> button on the corresponding environment card. Enter your target subdomain (e.g. <code>dev-api</code> or <code>www</code>) and choose your registrar domain. Clicking <strong>Link Custom Domain</strong> automatically updates GoDaddy CNAME records via DNS API, verifies DNS validation records on the target Azure app instance, and issues automatic HTTPS/SSL bindings.
                 </p>
               </div>
             </div>
@@ -178,7 +178,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                   <GitBranch size={14} style={{ color: 'var(--accent-teal)', opacity: 0.8 }} />
                 </h4>
                 <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                  If a card says <em>Pipeline: Not Set</em>, click <strong>Setup CI/CD</strong>. Verify your repository settings, review and edit the generated <code>azure-pipelines.yml</code> file, and click <strong>Commit & Create Pipeline</strong>. The system will automatically build, link, and sync your secrets.
+                  For environments lacking an active pipeline trigger, click the <strong>Setup CI/CD</strong> button. Verify your target repository settings, customize the dynamically generated <code>azure-pipelines.yml</code> workflow schema inside the inline template editor, and click <strong>Commit & Create Pipeline</strong>. The platform automatically commits the YAML configuration to the repo, registers the build pipeline, and updates secrets variable groups.
                 </p>
               </div>
             </div>
