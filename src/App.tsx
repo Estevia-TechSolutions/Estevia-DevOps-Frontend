@@ -3457,6 +3457,19 @@ function App() {
                     </div>
                   </div>
 
+                  <div style={{ 
+                    fontSize: '0.76rem', 
+                    color: 'var(--text-secondary)', 
+                    marginBottom: '16px', 
+                    lineHeight: '1.4', 
+                    backgroundColor: 'rgba(255, 255, 255, 0.02)', 
+                    padding: '10px 12px', 
+                    borderRadius: '8px', 
+                    border: '1px solid var(--glass-border)' 
+                  }}>
+                    <span style={{ color: '#eab308', fontWeight: 600 }}>Sync Requirement:</span> To enable directory user synchronization, ensure your Azure App Registration is granted the Microsoft Graph <strong>User.Read.All</strong> Application Permission and admin consent has been granted.
+                  </div>
+
                   <div style={{ marginBottom: '24px' }}>
                     <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Target Resource Group Name</label>
                     <input
@@ -3799,11 +3812,6 @@ function App() {
           Credentials
           <span className="tab-tooltip">Manage API keys, access tokens, and organization infrastructure settings.</span>
         </button>
-        <button className={`tab-btn tab-btn-guide ${activeTab === 'guide' ? 'active' : ''}`} onClick={() => setActiveTab('guide')}>
-          <Info size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-          User Guide
-          <span className="tab-tooltip">Step-by-step user instructions, capability scope, and system boundaries.</span>
-        </button>
         {(user?.role === 'owner' || user?.role === 'admin') && (
           <button className={`tab-btn tab-btn-users ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>
             <Users size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
@@ -3811,6 +3819,11 @@ function App() {
             <span className="tab-tooltip">Manage organization directory users, sync from Azure Active Directory, and adjust roles.</span>
           </button>
         )}
+        <button className={`tab-btn tab-btn-guide ${activeTab === 'guide' ? 'active' : ''}`} onClick={() => setActiveTab('guide')}>
+          <Info size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+          User Guide
+          <span className="tab-tooltip">Step-by-step user instructions, capability scope, and system boundaries.</span>
+        </button>
 
       </div>
 
@@ -4086,11 +4099,6 @@ function App() {
         )}
 
 
-        {/* TAB 6: USER GUIDE */}
-        {activeTab === 'guide' && (
-          <GuidePage theme={theme} />
-        )}
-
         {/* TAB 7: TEAM SETTINGS */}
         {activeTab === 'users' && (user?.role === 'owner' || user?.role === 'admin') && (
           <TeamPage
@@ -4102,6 +4110,11 @@ function App() {
             handleUpdateRole={handleUpdateRole}
             theme={theme}
           />
+        )}
+
+        {/* TAB 6: USER GUIDE */}
+        {activeTab === 'guide' && (
+          <GuidePage theme={theme} />
         )}
 
       </main>
