@@ -516,7 +516,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
             </div>
 
             {/* Scrollable tab contents */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '24px', maxWidth: '100%', minWidth: 0 }}>
+            <div style={{ flex: 1, overflow: 'auto', padding: '24px', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
               {dbDetailTab === 'schema' && (
                 <div>
                   {/* Search Bar for Schema */}
@@ -830,14 +830,14 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                   )}
 
                   {/* Results Grid */}
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '220px', border: '1px solid var(--glass-border)', borderRadius: '8px', overflow: 'hidden' }}>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '220px', border: '1px solid var(--glass-border)', borderRadius: '8px', overflow: 'visible' }}>
                     <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--divider)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.01)' }}>
                       <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                         {queryResult ? `Result Payload (${queryResult.rows.length} rows in ${queryResult.execTimeMs}ms)` : 'Query Output Grid'}
                       </span>
                     </div>
 
-                    <div style={{ flex: 1, overflow: 'auto', padding: queryResult ? 0 : '24px' }}>
+                    <div style={{ flex: 1, overflowX: 'auto', overflowY: 'auto', padding: queryResult ? 0 : '24px', borderRadius: '0 0 8px 8px' }}>
                       {!queryResult ? (
                         <div style={{ color: 'var(--text-secondary)', textAlign: 'center', fontSize: '0.82rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '8px' }}>
                           <Play size={24} style={{ opacity: 0.3 }} />
@@ -848,8 +848,8 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                           Query executed successfully. Empty set returned (0 rows affected).
                         </div>
                       ) : (
-                        <div style={{ width: '100%', overflowX: 'auto' }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px', color: 'var(--text-primary)' }}>
+                        <div style={{ display: 'block', overflowX: 'auto', width: '100%' }}>
+                          <table style={{ borderCollapse: 'collapse', textAlign: 'left', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>
                             <thead>
                               <tr style={{ borderBottom: '2px solid var(--divider)', fontSize: '0.8rem', position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 1, fontWeight: 600 }}>
                                 <th style={{ padding: '10px 12px', width: '50px', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>Actions</th>

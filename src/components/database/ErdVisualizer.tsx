@@ -129,7 +129,7 @@ export const ErdVisualizer: React.FC<ErdVisualizerProps> = ({ API_BASE, theme, s
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%', maxWidth: '100%', minWidth: 0 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minHeight: '600px', width: '100%' }}>
       
       {/* Visual Controls Strip */}
       <div className="glass-panel" style={{
@@ -191,6 +191,7 @@ export const ErdVisualizer: React.FC<ErdVisualizerProps> = ({ API_BASE, theme, s
       <div style={{
         flex: 1,
         minHeight: '520px',
+        height: '560px',
         background: isLight ? 'rgba(0,0,0,0.01)' : 'rgba(0, 0, 0, 0.25)',
         border: '1px solid var(--glass-border)',
         borderRadius: '12px',
