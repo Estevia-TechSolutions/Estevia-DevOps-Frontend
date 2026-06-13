@@ -385,7 +385,7 @@ export const CostPage: React.FC<CostPageProps> = ({
               {nextDueInvoice ? (
                 <>
                   <span style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    ${nextDueInvoice.amount.toFixed(2)}
+                    ${Number(nextDueInvoice.amount).toFixed(2)}
                   </span>
                   <div style={{ fontSize: '0.74rem', color: 'var(--warning)', marginTop: '2px', fontWeight: 600 }}>
                     Due: {nextDueInvoice.due_date}
@@ -720,7 +720,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                     return (
                       <tr key={inv.id} style={{ borderBottom: '1px solid var(--divider)', fontSize: '0.86rem' }}>
                         <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--text-primary)' }}>{inv.invoice_number}</td>
-                        <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace' }}>${inv.amount.toFixed(2)}</td>
+                        <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace' }}>${Number(inv.amount).toFixed(2)}</td>
                         <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{inv.issue_date}</td>
                         <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{inv.due_date}</td>
                         <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{inv.payment_date || '—'}</td>
