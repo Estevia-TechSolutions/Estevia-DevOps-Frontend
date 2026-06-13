@@ -17,6 +17,7 @@ interface SchedulerRules {
   sun: DaySchedule;
   autoScaleAca: boolean;
   autoStopVm: boolean;
+  selectedApps?: string[];
 }
 
 interface SleepSchedulerProps {
@@ -27,6 +28,8 @@ interface SleepSchedulerProps {
 
 export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organizationId, theme }) => {
   const [rules, setRules] = useState<SchedulerRules | null>(null);
+  const [appsList, setAppsList] = useState<any[]>([]);
+  const [selectedApps, setSelectedApps] = useState<string[]>([]);
   const [active, setActive] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -48,6 +51,19 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
           const data = await res.json();
           setRules(data.rules);
           setActive(data.active);
+          setAppsList(data.applications || []);
+          
+          if (data.rules) {
+            if (data.rules.selectedApps) {
+              setSelectedApps(data.rules.selectedApps);
+            } else {
+              // Backward compatibility: default to all backend container apps
+              const defaultSelected = (data.applications || [])
+                .filter((a: any) => a.app_type === 'backend')
+                .map((a: any) => a.name);
+              setSelectedApps(defaultSelected);
+            }
+          }
         }
       } catch (err) {
         console.error('Failed to fetch scheduler rules:', err);
@@ -57,7 +73,7 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
     fetchRules();
   }, [organizationId, API_BASE]);
 
-  // Dynamically calculate savings estimates when weekly hours are adjusted
+  // Dynamically calculate savings estimates when weekly hours or selected apps/VM are adjusted
   useEffect(() => {
     if (!rules) return;
 
@@ -79,12 +95,27 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
     const totalHoursInWeek = 24 * 7;
     const sleepHours = totalHoursInWeek - activeHours;
     
-    // Scale savings dollar estimate: e.g. base cost $120/mo, saving proportional to sleep time %
-    const hourlyRate = 0.65; // Simulated $0.65 per hour for 4 active dev ACAs and 1 VM
-    const monthlySavings = sleepHours * hourlyRate * 4.3; // 4.3 weeks per month
+    // Dynamic hourly rate based on selected apps and VM configuration
+    let totalRate = 0;
+    selectedApps.forEach(appName => {
+      const app = appsList.find(a => a.name === appName);
+      if (app) {
+        if (app.app_type === 'backend') {
+          totalRate += 0.15; // ACA
+        } else if (app.app_type === 'frontend') {
+          totalRate += 0.05; // SWA
+        }
+      }
+    });
+
+    if (rules.autoStopVm) {
+      totalRate += 0.10; // Dev VM
+    }
+
+    const monthlySavings = sleepHours * totalRate * 4.3; // 4.3 weeks per month
     
     setSavingsEstimate(parseFloat(monthlySavings.toFixed(2)));
-  }, [rules]);
+  }, [rules, selectedApps, appsList]);
 
   const handleDayToggle = (day: keyof SchedulerRules) => {
     if (!rules) return;
@@ -133,7 +164,10 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
         },
         body: JSON.stringify({
           organizationId,
-          rules,
+          rules: {
+            ...rules,
+            selectedApps
+          },
           active
         })
       });
@@ -279,6 +313,90 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
           </div>
         </div>
 
+      </div>
+
+      {/* Applications Enrollment Checklist */}
+      <div className="glass-panel" style={{ padding: '24px', borderRadius: '12px' }}>
+        <h4 style={{ margin: '0 0 16px 0', fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ShieldCheck size={16} style={{ color: 'var(--success)' }} />
+          Select Enrolled Applications
+        </h4>
+        <p style={{ margin: '0 0 16px 0', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+          Choose which applications are subject to the sleep scheduler. Unselected applications (e.g. production sites or critical SWAs) will remain active 24/7.
+        </p>
+
+        {appsList.length === 0 ? (
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No applications registered for this organization.</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+            {appsList.map((app) => {
+              const isChecked = selectedApps.includes(app.name);
+              const isBackend = app.app_type === 'backend';
+              
+              return (
+                <div 
+                  key={app.id || app.name}
+                  onClick={() => {
+                    if (isChecked) {
+                      setSelectedApps(selectedApps.filter(name => name !== app.name));
+                    } else {
+                      setSelectedApps([...selectedApps, app.name]);
+                    }
+                  }}
+                  style={{
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    background: isChecked ? 'rgba(255,255,255,0.02)' : 'transparent',
+                    border: isChecked 
+                      ? (isBackend ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(59, 130, 246, 0.4)') 
+                      : '1px solid var(--glass-border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: isChecked ? '0 4px 12px rgba(255,255,255,0.01)' : 'none'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => {}} // Controlled via onClick on parent
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0 }}>
+                    <span style={{ 
+                      fontSize: '0.82rem', 
+                      fontWeight: 600, 
+                      color: isChecked ? 'var(--text-primary)' : 'var(--text-secondary)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {app.name}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ 
+                        fontSize: '0.64rem', 
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        color: isBackend ? 'var(--success)' : 'var(--accent-blue)',
+                        background: isBackend ? 'rgba(34,197,94,0.08)' : 'rgba(59,130,246,0.08)',
+                        padding: '1px 5px',
+                        borderRadius: '3px'
+                      }}>
+                        {isBackend ? 'ACA (Backend)' : 'SWA (Frontend)'}
+                      </span>
+                      <span style={{ fontSize: '0.64rem', color: 'var(--text-muted)' }}>
+                        status: {app.status || 'unknown'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Scheduler Grid Box */}

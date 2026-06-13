@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Database, ArrowRight, ShieldCheck, Play, Terminal, AlertCircle, RefreshCw, Layers } from 'lucide-react';
+import { Database, ArrowRight, ShieldCheck, Play, Terminal, AlertCircle, RefreshCw, Layers, Copy, Check } from 'lucide-react';
 
 interface Difference {
   type: 'table_missing' | 'column_missing';
@@ -37,6 +37,8 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({
   const [sourceDb, setSourceDb] = useState('');
   const [targetDb, setTargetDb] = useState('');
   const [isComparing, setIsComparing] = useState(false);
+  const [hasCompared, setHasCompared] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
   const [diffs, setDiffs] = useState<Difference[]>([]);
   const [sqlScript, setSqlScript] = useState('');
   const [runLogs, setRunLogs] = useState<string[]>([]);
@@ -45,6 +47,11 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({
   const [wizardFeedback, setWizardFeedback] = useState<string | null>(null);
 
   const isLight = theme === 'light';
+
+  // Reset comparison status on parameter changes
+  useEffect(() => {
+    setHasCompared(false);
+  }, [sourceServer, targetServer, sourceDb, targetDb]);
 
   // Initialize server selection based on selected server
   useEffect(() => {
@@ -166,6 +173,7 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({
         const data = await res.json();
         setDiffs(data.differences || []);
         setSqlScript(data.sqlScript || '');
+        setHasCompared(true);
       } else {
         console.error('Failed to compare databases');
       }
@@ -174,6 +182,12 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({
     } finally {
       setIsComparing(false);
     }
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(sqlScript);
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 2000);
   };
 
   const startMigrationWizard = () => {
@@ -239,141 +253,181 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
       {/* Target/Source Selection Header */}
-      <div className="glass-panel" style={{ padding: '24px', borderRadius: '12px' }}>
-        <h4 style={{ margin: '0 0 16px 0', fontSize: '0.92rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-          SELECT SCHEMAS TO COMPARE
-        </h4>
-        
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          {/* Source Group */}
-          <div style={{ display: 'flex', gap: '12px' }}>
-            {/* Source Server Selector */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>SOURCE SERVER</label>
-              <select
-                value={sourceServer}
-                onChange={(e) => setSourceServer(e.target.value)}
-                style={{
-                  fontSize: '0.82rem',
-                  height: '34px',
-                  width: '200px',
-                  borderRadius: '6px',
-                  background: 'rgba(255,255,255,0.02)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--glass-border)',
-                  padding: '0 8px',
-                  cursor: 'pointer'
-                }}
-              >
-                {dbServers.map(srv => (
-                  <option key={srv.name} value={srv.name} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
-                    {srv.name}
-                  </option>
-                ))}
-              </select>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+          
+          {/* Source Card */}
+          <div className="glass-panel" style={{ 
+            padding: '24px', 
+            borderRadius: '12px', 
+            border: '1px solid rgba(16, 185, 129, 0.2)', 
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.02), transparent)',
+            position: 'relative'
+          }}>
+            <div style={{ position: 'absolute', top: '12px', right: '16px', fontSize: '0.62rem', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>
+              SOURCE (READ ONLY)
             </div>
-
-            {/* Source DB Selector */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>SOURCE SCHEMA</label>
-              <select
-                value={sourceDb}
-                onChange={(e) => setSourceDb(e.target.value)}
-                disabled={loadingSourceDbs}
-                style={{
-                  fontSize: '0.82rem',
-                  height: '34px',
-                  width: '180px',
-                  borderRadius: '6px',
-                  background: 'rgba(255,255,255,0.02)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--glass-border)',
-                  padding: '0 8px',
-                  cursor: 'pointer'
-                }}
-              >
-                {loadingSourceDbs ? (
-                  <option value="">Loading...</option>
-                ) : sourceDbsList.length === 0 ? (
-                  <option value="">No databases</option>
-                ) : (
-                  sourceDbsList.map(db => (
-                    <option key={db.name} value={db.name} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
-                      {db.name}
+            <h5 style={{ margin: '0 0 16px 0', fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Database size={14} style={{ color: 'var(--success)' }} />
+              Source Connection
+            </h5>
+            
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 500 }}>SERVER</label>
+                <select
+                  value={sourceServer}
+                  onChange={(e) => setSourceServer(e.target.value)}
+                  style={{
+                    fontSize: '0.82rem',
+                    height: '34px',
+                    borderRadius: '6px',
+                    background: 'rgba(255,255,255,0.02)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--glass-border)',
+                    padding: '0 8px',
+                    cursor: 'pointer',
+                    width: '100%'
+                  }}
+                >
+                  {dbServers.map(srv => (
+                    <option key={srv.name} value={srv.name} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                      {srv.name}
                     </option>
-                  ))
-                )}
-              </select>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 500 }}>DATABASE SCHEMA</label>
+                <select
+                  value={sourceDb}
+                  onChange={(e) => setSourceDb(e.target.value)}
+                  disabled={loadingSourceDbs}
+                  style={{
+                    fontSize: '0.82rem',
+                    height: '34px',
+                    borderRadius: '6px',
+                    background: 'rgba(255,255,255,0.02)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--glass-border)',
+                    padding: '0 8px',
+                    cursor: 'pointer',
+                    width: '100%'
+                  }}
+                >
+                  {loadingSourceDbs ? (
+                    <option value="">Loading...</option>
+                  ) : sourceDbsList.length === 0 ? (
+                    <option value="">No databases</option>
+                  ) : (
+                    sourceDbsList.map(db => (
+                      <option key={db.name} value={db.name} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                        {db.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', height: '56px' }}>
-            <ArrowRight size={18} style={{ color: 'var(--text-muted)' }} />
+          {/* Connection Bridge Arrow */}
+          <div style={{ 
+            width: '36px', 
+            height: '36px', 
+            borderRadius: '50%', 
+            background: 'var(--panel-bg)', 
+            border: '1px solid var(--glass-border)', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            boxShadow: 'var(--panel-shadow)',
+            zIndex: 2
+          }}>
+            <ArrowRight size={16} style={{ color: 'var(--accent-purple)' }} />
           </div>
 
-          {/* Target Group */}
-          <div style={{ display: 'flex', gap: '12px' }}>
-            {/* Target Server Selector */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>TARGET SERVER</label>
-              <select
-                value={targetServer}
-                onChange={(e) => setTargetServer(e.target.value)}
-                style={{
-                  fontSize: '0.82rem',
-                  height: '34px',
-                  width: '200px',
-                  borderRadius: '6px',
-                  background: 'rgba(255,255,255,0.02)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--glass-border)',
-                  padding: '0 8px',
-                  cursor: 'pointer'
-                }}
-              >
-                {dbServers.map(srv => (
-                  <option key={srv.name} value={srv.name} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
-                    {srv.name}
-                  </option>
-                ))}
-              </select>
+          {/* Target Card */}
+          <div className="glass-panel" style={{ 
+            padding: '24px', 
+            borderRadius: '12px', 
+            border: '1px solid rgba(59, 130, 246, 0.25)', 
+            background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.02), transparent)',
+            position: 'relative'
+          }}>
+            <div style={{ position: 'absolute', top: '12px', right: '16px', fontSize: '0.62rem', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-blue)', padding: '2px 8px', borderRadius: '10px', fontWeight: 600 }}>
+              TARGET (WRITABLE)
             </div>
-
-            {/* Target DB Selector */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>TARGET SCHEMA</label>
-              <select
-                value={targetDb}
-                onChange={(e) => setTargetDb(e.target.value)}
-                disabled={loadingTargetDbs}
-                style={{
-                  fontSize: '0.82rem',
-                  height: '34px',
-                  width: '180px',
-                  borderRadius: '6px',
-                  background: 'rgba(255,255,255,0.02)',
-                  color: 'var(--text-primary)',
-                  border: '1px solid var(--glass-border)',
-                  padding: '0 8px',
-                  cursor: 'pointer'
-                }}
-              >
-                {loadingTargetDbs ? (
-                  <option value="">Loading...</option>
-                ) : targetDbsList.length === 0 ? (
-                  <option value="">No databases</option>
-                ) : (
-                  targetDbsList.map(db => (
-                    <option key={db.name} value={db.name} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
-                      {db.name}
+            <h5 style={{ margin: '0 0 16px 0', fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Database size={14} style={{ color: 'var(--accent-blue)' }} />
+              Target Connection
+            </h5>
+            
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 500 }}>SERVER</label>
+                <select
+                  value={targetServer}
+                  onChange={(e) => setTargetServer(e.target.value)}
+                  style={{
+                    fontSize: '0.82rem',
+                    height: '34px',
+                    borderRadius: '6px',
+                    background: 'rgba(255,255,255,0.02)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--glass-border)',
+                    padding: '0 8px',
+                    cursor: 'pointer',
+                    width: '100%'
+                  }}
+                >
+                  {dbServers.map(srv => (
+                    <option key={srv.name} value={srv.name} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                      {srv.name}
                     </option>
-                  ))
-                )}
-              </select>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                <label style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 500 }}>DATABASE SCHEMA</label>
+                <select
+                  value={targetDb}
+                  onChange={(e) => setTargetDb(e.target.value)}
+                  disabled={loadingTargetDbs}
+                  style={{
+                    fontSize: '0.82rem',
+                    height: '34px',
+                    borderRadius: '6px',
+                    background: 'rgba(255,255,255,0.02)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--glass-border)',
+                    padding: '0 8px',
+                    cursor: 'pointer',
+                    width: '100%'
+                  }}
+                >
+                  {loadingTargetDbs ? (
+                    <option value="">Loading...</option>
+                  ) : targetDbsList.length === 0 ? (
+                    <option value="">No databases</option>
+                  ) : (
+                    targetDbsList.map(db => (
+                      <option key={db.name} value={db.name} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                        {db.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
             </div>
           </div>
 
-          {/* Action button */}
+        </div>
+
+        {/* Center Compare Trigger */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '4px' }}>
           <button
             onClick={compareSchemas}
             disabled={isComparing || !sourceDb || !targetDb}
@@ -382,98 +436,231 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({
               display: 'flex', 
               alignItems: 'center', 
               gap: '8px', 
-              height: '34px', 
-              padding: '0 20px', 
-              fontSize: '0.82rem',
-              marginTop: '20px'
+              height: '38px', 
+              padding: '0 32px', 
+              fontSize: '0.84rem',
+              borderRadius: '20px'
             }}
           >
             {isComparing ? <RefreshCw size={14} className="spin-anim" /> : <Layers size={14} />}
-            {isComparing ? 'Comparing...' : 'Compare Schemas'}
+            {isComparing ? 'Running Structural Analysis...' : 'Compare Target & Source Schemas'}
           </button>
         </div>
       </div>
 
-      {/* Comparison results */}
-      {diffs.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
-          
-          {/* Left: Visual Diffs panel */}
-          <div className="glass-panel" style={{ padding: '24px', borderRadius: '12px' }}>
-            <h4 style={{ margin: '0 0 16px 0', fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <AlertCircle size={16} style={{ color: 'var(--warning)' }} />
-              Structure Differences Detected
-            </h4>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {diffs.map((diff, idx) => (
-                <div 
-                  key={idx} 
-                  style={{ 
-                    padding: '12px 16px', 
-                    borderRadius: '8px', 
-                    background: 'rgba(255, 255, 255, 0.01)',
-                    border: '1px solid var(--glass-border)',
-                    fontSize: '0.8rem'
-                  }}
-                >
-                  {diff.type === 'table_missing' ? (
-                    <div>
-                      <span style={{ color: 'var(--success)', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.68rem', background: 'rgba(34,197,94,0.1)', padding: '2px 6px', borderRadius: '4px', display: 'inline-block', marginBottom: '6px' }}>
-                        Missing Table
-                      </span>
-                      <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Table `{diff.tableName}` does not exist in target database.</div>
-                    </div>
-                  ) : (
-                    <div>
-                      <span style={{ color: 'var(--accent-blue)', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.68rem', background: 'rgba(59,130,246,0.1)', padding: '2px 6px', borderRadius: '4px', display: 'inline-block', marginBottom: '6px' }}>
-                        Missing Column
-                      </span>
-                      <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Table `{diff.tableName}` has missing column `{diff.columnName}`.</div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Right: Code script preview & run wizard */}
-          <div className="glass-panel" style={{ padding: '24px', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
-            <h4 style={{ margin: '0 0 16px 0', fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Terminal size={16} style={{ color: 'var(--accent-purple)' }} />
-              Generated Migration Script
-            </h4>
-
-            {/* Code editor preview */}
+      {/* Comparison Workspace Console */}
+      {hasCompared && (
+        diffs.length === 0 ? (
+          <div className="glass-panel" style={{ 
+            padding: '32px', 
+            borderRadius: '12px', 
+            borderColor: 'var(--success)', 
+            backgroundColor: 'rgba(34, 197, 94, 0.03)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px',
+            textAlign: 'center'
+          }}>
             <div style={{
-              flex: 1,
-              background: '#020617',
-              borderRadius: '8px',
-              padding: '16px',
-              fontFamily: 'monospace',
-              fontSize: '0.76rem',
-              color: '#a5f3fc',
-              whiteSpace: 'pre-wrap',
-              border: '1px solid var(--glass-border)',
-              maxHeight: '220px',
-              overflowY: 'auto'
+              width: '48px',
+              height: '48px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(34, 197, 94, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--success)'
             }}>
-              {sqlScript}
+              <ShieldCheck size={26} />
             </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-              <button
-                onClick={startMigrationWizard}
-                className="btn-primary"
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '36px', padding: '0 20px', fontSize: '0.82rem' }}
-              >
-                <Play size={14} />
-                Run Migration Wizard
-              </button>
+            <div>
+              <h4 style={{ margin: '0 0 4px 0', fontSize: '1.0rem', fontWeight: 700, color: 'var(--text-primary)' }}>Schemas are Synchronized</h4>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                No structural differences were detected between **{sourceServer}.{sourceDb}** and **{targetServer}.{targetDb}**.
+              </p>
             </div>
           </div>
+        ) : (
+          <div className="glass-panel" style={{ 
+            borderRadius: '12px', 
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            border: '1px solid var(--glass-border)'
+          }}>
+            {/* Console Header Bar */}
+            <div style={{
+              padding: '12px 20px',
+              background: 'rgba(255,255,255,0.01)',
+              borderBottom: '1px solid var(--glass-border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ 
+                  fontSize: '0.68rem', 
+                  fontWeight: 700, 
+                  textTransform: 'uppercase', 
+                  background: 'rgba(239,68,68,0.1)', 
+                  color: 'var(--error)', 
+                  padding: '3px 8px', 
+                  borderRadius: '4px' 
+                }}>
+                  Out of Sync
+                </span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                  {diffs.length} structure differences detected
+                </span>
+              </div>
+              
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                Source: <strong style={{ color: 'var(--text-secondary)' }}>{sourceDb}</strong> ➔ Target: <strong style={{ color: 'var(--text-secondary)' }}>{targetDb}</strong>
+              </div>
+            </div>
 
-        </div>
+            {/* Console Content Area */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', minHeight: '380px' }}>
+              
+              {/* Left Pane: Differences List */}
+              <div style={{ 
+                padding: '20px', 
+                borderRight: '1px solid var(--glass-border)',
+                background: 'rgba(0, 0, 0, 0.05)',
+                maxHeight: '440px',
+                overflowY: 'auto'
+              }}>
+                <h6 style={{ margin: '0 0 14px 0', fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Structural Diffs
+                </h6>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {diffs.map((diff, idx) => (
+                    <div 
+                      key={idx} 
+                      style={{ 
+                        padding: '12px 14px', 
+                        borderRadius: '8px', 
+                        background: 'rgba(255, 255, 255, 0.01)',
+                        border: '1px solid var(--glass-border)',
+                        fontSize: '0.8rem'
+                      }}
+                    >
+                      {diff.type === 'table_missing' ? (
+                        <div>
+                          <span style={{ color: 'var(--success)', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.62rem', background: 'rgba(34,197,94,0.1)', padding: '2px 6px', borderRadius: '4px', display: 'inline-block', marginBottom: '6px' }}>
+                            Missing Table
+                          </span>
+                          <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Table `{diff.tableName}` does not exist in target.</div>
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px' }}>Will be created with columns from source.</div>
+                        </div>
+                      ) : (
+                        <div>
+                          <span style={{ color: 'var(--accent-blue)', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.62rem', background: 'rgba(59,130,246,0.1)', padding: '2px 6px', borderRadius: '4px', display: 'inline-block', marginBottom: '6px' }}>
+                            Missing Column
+                          </span>
+                          <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Table `{diff.tableName}` has missing column `{diff.columnName}`.</div>
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px' }}>Will be added to target table.</div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right Pane: SQL Script Editor */}
+              <div style={{ 
+                padding: '20px', 
+                display: 'flex', 
+                flexDirection: 'column',
+                background: '#040b19'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <h6 style={{ margin: 0, fontSize: '0.76rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Generated Migration SQL
+                  </h6>
+                  <button
+                    onClick={copyToClipboard}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '0.72rem',
+                      background: 'rgba(255,255,255,0.02)',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: '6px',
+                      padding: '4px 10px',
+                      color: copySuccess ? 'var(--success)' : 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {copySuccess ? <Check size={12} /> : <Copy size={12} />}
+                    {copySuccess ? 'Copied!' : 'Copy Script'}
+                  </button>
+                </div>
+
+                {/* IDE Code Window */}
+                <div style={{
+                  flex: 1,
+                  display: 'flex',
+                  background: '#01050e',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.05)',
+                  fontFamily: 'monospace',
+                  fontSize: '0.76rem',
+                  color: '#38bdf8',
+                  overflow: 'hidden',
+                  minHeight: '260px',
+                  maxHeight: '340px'
+                }}>
+                  {/* Line Numbers */}
+                  <div style={{
+                    padding: '12px 8px',
+                    background: 'rgba(0,0,0,0.3)',
+                    borderRight: '1px solid rgba(255,255,255,0.03)',
+                    color: 'rgba(255,255,255,0.25)',
+                    textAlign: 'right',
+                    userSelect: 'none',
+                    fontSize: '0.72rem',
+                    lineHeight: '1.4'
+                  }}>
+                    {sqlScript.split('\n').map((_, index) => (
+                      <div key={index}>{index + 1}</div>
+                    ))}
+                  </div>
+                  {/* Script Body */}
+                  <div style={{
+                    flex: 1,
+                    padding: '12px 16px',
+                    overflowY: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    lineHeight: '1.4'
+                  }}>
+                    {sqlScript}
+                  </div>
+                </div>
+
+                {/* Console Workspace Footer Actions */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
+                  <button
+                    onClick={startMigrationWizard}
+                    className="btn-primary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '36px', padding: '0 24px', fontSize: '0.82rem' }}
+                  >
+                    <Play size={14} />
+                    Run Migration Wizard
+                  </button>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        )
       )}
 
       {/* Multi-step Migration Modal Overlay */}
