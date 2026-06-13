@@ -27,11 +27,15 @@ export const AuditLogsTable: React.FC<AuditLogsTableProps> = ({ API_BASE, theme 
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const isLight = theme === 'light';
-
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/audit-logs`);
+      const token = localStorage.getItem('devops_token');
+      const res = await fetch(`${API_BASE}/audit-logs`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (res.ok) {
         const data = await res.json();
         setLogs(data.logs || []);
