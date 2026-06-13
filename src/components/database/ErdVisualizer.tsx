@@ -69,19 +69,6 @@ export const ErdVisualizer: React.FC<ErdVisualizerProps> = ({ API_BASE, theme, s
     setZoom(prev => Math.max(0.6, Math.min(1.4, prev + factor)));
   };
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-secondary)', padding: '20px 0' }}>
-        <RefreshCw size={18} className="spin-anim" />
-        <span>Generating Entity-Relationship Schema Model...</span>
-      </div>
-    );
-  }
-
-  if (!schema) {
-    return <div style={{ color: 'var(--text-secondary)' }}>No database schema models found.</div>;
-  }
-
   const tablesPerCol = 3;
   const colWidth = 240;
   const hGap = 160;
@@ -127,6 +114,19 @@ export const ErdVisualizer: React.FC<ErdVisualizerProps> = ({ API_BASE, theme, s
     if (!tableCoords.length) return 600;
     return Math.max(...tableCoords.map(c => c.y + c.height)) + 50;
   }, [tableCoords]);
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-secondary)', padding: '20px 0' }}>
+        <RefreshCw size={18} className="spin-anim" />
+        <span>Generating Entity-Relationship Schema Model...</span>
+      </div>
+    );
+  }
+
+  if (!schema) {
+    return <div style={{ color: 'var(--text-secondary)' }}>No database schema models found.</div>;
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
