@@ -17,7 +17,9 @@ import {
   Cpu,
   ArrowRight,
   Terminal,
-  FileCode
+  FileCode,
+  MessageSquare,
+  Bell
 } from 'lucide-react';
 
 interface GuidePageProps {
@@ -407,6 +409,14 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                           { title: 'Key Vault Secrets Mapping', text: 'Syncs Azure Key Vault configurations directly to Azure DevOps Variable Groups.' },
                           { title: 'Enterprise Audit Trail Logs', text: 'Maintains tamper-proof activity logs tracking SQL queries, domain bindings, and pipeline creation.' }
                         ]
+                      },
+                      {
+                        category: 'Teams & Notifications',
+                        items: [
+                          { title: 'Lifecycle Event Alerts', text: 'Delivers real-time Microsoft Teams MessageCard notifications for CI/CD builds, sleep scheduler transitions, DB migrations, environment clones, and role changes.' },
+                          { title: 'Azure DevOps Webhook Receiver', text: 'A unique per-org endpoint receives Azure DevOps Service Hook payloads and routes formatted alerts to Teams channels.' },
+                          { title: 'Historical Log Lookbacks', text: 'Queries Azure Log Analytics in real time for ACA console logs with selectable time ranges: Live (5m), 1h, 12h, 24h.' }
+                        ]
                       }
                     ].map((group, gIdx) => (
                       <div key={gIdx} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -436,33 +446,108 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                   </div>
                 </div>
 
-                {/* Boundaries Box */}
+                {/* Boundaries Box — grouped into 5 matching capability categories */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <h4 style={{ fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', margin: 0, color: 'var(--text-primary)' }}>
                     <XCircle size={18} style={{ color: 'var(--error)' }} />
                     System Boundaries ("What it cannot do")
                   </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {[
-                      { title: 'Core Infrastructure Creation', text: 'Does NOT create Resource Groups, Virtual Networks (VNets/VPCs), VPNs, or VPN Gateways. These must exist beforehand.' },
-                      { title: 'Custom IaC Generation', text: 'Does NOT generate general terraform or ARM/Bicep templates for arbitrary resources.' },
-                      { title: 'GitHub Repo Policies', text: 'PR rules, branch protection, or GitHub user access must be configured on GitHub directly.' },
-                      { title: 'Service Connection Setup', text: 'ARM Service Principals must be pre-configured inside Azure DevOps project settings.' },
-                      { title: 'Bypass DNS Propagation', text: 'Subject to GoDaddy API and global DNS TTL delays, which can take 2-10 minutes.' }
-                    ].map((item, idx) => (
-                      <div key={idx} style={{ display: 'flex', gap: '8px', fontSize: '0.82rem', lineHeight: '1.4' }}>
-                        <XCircle size={14} style={{ color: 'var(--error)', opacity: 0.8, marginTop: '2px', flexShrink: 0 }} />
-                        <div>
-                          <strong style={{ color: 'var(--text-primary)' }}>{item.title}</strong>: {item.text}
+                      {
+                        category: 'Infrastructure & Provisioning',
+                        items: [
+                          { title: 'Base Infrastructure', text: 'Does NOT create Resource Groups, Virtual Networks (VNets), VPNs, or VPN Gateways. These must exist beforehand.' },
+                          { title: 'Custom IaC Templates', text: 'Does NOT generate general Terraform or ARM/Bicep templates for resources outside SWAs/Container Apps.' },
+                          { title: 'MySQL Server Hosting', text: 'Does NOT provision MySQL Flexible Server instances. An active database host must already exist.' }
+                        ]
+                      },
+                      {
+                        category: 'Observability & Operations',
+                        items: [
+                          { title: 'Real-time Metrics Streaming', text: 'CPU/Memory sparklines are simulated client-side. Azure Monitor metrics are not polled in real time.' },
+                          { title: 'Log Storage & Retention', text: 'Does NOT configure Log Analytics diagnostic settings. These must be pre-set in Azure Portal for ACA log routing.' }
+                        ]
+                      },
+                      {
+                        category: 'Cost Optimization',
+                        items: [
+                          { title: 'Horizontal Auto-scaling Rules', text: 'Does NOT configure Azure auto-scale rules or KEDA trigger definitions. Sleep Scheduler only adjusts replica floor/ceiling.' },
+                          { title: 'Cost Forecasting', text: 'Budget alerts and cost anomaly detection are advisory only and sourced from Azure Cost Management APIs — no enforcement.' }
+                        ]
+                      },
+                      {
+                        category: 'Database Hub',
+                        items: [
+                          { title: 'Non-MySQL Databases', text: 'The Database Hub exclusively supports MySQL. PostgreSQL, MSSQL, Cosmos DB, and other engines are not supported.' },
+                          { title: 'Data Migrations', text: 'Executes DDL schema SQL only. DML operations (row inserts, updates, deletes) must be run outside the platform.' }
+                        ]
+                      },
+                      {
+                        category: 'Security & Governance',
+                        items: [
+                          { title: 'Directory User Creation', text: 'Does NOT write users to Microsoft Entra ID. It only syncs existing directory members and assigns platform roles.' },
+                          { title: 'Repository Policies', text: 'PR merge rules, branch protection, and GitHub team permissions must be configured directly on GitHub.' },
+                          { title: 'Azure Service Connections', text: 'ARM and Docker registry service connections must be pre-registered in Azure DevOps Project Settings.' }
+                        ]
+                      },
+                      {
+                        category: 'Teams & Notifications',
+                        items: [
+                          { title: 'Webhook Delivery Guarantees', text: 'Teams MessageCards are best-effort HTTP POSTs. No retry queue or dead-letter mechanism is implemented.' },
+                          { title: 'DNS Propagation', text: 'Subject to GoDaddy API and global DNS TTL replication delays, typically 2–10 minutes.' }
+                        ]
+                      }
+                    ].map((group, gIdx) => (
+                      <div key={gIdx} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ 
+                          fontSize: '0.74rem', 
+                          fontWeight: 700, 
+                          textTransform: 'uppercase', 
+                          color: 'var(--error)', 
+                          opacity: 0.9,
+                          letterSpacing: '0.04em',
+                          borderLeft: '2px solid var(--error)',
+                          paddingLeft: '6px',
+                          marginTop: gIdx > 0 ? '8px' : '4px',
+                          marginBottom: '2px'
+                        }}>
+                          {group.category}
                         </div>
+                        {group.items.map((item, idx) => (
+                          <div key={idx} style={{ display: 'flex', gap: '8px', fontSize: '0.82rem', lineHeight: '1.4', paddingLeft: '4px' }}>
+                            <XCircle size={14} style={{ color: 'var(--error)', opacity: 0.8, marginTop: '2px', flexShrink: 0 }} />
+                            <div>
+                              <strong style={{ color: 'var(--text-primary)' }}>{item.title}</strong>: {item.text}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>
                 </div>
 
               </div>
-            </div>
-          )}
+
+              {/* Teams Setup Info Banner */}
+              <div style={{
+                display: 'flex', gap: '14px', padding: '18px 20px', borderRadius: '12px',
+                background: 'rgba(98,100,167,0.07)', border: '1px solid rgba(98,100,167,0.2)',
+                alignItems: 'flex-start'
+              }}>
+                <MessageSquare size={18} style={{ color: '#6264a7', flexShrink: 0, marginTop: '2px' }} />
+                <div>
+                  <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '6px' }}>Setting up Microsoft Teams Notifications</strong>
+                  <ol style={{ margin: 0, paddingLeft: '18px', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.75' }}>
+                    <li>In Microsoft Teams, open the target channel → <strong>⋯ More options → Connectors → Incoming Webhook → Configure</strong>. Copy the generated webhook URL.</li>
+                    <li>In EvaOps, go to <strong>Credentials → MS Teams</strong>. Paste the webhook URL and click <strong>Test Connection</strong> to verify delivery.</li>
+                    <li>Click <strong>Save Settings</strong>. EvaOps auto-generates a unique per-org <strong>Azure DevOps Receiver Endpoint URL</strong>.</li>
+                    <li>In Azure DevOps, go to <strong>Project Settings → Service Hooks → + Create Subscription → Web Hooks → Build completed</strong>. Paste the receiver URL and save.</li>
+                    <li>For historical ACA logs, navigate to <strong>Azure Portal → Log Analytics Workspaces → Overview → Workspace ID</strong>. Paste it in the <strong>Log Analytics Workspace</strong> field and save.</li>
+                  </ol>
+                </div>
+              </div>
+
 
           {/* TAB CONTENT: SECURITY */}
           {activeSubTab === 'security' && (

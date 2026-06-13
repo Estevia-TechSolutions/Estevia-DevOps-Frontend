@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Database, Eye, EyeOff, GitBranch, Settings, Globe, Cloud, AlertTriangle } from 'lucide-react';
+import { Database, Eye, EyeOff, GitBranch, Settings, Globe, Cloud, AlertTriangle, MessageSquare, Copy, CheckCircle, Loader } from 'lucide-react';
 import { KeyVaultConfigurator } from '../components/credentials/KeyVaultConfigurator';
 
 interface CredentialsPageProps {
@@ -62,15 +62,22 @@ interface CredentialsPageProps {
   loadingMetadata: boolean;
   API_BASE: string;
   theme: 'dark' | 'light';
+  // Teams & Observability
+  teamsWebhookUrl: string;
+  setTeamsWebhookUrl: (val: string) => void;
+  teamsWebhookToken: string;
+  logAnalyticsWorkspaceId: string;
+  setLogAnalyticsWorkspaceId: (val: string) => void;
 }
 
-type CredTab = 'github' | 'godaddy' | 'azure' | 'keyvault';
+type CredTab = 'github' | 'godaddy' | 'azure' | 'keyvault' | 'teams';
 
 const TABS: { id: CredTab; label: string; icon: React.ReactNode; accentVar: string }[] = [
-  { id: 'github',   label: 'GitHub',    icon: <GitBranch size={15} />, accentVar: '#ca8a04' },
-  { id: 'godaddy',  label: 'GoDaddy',   icon: <Globe size={15} />,     accentVar: '#ca8a04' },
-  { id: 'azure',    label: 'Azure',     icon: <Cloud size={15} />,     accentVar: '#ca8a04' },
-  { id: 'keyvault', label: 'Key Vault', icon: <Database size={15} />,  accentVar: '#ca8a04' },
+  { id: 'github',   label: 'GitHub',     icon: <GitBranch size={15} />,    accentVar: '#ca8a04' },
+  { id: 'godaddy',  label: 'GoDaddy',    icon: <Globe size={15} />,        accentVar: '#ca8a04' },
+  { id: 'azure',    label: 'Azure',      icon: <Cloud size={15} />,        accentVar: '#ca8a04' },
+  { id: 'keyvault', label: 'Key Vault',  icon: <Database size={15} />,     accentVar: '#ca8a04' },
+  { id: 'teams',    label: 'MS Teams',   icon: <MessageSquare size={15} />, accentVar: '#6264a7' },
 ];
 
 /* ── Shared sub-components ── */
@@ -183,7 +190,10 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
   containerRegistries, serviceConnections, loadingMetadata,
   currentUser,
   API_BASE,
-  theme
+  theme,
+  teamsWebhookUrl, setTeamsWebhookUrl,
+  teamsWebhookToken,
+  logAnalyticsWorkspaceId, setLogAnalyticsWorkspaceId,
 }) => {
   const [activeTab, setActiveTab] = useState<CredTab>('github');
 
@@ -586,6 +596,259 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
         </div>
       )}
 
+      {/* ── MICROSOFT TEAMS TAB ── */}
+      {activeTab === 'teams' && (
+        <TeamsConfigPanel
+          teamsWebhookUrl={teamsWebhookUrl}
+          setTeamsWebhookUrl={setTeamsWebhookUrl}
+          teamsWebhookToken={teamsWebhookToken}
+          logAnalyticsWorkspaceId={logAnalyticsWorkspaceId}
+          setLogAnalyticsWorkspaceId={setLogAnalyticsWorkspaceId}
+          handleSaveSettings={handleSaveSettings}
+          savingSettings={savingSettings}
+          settingsMsg={settingsMsg}
+          canEdit={canEdit}
+          API_BASE={API_BASE}
+        />
+      )}
+
+    </div>
+  );
+};
+
+/* ── Teams Configuration Panel ── */
+interface TeamsConfigPanelProps {
+  teamsWebhookUrl: string;
+  setTeamsWebhookUrl: (v: string) => void;
+  teamsWebhookToken: string;
+  logAnalyticsWorkspaceId: string;
+  setLogAnalyticsWorkspaceId: (v: string) => void;
+  handleSaveSettings: (e: React.FormEvent) => void;
+  savingSettings: boolean;
+  settingsMsg: { type: 'success' | 'error'; text: string } | null;
+  canEdit: boolean;
+  API_BASE: string;
+}
+
+const TeamsConfigPanel: React.FC<TeamsConfigPanelProps> = ({
+  teamsWebhookUrl, setTeamsWebhookUrl,
+  teamsWebhookToken,
+  logAnalyticsWorkspaceId, setLogAnalyticsWorkspaceId,
+  handleSaveSettings, savingSettings, settingsMsg,
+  canEdit, API_BASE
+}) => {
+  const [testStatus, setTestStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [testMsg, setTestMsg]       = useState('');
+  const [copied, setCopied]         = useState(false);
+
+  const receiverUrl = teamsWebhookToken
+    ? `${window.location.origin.replace(':5173', ':5005')}/api/webhooks/azure-devops/${teamsWebhookToken}`
+    : 'Save settings first to generate your unique endpoint URL.';
+
+  const handleCopyUrl = () => {
+    if (!teamsWebhookToken) return;
+    navigator.clipboard.writeText(receiverUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const handleTestConnection = async () => {
+    if (!teamsWebhookUrl) {
+      setTestStatus('error');
+      setTestMsg('Please enter a Teams webhook URL first.');
+      return;
+    }
+    setTestStatus('loading');
+    setTestMsg('');
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken') || '';
+      const res = await fetch(`${API_BASE}/apps/test-teams-webhook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ webhookUrl: teamsWebhookUrl })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTestStatus('success');
+        setTestMsg('✅ Test notification delivered to Microsoft Teams successfully!');
+      } else {
+        setTestStatus('error');
+        setTestMsg(`❌ ${data.message || 'Test failed.'}`);
+      }
+    } catch (err: any) {
+      setTestStatus('error');
+      setTestMsg(`❌ Network error: ${err.message}`);
+    }
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', fontSize: '0.85rem', padding: '10px 14px',
+    borderRadius: '8px', border: '1px solid var(--glass-border)',
+    background: 'rgba(255,255,255,0.03)', color: 'var(--text-primary)',
+    fontFamily: 'inherit', boxSizing: 'border-box'
+  };
+
+  return (
+    <div style={{ display: 'grid', gap: '20px' }}>
+      <SectionBlock
+        title="Microsoft Teams Webhook"
+        subtitle="Configure an Incoming Webhook to receive real-time DevOps lifecycle alerts in a Teams channel."
+        accent="#6264a7"
+      >
+        {/* Teams Webhook URL */}
+        <div style={{ marginBottom: '16px' }}>
+          <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 500 }}>
+            Incoming Webhook URL
+          </label>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <input
+              id="teams-webhook-url"
+              type="url"
+              placeholder="https://*.webhook.office.com/webhookb2/..."
+              value={teamsWebhookUrl}
+              onChange={e => setTeamsWebhookUrl(e.target.value)}
+              disabled={!canEdit}
+              style={inputStyle}
+            />
+            <button
+              id="teams-test-connection"
+              type="button"
+              onClick={handleTestConnection}
+              disabled={testStatus === 'loading' || !canEdit}
+              style={{
+                padding: '10px 18px', borderRadius: '8px', whiteSpace: 'nowrap',
+                background: 'linear-gradient(135deg, #6264a7 0%, #464775 100%)',
+                color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600,
+                fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px',
+                opacity: testStatus === 'loading' ? 0.7 : 1
+              }}
+            >
+              {testStatus === 'loading'
+                ? <><Loader size={13} style={{ animation: 'spin 1s linear infinite' }} /> Testing…</>
+                : testStatus === 'success'
+                ? <><CheckCircle size={13} /> Connected</>
+                : 'Test Connection'}
+            </button>
+          </div>
+          {testMsg && (
+            <p style={{ marginTop: '8px', fontSize: '0.8rem', color: testStatus === 'success' ? 'var(--success)' : 'var(--danger)' }}>
+              {testMsg}
+            </p>
+          )}
+        </div>
+
+        {/* Notification Events info */}
+        <div style={{
+          padding: '12px 16px', borderRadius: '8px',
+          background: 'rgba(98,100,167,0.08)', border: '1px solid rgba(98,100,167,0.2)',
+          fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.7'
+        }}>
+          <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '6px' }}>📬 Automated Notification Events</strong>
+          <ul style={{ margin: 0, paddingLeft: '18px' }}>
+            <li>✅ <strong>CI/CD Builds</strong> — Azure DevOps build success &amp; failure alerts</li>
+            <li>💤 <strong>Sleep Scheduler</strong> — Container scale-down / scale-up transitions</li>
+            <li>🗄️ <strong>DB Migrations</strong> — Schema execution completion with backup details</li>
+            <li>🔄 <strong>Environment Clones</strong> — Clone completion with source/target details</li>
+            <li>🔒 <strong>Role Changes</strong> — User authorization updates with actor info</li>
+          </ul>
+        </div>
+      </SectionBlock>
+
+      {/* Azure DevOps Receiver Endpoint */}
+      <SectionBlock
+        title="Azure DevOps Webhook Receiver"
+        subtitle="Paste this unique URL into your Azure DevOps Project → Service Hooks to receive build completion alerts."
+        accent="#6264a7"
+      >
+        <div>
+          <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 500 }}>
+            Your Organization Receiver Endpoint
+          </label>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <input
+              id="teams-receiver-url"
+              type="text"
+              readOnly
+              value={receiverUrl}
+              style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '0.78rem', cursor: 'text', opacity: 0.85 }}
+            />
+            <button
+              id="teams-copy-receiver-url"
+              type="button"
+              onClick={handleCopyUrl}
+              disabled={!teamsWebhookToken}
+              title="Copy to clipboard"
+              style={{
+                padding: '10px 14px', borderRadius: '8px',
+                background: copied ? 'rgba(54,166,79,0.15)' : 'rgba(98,100,167,0.15)',
+                border: `1px solid ${copied ? '#36a64f55' : '#6264a755'}`,
+                color: copied ? '#36a64f' : '#6264a7',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                fontSize: '0.8rem', fontWeight: 600, whiteSpace: 'nowrap'
+              }}
+            >
+              {copied ? <><CheckCircle size={13} /> Copied!</> : <><Copy size={13} /> Copy</>}
+            </button>
+          </div>
+          <p style={{ marginTop: '8px', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+            In Azure DevOps: <strong>Project Settings → Service Hooks → + Create Subscription → Web Hooks → Build completed</strong>
+          </p>
+        </div>
+      </SectionBlock>
+
+      {/* Log Analytics Workspace ID */}
+      <SectionBlock
+        title="Log Analytics Workspace"
+        subtitle="Connect to your Azure Log Analytics workspace to query real ACA container console logs with historical time range lookbacks."
+        accent="#6264a7"
+      >
+        <div>
+          <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 500 }}>
+            Log Analytics Workspace ID
+          </label>
+          <input
+            id="log-analytics-workspace-id"
+            type="text"
+            placeholder="e.g. 7a3f2c90-1234-5678-abcd-ef0123456789"
+            value={logAnalyticsWorkspaceId}
+            onChange={e => setLogAnalyticsWorkspaceId(e.target.value)}
+            disabled={!canEdit}
+            style={inputStyle}
+          />
+          <p style={{ marginTop: '8px', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+            Found in Azure Portal → <strong>Log Analytics Workspaces → &lt;workspace&gt; → Overview → Workspace ID</strong>.
+            ACA Diagnostic Settings must route console logs to this workspace.
+          </p>
+        </div>
+      </SectionBlock>
+
+      {/* Save button */}
+      {canEdit && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            id="teams-save-settings"
+            type="button"
+            onClick={(e) => handleSaveSettings(e as any)}
+            disabled={savingSettings}
+            className="btn-primary"
+            style={{ padding: '12px 28px', borderRadius: '8px', fontWeight: 600, fontSize: '0.9rem' }}
+          >
+            {savingSettings ? 'Saving…' : 'Save Settings'}
+          </button>
+        </div>
+      )}
+
+      {settingsMsg && (
+        <div style={{
+          padding: '12px 16px', borderRadius: '8px', fontSize: '0.84rem',
+          background: settingsMsg.type === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+          border: `1px solid ${settingsMsg.type === 'success' ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`,
+          color: settingsMsg.type === 'success' ? 'var(--success)' : 'var(--danger)'
+        }}>
+          {settingsMsg.text}
+        </div>
+      )}
     </div>
   );
 };

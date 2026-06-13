@@ -541,6 +541,11 @@ function App() {
   const [azureDevopsServiceConnection, setAzureDevopsServiceConnection] = useState('');
   const [dockerRegistryServiceConnection, setDockerRegistryServiceConnection] = useState('');
 
+  // Microsoft Teams Webhook & Observability Settings
+  const [teamsWebhookUrl, setTeamsWebhookUrl] = useState('');
+  const [teamsWebhookToken, setTeamsWebhookToken] = useState('');
+  const [logAnalyticsWorkspaceId, setLogAnalyticsWorkspaceId] = useState('');
+
   // Dynamic Provisioning Metadata States
   const [locations, setLocations] = useState<any[]>([]);
   const [resourceGroups, setResourceGroups] = useState<string[]>([]);
@@ -1597,6 +1602,9 @@ function App() {
         setAzureContainerRegistry(data.settings.azure_container_registry || '');
         setAzureDevopsServiceConnection(data.settings.azure_devops_service_connection || '');
         setDockerRegistryServiceConnection(data.settings.docker_registry_service_connection || '');
+        setTeamsWebhookUrl(data.settings.teams_webhook_url || '');
+        setTeamsWebhookToken(data.settings.teams_webhook_token || '');
+        setLogAnalyticsWorkspaceId(data.settings.log_analytics_workspace_id || '');
         
         // Auto-configure default inputs
         setDomainInput(data.settings.default_dns_domain || 'esteviatech.com');
@@ -1671,7 +1679,9 @@ function App() {
           githubOwner,
           azureContainerRegistry,
           azureDevopsServiceConnection,
-          dockerRegistryServiceConnection
+          dockerRegistryServiceConnection,
+          teamsWebhookUrl,
+          logAnalyticsWorkspaceId
         })
       });
       const data = await res.json();
@@ -4071,6 +4081,11 @@ function App() {
             setAzureDevopsServiceConnection={setAzureDevopsServiceConnection}
             dockerRegistryServiceConnection={dockerRegistryServiceConnection}
             setDockerRegistryServiceConnection={setDockerRegistryServiceConnection}
+            teamsWebhookUrl={teamsWebhookUrl}
+            setTeamsWebhookUrl={setTeamsWebhookUrl}
+            teamsWebhookToken={teamsWebhookToken}
+            logAnalyticsWorkspaceId={logAnalyticsWorkspaceId}
+            setLogAnalyticsWorkspaceId={setLogAnalyticsWorkspaceId}
             savingSettings={savingSettings}
             settingsMsg={settingsMsg}
             handleSaveSettings={handleSaveSettings}
