@@ -631,3 +631,26 @@ select option {
   transform: translateX(-50%) translateY(0);
 }
 
+/* User Guide custom interactive sub-tabs */
+.tab-btn-doc-sub {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.tab-btn-doc-sub:hover {
+  background: rgba(139, 92, 246, 0.08) !important;
+  transform: translateX(4px);
+}
+.tab-btn-doc-sub:hover div {
+  color: var(--text-primary) !important;
+}
+.tab-btn-doc-sub:active {
+  transform: translateX(2px) scale(0.98);
+}
+
+/* User Guide scope table row hover accent */
+.table-row-hover:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+[data-theme="light"] .table-row-hover:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
