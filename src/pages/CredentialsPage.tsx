@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Database, Eye, EyeOff, GitBranch, Settings, Globe, Cloud, AlertTriangle, MessageSquare, Copy, CheckCircle, Loader } from 'lucide-react';
+import { Database, Eye, EyeOff, GitBranch, Settings, Globe, Cloud, AlertTriangle, MessageSquare, Copy, CheckCircle, Loader, RefreshCw } from 'lucide-react';
 import { KeyVaultConfigurator } from '../components/credentials/KeyVaultConfigurator';
 
 interface CredentialsPageProps {
@@ -196,6 +196,34 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
   logAnalyticsWorkspaceId, setLogAnalyticsWorkspaceId,
 }) => {
   const [activeTab, setActiveTab] = useState<CredTab>('github');
+  const [discoveringWorkspace, setDiscoveringWorkspace] = useState(false);
+
+  const handleDiscoverWorkspace = async () => {
+    setDiscoveringWorkspace(true);
+    try {
+      const orgId = localStorage.getItem('organizationId') || 'estevia';
+      const token = localStorage.getItem('devops_token') || localStorage.getItem('token') || localStorage.getItem('authToken') || '';
+      const res = await fetch(`${API_BASE}/apps/discover-workspace`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ organizationId: orgId })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setLogAnalyticsWorkspaceId(data.workspaceId);
+        alert('Successfully discovered and linked Log Analytics Workspace ID: ' + data.workspaceId);
+      } else {
+        alert('Discovery failed: ' + (data.message || 'Unknown error'));
+      }
+    } catch (err: any) {
+      alert('Error during workspace discovery: ' + err.message);
+    } finally {
+      setDiscoveringWorkspace(false);
+    }
+  };
 
   const accent = TABS.find(t => t.id === activeTab)?.accentVar ?? 'var(--accent-teal)';
 
@@ -631,6 +659,38 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Workspace Customer ID</span>
                     <span style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{logAnalyticsWorkspaceId}</span>
                   </div>
+                )}
+
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={handleDiscoverWorkspace}
+                    disabled={discoveringWorkspace}
+                    className="btn-primary"
+                    style={{
+                      height: '32px',
+                      padding: '0 16px',
+                      fontSize: '0.78rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      cursor: 'pointer',
+                      borderRadius: '6px',
+                      margin: 0
+                    }}
+                  >
+                    {discoveringWorkspace ? (
+                      <>
+                        <Loader size={13} className="spin-anim" />
+                        Discovering…
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw size={13} />
+                        {logAnalyticsWorkspaceId ? 'Force Sync' : 'Discover Now'}
+                      </>
+                    )}
+                  </button>
                 )}
               </div>
 

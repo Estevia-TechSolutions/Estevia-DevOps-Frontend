@@ -51,7 +51,7 @@ export const LogDrawer: React.FC<LogDrawerProps> = ({ appName, onClose, API_BASE
   const isHistorical = timeRange !== 'live';
 
   const getAuthHeaders = useCallback((): Record<string, string> => {
-    const token = localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('jwt');
+    const token = localStorage.getItem('devops_token') || localStorage.getItem('token') || localStorage.getItem('authToken') || localStorage.getItem('jwt');
     return token ? { Authorization: `Bearer ${token}` } : {};
   }, []);
 
