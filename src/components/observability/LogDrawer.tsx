@@ -91,33 +91,61 @@ export const LogDrawer: React.FC<LogDrawerProps> = ({ appName, onClose, API_BASE
     }
   }, [appName, API_BASE, getAuthHeaders]);
 
-  // On mount and on timeRange change: fetch logs
+  const fetchMetrics = useCallback(async () => {
+    try {
+      const url = `${API_BASE}/observability/${appName}/metrics`;
+      const res = await fetch(url, { headers: getAuthHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setCpu(data.currentCpu);
+          setMemory(data.currentMemory);
+          if (data.metrics && data.metrics.cpu && data.metrics.memory) {
+            setCpuHistory(data.metrics.cpu);
+            setMemHistory(data.metrics.memory);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[LogDrawer] Failed to fetch metrics:', err);
+    }
+  }, [appName, API_BASE, getAuthHeaders]);
+
+  // On mount and on timeRange change: fetch logs and metrics
   useEffect(() => {
     fetchLogs(timeRange);
-    // Reset playing state when switching to historical
-    if (timeRange !== 'live') {
-      setIsPlaying(false);
-    } else {
+    if (timeRange === 'live') {
+      fetchMetrics();
       setIsPlaying(true);
+    } else {
+      setIsPlaying(false);
     }
-  }, [timeRange, appName]);  // eslint-disable-line
+  }, [timeRange, appName, fetchLogs, fetchMetrics]);
 
   // Live metrics sparkline + log append interval — DISABLED in historical mode
   useEffect(() => {
     if (!isPlaying || isHistorical) return;
 
     const interval = setInterval(async () => {
-      // Simulate live metric fluctuations using functional state updates
-      setCpu(prevCpu => {
-        const nextCpu = Math.max(5, Math.min(95, prevCpu + Math.floor(Math.random() * 7) - 3));
-        setCpuHistory(history => [...history.slice(1), nextCpu]);
-        return nextCpu;
-      });
-      setMemory(prevMem => {
-        const nextMem = Math.max(100, Math.min(512, prevMem + Math.floor(Math.random() * 5) - 2));
-        setMemHistory(history => [...history.slice(1), nextMem]);
-        return nextMem;
-      });
+      // Pull real-time CPU and Memory metrics from Azure Monitor via backend
+      try {
+        const res = await fetch(`${API_BASE}/observability/${appName}/metrics`, {
+          headers: getAuthHeaders()
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            setCpu(data.currentCpu);
+            setMemory(data.currentMemory);
+            if (data.metrics && data.metrics.cpu && data.metrics.memory) {
+              setCpuHistory(data.metrics.cpu);
+              setMemHistory(data.metrics.memory);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[LogDrawer] Failed to query live metrics:', err);
+      }
 
       // Pull all new live log lines from the backend continuously
       try {
