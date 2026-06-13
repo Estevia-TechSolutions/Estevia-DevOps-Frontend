@@ -438,13 +438,11 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
           </div>
         ) : (
           <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(244, 63, 94, 0.1)' }}>
-            {/* Header / Tabs */}
+            {/* Header / Tabs stacked vertically */}
             <div style={{ 
-              padding: '16px 24px 0 24px', 
               borderBottom: '1px solid rgba(239, 68, 68, 0.35)', 
               display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
+              flexDirection: 'column',
               background: 'linear-gradient(135deg, rgba(127, 29, 29, 0.85) 0%, rgba(69, 10, 10, 0.95) 60%, rgba(24, 24, 27, 0.98) 100%)',
               boxShadow: 'inset 0 -1px 0 rgba(239, 68, 68, 0.2), 0 2px 16px rgba(127, 29, 29, 0.3)',
               borderRadius: '12px 12px 0 0',
@@ -453,18 +451,30 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
             }}>
               {/* subtle ambient glow */}
               <div style={{ position: 'absolute', top: '-30px', right: '60px', width: '180px', height: '180px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(220,38,38,0.18) 0%, transparent 70%)', pointerEvents: 'none' }} />
-              <div>
+              
+              {/* Row 1: DB Info */}
+              <div style={{ 
+                padding: '20px 24px 14px 24px', 
+                position: 'relative',
+                zIndex: 1,
+              }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>{selectedDatabase.name}</span>
+                  <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff' }}>{selectedDatabase.name}</span>
                   <span style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: '10px', background: 'rgba(220, 38, 38, 0.25)', border: '1px solid rgba(220, 38, 38, 0.45)', color: '#fca5a5', fontWeight: 600 }}>Schema Catalog</span>
                 </div>
-                <div style={{ fontSize: '0.76rem', color: 'rgba(255,255,255,0.55)', marginTop: '4px', position: 'relative' }}>
-                  Server: <span style={{ fontFamily: 'monospace', color: 'rgba(255,255,255,0.85)' }}>{selectedDbServer?.name}</span>
+                <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.65)', marginTop: '4px', position: 'relative' }}>
+                  Server: <span style={{ fontFamily: 'monospace', color: 'rgba(255,255,255,0.9)' }}>{selectedDbServer?.name}</span>
                 </div>
               </div>
 
-              {/* Sub tabs */}
-              <div style={{ display: 'flex', gap: '2px' }}>
+              {/* Row 2: Sub tabs */}
+              <div style={{ 
+                display: 'flex', 
+                gap: '2px', 
+                padding: '0 24px',
+                overflowX: 'auto',
+                scrollbarWidth: 'none',
+              }}>
                 {([
                   { id: 'schema',       label: 'Tables & Schema'     },
                   { id: 'query',        label: 'SQL Console'          },
@@ -479,7 +489,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                       key={tab.id}
                       onClick={() => setDbDetailTab(tab.id)}
                       style={{
-                        padding: '8px 16px',
+                        padding: '10px 20px',
                         fontSize: '0.82rem',
                         fontWeight: active ? 700 : 500,
                         border: 'none',
@@ -495,6 +505,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                         letterSpacing: active ? '0.01em' : 'normal',
                         transition: 'all 0.15s ease',
                         position: 'relative',
+                        whiteSpace: 'nowrap',
                       }}
                     >
                       {tab.label}

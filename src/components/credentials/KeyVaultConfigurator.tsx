@@ -25,7 +25,12 @@ export const KeyVaultConfigurator: React.FC<KeyVaultConfiguratorProps> = ({ API_
   const fetchMappings = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/keyvault/mappings`);
+      const token = localStorage.getItem('devops_token');
+      const res = await fetch(`${API_BASE}/keyvault/mappings`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (res.ok) {
         const data = await res.json();
         setMappings(data.mappings || []);
@@ -49,9 +54,13 @@ export const KeyVaultConfigurator: React.FC<KeyVaultConfiguratorProps> = ({ API_
     setFeedback(null);
 
     try {
+      const token = localStorage.getItem('devops_token');
       const res = await fetch(`${API_BASE}/keyvault/map`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           secretName,
           mappedToVariableGroup
@@ -80,8 +89,12 @@ export const KeyVaultConfigurator: React.FC<KeyVaultConfiguratorProps> = ({ API_
     setFeedback(null);
 
     try {
+      const token = localStorage.getItem('devops_token');
       const res = await fetch(`${API_BASE}/keyvault/mappings/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
 
       if (res.ok) {

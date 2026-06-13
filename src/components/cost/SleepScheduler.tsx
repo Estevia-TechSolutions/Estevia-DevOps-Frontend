@@ -38,7 +38,12 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
   useEffect(() => {
     const fetchRules = async () => {
       try {
-        const res = await fetch(`${API_BASE}/scheduler/rules?organizationId=${organizationId}`);
+        const token = localStorage.getItem('devops_token');
+        const res = await fetch(`${API_BASE}/scheduler/rules?organizationId=${organizationId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         if (res.ok) {
           const data = await res.json();
           setRules(data.rules);
@@ -119,9 +124,13 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
     setFeedback(null);
 
     try {
+      const token = localStorage.getItem('devops_token');
       const res = await fetch(`${API_BASE}/scheduler/rules`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           organizationId,
           rules,
