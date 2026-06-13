@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
-import { 
-  CheckCircle2, 
-  XCircle, 
-  BookOpen, 
-  HelpCircle, 
-  ShieldCheck, 
-  Server, 
-  Globe, 
-  GitBranch, 
-  Info, 
-  Lock, 
-  Key, 
-  ChevronDown, 
+import {
+  CheckCircle2,
+  XCircle,
+  BookOpen,
+  HelpCircle,
+  ShieldCheck,
+  Server,
+  Globe,
+  GitBranch,
+  Info,
+  Lock,
+  Key,
+  ChevronDown,
   ChevronUp,
   Layout,
   Cpu,
@@ -65,7 +65,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
 
   return (
     <div style={{ animation: 'fade-in-anim 0.3s ease-out', display: 'flex', flexDirection: 'column', gap: '28px' }}>
-      
+
       {/* Hero Header */}
       <div className="glass-panel" style={{
         padding: '32px',
@@ -88,7 +88,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
           background: 'radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0) 70%)',
           pointerEvents: 'none'
         }} />
-        
+
         <div style={{
           width: '56px',
           height: '56px',
@@ -114,7 +114,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
 
       {/* Interactive Documentation Panel */}
       <div style={{ display: 'flex', gap: '28px', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch' }}>
-        
+
         {/* Left Side: Sub-navigation sidebar */}
         <div style={{ width: '280px', display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0 }}>
           {navItems.map(item => {
@@ -144,8 +144,8 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                   width: '36px',
                   height: '36px',
                   borderRadius: '8px',
-                  background: isActive 
-                    ? 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))' 
+                  background: isActive
+                    ? 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))'
                     : 'rgba(255,255,255,0.03)',
                   display: 'flex',
                   alignItems: 'center',
@@ -157,17 +157,17 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                   <IconComponent size={18} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ 
-                    fontSize: '0.88rem', 
-                    fontWeight: 600, 
+                  <div style={{
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
                     color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
                     transition: 'color 0.25s ease'
                   }}>
                     {item.label}
                   </div>
-                  <div style={{ 
-                    fontSize: '0.74rem', 
-                    color: 'var(--text-muted)', 
+                  <div style={{
+                    fontSize: '0.74rem',
+                    color: 'var(--text-muted)',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -182,18 +182,18 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
         </div>
 
         {/* Right Side: Active tab view window */}
-        <div className="glass-panel" style={{ 
-          flex: 1, 
-          minWidth: '320px', 
-          padding: '32px', 
+        <div className="glass-panel" style={{
+          flex: 1,
+          minWidth: '320px',
+          padding: '32px',
           borderRadius: '16px',
-          display: 'flex', 
-          flexDirection: 'column', 
+          display: 'flex',
+          flexDirection: 'column',
           gap: '24px',
           minHeight: '480px',
           animation: 'fade-in-anim 0.2s ease-out'
         }}>
-          
+
           {/* TAB CONTENT: GETTING STARTED */}
           {activeSubTab === 'getting-started' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -208,7 +208,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
 
               {/* Connected Timeline */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative' }}>
-                
+
                 {/* Step 1 */}
                 <div style={{ display: 'flex', gap: '20px', position: 'relative' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -234,12 +234,12 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                   <div style={{ flex: 1, paddingBottom: '12px' }}>
                     <h4 style={{ margin: '0 0 6px 0', fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       Link Credentials
-                      <span style={{ 
-                        fontSize: '0.72rem', 
-                        padding: '2px 8px', 
-                        borderRadius: '10px', 
-                        background: 'rgba(245, 158, 11, 0.1)', 
-                        color: 'var(--warning)', 
+                      <span style={{
+                        fontSize: '0.72rem',
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                        background: 'rgba(245, 158, 11, 0.1)',
+                        color: 'var(--warning)',
                         border: '1px solid rgba(245, 158, 11, 0.2)',
                         fontWeight: 500
                       }}>Required Setup</span>
@@ -365,7 +365,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-                
+
                 {/* Capabilities Box */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <h4 style={{ fontSize: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', margin: 0, color: 'var(--text-primary)' }}>
@@ -420,11 +420,11 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                       }
                     ].map((group, gIdx) => (
                       <div key={gIdx} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ 
-                          fontSize: '0.74rem', 
-                          fontWeight: 700, 
-                          textTransform: 'uppercase', 
-                          color: 'var(--accent-teal)', 
+                        <div style={{
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          color: 'var(--accent-teal)',
                           letterSpacing: '0.04em',
                           borderLeft: '2px solid var(--accent-teal)',
                           paddingLeft: '6px',
@@ -500,11 +500,11 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                       }
                     ].map((group, gIdx) => (
                       <div key={gIdx} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ 
-                          fontSize: '0.74rem', 
-                          fontWeight: 700, 
-                          textTransform: 'uppercase', 
-                          color: 'var(--error)', 
+                        <div style={{
+                          fontSize: '0.74rem',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          color: 'var(--error)',
                           opacity: 0.9,
                           letterSpacing: '0.04em',
                           borderLeft: '2px solid var(--error)',
@@ -547,7 +547,8 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                   </ol>
                 </div>
               </div>
-
+            </div>
+          )}
 
           {/* TAB CONTENT: SECURITY */}
           {activeSubTab === 'security' && (
@@ -578,8 +579,8 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                       { provider: 'Azure Cloud', token: 'Entra Active Directory Service Principal', scopes: ['Contributor or Owner assigned to target Resource Group / Subscription'] },
                       { provider: 'GoDaddy', token: 'Developer API Key & Secret', scopes: ['Production access environment (OTE sandbox is not supported)'] }
                     ].map((row, idx) => (
-                      <tr key={idx} style={{ 
-                        borderBottom: idx === 3 ? 'none' : '1px solid var(--divider)', 
+                      <tr key={idx} style={{
+                        borderBottom: idx === 3 ? 'none' : '1px solid var(--divider)',
                         transition: 'background 0.2s',
                         cursor: 'default'
                       }} className="table-row-hover">
@@ -588,10 +589,10 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                         <td style={{ padding: '14px 16px' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                             {row.scopes.map((scope, sidx) => (
-                              <code key={sidx} style={{ 
-                                background: 'rgba(255, 255, 255, 0.04)', 
-                                padding: '2px 6px', 
-                                borderRadius: '4px', 
+                              <code key={sidx} style={{
+                                background: 'rgba(255, 255, 255, 0.04)',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
                                 color: 'var(--accent-purple)',
                                 fontSize: '0.74rem',
                                 width: 'fit-content'
@@ -644,11 +645,11 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                   { title: 'Grant Admin Consent', text: 'Click Grant admin consent for [Your Tenant] next to the add button, and select Yes to authorize the directory sync scope.' },
                   { title: 'Assign Azure Subscription Role', text: 'Navigate to your Subscription or Resource Group, open Access Control (IAM), click Add role assignment, choose Contributor, select Member, search for your Service Principal name, and click Review + Assign.' }
                 ].map((step, idx) => (
-                  <div key={idx} style={{ 
-                    display: 'flex', 
-                    gap: '14px', 
-                    padding: '12px 16px', 
-                    borderRadius: '8px', 
+                  <div key={idx} style={{
+                    display: 'flex',
+                    gap: '14px',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
                     background: 'rgba(255, 255, 255, 0.015)',
                     border: '1px solid var(--glass-border)'
                   }}>
@@ -695,9 +696,9 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                 {faqData.map((faq, idx) => {
                   const isOpen = openFaqIndex === idx;
                   return (
-                    <div 
-                      key={idx} 
-                      style={{ 
+                    <div
+                      key={idx}
+                      style={{
                         borderRadius: '12px',
                         border: '1px solid var(--glass-border)',
                         background: isOpen ? 'rgba(255,255,255,0.015)' : 'transparent',
@@ -705,7 +706,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                         transition: 'all 0.2s ease-in-out'
                       }}
                     >
-                      <button 
+                      <button
                         onClick={() => toggleFaq(idx)}
                         style={{
                           width: '100%',
@@ -721,12 +722,12 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                         }}
                       >
                         <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>{faq.question}</span>
-                        {isOpen 
-                          ? <ChevronUp size={16} style={{ color: 'var(--accent-purple)', transition: 'transform 0.2s' }} /> 
+                        {isOpen
+                          ? <ChevronUp size={16} style={{ color: 'var(--accent-purple)', transition: 'transform 0.2s' }} />
                           : <ChevronDown size={16} style={{ color: 'var(--text-secondary)', transition: 'transform 0.2s' }} />
                         }
                       </button>
-                      
+
                       <div style={{
                         maxHeight: isOpen ? '300px' : '0px',
                         overflow: 'hidden',
@@ -734,11 +735,11 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                         padding: isOpen ? '0 20px 20px 20px' : '0 20px',
                         opacity: isOpen ? 1 : 0
                       }}>
-                        <p style={{ 
-                          margin: 0, 
-                          fontSize: '0.82rem', 
-                          color: 'var(--text-secondary)', 
-                          lineHeight: '1.6' 
+                        <p style={{
+                          margin: 0,
+                          fontSize: '0.82rem',
+                          color: 'var(--text-secondary)',
+                          lineHeight: '1.6'
                         }}>
                           {faq.answer}
                         </p>
@@ -770,7 +771,6 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
         </div>
 
       </div>
-      
     </div>
   );
 };
