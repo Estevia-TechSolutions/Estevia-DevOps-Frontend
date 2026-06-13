@@ -85,7 +85,9 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
             <div className="user-chip">
               <div className="user-chip-info">
                 <span className="user-chip-name">{user.name}</span>
-                <span className="user-chip-role">{user.role === 'admin' ? 'Admin' : 'Developer'}</span>
+                <span className="user-chip-role">
+                  {user.role === 'admin' ? 'Admin' : user.role === 'member' ? 'Contributor' : user.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : 'Contributor'}
+                </span>
               </div>
               <div className="user-chip-avatar">
                 {user.name?.charAt(0)?.toUpperCase() || 'U'}
