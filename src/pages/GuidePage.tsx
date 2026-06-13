@@ -370,25 +370,67 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                     <CheckCircle2 size={18} style={{ color: 'var(--success)' }} />
                     Capabilities ("What it does")
                   </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {[
-                      { title: 'Auto-Discovery Crawling', text: 'Queries Azure APIs to find all active Static Web Apps and Container Apps.' },
-                      { title: 'Automated DNS Provisioning', text: 'Updates GoDaddy DNS records and completes domain SSL verification.' },
-                      { title: 'Git Pipeline Seeding', text: 'Generates and commits custom azure-pipelines.yml configurations directly to GitHub.' },
-                      { title: 'Secret Sync Automation', text: 'Pulls deployment tokens from Azure and configures Azure DevOps variable groups.' },
-                      { title: 'Build Telemetry Dashboard', text: 'Tracks pipeline run stages, durations, and results in real time.' },
-                      { title: 'Live Log Tailing & Metrics', text: 'Tails Container App system logs and displays real-time CPU/Memory sparkline charts.' },
-                      { title: 'Cost Sleep Scheduler', text: 'Scales container app replicas down to 0 during off-work hours to optimize subscription costs.' },
-                      { title: 'DB Schema Compare & Wizard', text: 'Analyzes differences between MySQL structures and executes migration scripts via a step-by-step wizard.' },
-                      { title: 'ERD Database Visualizer', text: 'Queries schema relationships to draw dynamic visual Entity-Relationship diagrams.' },
-                      { title: 'Key Vault Secrets Mapping', text: 'Syncs Azure Key Vault configurations directly to Azure DevOps Variable Groups.' },
-                      { title: 'Enterprise Audit Trail Logs', text: 'Maintains tamper-proof activity logs tracking SQL queries, domain bindings, and pipeline creation.' }
-                    ].map((item, idx) => (
-                      <div key={idx} style={{ display: 'flex', gap: '8px', fontSize: '0.82rem', lineHeight: '1.4' }}>
-                        <ArrowRight size={14} style={{ color: 'var(--accent-teal)', marginTop: '2px', flexShrink: 0 }} />
-                        <div>
-                          <strong style={{ color: 'var(--text-primary)' }}>{item.title}</strong>: {item.text}
+                      {
+                        category: 'Infrastructure & Provisioning',
+                        items: [
+                          { title: 'Auto-Discovery Crawling', text: 'Queries Azure APIs to find all active Static Web Apps and Container Apps.' },
+                          { title: 'Automated DNS Provisioning', text: 'Updates GoDaddy DNS records and completes domain SSL verification.' },
+                          { title: 'Git Pipeline Seeding', text: 'Generates and commits custom azure-pipelines.yml configurations directly to GitHub.' },
+                          { title: 'Secret Sync Automation', text: 'Pulls deployment tokens from Azure and configures Azure DevOps variable groups.' }
+                        ]
+                      },
+                      {
+                        category: 'Observability & Operations',
+                        items: [
+                          { title: 'Build Telemetry Dashboard', text: 'Tracks pipeline run stages, durations, and results in real time.' },
+                          { title: 'Live Log Tailing & Metrics', text: 'Tails Container App system logs and displays real-time CPU/Memory sparkline charts.' }
+                        ]
+                      },
+                      {
+                        category: 'Cost Optimization',
+                        items: [
+                          { title: 'Cost Sleep Scheduler', text: 'Scales container app replicas down to 0 during off-work hours to optimize subscription costs.' }
+                        ]
+                      },
+                      {
+                        category: 'Database Hub',
+                        items: [
+                          { title: 'DB Schema Compare & Wizard', text: 'Analyzes differences between MySQL structures and executes migration scripts via a step-by-step wizard.' },
+                          { title: 'ERD Database Visualizer', text: 'Queries schema relationships to draw dynamic visual Entity-Relationship diagrams.' }
+                        ]
+                      },
+                      {
+                        category: 'Security & Governance',
+                        items: [
+                          { title: 'Key Vault Secrets Mapping', text: 'Syncs Azure Key Vault configurations directly to Azure DevOps Variable Groups.' },
+                          { title: 'Enterprise Audit Trail Logs', text: 'Maintains tamper-proof activity logs tracking SQL queries, domain bindings, and pipeline creation.' }
+                        ]
+                      }
+                    ].map((group, gIdx) => (
+                      <div key={gIdx} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ 
+                          fontSize: '0.74rem', 
+                          fontWeight: 700, 
+                          textTransform: 'uppercase', 
+                          color: 'var(--accent-teal)', 
+                          letterSpacing: '0.04em',
+                          borderLeft: '2px solid var(--accent-teal)',
+                          paddingLeft: '6px',
+                          marginTop: gIdx > 0 ? '8px' : '4px',
+                          marginBottom: '2px'
+                        }}>
+                          {group.category}
                         </div>
+                        {group.items.map((item, idx) => (
+                          <div key={idx} style={{ display: 'flex', gap: '8px', fontSize: '0.82rem', lineHeight: '1.4', paddingLeft: '4px' }}>
+                            <ArrowRight size={14} style={{ color: 'var(--accent-teal)', marginTop: '2px', flexShrink: 0 }} />
+                            <div>
+                              <strong style={{ color: 'var(--text-primary)' }}>{item.title}</strong>: {item.text}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>
