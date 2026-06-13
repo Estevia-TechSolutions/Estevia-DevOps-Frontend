@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import { 
   Server, 
   RefreshCw, 
@@ -13,7 +14,9 @@ import {
   Plus, 
   Minus, 
   Database,
-  Building2
+  Building2,
+  Maximize,
+  X
 } from 'lucide-react';
 import { ErdVisualizer } from '../components/database/ErdVisualizer';
 import { CompareMigrateWizard } from '../components/database/CompareMigrateWizard';
@@ -147,6 +150,20 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
 }) => {
 
   const isViewer = currentUser?.role === 'viewer';
+  const [isResultsExpanded, setIsResultsExpanded] = React.useState(false);
+
+  // Lock body scroll when results modal is open
+  React.useEffect(() => {
+    document.body.style.overflow = isResultsExpanded ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isResultsExpanded]);
+
+  // Close results modal on ESC
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsResultsExpanded(false); };
+    if (isResultsExpanded) window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isResultsExpanded]);
 
   const toggleTableExpand = (tableName: string) => {
     setExpandedTables(prev => ({
@@ -835,6 +852,16 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                       <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                         {queryResult ? `Result Payload (${queryResult.rows.length} rows in ${queryResult.execTimeMs}ms)` : 'Query Output Grid'}
                       </span>
+                      {queryResult && queryResult.rows.length > 0 && (
+                        <button
+                          onClick={() => setIsResultsExpanded(true)}
+                          title="Expand results to fullscreen"
+                          style={{ height: '24px', padding: '0 10px', borderRadius: '5px', border: '1px solid rgba(139,92,246,0.4)', background: 'rgba(139,92,246,0.1)', color: 'var(--accent-purple)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.7rem', fontWeight: 600 }}
+                        >
+                          <Maximize size={10} />
+                          Expand
+                        </button>
+                      )}
                     </div>
 
                     <div style={{ flex: 1, overflowX: 'auto', overflowY: 'auto', padding: queryResult ? 0 : '24px', borderRadius: '0 0 8px 8px' }}>
@@ -966,8 +993,145 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                       )}
                     </div>
                   </div>
+
+                  {/* ── Fullscreen Results Modal (portal) ── */}
+                  {isResultsExpanded && queryResult && ReactDOM.createPortal(
+                    <div
+                      style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(2,6,23,0.92)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', display: 'flex', flexDirection: 'column' }}
+                      onClick={(e) => { if (e.target === e.currentTarget) setIsResultsExpanded(false); }}
+                    >
+                      {/* Header */}
+                      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', height: '62px', background: 'rgba(10,16,30,0.99)', borderBottom: '1px solid var(--glass-border)', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
+                        {/* Title */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ width: '36px', height: '36px', borderRadius: '9px', background: 'linear-gradient(135deg, #e11d48, #be123c)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Database size={17} color="#fff" />
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              SQL Result Payload — Fullscreen
+                            </div>
+                            <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                              <span style={{ color: '#f87171', fontWeight: 600 }}>{queryResult.rows.length} rows</span>
+                              &nbsp;·&nbsp;{queryResult.fields.length} columns&nbsp;·&nbsp;executed in {queryResult.execTimeMs}ms
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Close button */}
+                        <button
+                          onClick={() => setIsResultsExpanded(false)}
+                          title="Close fullscreen (Esc)"
+                          style={{
+                            height: '36px', padding: '0 18px', borderRadius: '8px',
+                            border: '1px solid rgba(239,68,68,0.4)',
+                            background: 'rgba(239,68,68,0.1)',
+                            color: '#f87171', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '7px',
+                            fontSize: '0.82rem', fontWeight: 600,
+                            transition: 'all 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.24)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.7)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)'; }}
+                        >
+                          <X size={15} />
+                          Close
+                        </button>
+                      </div>
+
+                      {/* Scrollable results table */}
+                      <div style={{ flex: 1, overflow: 'auto', padding: '0' }}>
+                        <table style={{ borderCollapse: 'collapse', textAlign: 'left', whiteSpace: 'nowrap', color: 'var(--text-primary)', width: '100%' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '2px solid var(--divider)', fontSize: '0.8rem', position: 'sticky', top: 0, background: 'rgba(10,16,30,0.99)', zIndex: 1, fontWeight: 600 }}>
+                              <th style={{ padding: '12px 16px', width: '50px', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>Actions</th>
+                              {queryResult.fields.map((field: string) => (
+                                <th key={field} style={{ padding: '12px 16px', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{field}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {queryResult.rows.map((row: any, idx: number) => {
+                              const tableName = getTableNameFromQuery(querySql);
+                              const tblSchema = databaseSchema.find((t: any) => t.table === tableName);
+                              const pkCol = tblSchema?.columns.find((c: any) => c.key === 'PRI')?.name;
+                              return (
+                                <tr key={idx} style={{ borderBottom: '1px solid var(--divider)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
+                                  <td style={{ padding: '8px 16px', whiteSpace: 'nowrap' }}>
+                                    <button
+                                      onClick={async () => {
+                                        if (isViewer) return;
+                                        let deleteSql = '';
+                                        let confirmMsg = '';
+                                        if (pkCol) {
+                                          const pkVal = row[pkCol];
+                                          confirmMsg = `Delete row where ${pkCol} = '${pkVal}'?`;
+                                          deleteSql = `DELETE FROM \`${tableName}\` WHERE \`${pkCol}\` = ${typeof pkVal === 'number' ? pkVal : `'${String(pkVal).replace(/'/g, "\\'")}'`};`;
+                                        } else {
+                                          confirmMsg = `Delete this row by matching all values?`;
+                                          const conditions = queryResult.fields.map((field: string) => {
+                                            const val = row[field];
+                                            if (val === null) return `\`${field}\` IS NULL`;
+                                            if (typeof val === 'number') return `\`${field}\` = ${val}`;
+                                            return `\`${field}\` = '${String(val).replace(/'/g, "\\'")}'`;
+                                          });
+                                          deleteSql = `DELETE FROM \`${tableName}\` WHERE ${conditions.join(' AND ')} LIMIT 1;`;
+                                        }
+                                        setConfirmDialog({
+                                          isOpen: true, title: 'Delete Database Row (Destructive Action)',
+                                          message: confirmMsg, confirmLabel: 'Delete Row', cancelLabel: 'Cancel', type: 'danger',
+                                          onConfirm: async () => {
+                                            try {
+                                              const deleteRes = await fetch(`${API_BASE}/apps/execute-query`, {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                                body: JSON.stringify({ serverName: selectedDbServer.name, dbName: selectedDatabase.name, query: deleteSql })
+                                              });
+                                              const deleteData = await deleteRes.json();
+                                              if (deleteRes.ok && deleteData.success) handleExecuteQuery(querySql);
+                                              else alert(`Failed to delete row: ${deleteData.message || 'Unknown error'}`);
+                                            } catch (e: any) { alert(`Error: ${e.message}`); }
+                                          }
+                                        });
+                                      }}
+                                      style={{ border: 'none', background: 'none', cursor: isViewer ? 'not-allowed' : 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isViewer ? 0.4 : 1 }}
+                                      disabled={isViewer}
+                                      title={isViewer ? 'Read-only' : 'Delete Row'}
+                                    >
+                                      <Trash2 size={12} style={{ color: 'var(--error)' }} />
+                                    </button>
+                                  </td>
+                                  {queryResult.fields.map((field: string) => {
+                                    const val = row[field];
+                                    return (
+                                      <td key={field} style={{ padding: '10px 16px', fontSize: '0.82rem', fontFamily: 'monospace', color: val === null ? '#64748b' : 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                                        {val === null ? 'NULL' : String(val)}
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Footer bar */}
+                      <div style={{ flexShrink: 0, padding: '10px 24px', borderTop: '1px solid var(--glass-border)', background: 'rgba(10,16,30,0.99)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                          Press <kbd style={{ padding: '1px 6px', borderRadius: '3px', border: '1px solid var(--glass-border)', fontFamily: 'monospace', fontSize: '0.68rem', background: 'rgba(255,255,255,0.05)' }}>Esc</kbd> or click backdrop to close
+                        </span>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                          {queryResult.rows.length} rows · {queryResult.fields.length} columns
+                        </span>
+                      </div>
+                    </div>,
+                    document.body
+                  )}
+
                 </div>
               )}
+
 
               {dbDetailTab === 'create-table' && (
                 <div style={{ maxWidth: '640px' }}>
