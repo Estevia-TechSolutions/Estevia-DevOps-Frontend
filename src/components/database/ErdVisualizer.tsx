@@ -43,7 +43,12 @@ export const ErdVisualizer: React.FC<ErdVisualizerProps> = ({ API_BASE, theme })
     const fetchErdSchema = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`${API_BASE}/database-hub/erd`);
+        const token = localStorage.getItem('devops_token');
+        const res = await fetch(`${API_BASE}/database-hub/erd`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         if (res.ok) {
           const data = await res.json();
           setSchema(data.erd);
