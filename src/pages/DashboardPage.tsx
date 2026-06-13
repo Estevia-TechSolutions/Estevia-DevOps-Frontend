@@ -121,6 +121,7 @@ interface DashboardPageProps {
   azureDevopsOrgUrl?: string;
   azureDevopsProject?: string;
   onDeployBranch: (repoPath: string, branchName: string, type: 'frontend' | 'backend') => void;
+  currentUser?: any;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
@@ -140,8 +141,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   setSelectedStageForJobs,
   azureDevopsOrgUrl,
   azureDevopsProject,
-  onDeployBranch
+  onDeployBranch,
+  currentUser
 }) => {
+  const isViewer = currentUser?.role === 'viewer';
 
   const [activeStageInfo, setActiveStageInfo] = React.useState<{appName: string, stageId: string} | null>(null);
   const [selectedJobForModal, setSelectedJobForModal] = React.useState<any | null>(null);
@@ -527,34 +530,35 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                       Stale / Not In Use
                                     </span>
                                     {(item.type === 'frontend' || item.type === 'backend') && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleDeleteApp(item.name, item.type);
-                                        }}
-                                        disabled={deletingAppName === item.name}
-                                        style={{
-                                          background: 'rgba(239, 68, 68, 0.15)',
-                                          border: '1px solid rgba(239, 68, 68, 0.3)',
-                                          color: 'var(--error)',
-                                          borderRadius: '4px',
-                                          padding: '2px 8px',
-                                          fontSize: '0.65rem',
-                                          cursor: 'pointer',
-                                          fontWeight: 600,
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          gap: '4px'
-                                        }}
-                                      >
-                                        {deletingAppName === item.name ? (
-                                          <RefreshCw size={10} className="spin-anim" />
-                                        ) : (
-                                          <Trash2 size={10} />
-                                        )}
-                                        Delete
-                                      </button>
+                                       <button
+                                         type="button"
+                                         onClick={(e) => {
+                                           e.stopPropagation();
+                                           handleDeleteApp(item.name, item.type);
+                                         }}
+                                         disabled={isViewer || deletingAppName === item.name}
+                                         style={{
+                                           background: isViewer ? 'rgba(255,255,255,0.01)' : 'rgba(239, 68, 68, 0.15)',
+                                           border: isViewer ? '1px solid var(--glass-border)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                           color: isViewer ? 'var(--text-muted)' : 'var(--error)',
+                                           borderRadius: '4px',
+                                           padding: '2px 8px',
+                                           fontSize: '0.65rem',
+                                           cursor: isViewer ? 'not-allowed' : 'pointer',
+                                           fontWeight: 600,
+                                           display: 'inline-flex',
+                                           alignItems: 'center',
+                                           gap: '4px',
+                                           opacity: isViewer ? 0.6 : 1
+                                         }}
+                                       >
+                                         {deletingAppName === item.name ? (
+                                           <RefreshCw size={10} className="spin-anim" />
+                                         ) : (
+                                           <Trash2 size={10} />
+                                         )}
+                                         Delete
+                                       </button>
                                     )}
                                   </div>
                                 )}
@@ -786,53 +790,60 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 CI/CD
                               </a>
                             ) : (
-                              <button 
-                                className="btn-secondary" 
-                                onClick={() => openPipelineModal(item, group)}
-                                style={{ 
-                                  padding: '6px 10px', 
-                                  fontSize: '0.75rem', 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'center', 
-                                  gap: '4px', 
-                                  borderColor: 'var(--accent-purple)',
-                                  color: 'var(--text-primary)',
-                                  background: 'rgba(139, 92, 246, 0.04)',
-                                  transition: 'all 0.25s ease'
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.background = 'rgba(139, 92, 246, 0.12)';
-                                  e.currentTarget.style.boxShadow = '0 0 10px rgba(139, 92, 246, 0.3)';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.background = 'rgba(139, 92, 246, 0.04)';
-                                  e.currentTarget.style.boxShadow = 'none';
-                                }}
-                              >
-                                <PlusCircle size={12} style={{ color: 'var(--accent-purple)' }} />
-                                Setup CI/CD
-                              </button>
+                               <button 
+                                 className="btn-secondary" 
+                                 disabled={isViewer}
+                                 onClick={() => openPipelineModal(item, group)}
+                                 style={{ 
+                                   padding: '6px 10px', 
+                                   fontSize: '0.75rem', 
+                                   display: 'flex', 
+                                   alignItems: 'center', 
+                                   justifyContent: 'center', 
+                                   gap: '4px', 
+                                   borderColor: isViewer ? 'var(--glass-border)' : 'var(--accent-purple)',
+                                   color: isViewer ? 'var(--text-muted)' : 'var(--text-primary)',
+                                   background: isViewer ? 'rgba(255,255,255,0.01)' : 'rgba(139, 92, 246, 0.04)',
+                                   transition: 'all 0.25s ease',
+                                   cursor: isViewer ? 'not-allowed' : 'pointer',
+                                   opacity: isViewer ? 0.6 : 1
+                                 }}
+                                 onMouseEnter={(e) => {
+                                   if (isViewer) return;
+                                   e.currentTarget.style.background = 'rgba(139, 92, 246, 0.12)';
+                                   e.currentTarget.style.boxShadow = '0 0 10px rgba(139, 92, 246, 0.3)';
+                                 }}
+                                 onMouseLeave={(e) => {
+                                   if (isViewer) return;
+                                   e.currentTarget.style.background = 'rgba(139, 92, 246, 0.04)';
+                                   e.currentTarget.style.boxShadow = 'none';
+                                 }}
+                               >
+                                 <PlusCircle size={12} style={{ color: isViewer ? 'var(--text-muted)' : 'var(--accent-purple)' }} />
+                                 Setup CI/CD
+                               </button>
                             )}
 
                             {!isOrphaned && (
                               <button 
-                                className="btn-secondary" 
-                                onClick={() => handleDeleteApp(item.name, item.type)}
-                                disabled={deletingAppName === item.name} 
-                                style={{ 
-                                  padding: '6px 10px', 
-                                  fontSize: '0.75rem', 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'center', 
-                                  color: 'var(--error)', 
-                                  borderColor: 'rgba(239,68,68,0.2)', 
-                                  backgroundColor: 'rgba(239,68,68,0.03)' 
-                                }}
-                              >
-                                {deletingAppName === item.name ? <RefreshCw size={12} className="spin-anim" /> : <Trash2 size={12} />}
-                              </button>
+                                 className="btn-secondary" 
+                                 onClick={() => handleDeleteApp(item.name, item.type)}
+                                 disabled={isViewer || deletingAppName === item.name} 
+                                 style={{ 
+                                   padding: '6px 10px', 
+                                   fontSize: '0.75rem', 
+                                   display: 'flex', 
+                                   alignItems: 'center', 
+                                   justifyContent: 'center', 
+                                   color: isViewer ? 'var(--text-muted)' : 'var(--error)', 
+                                   borderColor: isViewer ? 'var(--glass-border)' : 'rgba(239,68,68,0.2)', 
+                                   backgroundColor: isViewer ? 'rgba(255,255,255,0.01)' : 'rgba(239,68,68,0.03)',
+                                   cursor: isViewer ? 'not-allowed' : 'pointer',
+                                   opacity: isViewer ? 0.6 : 1
+                                 }}
+                               >
+                                 {deletingAppName === item.name ? <RefreshCw size={12} className="spin-anim" /> : <Trash2 size={12} />}
+                               </button>
                             )}
                           </div>
                         </div>
@@ -893,32 +904,37 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                              {/* Provision Branch Button */}
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              <button 
-                                className="btn-secondary" 
-                                onClick={() => onDeployBranch(group.repoPath, branch.name, group.type)}
-                                style={{ 
-                                  padding: '6px 12px', 
-                                  fontSize: '0.75rem', 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'center', 
-                                  gap: '6px',
-                                  borderColor: unlinkedStyle.color,
-                                  color: 'var(--text-primary)',
-                                  background: theme === 'light' ? 'rgba(239, 68, 68, 0.03)' : 'rgba(239, 68, 68, 0.05)'
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.background = theme === 'light' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.15)';
-                                  e.currentTarget.style.boxShadow = `0 0 8px ${theme === 'light' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.4)'}`;
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.background = theme === 'light' ? 'rgba(239, 68, 68, 0.03)' : 'rgba(239, 68, 68, 0.05)';
-                                  e.currentTarget.style.boxShadow = 'none';
-                                }}
-                              >
-                                <PlusCircle size={12} style={{ color: unlinkedStyle.color }} />
-                                Provision Branch
-                              </button>
+                               <button 
+                                 className="btn-secondary" 
+                                 disabled={isViewer}
+                                 onClick={() => onDeployBranch(group.repoPath, branch.name, group.type)}
+                                 style={{ 
+                                   padding: '6px 12px', 
+                                   fontSize: '0.75rem', 
+                                   display: 'flex', 
+                                   alignItems: 'center', 
+                                   justifyContent: 'center', 
+                                   gap: '6px',
+                                   borderColor: isViewer ? 'var(--glass-border)' : unlinkedStyle.color,
+                                   color: isViewer ? 'var(--text-muted)' : 'var(--text-primary)',
+                                   background: isViewer ? 'rgba(255,255,255,0.01)' : (theme === 'light' ? 'rgba(239, 68, 68, 0.03)' : 'rgba(239, 68, 68, 0.05)'),
+                                   cursor: isViewer ? 'not-allowed' : 'pointer',
+                                   opacity: isViewer ? 0.6 : 1
+                                 }}
+                                 onMouseEnter={(e) => {
+                                   if (isViewer) return;
+                                   e.currentTarget.style.background = theme === 'light' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.15)';
+                                   e.currentTarget.style.boxShadow = `0 0 8px ${theme === 'light' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.4)'}`;
+                                 }}
+                                 onMouseLeave={(e) => {
+                                   if (isViewer) return;
+                                   e.currentTarget.style.background = theme === 'light' ? 'rgba(239, 68, 68, 0.03)' : 'rgba(239, 68, 68, 0.05)';
+                                   e.currentTarget.style.boxShadow = 'none';
+                                 }}
+                               >
+                                 <PlusCircle size={12} style={{ color: isViewer ? 'var(--text-muted)' : unlinkedStyle.color }} />
+                                 Provision Branch
+                               </button>
                             </div>
                           </div>
                         );

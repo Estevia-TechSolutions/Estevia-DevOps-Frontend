@@ -3850,6 +3850,7 @@ function App() {
             azureDevopsOrgUrl={azureDevopsOrgUrl}
             azureDevopsProject={azureDevopsProject}
             onDeployBranch={handleDeployBranchFromDashboard}
+            currentUser={user}
           />
         )}
 
@@ -3949,6 +3950,7 @@ function App() {
             pushDockerfileContent={pushDockerfileContent}
             provisionErrorDetail={provisionErrorDetail}
             setConfirmDialog={setConfirmDialog}
+            currentUser={user}
           />
         )}
 
@@ -4006,6 +4008,7 @@ function App() {
             containerRegistries={containerRegistries}
             serviceConnections={serviceConnections}
             loadingMetadata={loadingMetadata}
+            currentUser={user}
           />
         )}
 
@@ -4031,6 +4034,7 @@ function App() {
             theme={theme}
             deletingAppName={deletingAppName}
             handleDeleteApp={handleDeleteApp}
+            currentUser={user}
           />
         )}
 
@@ -4095,6 +4099,7 @@ function App() {
             setConfirmDialog={setConfirmDialog}
             leftColRef={leftColRef}
             leftColHeight={leftColHeight}
+            currentUser={user}
           />
         )}
 
@@ -4330,7 +4335,7 @@ function App() {
                 </button>
                 <button
                   type="submit"
-                  disabled={binding}
+                  disabled={binding || user?.role === 'viewer'}
                   style={{
                     background: 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))',
                     color: '#ffffff',
@@ -4684,7 +4689,7 @@ function App() {
                   </button>
                   <button
                     type="submit"
-                    disabled={creatingPipeline || pipelineModalYmlLoading}
+                    disabled={creatingPipeline || pipelineModalYmlLoading || user?.role === 'viewer'}
                     style={{
                       background: 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))',
                       color: '#ffffff',

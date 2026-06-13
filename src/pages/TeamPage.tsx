@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, RefreshCw, UserCheck, Shield, Award, Eye } from 'lucide-react';
+import { Users, RefreshCw, UserCheck, Shield, Award, Eye, X, Check } from 'lucide-react';
 
 export interface UserRecord {
   id: string;
@@ -30,6 +30,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
 }) => {
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [updateMsg, setUpdateMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showMatrixModal, setShowMatrixModal] = useState<boolean>(false);
 
   const isLight = theme === 'light';
   const canManageRoles = currentUser?.role === 'owner' || currentUser?.role === 'admin';
@@ -101,6 +102,27 @@ export const TeamPage: React.FC<TeamPageProps> = ({
     };
   };
 
+  const matrixRows = [
+    { cap: 'View dashboard, logs, costing & bill metrics', owner: true, admin: true, contributor: true, viewer: true },
+    { cap: 'Scan active cloud resources', owner: true, admin: true, contributor: true, viewer: true },
+    { cap: 'Provision apps & microservice resources', owner: true, admin: true, contributor: true, viewer: false },
+    { cap: 'Execute raw SQL & manage DB schemas', owner: true, admin: true, contributor: true, viewer: false },
+    { cap: 'Link custom domain DNS mappings', owner: true, admin: true, contributor: true, viewer: false },
+    { cap: 'Register CI/CD build pipelines', owner: true, admin: true, contributor: true, viewer: false },
+    { cap: 'Sync directory users from Azure AD', owner: true, admin: true, contributor: false, viewer: false },
+    { cap: 'Change user roles in EvaOps platform', owner: true, admin: true, contributor: false, viewer: false },
+    { cap: 'Save/Update integration credentials', owner: true, admin: true, contributor: false, viewer: false },
+    { cap: 'View decrypted secrets & configure org settings', owner: true, admin: false, contributor: false, viewer: false }
+  ];
+
+  const renderCheckCell = (allowed: boolean) => {
+    return allowed ? (
+      <span style={{ color: 'var(--success)', fontWeight: 'bold', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Check size={16} /></span>
+    ) : (
+      <span style={{ color: 'var(--text-muted)', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>—</span>
+    );
+  };
+
   return (
     <div className="glass-panel" style={{ padding: '32px', height: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
@@ -114,18 +136,30 @@ export const TeamPage: React.FC<TeamPageProps> = ({
           </p>
         </div>
 
-        {canManageRoles && (
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <button 
             type="button" 
-            className="btn-primary" 
-            disabled={syncingTeam}
-            onClick={handleSyncTeam}
+            className="btn-secondary" 
+            onClick={() => setShowMatrixModal(true)}
             style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '36px', padding: '0 16px', fontSize: '0.82rem' }}
           >
-            <RefreshCw size={14} className={syncingTeam ? 'spin-anim' : ''} />
-            {syncingTeam ? 'Syncing Team...' : 'Sync with Azure AD'}
+            <Shield size={14} style={{ color: 'var(--accent-teal)' }} />
+            Role Access Matrix
           </button>
-        )}
+
+          {canManageRoles && (
+            <button 
+              type="button" 
+              className="btn-primary" 
+              disabled={syncingTeam}
+              onClick={handleSyncTeam}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '36px', padding: '0 16px', fontSize: '0.82rem' }}
+            >
+              <RefreshCw size={14} className={syncingTeam ? 'spin-anim' : ''} />
+              {syncingTeam ? 'Syncing Team...' : 'Sync with Azure AD'}
+            </button>
+          )}
+        </div>
       </div>
 
       {updateMsg && (
@@ -232,6 +266,120 @@ export const TeamPage: React.FC<TeamPageProps> = ({
           </table>
         </div>
       )}
+
+      {/* Role Capabilities Matrix Popup Modal */}
+      {showMatrixModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(2, 6, 23, 0.75)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+          animation: 'fade-in-anim 0.2s ease-out'
+        }}>
+          <div className="glass-panel" style={{
+            width: '680px',
+            maxWidth: '100%',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            boxShadow: 'var(--modal-shadow)',
+            borderRadius: '16px'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '24px',
+              borderBottom: '1px solid var(--divider)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Shield size={20} style={{ color: 'var(--accent-purple)' }} />
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  EvaOps Role Access Matrix
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMatrixModal(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '4px'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+              <p style={{ margin: '0 0 16px 0', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                Each user role inside EvaOps has restricted functional permissions mapping to backend API authorization rules:
+              </p>
+
+              <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(255, 255, 255, 0.015)', borderBottom: '1px solid var(--divider)' }}>
+                      <th style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--text-primary)' }}>Capability / Action</th>
+                      <th style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--text-primary)', textAlign: 'center', width: '70px' }}>Owner</th>
+                      <th style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--text-primary)', textAlign: 'center', width: '70px' }}>Admin</th>
+                      <th style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--text-primary)', textAlign: 'center', width: '70px' }}>Contrib</th>
+                      <th style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--text-primary)', textAlign: 'center', width: '70px' }}>Viewer</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {matrixRows.map((row, idx) => (
+                      <tr key={idx} style={{ borderBottom: idx === matrixRows.length - 1 ? 'none' : '1px solid var(--divider)' }}>
+                        <td style={{ padding: '10px 12px', color: 'var(--text-primary)', fontWeight: 500 }}>{row.cap}</td>
+                        <td style={{ padding: '10px 12px' }}>{renderCheckCell(row.owner)}</td>
+                        <td style={{ padding: '10px 12px' }}>{renderCheckCell(row.admin)}</td>
+                        <td style={{ padding: '10px 12px' }}>{renderCheckCell(row.contributor)}</td>
+                        <td style={{ padding: '10px 12px' }}>{renderCheckCell(row.viewer)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '16px 24px',
+              borderTop: '1px solid var(--divider)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              background: 'rgba(0, 0, 0, 0.08)'
+            }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setShowMatrixModal(false)}
+                style={{ padding: '8px 20px', fontSize: '0.8rem' }}
+              >
+                Close Matrix
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

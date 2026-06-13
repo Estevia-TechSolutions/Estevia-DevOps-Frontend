@@ -134,6 +134,7 @@ interface ProvisionWizardProps {
   pushDockerfileContent: (repo: string, branch: string, content: string, commitMsg?: string) => Promise<{ success: boolean; message: string }>;
   provisionErrorDetail: string | null;
   setConfirmDialog: (val: any) => void;
+  currentUser?: any;
 }
 
 /* ── Dockerfile Editor Step Sub-Component ── */
@@ -146,11 +147,12 @@ interface DockerfileEditorStepProps {
   pushDockerfileContent: (repo: string, branch: string, content: string, commitMsg?: string) => Promise<{ success: boolean; message: string }>;
   onBack: () => void;
   onNext: () => void;
+  isViewer?: boolean;
 }
 
 const DockerfileEditorStep: React.FC<DockerfileEditorStepProps> = ({
   selectedRepo, selectedBranch, dockerfileLoading, dockerfileContent,
-  fetchDockerfileContent, pushDockerfileContent, onBack, onNext,
+  fetchDockerfileContent, pushDockerfileContent, onBack, onNext, isViewer,
 }) => {
   const [editMode, setEditMode] = useState(false);
   const [editedContent, setEditedContent] = useState('');
@@ -196,8 +198,22 @@ const DockerfileEditorStep: React.FC<DockerfileEditorStepProps> = ({
           </button>
           {/* Edit / Cancel toggle */}
           {dockerfileContent && (
-            <button type="button" onClick={handleEditToggle} disabled={pushing}
-              style={{ background: editMode ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.05)', border: `1px solid ${editMode ? 'var(--error)' : 'var(--glass-border)'}`, color: editMode ? 'var(--error)' : 'var(--accent-purple)', borderRadius: '8px', padding: '6px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 500 }}>
+            <button type="button" onClick={handleEditToggle} disabled={isViewer || pushing}
+              style={{ 
+                background: editMode ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.05)', 
+                border: `1px solid ${editMode ? 'var(--error)' : 'var(--glass-border)'}`, 
+                color: isViewer ? 'var(--text-muted)' : (editMode ? 'var(--error)' : 'var(--accent-purple)'), 
+                borderRadius: '8px', 
+                padding: '6px 14px', 
+                cursor: isViewer ? 'not-allowed' : 'pointer', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px', 
+                fontSize: '0.82rem', 
+                fontWeight: 500,
+                opacity: isViewer ? 0.6 : 1
+              }}
+            >
               {editMode ? <><X size={13} /> Cancel</> : <><Pencil size={13} /> Edit</>}
             </button>
           )}
@@ -398,8 +414,10 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
   fetchDockerfileContent,
   pushDockerfileContent,
   provisionErrorDetail,
-  setConfirmDialog
+  setConfirmDialog,
+  currentUser
 }) => {
+  const isViewer = currentUser?.role === 'viewer';
 
   const handleCommitDefaultDockerfileClick = async () => {
     setCommittingDockerfile(true);
@@ -576,6 +594,27 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
         {/* Ambient purple glow top-right */}
         <div style={{ position: 'absolute', top: '-60px', right: '-40px', width: '260px', height: '260px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
+        {/* Read-Only mode alert banner */}
+        {isViewer && (
+          <div className="glass-panel" style={{
+            padding: '16px 20px',
+            borderColor: 'var(--warning)',
+            backgroundColor: 'rgba(245, 158, 11, 0.08)',
+            color: 'var(--text-primary)',
+            marginBottom: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            borderRadius: '8px',
+            fontSize: '0.86rem'
+          }}>
+            <AlertTriangle style={{ color: 'var(--warning)', flexShrink: 0 }} size={18} />
+            <span>
+              <strong>Read-Only Mode:</strong> Resource provisioning, git commits, and cloud deployment actions are disabled for the Viewer role.
+            </span>
+          </div>
+        )}
+
         {/* STEP 1: GITHUB SOURCE SELECTION */}
         {provisionStep === 1 && (
           <div>
@@ -735,9 +774,9 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
               <button 
                 type="button" 
                 className="btn-primary" 
-                disabled={!selectedRepo || selectedBranches.length === 0 || loadingBranches}
+                disabled={isViewer || !selectedRepo || selectedBranches.length === 0 || loadingBranches}
                 onClick={() => handleMoveToStep2()}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: (isViewer || !selectedRepo || selectedBranches.length === 0 || loadingBranches) ? 'not-allowed' : 'pointer' }}
               >
                 Verify Pipeline YAML <ArrowRight size={16} />
               </button>
@@ -775,8 +814,8 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                       type="button"
                       className="btn-primary"
                       onClick={handleCommitDefaultDockerfileClick}
-                      disabled={committingDockerfile}
-                      style={{ padding: '6px 14px', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      disabled={isViewer || committingDockerfile}
+                      style={{ padding: '6px 14px', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: (isViewer || committingDockerfile) ? 'not-allowed' : 'pointer' }}
                     >
                       {committingDockerfile ? (
                         <><RefreshCw size={12} className="spin-anim" /> Committing Dockerfile...</>
@@ -870,8 +909,8 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                     type="button"
                     className="btn-secondary"
                     onClick={handleCommitCustomYml}
-                    disabled={creatingYml}
-                    style={{ padding: '4px 12px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '5px' }}
+                    disabled={isViewer || creatingYml}
+                    style={{ padding: '4px 12px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '5px', cursor: (isViewer || creatingYml) ? 'not-allowed' : 'pointer' }}
                   >
                     {creatingYml ? (
                       <><RefreshCw size={12} className="spin-anim" /> Committing...</>
@@ -942,6 +981,7 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
             pushDockerfileContent={pushDockerfileContent}
             onBack={() => setProvisionStep(2)}
             onNext={() => setProvisionStep(4)}
+            isViewer={isViewer}
           />
         )}
 
@@ -1178,8 +1218,8 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                 <button 
                   type="submit" 
                   className="btn-primary" 
-                  disabled={provisioning || !newName}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  disabled={isViewer || provisioning || !newName}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: (isViewer || provisioning || !newName) ? 'not-allowed' : 'pointer' }}
                 >
                   {provisioning ? (
                     <>
@@ -1238,8 +1278,8 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                   <button 
                     className="btn-primary" 
                     onClick={handleRegisterPipeline}
-                    disabled={pipelineRegistering}
-                    style={{ padding: '8px 16px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    disabled={isViewer || pipelineRegistering}
+                    style={{ padding: '8px 16px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: (isViewer || pipelineRegistering) ? 'not-allowed' : 'pointer' }}
                   >
                     {pipelineRegistering ? (
                       <>
@@ -1288,8 +1328,8 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                   <button 
                     className="btn-primary" 
                     onClick={handleDnsBind}
-                    disabled={dnsBinding}
-                    style={{ padding: '8px 16px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    disabled={isViewer || dnsBinding}
+                    style={{ padding: '8px 16px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: (isViewer || dnsBinding) ? 'not-allowed' : 'pointer' }}
                   >
                     {dnsBinding ? (
                       <>

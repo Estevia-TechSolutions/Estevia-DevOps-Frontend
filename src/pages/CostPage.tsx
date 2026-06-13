@@ -128,6 +128,7 @@ interface CostPageProps {
   theme: 'dark' | 'light';
   deletingAppName?: string | null;
   handleDeleteApp?: (name: string, type: 'frontend' | 'backend') => void;
+  currentUser?: { role: string; name?: string; email?: string } | null;
 }
 
 export const CostPage: React.FC<CostPageProps> = ({
@@ -147,12 +148,14 @@ export const CostPage: React.FC<CostPageProps> = ({
   handleApplyRemediation,
   theme,
   deletingAppName,
-  handleDeleteApp
+  handleDeleteApp,
+  currentUser
 }) => {
 
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   const isLight = theme === 'light';
+  const isViewer = currentUser?.role === 'viewer';
 
   const nextDueInvoice = invoices && invoices.length > 0
     ? [...invoices]
@@ -260,6 +263,24 @@ export const CostPage: React.FC<CostPageProps> = ({
       `}</style>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+
+      {isViewer && (
+        <div className="glass-panel" style={{
+          padding: '14px 18px',
+          borderColor: 'rgba(217, 119, 6, 0.4)',
+          backgroundColor: 'rgba(217, 119, 6, 0.12)',
+          color: '#f59e0b',
+          fontSize: '0.88rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          borderRadius: '8px',
+          fontWeight: 500,
+        }}>
+          <AlertTriangle size={18} style={{ color: '#f59e0b', flexShrink: 0 }} />
+          <span>Read-Only Mode: Stale resource deletion and optimization remediations are disabled for the Viewer role.</span>
+        </div>
+      )}
       
       {/* Overview Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
@@ -572,22 +593,24 @@ export const CostPage: React.FC<CostPageProps> = ({
                                       <button
                                         type="button"
                                         onClick={(e) => {
+                                          if (isViewer) return;
                                           e.stopPropagation();
                                           handleDeleteApp(item.name, item.type);
                                         }}
-                                        disabled={deletingAppName === item.name}
+                                        disabled={isViewer || deletingAppName === item.name}
                                         style={{
-                                          background: 'rgba(239, 68, 68, 0.15)',
-                                          border: '1px solid rgba(239, 68, 68, 0.3)',
-                                          color: 'var(--error)',
+                                          background: isViewer ? 'rgba(255,255,255,0.01)' : 'rgba(239, 68, 68, 0.15)',
+                                          border: isViewer ? '1px solid var(--glass-border)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                          color: isViewer ? 'var(--text-muted)' : 'var(--error)',
                                           borderRadius: '4px',
                                           padding: '2px 8px',
                                           fontSize: '0.65rem',
-                                          cursor: 'pointer',
+                                          cursor: isViewer ? 'not-allowed' : 'pointer',
                                           fontWeight: 600,
                                           display: 'inline-flex',
                                           alignItems: 'center',
-                                          gap: '4px'
+                                          gap: '4px',
+                                          opacity: isViewer ? 0.6 : 1
                                         }}
                                       >
                                         {deletingAppName === item.name ? (
@@ -810,9 +833,21 @@ export const CostPage: React.FC<CostPageProps> = ({
                     
                     <button
                       className="btn-primary"
-                      onClick={() => handleApplyRemediation(suggestion.id, suggestion.type, resourceNameVal)}
-                      disabled={remediating === suggestion.id}
-                      style={{ padding: '6px 14px', fontSize: '0.74rem', height: '32px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                      onClick={() => {
+                        if (isViewer) return;
+                        handleApplyRemediation(suggestion.id, suggestion.type, resourceNameVal);
+                      }}
+                      disabled={isViewer || remediating === suggestion.id}
+                      style={{
+                        padding: '6px 14px',
+                        fontSize: '0.74rem',
+                        height: '32px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        cursor: isViewer ? 'not-allowed' : 'pointer',
+                        opacity: isViewer ? 0.6 : 1
+                      }}
                     >
                       {remediating === suggestion.id ? (
                         <>

@@ -64,6 +64,7 @@ interface DatabaseCatalogPageProps {
   setAlterNewColNullable: (val: boolean) => void;
   token: string | null;
   API_BASE: string;
+  currentUser?: { role: string; name?: string; email?: string } | null;
 
   // Handlers
   handleDeployDb: (e: React.FormEvent) => void;
@@ -137,8 +138,11 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
   fetchDatabaseSchema,
   setConfirmDialog,
   leftColRef,
-  leftColHeight
+  leftColHeight,
+  currentUser
 }) => {
+
+  const isViewer = currentUser?.role === 'viewer';
 
   const toggleTableExpand = (tableName: string) => {
     setExpandedTables(prev => ({
@@ -401,11 +405,12 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                     height: '32px'
                   }}
                   required
+                  disabled={isViewer}
                 />
                 <button
                   type="submit"
                   className="btn-primary"
-                  disabled={deployingDb || !newDbName}
+                  disabled={isViewer || deployingDb || !newDbName}
                   style={{ padding: '0 12px', fontSize: '0.8rem', height: '32px', display: 'flex', alignItems: 'center', gap: '4px' }}
                 >
                   {deployingDb ? <RefreshCw size={12} className="spin-anim" /> : <PlusCircle size={12} />}
@@ -584,6 +589,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                   onClick={() => setAlteringTable(isAltering ? null : tbl.table)}
                                   className="btn-secondary"
                                   style={{ padding: '4px 10px', fontSize: '0.72rem', height: '26px', border: isAltering ? '1px solid #fb7185' : '1px solid var(--glass-border)' }}
+                                  disabled={isViewer}
                                 >
                                   {isAltering ? 'Close Design' : 'Add Column'}
                                 </button>
@@ -591,7 +597,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                   onClick={() => handleDropTable(tbl.table)}
                                   style={{
                                     border: 'none',
-                                    background: 'rgba(239, 68, 68, 0.1)',
+                                    background: isViewer ? 'rgba(239, 68, 68, 0.05)' : 'rgba(239, 68, 68, 0.1)',
                                     color: 'var(--error)',
                                     borderRadius: '6px',
                                     width: '26px',
@@ -599,9 +605,11 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    cursor: 'pointer'
+                                    cursor: isViewer ? 'not-allowed' : 'pointer',
+                                    opacity: isViewer ? 0.4 : 1
                                   }}
-                                  title="Drop Table"
+                                  disabled={isViewer}
+                                  title={isViewer ? "Drop Table (Viewer is read-only)" : "Drop Table"}
                                 >
                                   <Trash2 size={12} />
                                 </button>
@@ -619,6 +627,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                     value={alterNewColName}
                                     onChange={(e) => setAlterNewColName(e.target.value)}
                                     style={{ fontSize: '0.78rem', height: '28px', padding: '4px 8px' }}
+                                    disabled={isViewer}
                                   />
                                 </div>
                                 <div style={{ width: '150px' }}>
@@ -627,6 +636,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                     value={alterNewColType}
                                     onChange={(e) => setAlterNewColType(e.target.value)}
                                     style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: '0.78rem', height: '28px', outline: 'none' }}
+                                    disabled={isViewer}
                                   >
                                     <option value="INT" style={{ background: 'var(--bg-secondary)', color: '#fff' }}>INT (Number)</option>
                                     <option value="VARCHAR(255)" style={{ background: 'var(--bg-secondary)', color: '#fff' }}>VARCHAR(255) (Text)</option>
@@ -643,14 +653,15 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                     checked={alterNewColNullable}
                                     onChange={(e) => setAlterNewColNullable(e.target.checked)}
                                     style={{ width: '14px', height: '14px', margin: 0 }}
+                                    disabled={isViewer}
                                   />
-                                  <label htmlFor={`nullable-${tbl.table}`} style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>Nullable</label>
+                                  <label htmlFor={`nullable-${tbl.table}`} style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', cursor: isViewer ? 'not-allowed' : 'pointer' }}>Nullable</label>
                                 </div>
                                 <button
                                   onClick={() => handleAddColumn(tbl.table)}
                                   className="btn-primary"
                                   style={{ padding: '0 12px', fontSize: '0.74rem', height: '28px' }}
-                                  disabled={!alterNewColName.trim()}
+                                  disabled={isViewer || !alterNewColName.trim()}
                                 >
                                   Add Attribute
                                 </button>
@@ -699,9 +710,11 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                                   borderColor: 'rgba(239, 68, 68, 0.2)',
                                                   color: 'var(--error)',
                                                   backgroundColor: 'rgba(239, 68, 68, 0.02)',
-                                                  cursor: 'pointer'
+                                                  cursor: isViewer ? 'not-allowed' : 'pointer',
+                                                  opacity: isViewer ? 0.4 : 1
                                                 }}
-                                                title="Drop Column"
+                                                disabled={isViewer}
+                                                title={isViewer ? "Drop Column (Viewer is read-only)" : "Drop Column"}
                                               >
                                                 Drop
                                               </button>
@@ -727,7 +740,22 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                   {/* Console SQL editor */}
                   <div style={{ border: '1px solid var(--glass-border)', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'var(--bg-secondary)' }}>
                     <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--divider)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.01)' }}>
-                      <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SQL Query Console</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SQL Query Console</span>
+                        {isViewer && (
+                          <span style={{
+                            fontSize: '0.7rem',
+                            color: '#f59e0b',
+                            background: 'rgba(245, 158, 11, 0.12)',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontWeight: 600,
+                            border: '1px solid rgba(245, 158, 11, 0.2)'
+                          }}>
+                            ⚠️ Read-only console
+                          </span>
+                        )}
+                      </div>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button
                           onClick={() => setQuerySql('')}
@@ -739,7 +767,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                         <button
                           onClick={() => handleExecuteQuery(querySql)}
                           className="btn-primary"
-                          disabled={queryExecuting || !querySql.trim()}
+                          disabled={isViewer || queryExecuting || !querySql.trim()}
                           style={{ padding: '4px 12px', fontSize: '0.74rem', height: '26px', display: 'flex', alignItems: 'center', gap: '4px' }}
                         >
                           {queryExecuting ? <RefreshCw size={12} className="spin-anim" /> : <Play size={12} />}
@@ -825,6 +853,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                       <td style={{ padding: '8px 12px' }}>
                                         <button
                                           onClick={async () => {
+                                            if (isViewer) return;
                                             let deleteSql = '';
                                             let confirmMsg = '';
                                             if (pkCol) {
@@ -883,13 +912,15 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                           style={{
                                             border: 'none',
                                             background: 'none',
-                                            cursor: 'pointer',
+                                            cursor: isViewer ? 'not-allowed' : 'pointer',
                                             padding: 0,
                                             display: 'flex',
                                             alignItems: 'center',
-                                            justifyContent: 'center'
+                                            justifyContent: 'center',
+                                            opacity: isViewer ? 0.4 : 1
                                           }}
-                                          title="Delete Row"
+                                          disabled={isViewer}
+                                          title={isViewer ? "Delete Row (Viewer is read-only)" : "Delete Row"}
                                         >
                                           <Trash2 size={12} style={{ color: 'var(--error)' }} />
                                         </button>
@@ -932,6 +963,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                           onChange={(e) => setNewTableName(e.target.value)}
                           required
                           style={{ height: '34px' }}
+                          disabled={isViewer}
                         />
                       </div>
 
@@ -951,7 +983,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                 }}
                                 required
                                 style={{ flex: 1, height: '30px', fontSize: '0.78rem', padding: '4px 8px' }}
-                                disabled={col.isPrimary}
+                                disabled={isViewer || col.isPrimary}
                               />
                               <select
                                 value={col.type}
@@ -961,7 +993,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                   setTableColumns(updated);
                                 }}
                                 style={{ width: '130px', height: '30px', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: '0.78rem', outline: 'none' }}
-                                disabled={col.isPrimary}
+                                disabled={isViewer || col.isPrimary}
                               >
                                 <option value="INT" style={{ background: 'var(--bg-secondary)', color: '#fff' }}>INT</option>
                                 <option value="VARCHAR(255)" style={{ background: 'var(--bg-secondary)', color: '#fff' }}>VARCHAR(255)</option>
@@ -981,9 +1013,9 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                     setTableColumns(updated);
                                   }}
                                   style={{ width: '14px', height: '14px', margin: 0 }}
-                                  disabled={col.isPrimary}
+                                  disabled={isViewer || col.isPrimary}
                                 />
-                                <label htmlFor={`nullable-col-${idx}`} style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>Null</label>
+                                <label htmlFor={`nullable-col-${idx}`} style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', cursor: (isViewer || col.isPrimary) ? 'not-allowed' : 'pointer' }}>Null</label>
                               </div>
 
                               <button
@@ -1001,9 +1033,10 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  cursor: 'pointer'
+                                  cursor: (isViewer || col.isPrimary) ? 'not-allowed' : 'pointer',
+                                  opacity: (isViewer || col.isPrimary) ? 0.4 : 1
                                 }}
-                                disabled={col.isPrimary}
+                                disabled={isViewer || col.isPrimary}
                               >
                                 <Minus size={12} />
                               </button>
@@ -1018,6 +1051,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                           }}
                           className="btn-secondary"
                           style={{ marginTop: '10px', height: '28px', fontSize: '0.74rem', padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          disabled={isViewer}
                         >
                           <Plus size={12} /> Add Attribute
                         </button>
@@ -1026,7 +1060,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                       <button
                         type="submit"
                         className="btn-primary"
-                        disabled={creatingTable || !newTableName.trim()}
+                        disabled={isViewer || creatingTable || !newTableName.trim()}
                         style={{ height: '36px', marginTop: '8px' }}
                       >
                         {creatingTable ? 'Creating visual table schema...' : 'Create Table'}
