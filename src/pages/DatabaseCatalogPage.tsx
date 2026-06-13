@@ -530,21 +530,22 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                   })}
                 </div>
 
-                {/* ERD Expand button — always visible in tab bar when ERD tab is active */}
-                {dbDetailTab === 'erd' && (
-                  <div style={{ display: 'flex', alignItems: 'center', paddingBottom: '2px' }}>
-                    <button
-                      onClick={() => setIsErdExpanded(true)}
-                      title="Open ERD in fullscreen"
-                      style={{ height: '32px', padding: '0 16px', borderRadius: '8px', border: '1px solid rgba(139,92,246,0.5)', background: 'rgba(139,92,246,0.15)', color: '#a78bfa', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', fontWeight: 700, whiteSpace: 'nowrap' }}
-                    >
-                      <Maximize size={13} />
-                      Expand View
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
+
+            {/* ERD action bar — non-scrolling, always visible when ERD tab is active */}
+            {dbDetailTab === 'erd' && (
+              <div style={{ flexShrink: 0, padding: '8px 24px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.005)' }}>
+                <button
+                  onClick={() => setIsErdExpanded(true)}
+                  title="Open ERD in fullscreen with full X + Y scroll"
+                  style={{ padding: '4px 14px', fontSize: '0.78rem', height: '30px', display: 'flex', alignItems: 'center', gap: '5px', borderRadius: '6px', border: '1px solid rgba(139,92,246,0.5)', background: 'rgba(139,92,246,0.15)', color: '#a78bfa', cursor: 'pointer', fontWeight: 700 }}
+                >
+                  <Maximize size={13} />
+                  Expand View
+                </button>
+              </div>
+            )}
 
             {/* Scrollable tab contents */}
             <div style={{ flex: 1, overflow: 'auto', padding: '24px', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
@@ -787,53 +788,48 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                 <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '16px', maxWidth: '100%', minWidth: 0 }}>
                   {/* Console SQL editor */}
                   <div style={{ border: '1px solid var(--glass-border)', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'var(--bg-secondary)' }}>
-                    <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--divider)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.01)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SQL Query Console</span>
-                        {isViewer && (
-                          <span style={{
-                            fontSize: '0.7rem',
-                            color: '#f59e0b',
-                            background: 'rgba(245, 158, 11, 0.12)',
-                            padding: '2px 8px',
-                            borderRadius: '4px',
-                            fontWeight: 600,
-                            border: '1px solid rgba(245, 158, 11, 0.2)'
-                          }}>
-                            ⚠️ Read-only console
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        {/* Expand Results — always visible in toolbar */}
-                        {queryResult && queryResult.rows.length > 0 && (
+                    {/* Row 1: Title */}
+                    <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--divider)', display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.01)' }}>
+                      <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SQL Query Console</span>
+                      {isViewer && (
+                        <span style={{ fontSize: '0.7rem', color: '#f59e0b', background: 'rgba(245,158,11,0.12)', padding: '2px 8px', borderRadius: '4px', fontWeight: 600, border: '1px solid rgba(245,158,11,0.2)' }}>
+                          ⚠️ Read-only console
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Row 2: Action buttons — always visible, left-aligned */}
+                    <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--divider)', display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.005)' }}>
+                      <button
+                        onClick={() => handleExecuteQuery(querySql)}
+                        className="btn-primary"
+                        disabled={isViewer || queryExecuting || !querySql.trim()}
+                        style={{ padding: '4px 14px', fontSize: '0.78rem', height: '30px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                      >
+                        {queryExecuting ? <RefreshCw size={13} className="spin-anim" /> : <Play size={13} />}
+                        Execute
+                        <span style={{ fontSize: '0.66rem', opacity: 0.7, marginLeft: '2px' }}>(Ctrl+Enter)</span>
+                      </button>
+                      <button
+                        onClick={() => setQuerySql('')}
+                        className="btn-secondary"
+                        style={{ padding: '4px 12px', fontSize: '0.78rem', height: '30px' }}
+                      >
+                        Clear
+                      </button>
+                      {queryResult && queryResult.rows.length > 0 && (
+                        <>
+                          <div style={{ width: '1px', height: '18px', background: 'var(--glass-border)' }} />
                           <button
                             onClick={() => setIsResultsExpanded(true)}
-                            title="Open results in fullscreen (X+Y scroll)"
-                            style={{ padding: '4px 10px', fontSize: '0.74rem', height: '26px', display: 'flex', alignItems: 'center', gap: '4px', borderRadius: '6px', border: '1px solid rgba(139,92,246,0.45)', background: 'rgba(139,92,246,0.12)', color: 'var(--accent-purple)', cursor: 'pointer', fontWeight: 600 }}
+                            title="Open results in fullscreen with full X + Y scroll"
+                            style={{ padding: '4px 12px', fontSize: '0.78rem', height: '30px', display: 'flex', alignItems: 'center', gap: '5px', borderRadius: '6px', border: '1px solid rgba(139,92,246,0.45)', background: 'rgba(139,92,246,0.12)', color: 'var(--accent-purple)', cursor: 'pointer', fontWeight: 600 }}
                           >
-                            <Maximize size={11} />
+                            <Maximize size={13} />
                             Expand Results
                           </button>
-                        )}
-                        <div style={{ width: '1px', height: '16px', background: 'var(--glass-border)' }} />
-                        <button
-                          onClick={() => setQuerySql('')}
-                          className="btn-secondary"
-                          style={{ padding: '4px 10px', fontSize: '0.74rem', height: '26px' }}
-                        >
-                          Clear
-                        </button>
-                        <button
-                          onClick={() => handleExecuteQuery(querySql)}
-                          className="btn-primary"
-                          disabled={isViewer || queryExecuting || !querySql.trim()}
-                          style={{ padding: '4px 12px', fontSize: '0.74rem', height: '26px', display: 'flex', alignItems: 'center', gap: '4px' }}
-                        >
-                          {queryExecuting ? <RefreshCw size={12} className="spin-anim" /> : <Play size={12} />}
-                          Execute (Ctrl+Enter)
-                        </button>
-                      </div>
+                        </>
+                      )}
                     </div>
 
                     <textarea
