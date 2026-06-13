@@ -396,7 +396,7 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: 12px;
-  width: fit-content;
+  width: 100%;
 }
 
 .tab-btn {
@@ -409,7 +409,9 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus {
   font-size: 0.875rem;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  flex: 1;
 }
 
 .tab-btn:hover {
