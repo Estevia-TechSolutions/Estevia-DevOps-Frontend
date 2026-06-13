@@ -356,6 +356,24 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
 
             <div style={{ borderTop: '1px solid var(--divider)', paddingTop: '14px' }}>
               <h4 style={{ margin: '0 0 6px 0', fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Q: How do I manually register the Azure AD (Entra ID) App Registration for EvaOps?
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                <strong>A:</strong> To configure manually in Microsoft Entra ID (Azure AD), follow these steps:
+                <ol style={{ margin: '6px 0 0 16px', padding: 0 }}>
+                  <li>Go to <strong>Microsoft Entra ID</strong> in the Azure Portal and select <strong>App registrations</strong>.</li>
+                  <li>Click <strong>New registration</strong>, name it (e.g. <code>evaops-integration-sp</code>), select <strong>Single Tenant</strong>, and click <strong>Register</strong>.</li>
+                  <li>Copy the <strong>Application (client) ID</strong> and <strong>Directory (tenant) ID</strong>.</li>
+                  <li>Under <strong>Certificates & secrets</strong>, select <strong>New client secret</strong>, create it, and immediately copy the secret <strong>Value</strong>.</li>
+                  <li>Under <strong>API permissions</strong> &rarr; click <strong>Add a permission</strong> &rarr; <strong>Microsoft Graph</strong> &rarr; <strong>Application permissions</strong> &rarr; search and check <strong>User.Read.All</strong>, and click Add.</li>
+                  <li>Click <strong>Grant admin consent for [Tenant]</strong> (next to the Add button) and select Yes to authorize it.</li>
+                  <li>Finally, in Azure Subscriptions, assign the <strong>Contributor</strong> role to your newly created Service Principal so it can scan and provision resources.</li>
+                </ol>
+              </p>
+            </div>
+
+            <div style={{ borderTop: '1px solid var(--divider)', paddingTop: '14px' }}>
+              <h4 style={{ margin: '0 0 6px 0', fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                 Q: What if scanning does not show my newly provisioned apps?
               </h4>
               <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
