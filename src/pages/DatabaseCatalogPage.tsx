@@ -150,6 +150,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
 }) => {
 
   const isViewer = currentUser?.role === 'viewer';
+  const isLight = theme === 'light';
   const [isResultsExpanded, setIsResultsExpanded] = React.useState(false);
   const [isErdExpanded, setIsErdExpanded] = React.useState(false);
 
@@ -1009,11 +1010,11 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                   {/* ── Fullscreen Results Modal (portal) ── */}
                   {isResultsExpanded && queryResult && ReactDOM.createPortal(
                     <div
-                      style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(2,6,23,0.92)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', display: 'flex', flexDirection: 'column' }}
+                      style={{ position: 'fixed', inset: 0, zIndex: 9999, background: isLight ? 'rgba(241,245,249,0.95)' : 'rgba(2,6,23,0.92)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', display: 'flex', flexDirection: 'column' }}
                       onClick={(e) => { if (e.target === e.currentTarget) setIsResultsExpanded(false); }}
                     >
                       {/* Header */}
-                      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', height: '62px', background: 'rgba(10,16,30,0.99)', borderBottom: '1px solid var(--glass-border)', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
+                      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', height: '62px', background: isLight ? 'rgba(255,255,255,0.98)' : 'rgba(10,16,30,0.99)', borderBottom: '1px solid var(--glass-border)', boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}>
                         {/* Title */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                           <div style={{ width: '36px', height: '36px', borderRadius: '9px', background: 'linear-gradient(135deg, #e11d48, #be123c)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1055,7 +1056,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                       <div style={{ flex: 1, overflow: 'auto', padding: '0' }}>
                         <table style={{ borderCollapse: 'collapse', textAlign: 'left', whiteSpace: 'nowrap', color: 'var(--text-primary)', width: '100%' }}>
                           <thead>
-                            <tr style={{ borderBottom: '2px solid var(--divider)', fontSize: '0.8rem', position: 'sticky', top: 0, background: 'rgba(10,16,30,0.99)', zIndex: 1, fontWeight: 600 }}>
+                            <tr style={{ borderBottom: '2px solid var(--divider)', fontSize: '0.8rem', position: 'sticky', top: 0, background: isLight ? '#f8fafc' : 'rgba(10,16,30,0.99)', zIndex: 1, fontWeight: 600 }}>
                               <th style={{ padding: '12px 16px', width: '50px', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>Actions</th>
                               {queryResult.fields.map((field: string) => (
                                 <th key={field} style={{ padding: '12px 16px', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{field}</th>
@@ -1068,7 +1069,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                               const tblSchema = databaseSchema.find((t: any) => t.table === tableName);
                               const pkCol = tblSchema?.columns.find((c: any) => c.key === 'PRI')?.name;
                               return (
-                                <tr key={idx} style={{ borderBottom: '1px solid var(--divider)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
+                                <tr key={idx} style={{ borderBottom: '1px solid var(--divider)', backgroundColor: idx % 2 === 0 ? 'transparent' : (isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)') }}>
                                   <td style={{ padding: '8px 16px', whiteSpace: 'nowrap' }}>
                                     <button
                                       onClick={async () => {
@@ -1129,7 +1130,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                       </div>
 
                       {/* Footer bar */}
-                      <div style={{ flexShrink: 0, padding: '10px 24px', borderTop: '1px solid var(--glass-border)', background: 'rgba(10,16,30,0.99)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ flexShrink: 0, padding: '10px 24px', borderTop: '1px solid var(--glass-border)', background: isLight ? 'rgba(255,255,255,0.98)' : 'rgba(10,16,30,0.99)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
                           Press <kbd style={{ padding: '1px 6px', borderRadius: '3px', border: '1px solid var(--glass-border)', fontFamily: 'monospace', fontSize: '0.68rem', background: 'rgba(255,255,255,0.05)' }}>Esc</kbd> or click backdrop to close
                         </span>
