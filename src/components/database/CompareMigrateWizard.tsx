@@ -46,6 +46,11 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({
   const [currentStep, setCurrentStep] = useState(0); // 0: Idle, 1: Validating, 2: Backing Up, 3: Running, 4: Done
   const [wizardFeedback, setWizardFeedback] = useState<string | null>(null);
 
+  // Data migration states
+  const [isTargetEmpty, setIsTargetEmpty] = useState(false);
+  const [sourceTables, setSourceTables] = useState<string[]>([]);
+  const [migrateData, setMigrateData] = useState(false);
+
   const isLight = theme === 'light';
 
   // Reset comparison status on parameter changes
@@ -173,6 +178,10 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({
         const data = await res.json();
         setDiffs(data.differences || []);
         setSqlScript(data.sqlScript || '');
+        setIsTargetEmpty(!!data.isTargetEmpty);
+        setSourceTables(data.sourceTables || []);
+        // Automatically default checkbox to true if the target database is empty
+        setMigrateData(!!data.isTargetEmpty);
         setHasCompared(true);
       } else {
         console.error('Failed to compare databases');
@@ -212,7 +221,9 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({
         setTimeout(async () => {
           try {
             const token = localStorage.getItem('devops_token');
-            const res = await fetch(`${API_BASE}/database-hub/migrate`, {
+            setRunLogs(prev => [...prev, '⚡ Initiating database schema DDL execution...']);
+
+            const schemaRes = await fetch(`${API_BASE}/database-hub/migrate`, {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
@@ -225,15 +236,58 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({
               })
             });
 
-            if (res.ok) {
-              const data = await res.json();
+            if (schemaRes.ok) {
               setRunLogs(prev => [
                 ...prev,
-                `✓ Executed ${diffs.length} schema statements.`,
-                '✓ Schema integrity check passed successfully.'
+                `✓ Executed schema statements successfully.`,
+                '✓ Schema integrity check passed.'
               ]);
-              setCurrentStep(4);
-              setWizardFeedback('Database schema migration successfully completed!');
+
+              // Check if we should also run data migration
+              if (migrateData && sourceTables.length > 0) {
+                setRunLogs(prev => [...prev, `⚡ Starting row data migration for ${sourceTables.length} tables...`]);
+                
+                const dataRes = await fetch(`${API_BASE}/database-hub/migrate-data`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  },
+                  body: JSON.stringify({
+                    sourceServerName: sourceServer,
+                    sourceDb,
+                    targetServerName: targetServer,
+                    targetDb,
+                    tables: sourceTables
+                  })
+                });
+
+                if (dataRes.ok) {
+                  const dataResult = await dataRes.json();
+                  const detailedLogs = dataResult.log?.map((l: any) => 
+                    `  • \`${l.table}\`: ${l.rows} rows (${l.status})${l.error ? ' - Error: ' + l.error : ''}`
+                  ) || [];
+
+                  setRunLogs(prev => [
+                    ...prev,
+                    `✓ Data migration completed: ${dataResult.totalRows} total rows copied.`,
+                    ...detailedLogs
+                  ]);
+                  setCurrentStep(4);
+                  setWizardFeedback('Schema and table data migrated successfully!');
+                } else {
+                  const dataErr = await dataRes.json();
+                  setRunLogs(prev => [
+                    ...prev,
+                    `❌ Data migration failed: ${dataErr.message || 'Unknown error'}`
+                  ]);
+                  setCurrentStep(4);
+                  setWizardFeedback('Schema applied, but table data migration failed.');
+                }
+              } else {
+                setCurrentStep(4);
+                setWizardFeedback('Database schema migration successfully completed!');
+              }
             } else {
               setCurrentStep(4);
               setWizardFeedback('Warning: Some statements already applied or database requires manual verification.');
@@ -645,7 +699,57 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({
                 </div>
 
                 {/* Console Workspace Footer Actions */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                  {/* Data Migration Option */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input
+                      type="checkbox"
+                      id="migrate-data-checkbox"
+                      checked={migrateData}
+                      disabled={!isTargetEmpty}
+                      onChange={(e) => setMigrateData(e.target.checked)}
+                      style={{ width: '16px', height: '16px', cursor: isTargetEmpty ? 'pointer' : 'not-allowed' }}
+                    />
+                    <label
+                      htmlFor="migrate-data-checkbox"
+                      style={{
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        color: isTargetEmpty ? 'var(--text-primary)' : 'var(--text-muted)',
+                        cursor: isTargetEmpty ? 'pointer' : 'not-allowed',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <span>Also migrate row data ({sourceTables.length} tables)</span>
+                      {!isTargetEmpty && (
+                        <span style={{
+                          fontSize: '0.7rem',
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          color: 'var(--error)',
+                          padding: '2px 8px',
+                          borderRadius: '10px',
+                          fontWeight: 500
+                        }}>
+                          Disabled: Target is not empty
+                        </span>
+                      )}
+                      {isTargetEmpty && (
+                        <span style={{
+                          fontSize: '0.7rem',
+                          background: 'rgba(34, 197, 94, 0.12)',
+                          color: 'var(--success)',
+                          padding: '2px 8px',
+                          borderRadius: '10px',
+                          fontWeight: 600
+                        }}>
+                          Available (Greenfield)
+                        </span>
+                      )}
+                    </label>
+                  </div>
+
                   <button
                     onClick={startMigrationWizard}
                     className="btn-primary"
