@@ -946,9 +946,27 @@ export const CostPage: React.FC<CostPageProps> = ({
                 const monthsArray = Array.from({ length: selectedMonths }, (_, i) => i + 1);
                 const maxBaseline = forecastData.monthlyBaselineRunRate * selectedMonths;
                 const baseMaxHeight = 140; // max height of baseline bar at selectedMonths
+                const today = new Date();
+
+                const getMonthLabel = (m: number) => {
+                  const d = new Date(today.getFullYear(), today.getMonth() + m, 1);
+                  return d.toLocaleString('default', { month: 'short', year: '2-digit' });
+                };
 
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '32px' }}>
+                    {/* Graph Legend */}
+                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'linear-gradient(180deg, #64748b 0%, #334155 100%)' }} />
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Baseline Run-Rate</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'linear-gradient(180deg, #34d399 0%, #10b981 100%)' }} />
+                        <span style={{ fontSize: '0.74rem', color: '#10b981', fontWeight: 500 }}>Optimized Spend</span>
+                      </div>
+                    </div>
+
                     {/* Custom CSS Bar Chart Container */}
                     <div style={{ 
                       display: 'flex', 
@@ -1050,7 +1068,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                               textTransform: 'uppercase',
                               letterSpacing: '0.04em'
                             }}>
-                              Month {m}
+                              {getMonthLabel(m)}
                             </span>
                           </div>
                         );
@@ -1089,7 +1107,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                         Over the next <strong>{selectedMonths} months</strong>, executing scheduled hibernation policies on dev sandbox VMs and scaling down idle ACAs can reduce your overall cloud spending from <strong style={{ textDecoration: 'line-through' }}>${baseline}</strong> down to <strong>${optimized}</strong>.
                       </p>
                       
-                      <div style={{ display: 'flex', gap: '20px', marginTop: '6px', borderTop: '1px solid var(--glass-border)', paddingTop: '12px' }}>
+                      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '6px', borderTop: '1px solid var(--glass-border)', paddingTop: '12px' }}>
                         <div>
                           <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Monthly Baseline</span>
                           <span style={{ fontSize: '0.95rem', fontWeight: 700, fontFamily: 'monospace', color: 'var(--text-primary)' }}>
@@ -1102,6 +1120,23 @@ export const CostPage: React.FC<CostPageProps> = ({
                             -${forecastData.monthlySavings.toFixed(2)}/mo
                           </span>
                         </div>
+                        <div style={{ borderLeft: '1px solid var(--glass-border)', paddingLeft: '20px' }}>
+                          <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Total Period Cost (Without Savings)</span>
+                          <span style={{ fontSize: '0.95rem', fontWeight: 700, fontFamily: 'monospace', color: 'var(--text-primary)' }}>
+                            ${Number(baseline).toFixed(2)}
+                          </span>
+                        </div>
+                        <div style={{ borderLeft: '1px solid var(--glass-border)', paddingLeft: '20px' }}>
+                          <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Total Period Cost (With Savings)</span>
+                          <span style={{ fontSize: '0.95rem', fontWeight: 700, fontFamily: 'monospace', color: '#10b981' }}>
+                            ${Number(optimized).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Methodology Footnote */}
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted, #94a3b8)', marginTop: '8px', fontStyle: 'italic', borderTop: '1px dashed var(--glass-border)', paddingTop: '8px' }}>
+                        * Note: Projections are computed cumulatively based on your historical invoice average (Baseline Run-Rate) compared against estimated savings from scheduled sandbox VM hibernations and container app replica scaling policies.
                       </div>
                     </div>
                   </div>

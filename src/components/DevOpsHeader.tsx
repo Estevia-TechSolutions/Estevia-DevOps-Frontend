@@ -110,12 +110,20 @@ interface ControlBannerProps {
   scanning: boolean;
   scanProgress: number;
   hasApps: boolean;
+  resourceGroups?: string[];
+  selectedResourceGroup?: string;
+  onResourceGroupChange?: (rg: string) => void;
+  primaryResourceGroup?: string;
 }
 
 export const ControlBanner: React.FC<ControlBannerProps> = ({
   scanning,
   scanProgress,
-  hasApps
+  hasApps,
+  resourceGroups = [],
+  selectedResourceGroup = '',
+  onResourceGroupChange,
+  primaryResourceGroup = ''
 }) => {
   return (
     <div className="glass-panel" style={{ padding: '32px', marginBottom: '30px', position: 'relative', overflow: 'hidden' }}>
@@ -131,18 +139,51 @@ export const ControlBanner: React.FC<ControlBannerProps> = ({
       }} />
       
       <div style={{ position: 'relative', zIndex: 1 }}>
-        <h1 style={{ 
-          margin: 0,
-          fontSize: '2.1rem', 
-          fontWeight: 800, 
-          letterSpacing: '-0.02em',
-          background: 'linear-gradient(to right, var(--text-primary) 30%, rgba(167, 139, 250, 0.95))', 
-          WebkitBackgroundClip: 'text', 
-          WebkitTextFillColor: 'transparent',
-          display: 'inline-block'
-        }}>
-          DevOps Control Centre
-        </h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+          <h1 style={{ 
+            margin: 0,
+            fontSize: '2.1rem', 
+            fontWeight: 800, 
+            letterSpacing: '-0.02em',
+            background: 'linear-gradient(to right, var(--text-primary) 30%, rgba(167, 139, 250, 0.95))', 
+            WebkitBackgroundClip: 'text', 
+            WebkitTextFillColor: 'transparent',
+            display: 'inline-block'
+          }}>
+            DevOps Control Centre
+          </h1>
+
+          {/* Resource Group Dropdown Selector */}
+          {resourceGroups && resourceGroups.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Resource Group:</span>
+              <select
+                value={selectedResourceGroup}
+                onChange={(e) => onResourceGroupChange?.(e.target.value)}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  borderRadius: '8px',
+                  border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
+                  backgroundColor: 'rgba(15, 23, 42, 0.4)',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                {resourceGroups.map((rg) => {
+                  const isPrimary = rg === primaryResourceGroup;
+                  return (
+                    <option key={rg} value={rg} style={{ backgroundColor: '#0f172a', color: '#fff' }}>
+                      {rg} {isPrimary ? ' (Primary)' : ''}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+        </div>
         <p style={{
           margin: '10px 0 0 0',
           fontSize: '0.86rem',

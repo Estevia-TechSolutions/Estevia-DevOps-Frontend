@@ -329,6 +329,13 @@ function App() {
   const [scanProgress, setScanProgress] = useState(0);
   const [scanError, setScanError] = useState<string | null>(null);
 
+  // Control Centre Resource Groups States
+  const [controlResourceGroups, setControlResourceGroups] = useState<string[]>([]);
+  const [selectedControlResourceGroup, setSelectedControlResourceGroup] = useState<string>(() => {
+    return localStorage.getItem('selectedControlResourceGroup') || '';
+  });
+  const [primaryResourceGroup, setPrimaryResourceGroup] = useState<string>('');
+
   useEffect(() => {
     let interval: any = null;
     if (scanning) {
@@ -1555,6 +1562,7 @@ function App() {
   useEffect(() => {
     if (token) {
       fetchCredentialStatus();
+      fetchResourceGroups();
       handleScan();
       fetchOrgSettings();
       fetchGithubRepos();
@@ -1600,6 +1608,13 @@ function App() {
         setOrgName(data.settings.name || data.settings.id || organizationId);
         setAzureSubscriptionId(data.settings.azure_subscription_id || '');
         setAzureResourceGroup(data.settings.azure_resource_group || '');
+        
+        // Update control resource groups
+        setPrimaryResourceGroup(data.settings.azure_resource_group || '');
+        if (!selectedControlResourceGroup && data.settings.azure_resource_group) {
+          setSelectedControlResourceGroup(data.settings.azure_resource_group);
+          localStorage.setItem('selectedControlResourceGroup', data.settings.azure_resource_group);
+        }
         setDefaultDnsDomain(data.settings.default_dns_domain || '');
         setAzureDevopsOrgUrl(data.settings.azure_devops_org_url || '');
         setAzureDevopsProject(data.settings.azure_devops_project || '');
@@ -2097,11 +2112,12 @@ function App() {
     }
   };
 
-  const handleScan = async () => {
+  const handleScan = async (rg?: string) => {
     setScanning(true);
     setScanError(null);
     setSyncCountdown(60); // Reset timer on manual scan
-    const scanUrl = `${API_BASE}/apps/scan?organizationId=${organizationId}`;
+    const activeRg = rg !== undefined ? rg : selectedControlResourceGroup;
+    const scanUrl = `${API_BASE}/apps/scan?organizationId=${organizationId}${activeRg ? `&resourceGroup=${activeRg}` : ''}`;
     console.log('[DevOps Scan] [START] Initiating Cloud Scan.', { organizationId, scanUrl });
     try {
       const res = await fetch(scanUrl);
@@ -2132,6 +2148,24 @@ function App() {
       console.log('[DevOps Scan] [END] Scan finished.');
       setScanning(false);
     }
+  };
+
+  const fetchResourceGroups = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/apps/resource-groups?organizationId=${organizationId}`);
+      const data = await res.json();
+      if (data.success && Array.isArray(data.resourceGroups)) {
+        setControlResourceGroups(data.resourceGroups);
+      }
+    } catch (e) {
+      console.error('Failed to load resource groups:', e);
+    }
+  };
+
+  const handleResourceGroupChange = (rg: string) => {
+    setSelectedControlResourceGroup(rg);
+    localStorage.setItem('selectedControlResourceGroup', rg);
+    handleScan(rg);
   };
 
   const handleSaveCredential = async (provider: string, secrets: any, name: string) => {
@@ -3889,6 +3923,10 @@ function App() {
               scanning={scanning}
               scanProgress={scanProgress}
               hasApps={apps.length > 0}
+              resourceGroups={controlResourceGroups}
+              selectedResourceGroup={selectedControlResourceGroup}
+              onResourceGroupChange={handleResourceGroupChange}
+              primaryResourceGroup={primaryResourceGroup}
             />
 
         {/* Tabs */}
@@ -3934,7 +3972,7 @@ function App() {
       </div>
 
       {/* Tab Contents */}
-      <main>
+      <main style={{ paddingBottom: '80px' }}>
         
         {/* TAB 1: CLOUD RESOURCE SCANNING */}
         {activeTab === 'scan' && (
