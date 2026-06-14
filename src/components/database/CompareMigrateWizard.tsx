@@ -502,6 +502,111 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({
         </div>
       </div>
 
+      {/* Migration Execution Controls */}
+      {hasCompared && diffs.length > 0 && (
+        <div className="glass-panel" style={{
+          padding: '24px',
+          borderRadius: '12px',
+          borderColor: 'rgba(99, 102, 241, 0.2)',
+          background: 'linear-gradient(150deg, rgba(99, 102, 241, 0.03) 0%, rgba(0, 0, 0, 0.1) 100%)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px'
+        }}>
+          <div>
+            <h4 style={{ 
+              margin: '0 0 6px 0', 
+              fontSize: '0.96rem', 
+              fontWeight: 700, 
+              color: 'var(--text-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <Database size={16} style={{ color: 'var(--accent-purple)' }} />
+              Migration Configuration & Execution
+            </h4>
+            <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.45' }}>
+              Structural differences have been analyzed. You can now configure migration options and run the multi-step deployment wizard to synchronize schemas.
+            </p>
+          </div>
+
+          {/* Greenfield Info block */}
+          <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: '8px',
+            padding: '14px 18px',
+            fontSize: '0.78rem',
+            color: 'var(--text-secondary)',
+            lineHeight: '1.45'
+          }}>
+            <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>💡 Greenfield Deployment Environment</strong>
+            A <strong>Greenfield</strong> target database is defined as a clean slate (completely empty, with 0 tables). In a Greenfield state, it is safe to copy all table row data from the source database directly into the target. For non-empty databases, data migration is disabled to prevent accidental data loss or conflicts.
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <input
+                type="checkbox"
+                id="migrate-data-checkbox"
+                checked={migrateData}
+                disabled={!isTargetEmpty}
+                onChange={(e) => setMigrateData(e.target.checked)}
+                style={{ width: '16px', height: '16px', cursor: isTargetEmpty ? 'pointer' : 'not-allowed' }}
+              />
+              <label
+                htmlFor="migrate-data-checkbox"
+                style={{
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  color: isTargetEmpty ? 'var(--text-primary)' : 'var(--text-muted)',
+                  cursor: isTargetEmpty ? 'pointer' : 'not-allowed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>Also migrate row data ({sourceTables.length} tables)</span>
+                {!isTargetEmpty && (
+                  <span style={{
+                    fontSize: '0.7rem',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    color: 'var(--error)',
+                    padding: '2px 8px',
+                    borderRadius: '10px',
+                    fontWeight: 500
+                  }}>
+                    Disabled: Target is not empty
+                  </span>
+                )}
+                {isTargetEmpty && (
+                  <span style={{
+                    fontSize: '0.7rem',
+                    background: 'rgba(34, 197, 94, 0.12)',
+                    color: 'var(--success)',
+                    padding: '2px 8px',
+                    borderRadius: '10px',
+                    fontWeight: 600
+                  }}>
+                    Available (Greenfield)
+                  </span>
+                )}
+              </label>
+            </div>
+
+            <button
+              onClick={startMigrationWizard}
+              className="btn-primary"
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '38px', padding: '0 24px', fontSize: '0.82rem' }}
+            >
+              <Play size={14} />
+              Run Migration Wizard
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Comparison Workspace Console */}
       {hasCompared && (
         diffs.length === 0 ? (
@@ -696,68 +801,6 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({
                   }}>
                     {sqlScript}
                   </div>
-                </div>
-
-                {/* Console Workspace Footer Actions */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px', flexWrap: 'wrap', gap: '12px' }}>
-                  {/* Data Migration Option */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <input
-                      type="checkbox"
-                      id="migrate-data-checkbox"
-                      checked={migrateData}
-                      disabled={!isTargetEmpty}
-                      onChange={(e) => setMigrateData(e.target.checked)}
-                      style={{ width: '16px', height: '16px', cursor: isTargetEmpty ? 'pointer' : 'not-allowed' }}
-                    />
-                    <label
-                      htmlFor="migrate-data-checkbox"
-                      style={{
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                        color: isTargetEmpty ? 'var(--text-primary)' : 'var(--text-muted)',
-                        cursor: isTargetEmpty ? 'pointer' : 'not-allowed',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      <span>Also migrate row data ({sourceTables.length} tables)</span>
-                      {!isTargetEmpty && (
-                        <span style={{
-                          fontSize: '0.7rem',
-                          background: 'rgba(239, 68, 68, 0.1)',
-                          color: 'var(--error)',
-                          padding: '2px 8px',
-                          borderRadius: '10px',
-                          fontWeight: 500
-                        }}>
-                          Disabled: Target is not empty
-                        </span>
-                      )}
-                      {isTargetEmpty && (
-                        <span style={{
-                          fontSize: '0.7rem',
-                          background: 'rgba(34, 197, 94, 0.12)',
-                          color: 'var(--success)',
-                          padding: '2px 8px',
-                          borderRadius: '10px',
-                          fontWeight: 600
-                        }}>
-                          Available (Greenfield)
-                        </span>
-                      )}
-                    </label>
-                  </div>
-
-                  <button
-                    onClick={startMigrationWizard}
-                    className="btn-primary"
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '36px', padding: '0 24px', fontSize: '0.82rem' }}
-                  >
-                    <Play size={14} />
-                    Run Migration Wizard
-                  </button>
                 </div>
 
               </div>
