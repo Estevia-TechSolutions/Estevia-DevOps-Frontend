@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Database, ArrowRight, ShieldCheck, Play, Terminal, AlertCircle, RefreshCw, Layers, Copy, Check } from 'lucide-react';
+import { Database, ArrowRight, ShieldCheck, Play, Terminal, AlertCircle, RefreshCw, Layers, Copy, Check, Maximize, X } from 'lucide-react';
+import ReactDOM from 'react-dom';
 
 interface Difference {
   type: 'table_missing' | 'column_missing';
@@ -45,6 +46,22 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0); // 0: Idle, 1: Validating, 2: Backing Up, 3: Running, 4: Done
   const [wizardFeedback, setWizardFeedback] = useState<string | null>(null);
+  const [isCompareExpanded, setIsCompareExpanded] = useState(false);
+
+  // Esc key listener for modal closing
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsCompareExpanded(false);
+      }
+    };
+    if (isCompareExpanded) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isCompareExpanded]);
 
   // Data migration states
   const [isTargetEmpty, setIsTargetEmpty] = useState(false);
@@ -607,7 +624,7 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({
         </div>
       )}
 
-      {/* Comparison Workspace Console */}
+      {/* Comparison Workspace Console / Modal */}
       {hasCompared && (
         diffs.length === 0 ? (
           <div className="glass-panel" style={{ 
@@ -641,172 +658,303 @@ export const CompareMigrateWizard: React.FC<CompareMigrateWizardProps> = ({
             </div>
           </div>
         ) : (
-          <div className="glass-panel" style={{ 
-            borderRadius: '12px', 
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-            border: '1px solid var(--glass-border)'
-          }}>
-            {/* Console Header Bar */}
-            <div style={{
-              padding: '12px 20px',
-              background: 'rgba(255,255,255,0.01)',
-              borderBottom: '1px solid var(--glass-border)',
+          <>
+            {/* Inline Summary Card */}
+            <div className="glass-panel" style={{
+              padding: '20px 24px',
+              borderRadius: '12px',
+              borderColor: 'rgba(239, 68, 68, 0.25)',
+              background: 'linear-gradient(150deg, rgba(239, 68, 68, 0.02) 0%, rgba(0, 0, 0, 0.15) 100%)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: '12px'
+              gap: '16px',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <span style={{ 
-                  fontSize: '0.68rem', 
+                  fontSize: '0.72rem', 
                   fontWeight: 700, 
                   textTransform: 'uppercase', 
-                  background: 'rgba(239,68,68,0.1)', 
+                  background: 'rgba(239,68,68,0.15)', 
                   color: 'var(--error)', 
-                  padding: '3px 8px', 
-                  borderRadius: '4px' 
+                  padding: '4px 10px', 
+                  borderRadius: '6px',
+                  border: '1px solid rgba(239,68,68,0.2)'
                 }}>
                   Out of Sync
                 </span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                  {diffs.length} structure differences detected
-                </span>
-              </div>
-              
-              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                Source: <strong style={{ color: 'var(--text-secondary)' }}>{sourceDb}</strong> ➔ Target: <strong style={{ color: 'var(--text-secondary)' }}>{targetDb}</strong>
-              </div>
-            </div>
-
-            {/* Console Content Area */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', minHeight: '380px' }}>
-              
-              {/* Left Pane: Differences List */}
-              <div style={{ 
-                padding: '20px', 
-                borderRight: '1px solid var(--glass-border)',
-                background: 'rgba(0, 0, 0, 0.05)',
-                maxHeight: '440px',
-                overflowY: 'auto'
-              }}>
-                <h6 style={{ margin: '0 0 14px 0', fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Structural Diffs
-                </h6>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {diffs.map((diff, idx) => (
-                    <div 
-                      key={idx} 
-                      style={{ 
-                        padding: '12px 14px', 
-                        borderRadius: '8px', 
-                        background: 'rgba(255, 255, 255, 0.01)',
-                        border: '1px solid var(--glass-border)',
-                        fontSize: '0.8rem'
-                      }}
-                    >
-                      {diff.type === 'table_missing' ? (
-                        <div>
-                          <span style={{ color: 'var(--success)', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.62rem', background: 'rgba(34,197,94,0.1)', padding: '2px 6px', borderRadius: '4px', display: 'inline-block', marginBottom: '6px' }}>
-                            Missing Table
-                          </span>
-                          <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Table `{diff.tableName}` does not exist in target.</div>
-                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px' }}>Will be created with columns from source.</div>
-                        </div>
-                      ) : (
-                        <div>
-                          <span style={{ color: 'var(--accent-blue)', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.62rem', background: 'rgba(59,130,246,0.1)', padding: '2px 6px', borderRadius: '4px', display: 'inline-block', marginBottom: '6px' }}>
-                            Missing Column
-                          </span>
-                          <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Table `{diff.tableName}` has missing column `{diff.columnName}`.</div>
-                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px' }}>Will be added to target table.</div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    {diffs.length} Structural Differences Detected
+                  </span>
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                    Source: <strong style={{ color: 'var(--text-primary)' }}>{sourceDb}</strong> ➔ Target: <strong style={{ color: 'var(--text-primary)' }}>{targetDb}</strong>
+                  </span>
                 </div>
               </div>
 
-              {/* Right Pane: SQL Script Editor */}
-              <div style={{ 
-                padding: '20px', 
-                display: 'flex', 
-                flexDirection: 'column',
-                background: '#040b19'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <h6 style={{ margin: 0, fontSize: '0.76rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Generated Migration SQL
-                  </h6>
+              <button
+                onClick={() => setIsCompareExpanded(true)}
+                className="btn-primary"
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '6px', 
+                  height: '34px', 
+                  padding: '0 18px', 
+                  fontSize: '0.78rem',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(139,92,246,0.45)', 
+                  background: 'rgba(139,92,246,0.12)', 
+                  color: 'var(--accent-purple)', 
+                  fontWeight: 600 
+                }}
+              >
+                <Maximize size={12} />
+                View Diffs &amp; SQL Script
+              </button>
+            </div>
+
+            {/* Fullscreen comparison console modal */}
+            {isCompareExpanded && ReactDOM.createPortal(
+              <div 
+                style={{
+                  position: 'fixed',
+                  inset: 0,
+                  zIndex: 99999,
+                  backgroundColor: 'rgba(2, 6, 23, 0.9)',
+                  backdropFilter: 'blur(8px)',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}
+                onClick={(e) => { if (e.target === e.currentTarget) setIsCompareExpanded(false); }}
+              >
+                {/* Modal Header */}
+                <div style={{
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0 24px',
+                  height: '62px',
+                  background: isLight ? '#ffffff' : 'rgba(10,16,30,0.99)',
+                  borderBottom: '1px solid var(--glass-border)',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.4)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ 
+                      width: '36px', 
+                      height: '36px', 
+                      borderRadius: '8px', 
+                      background: 'linear-gradient(135deg, var(--error), #ef4444)', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      color: '#fff'
+                    }}>
+                      <Layers size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>Structural Differences &amp; Migration SQL</div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                        Source: <strong style={{ color: 'var(--text-primary)' }}>{sourceDb}</strong> ➔ Target: <strong style={{ color: 'var(--text-primary)' }}>{targetDb}</strong> · {diffs.length} differences
+                      </div>
+                    </div>
+                  </div>
+
                   <button
-                    onClick={copyToClipboard}
+                    onClick={() => setIsCompareExpanded(false)}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      fontSize: '0.72rem',
-                      background: 'rgba(255,255,255,0.02)',
-                      border: '1px solid var(--glass-border)',
-                      borderRadius: '6px',
-                      padding: '4px 10px',
-                      color: copySuccess ? 'var(--success)' : 'var(--text-secondary)',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease'
+                      height: '36px', padding: '0 18px', borderRadius: '8px',
+                      border: '1px solid rgba(239,68,68,0.4)',
+                      background: 'rgba(239,68,68,0.1)',
+                      color: '#f87171', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '7px',
+                      fontSize: '0.82rem', fontWeight: 600,
+                      transition: 'all 0.15s ease'
                     }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.24)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.7)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)'; }}
                   >
-                    {copySuccess ? <Check size={12} /> : <Copy size={12} />}
-                    {copySuccess ? 'Copied!' : 'Copy Script'}
+                    <X size={15} />
+                    Close
                   </button>
                 </div>
 
-                {/* IDE Code Window */}
-                <div style={{
-                  flex: 1,
-                  display: 'flex',
-                  background: '#01050e',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(255,255,255,0.05)',
-                  fontFamily: 'monospace',
-                  fontSize: '0.76rem',
-                  color: '#38bdf8',
-                  overflow: 'hidden',
-                  minHeight: '260px',
-                  maxHeight: '340px'
-                }}>
-                  {/* Line Numbers */}
-                  <div style={{
-                    padding: '12px 8px',
-                    background: 'rgba(0,0,0,0.3)',
-                    borderRight: '1px solid rgba(255,255,255,0.03)',
-                    color: 'rgba(255,255,255,0.25)',
-                    textAlign: 'right',
-                    userSelect: 'none',
-                    fontSize: '0.72rem',
-                    lineHeight: '1.4'
+                {/* Modal Content - Comparison Workspace Console */}
+                <div style={{ flex: 1, padding: '24px', overflow: 'auto' }}>
+                  <div className="glass-panel" style={{ 
+                    borderRadius: '12px', 
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    border: '1px solid var(--glass-border)',
+                    height: '100%'
                   }}>
-                    {sqlScript.split('\n').map((_, index) => (
-                      <div key={index}>{index + 1}</div>
-                    ))}
-                  </div>
-                  {/* Script Body */}
-                  <div style={{
-                    flex: 1,
-                    padding: '12px 16px',
-                    overflow: 'auto',
-                    whiteSpace: 'pre',
-                    lineHeight: '1.4'
-                  }}>
-                    {sqlScript}
+                    {/* Console Header Bar */}
+                    <div style={{
+                      padding: '12px 20px',
+                      background: 'rgba(255,255,255,0.01)',
+                      borderBottom: '1px solid var(--glass-border)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '12px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ 
+                          fontSize: '0.68rem', 
+                          fontWeight: 700, 
+                          textTransform: 'uppercase', 
+                          background: 'rgba(239,68,68,0.1)', 
+                          color: 'var(--error)', 
+                          padding: '3px 8px', 
+                          borderRadius: '4px' 
+                        }}>
+                          Out of Sync
+                        </span>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                          {diffs.length} structure differences detected
+                        </span>
+                      </div>
+                      
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                        Source: <strong style={{ color: 'var(--text-secondary)' }}>{sourceDb}</strong> ➔ Target: <strong style={{ color: 'var(--text-secondary)' }}>{targetDb}</strong>
+                      </div>
+                    </div>
+
+                    {/* Console Content Area */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', flex: 1, minHeight: 0 }}>
+                      
+                      {/* Left Pane: Differences List */}
+                      <div style={{ 
+                        padding: '20px', 
+                        borderRight: '1px solid var(--glass-border)',
+                        background: 'rgba(0, 0, 0, 0.05)',
+                        overflowY: 'auto'
+                      }}>
+                        <h6 style={{ margin: '0 0 14px 0', fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Structural Diffs
+                        </h6>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          {diffs.map((diff, idx) => (
+                            <div 
+                              key={idx} 
+                              style={{ 
+                                padding: '12px 14px', 
+                                borderRadius: '8px', 
+                                background: 'rgba(255, 255, 255, 0.01)',
+                                border: '1px solid var(--glass-border)',
+                                fontSize: '0.8rem'
+                              }}
+                            >
+                              {diff.type === 'table_missing' ? (
+                                <div>
+                                  <span style={{ color: 'var(--success)', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.62rem', background: 'rgba(34,197,94,0.1)', padding: '2px 6px', borderRadius: '4px', display: 'inline-block', marginBottom: '6px' }}>
+                                    Missing Table
+                                  </span>
+                                  <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Table `{diff.tableName}` does not exist in target.</div>
+                                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px' }}>Will be created with columns from source.</div>
+                                </div>
+                              ) : (
+                                <div>
+                                  <span style={{ color: 'var(--accent-blue)', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.62rem', background: 'rgba(59,130,246,0.1)', padding: '2px 6px', borderRadius: '4px', display: 'inline-block', marginBottom: '6px' }}>
+                                    Missing Column
+                                  </span>
+                                  <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Table `{diff.tableName}` has missing column `{diff.columnName}`.</div>
+                                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '4px' }}>Will be added to target table.</div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Right Pane: SQL Script Editor */}
+                      <div style={{ 
+                        padding: '20px', 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        background: '#040b19',
+                        overflowY: 'auto'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                          <h6 style={{ margin: 0, fontSize: '0.76rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Generated Migration SQL
+                          </h6>
+                          <button
+                            onClick={copyToClipboard}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              fontSize: '0.72rem',
+                              background: 'rgba(255,255,255,0.02)',
+                              border: '1px solid var(--glass-border)',
+                              borderRadius: '6px',
+                              padding: '4px 10px',
+                              color: copySuccess ? 'var(--success)' : 'var(--text-secondary)',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            {copySuccess ? <Check size={12} /> : <Copy size={12} />}
+                            {copySuccess ? 'Copied!' : 'Copy Script'}
+                          </button>
+                        </div>
+
+                        {/* IDE Code Window */}
+                        <div style={{
+                          flex: 1,
+                          display: 'flex',
+                          background: '#01050e',
+                          borderRadius: '8px',
+                          border: '1px solid rgba(255,255,255,0.05)',
+                          fontFamily: 'monospace',
+                          fontSize: '0.76rem',
+                          color: '#38bdf8',
+                          overflow: 'hidden',
+                          minHeight: '260px'
+                        }}>
+                          {/* Line Numbers */}
+                          <div style={{
+                            padding: '12px 8px',
+                            background: 'rgba(0,0,0,0.3)',
+                            borderRight: '1px solid rgba(255,255,255,0.03)',
+                            color: 'rgba(255,255,255,0.25)',
+                            textAlign: 'right',
+                            userSelect: 'none',
+                            fontSize: '0.72rem',
+                            lineHeight: '1.4'
+                          }}>
+                            {sqlScript.split('\n').map((_, index) => (
+                              <div key={index}>{index + 1}</div>
+                            ))}
+                          </div>
+                          {/* Script Body */}
+                          <div style={{
+                            flex: 1,
+                            padding: '12px 16px',
+                            overflow: 'auto',
+                            whiteSpace: 'pre',
+                            lineHeight: '1.4'
+                          }}>
+                            {sqlScript}
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
                   </div>
                 </div>
-
-              </div>
-
-            </div>
-          </div>
+              </div>,
+              document.body
+            )}
+          </>
         )
       )}
 

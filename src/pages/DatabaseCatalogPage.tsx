@@ -14,7 +14,6 @@ import {
   Plus, 
   Minus, 
   Database,
-  Building2,
   Maximize,
   X
 } from 'lucide-react';
@@ -186,9 +185,27 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
     }
     if (lastFromIdx === -1) return null;
     const afterFrom = sql.substring(lastFromIdx + 4).trim();
-    const tableMatch = afterFrom.match(/^(?:\`?([a-zA-Z0-9_-]+)\`?\.)?\`?([a-zA-Z0-9_-]+)\`?/);
+    const tableMatch = afterFrom.match(/^(?:`?([a-zA-Z0-9_-]+)`?\.)?`?([a-zA-Z0-9_-]+)`?/);
     return tableMatch ? tableMatch[2] : null;
   };
+
+  const activeQueryTableName = React.useMemo(() => getTableNameFromQuery(querySql), [querySql]);
+  const activeQueryTableSchema = React.useMemo(() => {
+    if (!activeQueryTableName) return null;
+    return databaseSchema.find(t => t.table.toLowerCase() === activeQueryTableName.toLowerCase());
+  }, [activeQueryTableName, databaseSchema]);
+  const activeQueryPkColumns = React.useMemo(() => {
+    if (!activeQueryTableSchema) return [];
+    return activeQueryTableSchema.columns
+      .filter((c: { key?: string; name: string }) => c.key === 'PRI')
+      .map((c: { name: string }) => c.name);
+  }, [activeQueryTableSchema]);
+  const activeQueryFkColumns = React.useMemo(() => {
+    if (!activeQueryTableSchema) return [];
+    return activeQueryTableSchema.columns
+      .filter((c: { key?: string; name: string }) => c.key === 'MUL')
+      .map((c: { name: string }) => c.name);
+  }, [activeQueryTableSchema]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -875,9 +892,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                       <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                         {queryResult ? `Result Payload (${queryResult.rows.length} rows in ${queryResult.execTimeMs}ms)` : 'Query Output Grid'}
                       </span>
-                    </div>
-
-                    <div style={{ flex: 1, overflowX: 'auto', overflowY: 'auto', padding: queryResult ? 0 : '24px', borderRadius: '0 0 8px 8px' }}>
+                                <div style={{ flex: 1, overflowX: 'auto', overflowY: 'auto', padding: '24px', borderRadius: '0 0 8px 8px' }}>
                       {!queryResult ? (
                         <div style={{ color: 'var(--text-secondary)', textAlign: 'center', fontSize: '0.82rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '8px' }}>
                           <Play size={24} style={{ opacity: 0.3 }} />
@@ -888,123 +903,123 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                           Query executed successfully. Empty set returned (0 rows affected).
                         </div>
                       ) : (
-                        <div style={{ display: 'block', overflowX: 'auto', width: '100%' }}>
-                          <table style={{ borderCollapse: 'collapse', textAlign: 'left', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>
-                            <thead>
-                              <tr style={{ borderBottom: '2px solid var(--divider)', fontSize: '0.8rem', position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 1, fontWeight: 600 }}>
-                                <th style={{ padding: '10px 12px', width: '50px', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>Actions</th>
-                                {queryResult.fields.map((field: string) => (
-                                  <th key={field} style={{ padding: '10px 12px', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{field}</th>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+                          
+                          {/* Top Row: Info Grid */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                            {/* Target Table */}
+                            <div style={{ padding: '16px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Target Table</span>
+                              <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+                                {activeQueryTableName ? activeQueryTableName : 'Raw Query (Multiple/Unknown)'}
+                              </span>
+                            </div>
+                            
+                            {/* Execution Time */}
+                            <div style={{ padding: '16px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Execution Time</span>
+                              <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f43f5e' }}>
+                                {queryResult.execTimeMs} ms
+                              </span>
+                            </div>
+
+                            {/* Rows Affected / Returned */}
+                            <div style={{ padding: '16px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Rows Returned</span>
+                              <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#10b981' }}>
+                                {queryResult.rows.length} rows
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Middle Section: Keys (PK / FK) Info */}
+                          {activeQueryTableName && (activeQueryPkColumns.length > 0 || activeQueryFkColumns.length > 0) && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <h5 style={{ margin: 0, fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                Target Table Keys
+                              </h5>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                {activeQueryPkColumns.map((pk: string) => (
+                                  <span key={`pk-${pk}`} style={{ fontSize: '0.72rem', color: '#fbbf24', background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.15)', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                    🔑 PK: {pk}
+                                  </span>
                                 ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {queryResult.rows.map((row: any, idx: number) => {
+                                {activeQueryFkColumns.map((fk: string) => (
+                                  <span key={`fk-${fk}`} style={{ fontSize: '0.72rem', color: '#ec4899', background: 'rgba(236,72,153,0.08)', border: '1px solid rgba(236,72,153,0.12)', padding: '4px 10px', borderRadius: '6px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                    🔗 FK: {fk}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Column Badges */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <h5 style={{ margin: 0, fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                              Returned Columns ({queryResult.fields.length})
+                            </h5>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '120px', overflowY: 'auto', paddingRight: '4px' }}>
+                              {queryResult.fields.map((field: string) => {
+                                const isPk = activeQueryPkColumns.includes(field);
+                                const isFk = activeQueryFkColumns.includes(field);
+                                let badgeBorder = '1px solid var(--glass-border)';
+                                let badgeBg = 'rgba(255,255,255,0.02)';
+                                let badgeColor = 'var(--text-secondary)';
+                                if (isPk) {
+                                  badgeBorder = '1px solid rgba(251,191,36,0.25)';
+                                  badgeBg = 'rgba(251,191,36,0.04)';
+                                  badgeColor = '#fbbf24';
+                                } else if (isFk) {
+                                  badgeBorder = '1px solid rgba(236,72,153,0.2)';
+                                  badgeBg = 'rgba(236,72,153,0.04)';
+                                  badgeColor = '#ec4899';
+                                }
                                 return (
-                                  <tr key={idx} style={{ borderBottom: '1px solid var(--divider)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
-                                    {/* Action Cell (Delete Row) */}
-                                    {(() => {
-                                      const tableName = getTableNameFromQuery(querySql);
-                                      if (!tableName) return <td style={{ padding: '8px 12px' }}>-</td>;
-                                      
-                                      const tblSchema = databaseSchema.find(t => t.table === tableName);
-                                      const pkCol = tblSchema?.columns.find((c: any) => c.key === 'PRI')?.name;
-
-                                      return (
-                                        <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
-                                          <button
-                                            onClick={async () => {
-                                              if (isViewer) return;
-                                              let deleteSql = '';
-                                              let confirmMsg = '';
-                                              if (pkCol) {
-                                                const pkVal = row[pkCol];
-                                                confirmMsg = `Are you sure you want to delete this row where ${pkCol} = '${pkVal}'?`;
-                                                deleteSql = `DELETE FROM \`${tableName}\` WHERE \`${pkCol}\` = ${typeof pkVal === 'number' ? pkVal : `'${String(pkVal).replace(/'/g, "\\'")}'`};`;
-                                              } else {
-                                                confirmMsg = `This table has no primary key. Are you sure you want to delete this row by matching all column values?`;
-                                                const conditions = queryResult.fields.map((field: string) => {
-                                                  const val = row[field];
-                                                  if (val === null) {
-                                                    return `\`${field}\` IS NULL`;
-                                                  } else if (typeof val === 'number') {
-                                                    return `\`${field}\` = ${val}`;
-                                                  } else {
-                                                    return `\`${field}\` = '${String(val).replace(/'/g, "\\'")}'`;
-                                                  }
-                                                });
-                                                deleteSql = `DELETE FROM \`${tableName}\` WHERE ${conditions.join(' AND ')} LIMIT 1;`;
-                                              }
-
-                                              setConfirmDialog({
-                                                isOpen: true,
-                                                title: 'Delete Database Row (Destructive Action)',
-                                                message: confirmMsg,
-                                                confirmLabel: 'Delete Row',
-                                                cancelLabel: 'Cancel',
-                                                type: 'danger',
-                                                onConfirm: async () => {
-                                                  try {
-                                                    const deleteRes = await fetch(`${API_BASE}/apps/execute-query`, {
-                                                      method: 'POST',
-                                                      headers: {
-                                                        'Content-Type': 'application/json',
-                                                        'Authorization': `Bearer ${token}`
-                                                      },
-                                                      body: JSON.stringify({
-                                                        serverName: selectedDbServer.name,
-                                                        dbName: selectedDatabase.name,
-                                                        query: deleteSql
-                                                      })
-                                                    });
-                                                    const deleteData = await deleteRes.json();
-                                                    if (deleteRes.ok && deleteData.success) {
-                                                      // Re-execute SELECT
-                                                      handleExecuteQuery(querySql);
-                                                    } else {
-                                                      alert(`Failed to delete row: ${deleteData.message || 'Unknown error'}`);
-                                                    }
-                                                  } catch (e: any) {
-                                                    alert(`Error deleting row: ${e.message}`);
-                                                  }
-                                                }
-                                              });
-                                            }}
-                                            style={{
-                                              border: 'none',
-                                              background: 'none',
-                                              cursor: isViewer ? 'not-allowed' : 'pointer',
-                                              padding: 0,
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              justifyContent: 'center',
-                                              opacity: isViewer ? 0.4 : 1
-                                            }}
-                                            disabled={isViewer}
-                                            title={isViewer ? "Delete Row (Viewer is read-only)" : "Delete Row"}
-                                          >
-                                            <Trash2 size={12} style={{ color: 'var(--error)' }} />
-                                          </button>
-                                        </td>
-                                      );
-                                    })()}
-                                    
-                                    {queryResult.fields.map((field: string) => {
-                                      const val = row[field];
-                                      return (
-                                        <td key={field} style={{ padding: '10px 12px', fontSize: '0.82rem', fontFamily: 'monospace', color: val === null ? '#64748b' : 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-                                          {val === null ? 'NULL' : String(val)}
-                                        </td>
-                                      );
-                                    })}
-                                  </tr>
+                                  <span
+                                    key={field}
+                                    style={{
+                                      fontSize: '0.74rem',
+                                      fontFamily: 'monospace',
+                                      padding: '4px 8px',
+                                      borderRadius: '4px',
+                                      background: badgeBg,
+                                      border: badgeBorder,
+                                      color: badgeColor,
+                                      fontWeight: (isPk || isFk) ? 600 : 400
+                                    }}
+                                  >
+                                    {field}
+                                  </span>
                                 );
                               })}
-                            </tbody>
-                          </table>
+                            </div>
+                          </div>
+
+                          {/* CTA Row to open fullscreen results */}
+                          <div style={{ borderTop: '1px solid var(--divider)', paddingTop: '16px', display: 'flex', justifyContent: 'flex-start' }}>
+                            <button
+                              onClick={() => setIsResultsExpanded(true)}
+                              className="btn-primary"
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                height: '36px',
+                                padding: '0 20px',
+                                fontSize: '0.8rem',
+                                borderRadius: '8px',
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Maximize size={13} />
+                              Open Interactive Results Table
+                            </button>
+                          </div>
+
                         </div>
                       )}
-                    </div>
+                    </div>          </div>
                   </div>
 
                   {/* ── Fullscreen Results Modal (portal) ── */}
@@ -1075,7 +1090,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                       onClick={async () => {
                                         if (isViewer) return;
                                         let deleteSql = '';
-                                        let confirmMsg = '';
+                                        let confirmMsg: string;
                                         if (pkCol) {
                                           const pkVal = row[pkCol];
                                           confirmMsg = `Delete row where ${pkCol} = '${pkVal}'?`;

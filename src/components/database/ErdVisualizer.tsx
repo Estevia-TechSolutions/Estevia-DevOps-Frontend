@@ -45,10 +45,21 @@ export const ErdVisualizer: React.FC<ErdVisualizerProps> = ({ API_BASE, theme, s
 
   const isLight = theme === 'light';
 
-  // Reset modal zoom when modal opens
+  // Reset modal zoom and register Escape key listener when modal opens
   useEffect(() => {
-    if (isExpanded) setModalZoom(1);
-  }, [isExpanded]);
+    if (isExpanded) {
+      setModalZoom(1);
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          setIsExpanded(false);
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [isExpanded, setIsExpanded]);
 
   useEffect(() => {
     const fetchErdSchema = async () => {
@@ -267,32 +278,134 @@ export const ErdVisualizer: React.FC<ErdVisualizerProps> = ({ API_BASE, theme, s
   // Render
   // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minHeight: '600px', width: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minHeight: '500px', width: '100%' }}>
+      
+      {/* Inline Dashboard & Table Overview */}
+      <div className="glass-panel" style={{
+        padding: '24px',
+        borderRadius: '12px',
+        borderColor: 'rgba(139, 92, 246, 0.18)',
+        background: 'linear-gradient(150deg, rgba(139, 92, 246, 0.03) 0%, rgba(0, 0, 0, 0.1) 100%)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+        boxShadow: '0 4px 30px rgba(0, 0, 0, 0.05)'
+      }}>
+        {/* Header strip */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Database size={16} style={{ color: 'var(--accent-purple)' }} />
+              Database Schema Model Overview
+            </h4>
+            <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              Server: <strong style={{ color: 'var(--text-primary)' }}>{selectedDbServer?.name}</strong> &middot; Database: <strong style={{ color: 'var(--text-primary)' }}>{selectedDatabase?.name}</strong>
+            </p>
+          </div>
 
-      {/* ── Controls strip ── sticky so title stays visible while diagram scrolls */}
-      <div className="glass-panel" style={{ padding: '12px 20px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 50, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
-        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-          DATABASE SCHEMA: <span style={{ color: 'var(--accent-purple)', fontWeight: 700 }}>{selectedDatabase?.name || 'estevia_devops'}</span>
-        </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button onClick={() => handleZoom(-0.1)} title="Zoom Out" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ZoomOut size={12} />
+          <button
+            onClick={() => setIsExpanded(true)}
+            className="btn-primary"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              height: '36px',
+              padding: '0 20px',
+              fontSize: '0.8rem',
+              borderRadius: '8px',
+              border: '1px solid rgba(139,92,246,0.45)',
+              background: 'rgba(139,92,246,0.12)',
+              color: 'var(--accent-purple)',
+              fontWeight: 600
+            }}
+          >
+            <Maximize size={13} />
+            Explore Interactive ERD
           </button>
-          <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', width: '36px', textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
-          <button onClick={() => handleZoom(0.1)} title="Zoom In" style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', color: 'var(--text-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ZoomIn size={12} />
-          </button>
         </div>
-      </div>
 
-      {/* ── Inline diagram area ── */}
-      <div style={{ flex: 1, minHeight: '460px', height: '500px', background: isLight ? 'rgba(0,0,0,0.01)' : 'rgba(0,0,0,0.25)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '30px', overflow: 'auto', position: 'relative' }}>
-        <div style={{ width: `${maxX * zoom}px`, height: `${maxY * zoom}px`, position: 'relative' }}>
-          <div style={{ transform: `scale(${zoom})`, transformOrigin: 'top left', transition: 'transform 0.15s ease-out', position: 'absolute', top: 0, left: 0, width: `${maxX}px`, height: `${maxY}px` }}>
-            <DiagramContent />
+        {/* Stats Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
+          {[
+            { label: 'Total Tables', val: schema.tables.length, color: 'var(--accent-purple)' },
+            { label: 'Relationships (FKs)', val: schema.relations.length, color: '#ec4899' },
+            { label: 'Total Column Fields', val: schema.tables.reduce((acc, t) => acc + t.columns.length, 0), color: 'var(--accent-blue)' }
+          ].map((stat, idx) => (
+            <div key={idx} style={{
+              padding: '16px',
+              borderRadius: '8px',
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid var(--glass-border)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px'
+            }}>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{stat.label}</span>
+              <span style={{ fontSize: '1.4rem', fontWeight: 700, color: stat.color }}>{stat.val}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Tables list details */}
+        <div>
+          <h5 style={{ margin: '0 0 10px 0', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Tables Catalog Summary
+          </h5>
+          <div style={{ 
+            maxHeight: '260px', 
+            overflowY: 'auto', 
+            border: '1px solid var(--glass-border)', 
+            borderRadius: '8px',
+            background: 'rgba(0,0,0,0.1)'
+          }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem', color: 'var(--text-primary)' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--divider)', background: 'rgba(255,255,255,0.01)', position: 'sticky', top: 0, zIndex: 1, fontWeight: 600 }}>
+                  <th style={{ padding: '10px 16px', color: 'var(--text-primary)' }}>Table Name</th>
+                  <th style={{ padding: '10px 12px', color: 'var(--text-primary)' }}>Columns Count</th>
+                  <th style={{ padding: '10px 12px', color: 'var(--text-primary)' }}>Primary Key(s)</th>
+                  <th style={{ padding: '10px 12px', color: 'var(--text-primary)' }}>Foreign Keys</th>
+                </tr>
+              </thead>
+              <tbody>
+                {schema.tables.map((t, idx) => {
+                  const pks = t.columns.filter(c => c.isPrimaryKey).map(c => c.name);
+                  const fks = schema.relations.filter(r => r.fromTable === t.name).map(r => r.fromColumn);
+                  return (
+                    <tr key={t.name} style={{ borderBottom: idx === schema.tables.length - 1 ? 'none' : '1px solid var(--divider)', background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.01)' }}>
+                      <td style={{ padding: '10px 16px', fontWeight: 600, color: 'var(--text-primary)' }}>{t.name}</td>
+                      <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>{t.columns.length} columns</td>
+                      <td style={{ padding: '10px 12px' }}>
+                        {pks.length > 0 ? (
+                          pks.map(pk => (
+                            <span key={pk} style={{ fontSize: '0.7rem', color: '#fbbf24', background: 'rgba(251,191,36,0.1)', padding: '2px 6px', borderRadius: '4px', marginRight: '4px', fontWeight: 500, border: '1px solid rgba(251,191,36,0.15)' }}>
+                              🔑 {pk}
+                            </span>
+                          ))
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>None</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '10px 12px' }}>
+                        {fks.length > 0 ? (
+                          fks.map(fk => (
+                            <span key={fk} style={{ fontSize: '0.7rem', color: '#ec4899', background: 'rgba(236,72,153,0.08)', padding: '2px 6px', borderRadius: '4px', marginRight: '4px', fontWeight: 500, border: '1px solid rgba(236,72,153,0.12)' }}>
+                              🔗 {fk}
+                            </span>
+                          ))
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>None</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
-        <Legend />
+
       </div>
 
       {/* ── Fullscreen Modal (portal) ── */}
