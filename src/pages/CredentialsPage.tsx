@@ -683,6 +683,9 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                               {serviceConnections.arm.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
                             </datalist>
                           )}
+                          <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            Optional. Auto-falls back to <code>protrack-azure-sc</code>.
+                          </p>
                         </div>
                         <div>
                           <FieldLabel>Docker Registry Service Connection</FieldLabel>
@@ -694,6 +697,9 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                               {serviceConnections.docker.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
                             </datalist>
                           )}
+                          <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            Optional. Auto-falls back to <code>estevia-acr-sc</code>.
+                          </p>
                         </div>
                       </div>
                     </SectionBlock>
