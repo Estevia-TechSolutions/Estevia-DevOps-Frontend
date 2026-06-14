@@ -662,34 +662,6 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                           <input type="text" value={pipelineVariableGroup} onChange={e => setPipelineVariableGroup(e.target.value)}
                             placeholder="estevia-frontend-vars" required disabled={!canEdit} />
                         </div>
-                        <div>
-                          <FieldLabel>Azure RM Service Connection</FieldLabel>
-                          <input type="text" list="arm-sc-list" value={azureDevopsServiceConnection}
-                            onChange={e => setAzureDevopsServiceConnection(e.target.value)}
-                            placeholder="protrack-azure-sc" disabled={!canEdit} />
-                          {(serviceConnections?.arm?.length ?? 0) > 0 && (
-                            <datalist id="arm-sc-list">
-                              {serviceConnections.arm.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
-                            </datalist>
-                          )}
-                          <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                            Optional. Auto-falls back to <code>protrack-azure-sc</code>.
-                          </p>
-                        </div>
-                        <div>
-                          <FieldLabel>Docker Registry Service Connection</FieldLabel>
-                          <input type="text" list="docker-sc-list" value={dockerRegistryServiceConnection}
-                            onChange={e => setDockerRegistryServiceConnection(e.target.value)}
-                            placeholder="estevia-acr-sc" disabled={!canEdit} />
-                          {(serviceConnections?.docker?.length ?? 0) > 0 && (
-                            <datalist id="docker-sc-list">
-                              {serviceConnections.docker.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
-                            </datalist>
-                          )}
-                          <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                            Optional. Auto-falls back to <code>estevia-acr-sc</code>.
-                          </p>
-                        </div>
                       </div>
                     </SectionBlock>
                   </div>
