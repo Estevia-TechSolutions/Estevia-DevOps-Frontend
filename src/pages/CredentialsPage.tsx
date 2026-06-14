@@ -524,8 +524,8 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                   color: 'var(--text-secondary)',
                   lineHeight: '1.45',
                 }}>
-                  <strong style={{ color: '#ca8a04', display: 'block', marginBottom: '4px' }}>💡 GitHub Integration Summary</strong>
-                  The GitHub Token is encrypted using AES-256-GCM. It authorizes the EvaOps orchestrator to discover repositories, scan branches, and configure CI/CD pipeline triggers. The repository owner or organization is utilized to set up webhook notifications and automatically commit configuration files directly to your code branches.
+                  <strong style={{ color: '#ca8a04', display: 'block', marginBottom: '4px' }}>💡 GitHub Integration Summary &amp; Pipeline Sync</strong>
+                  The GitHub Personal Access Token (PAT) is stored securely and encrypted natively using AES-256-GCM. It authorizes the EvaOps orchestrator to discover private and public organization repositories, scan branch structures, register webhook subscription events, and configure continuous integration triggers. When a pipeline is created or modified, the repository owner or organization settings are utilized to automatically commit custom workflow configuration files directly to your target branches under signature commits, facilitating zero-touch infrastructure-as-code updates.
                 </div>
               </div>
             )}
@@ -602,8 +602,8 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                   color: 'var(--text-secondary)',
                   lineHeight: '1.45',
                 }}>
-                  <strong style={{ color: '#ca8a04', display: 'block', marginBottom: '4px' }}>💡 GoDaddy DNS Automation</strong>
-                  The GoDaddy API Key and Secret are utilized to programmatically create and modify DNS records (specifically CNAME and TXT mappings). This enables automated, zero-touch SSL subdomain provisioning when creating new branch environments, automatically linking your deployment URLs to your custom domains without manual DNS updates.
+                  <strong style={{ color: '#ca8a04', display: 'block', marginBottom: '4px' }}>💡 GoDaddy DNS Automation &amp; Domain Lifecycle Management</strong>
+                  The GoDaddy API Key and API Secret are utilized to programmatically interface with GoDaddy's DNS REST endpoints to coordinate DNS lifecycle bindings. This enables the platform to automatically provision, modify, and delete custom DNS records (specifically targeting CNAME mappings and TXT domain validations). When new feature branches are created or environments are cloned, EvaOps handles zero-touch subdomain generation and automatically configures SSL/TLS certificates, ensuring your dynamic deployments are instantly accessible under secure custom URLs.
                 </div>
               </div>
             )}
@@ -823,8 +823,8 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                   color: 'var(--text-secondary)',
                   lineHeight: '1.45',
                 }}>
-                  <strong style={{ color: '#ca8a04', display: 'block', marginBottom: '4px' }}>💡 Key Vault Mapping &amp; Secrets Sync</strong>
-                  Sync target credentials directly from your secure Azure Key Vault. Mapped secrets are injected dynamically into your Azure DevOps pipeline variable groups, ensuring zero raw secrets are ever exposed in source control or logs.
+                  <strong style={{ color: '#ca8a04', display: 'block', marginBottom: '4px' }}>💡 Key Vault Mapping &amp; Secrets Sync Engine</strong>
+                  The Key Vault configuration integrates directly with your Azure Key Vault instances to fetch secrets, connection strings, and certificates securely at deployment time. By defining mapped secrets, the synchronization engine dynamically injects target credentials into your Azure DevOps pipeline variable groups on-demand. This pattern ensures zero raw secrets are ever hardcoded in source repositories, exposed in console output logs, or saved in plain text within database schemas, maintaining compliance with modern ISO/IEC 27001 and SOC 2 security standards.
                 </div>
               </div>
             )}
