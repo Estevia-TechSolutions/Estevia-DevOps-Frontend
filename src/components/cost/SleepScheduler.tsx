@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, ShieldCheck, Save, Sparkles, RefreshCw, Moon, Clock, Plus, Trash2 } from 'lucide-react';
+import { Calendar, ShieldCheck, Save, Sparkles, RefreshCw, Moon, Clock, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface DaySchedule {
   start: string;
@@ -41,7 +41,16 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [savingsEstimate, setSavingsEstimate] = useState(84.50);
 
+  const [isAppsExpanded, setIsAppsExpanded] = useState(false);
+  const [isHoursExpanded, setIsHoursExpanded] = useState(false);
+
   const isLight = theme === 'light';
+
+  // Collapse accordions when schedule selection changes
+  useEffect(() => {
+    setIsAppsExpanded(false);
+    setIsHoursExpanded(false);
+  }, [selectedScheduleId]);
 
   // Normalize backend policy format to modern multi-schedule rules representation
   const normalizeRules = (dataRules: any): SchedulerRules => {
@@ -575,171 +584,218 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
                 />
               </div>
 
-              {/* Enrolled Applications checklist */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid var(--divider)', paddingTop: '16px' }}>
-                <h5 style={{ margin: 0, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  <ShieldCheck size={14} style={{ color: 'var(--success)' }} />
-                  Policy Enrolled Applications
-                </h5>
-                <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                  Select which applications are managed specifically by this operational hours policy.
-                </p>
+              {/* Enrolled Applications Accordion */}
+              <div style={{ borderTop: '1px solid var(--divider)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div 
+                  onClick={() => setIsAppsExpanded(!isAppsExpanded)}
+                  className="accordion-header"
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <h5 style={{ margin: 0, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      <ShieldCheck size={14} style={{ color: 'var(--success)' }} />
+                      Policy Enrolled Applications
+                    </h5>
+                    {!isAppsExpanded && (
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                        {activeSchedule.selectedApps.length > 0 
+                          ? `Enrolled: ${activeSchedule.selectedApps.join(', ')} (${activeSchedule.selectedApps.length} apps)`
+                          : 'No applications enrolled (Always active 24/7)'}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ color: 'var(--text-secondary)' }}>
+                    {isAppsExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  </div>
+                </div>
 
-                {appsList.length === 0 ? (
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>No applications registered for this organization.</div>
-                ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px', marginTop: '4px' }}>
-                    {appsList.map((app) => {
-                      const isChecked = activeSchedule.selectedApps.includes(app.name);
-                      const isBackend = app.app_type === 'backend';
-                      
+                {isAppsExpanded && (
+                  <div className="accordion-content" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                      Select which applications are managed specifically by this operational hours policy.
+                    </p>
+                    {appsList.length === 0 ? (
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>No applications registered for this organization.</div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '10px' }}>
+                        {appsList.map((app) => {
+                          const isChecked = activeSchedule.selectedApps.includes(app.name);
+                          const isBackend = app.app_type === 'backend';
+                          
+                          return (
+                            <div 
+                              key={app.id || app.name}
+                              onClick={() => handleAppEnrollmentToggle(activeSchedule.id, app.name)}
+                              style={{
+                                padding: '10px 14px',
+                                borderRadius: '6px',
+                                background: isChecked ? 'rgba(255,255,255,0.02)' : 'transparent',
+                                border: isChecked 
+                                  ? (isBackend ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(59, 130, 246, 0.35)') 
+                                  : '1px solid var(--glass-border)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {}}
+                                style={{ cursor: 'pointer' }}
+                              />
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', flex: 1, minWidth: 0 }}>
+                                <span style={{ 
+                                  fontSize: '0.78rem', 
+                                  fontWeight: 600, 
+                                  color: isChecked ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis'
+                                }}>
+                                  {app.name}
+                                </span>
+                                <span style={{ 
+                                  fontSize: '0.62rem', 
+                                  alignSelf: 'flex-start',
+                                  fontWeight: 600,
+                                  textTransform: 'uppercase',
+                                  color: isBackend ? 'var(--success)' : 'var(--accent-blue)',
+                                  background: isBackend ? 'rgba(34,197,94,0.08)' : 'rgba(59,130,246,0.08)',
+                                  padding: '0 4px',
+                                  borderRadius: '2px'
+                                }}>
+                                  {isBackend ? 'ACA' : 'SWA'}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Operational Hours Accordion */}
+              <div style={{ borderTop: '1px solid var(--divider)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div 
+                  onClick={() => setIsHoursExpanded(!isHoursExpanded)}
+                  className="accordion-header"
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <h5 style={{ margin: 0, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      <Clock size={14} style={{ color: 'var(--accent-purple)' }} />
+                      Operational Hours Ranges
+                    </h5>
+                    {!isHoursExpanded && (
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                        {(() => {
+                          const activeDays = daysLabel.filter(d => (activeSchedule[d.key] as DaySchedule).enabled);
+                          if (activeDays.length === 0) return 'Sleep mode active 24/7 (Policy is fully scaled down)';
+                          
+                          const rangeSummaries = activeDays.map(d => {
+                            const r = activeSchedule[d.key] as DaySchedule;
+                            return `${d.label.substring(0, 3)}: ${r.start}-${r.end}`;
+                          });
+                          return rangeSummaries.join(' | ');
+                        })()}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ color: 'var(--text-secondary)' }}>
+                    {isHoursExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  </div>
+                </div>
+
+                {isHoursExpanded && (
+                  <div className="accordion-content" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {daysLabel.map((dayObj) => {
+                      const dayRule = activeSchedule[dayObj.key] as DaySchedule;
                       return (
                         <div 
-                          key={app.id || app.name}
-                          onClick={() => handleAppEnrollmentToggle(activeSchedule.id, app.name)}
-                          style={{
-                            padding: '10px 14px',
-                            borderRadius: '6px',
-                            background: isChecked ? 'rgba(255,255,255,0.02)' : 'transparent',
-                            border: isChecked 
-                              ? (isBackend ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(59, 130, 246, 0.35)') 
-                              : '1px solid var(--glass-border)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
+                          key={dayObj.key} 
+                          style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '16px', 
+                            padding: '10px 14px', 
+                            borderRadius: '6px', 
+                            background: dayRule.enabled ? 'rgba(255,255,255,0.01)' : 'transparent',
+                            border: '1px solid var(--glass-border)',
+                            flexWrap: 'wrap'
                           }}
                         >
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => {}} // Controlled via parent click
-                            style={{ cursor: 'pointer' }}
-                          />
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', flex: 1, minWidth: 0 }}>
-                            <span style={{ 
-                              fontSize: '0.78rem', 
-                              fontWeight: 600, 
-                              color: isChecked ? 'var(--text-primary)' : 'var(--text-secondary)',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis'
-                            }}>
-                              {app.name}
-                            </span>
-                            <span style={{ 
-                              fontSize: '0.62rem', 
-                              alignSelf: 'flex-start',
-                              fontWeight: 600,
-                              textTransform: 'uppercase',
-                              color: isBackend ? 'var(--success)' : 'var(--accent-blue)',
-                              background: isBackend ? 'rgba(34,197,94,0.08)' : 'rgba(59,130,246,0.08)',
-                              padding: '0 4px',
-                              borderRadius: '2px'
-                            }}>
-                              {isBackend ? 'ACA' : 'SWA'}
-                            </span>
+                          {/* Checkbox day switcher */}
+                          <div style={{ width: '120px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <input
+                              type="checkbox"
+                              checked={dayRule.enabled}
+                              onChange={() => handleDayToggle(activeSchedule.id, dayObj.key)}
+                              id={`check-${activeSchedule.id}-${dayObj.key}`}
+                              style={{ cursor: 'pointer' }}
+                            />
+                            <label 
+                              htmlFor={`check-${activeSchedule.id}-${dayObj.key}`} 
+                              style={{ 
+                                fontSize: '0.8rem', 
+                                fontWeight: 600, 
+                                color: dayRule.enabled ? 'var(--text-primary)' : 'var(--text-secondary)', 
+                                cursor: 'pointer' 
+                              }}
+                            >
+                              {dayObj.label}
+                            </label>
                           </div>
+
+                          {/* Operational hour picker */}
+                          {dayRule.enabled ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '220px' }}>
+                              <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Active range:</span>
+                              <input
+                                type="time"
+                                value={dayRule.start}
+                                onChange={(e) => handleTimeChange(activeSchedule.id, dayObj.key, 'start', e.target.value)}
+                                style={{
+                                  fontSize: '0.76rem',
+                                  height: '28px',
+                                  borderRadius: '4px',
+                                  border: '1px solid var(--glass-border)',
+                                  background: 'rgba(255,255,255,0.02)',
+                                  color: 'var(--text-primary)',
+                                  padding: '0 4px',
+                                  outline: 'none'
+                                }}
+                              />
+                              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>to</span>
+                              <input
+                                type="time"
+                                value={dayRule.end}
+                                onChange={(e) => handleTimeChange(activeSchedule.id, dayObj.key, 'end', e.target.value)}
+                                style={{
+                                  fontSize: '0.76rem',
+                                  height: '28px',
+                                  borderRadius: '4px',
+                                  border: '1px solid var(--glass-border)',
+                                  background: 'rgba(255,255,255,0.02)',
+                                  color: 'var(--text-primary)',
+                                  padding: '0 4px',
+                                  outline: 'none'
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: '220px', color: 'var(--text-muted)', fontSize: '0.74rem' }}>
+                              <Moon size={11} style={{ color: 'var(--accent-blue)', opacity: 0.8 }} />
+                              <span>Scale-to-zero active for entire 24h block (Sleep mode).</span>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
                   </div>
                 )}
-              </div>
-
-              {/* Weekly operational hours ranges configuration */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderTop: '1px solid var(--divider)', paddingTop: '16px' }}>
-                <h5 style={{ margin: 0, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  <Clock size={14} style={{ color: 'var(--accent-purple)' }} />
-                  Operational Hours Ranges
-                </h5>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {daysLabel.map((dayObj) => {
-                    const dayRule = activeSchedule[dayObj.key] as DaySchedule;
-                    return (
-                      <div 
-                        key={dayObj.key} 
-                        style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '16px', 
-                          padding: '10px 14px', 
-                          borderRadius: '6px', 
-                          background: dayRule.enabled ? 'rgba(255,255,255,0.01)' : 'transparent',
-                          border: '1px solid var(--glass-border)',
-                          flexWrap: 'wrap'
-                        }}
-                      >
-                        {/* Checkbox day switcher */}
-                        <div style={{ width: '120px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <input
-                            type="checkbox"
-                            checked={dayRule.enabled}
-                            onChange={() => handleDayToggle(activeSchedule.id, dayObj.key)}
-                            id={`check-${activeSchedule.id}-${dayObj.key}`}
-                            style={{ cursor: 'pointer' }}
-                          />
-                          <label 
-                            htmlFor={`check-${activeSchedule.id}-${dayObj.key}`} 
-                            style={{ 
-                              fontSize: '0.8rem', 
-                              fontWeight: 600, 
-                              color: dayRule.enabled ? 'var(--text-primary)' : 'var(--text-secondary)', 
-                              cursor: 'pointer' 
-                            }}
-                          >
-                            {dayObj.label}
-                          </label>
-                        </div>
-
-                        {/* Operational hour picker */}
-                        {dayRule.enabled ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '220px' }}>
-                            <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Active range:</span>
-                            <input
-                              type="time"
-                              value={dayRule.start}
-                              onChange={(e) => handleTimeChange(activeSchedule.id, dayObj.key, 'start', e.target.value)}
-                              style={{
-                                fontSize: '0.76rem',
-                                height: '28px',
-                                borderRadius: '4px',
-                                border: '1px solid var(--glass-border)',
-                                background: 'rgba(255,255,255,0.02)',
-                                color: 'var(--text-primary)',
-                                padding: '0 4px',
-                                outline: 'none'
-                              }}
-                            />
-                            <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>to</span>
-                            <input
-                              type="time"
-                              value={dayRule.end}
-                              onChange={(e) => handleTimeChange(activeSchedule.id, dayObj.key, 'end', e.target.value)}
-                              style={{
-                                fontSize: '0.76rem',
-                                height: '28px',
-                                borderRadius: '4px',
-                                border: '1px solid var(--glass-border)',
-                                background: 'rgba(255,255,255,0.02)',
-                                color: 'var(--text-primary)',
-                                padding: '0 4px',
-                                outline: 'none'
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: '220px', color: 'var(--text-muted)', fontSize: '0.74rem' }}>
-                            <Moon size={11} style={{ color: 'var(--accent-blue)', opacity: 0.8 }} />
-                            <span>Scale-to-zero active for entire 24h block (Sleep mode).</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
               </div>
 
             </div>
