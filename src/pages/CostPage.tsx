@@ -172,6 +172,7 @@ export const CostPage: React.FC<CostPageProps> = ({
   const [forecastData, setForecastData] = useState<any>(null);
   const [loadingForecast, setLoadingForecast] = useState<boolean>(false);
   const [selectedMonths, setSelectedMonths] = useState<3 | 6 | 12>(3);
+  const [isCumulative, setIsCumulative] = useState<boolean>(false);
 
   React.useEffect(() => {
     if (costTab === 'billing') {
@@ -907,27 +908,66 @@ export const CostPage: React.FC<CostPageProps> = ({
                 </p>
               </div>
               
-              {/* Timeframe Selector */}
-              <div style={{ display: 'flex', gap: '6px', backgroundColor: 'rgba(0,0,0,0.15)', padding: '4px', borderRadius: '8px' }}>
-                {([3, 6, 12] as const).map(months => (
+              {/* Controls Container */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                {/* View Mode Toggle */}
+                <div style={{ display: 'flex', gap: '4px', backgroundColor: 'rgba(0,0,0,0.15)', padding: '4px', borderRadius: '8px' }}>
                   <button
-                    key={months}
                     type="button"
-                    onClick={() => setSelectedMonths(months)}
+                    onClick={() => setIsCumulative(false)}
                     style={{
                       padding: '6px 12px',
                       fontSize: '0.74rem',
                       fontWeight: 600,
                       borderRadius: '6px',
                       border: 'none',
-                      backgroundColor: selectedMonths === months ? '#10b981' : 'transparent',
-                      color: selectedMonths === months ? '#fff' : 'var(--text-secondary)',
+                      backgroundColor: !isCumulative ? '#10b981' : 'transparent',
+                      color: !isCumulative ? '#fff' : 'var(--text-secondary)',
                       cursor: 'pointer'
                     }}
                   >
-                    {months} Months
+                    Month-on-Month
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => setIsCumulative(true)}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '0.74rem',
+                      fontWeight: 600,
+                      borderRadius: '6px',
+                      border: 'none',
+                      backgroundColor: isCumulative ? '#10b981' : 'transparent',
+                      color: isCumulative ? '#fff' : 'var(--text-secondary)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cumulative
+                  </button>
+                </div>
+
+                {/* Timeframe Selector */}
+                <div style={{ display: 'flex', gap: '6px', backgroundColor: 'rgba(0,0,0,0.15)', padding: '4px', borderRadius: '8px' }}>
+                  {([3, 6, 12] as const).map(months => (
+                    <button
+                      key={months}
+                      type="button"
+                      onClick={() => setSelectedMonths(months)}
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '0.74rem',
+                        fontWeight: 600,
+                        borderRadius: '6px',
+                        border: 'none',
+                        backgroundColor: selectedMonths === months ? '#10b981' : 'transparent',
+                        color: selectedMonths === months ? '#fff' : 'var(--text-secondary)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {months} Months
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -944,8 +984,8 @@ export const CostPage: React.FC<CostPageProps> = ({
                 const savings = forecast.savings;
                 
                 const monthsArray = Array.from({ length: selectedMonths }, (_, i) => i + 1);
-                const maxBaseline = forecastData.monthlyBaselineRunRate * selectedMonths;
-                const baseMaxHeight = 140; // max height of baseline bar at selectedMonths
+                const maxVal = isCumulative ? (forecastData.monthlyBaselineRunRate * selectedMonths) : forecastData.monthlyBaselineRunRate;
+                const baseMaxHeight = 140; // max height of baseline bar
                 const today = new Date();
 
                 const getMonthLabel = (m: number) => {
@@ -984,10 +1024,14 @@ export const CostPage: React.FC<CostPageProps> = ({
                       scrollbarColor: 'rgba(255,255,255,0.1) transparent'
                     }}>
                       {monthsArray.map((m) => {
-                        const baselineVal = Math.round(forecastData.monthlyBaselineRunRate * m);
-                        const optimizedVal = Math.round((forecastData.monthlyBaselineRunRate - forecastData.monthlySavings) * m);
-                        const baselineHeight = Math.max(15, (baselineVal / maxBaseline) * baseMaxHeight);
-                        const optimizedHeight = Math.max(15, (optimizedVal / maxBaseline) * baseMaxHeight);
+                        const baselineVal = isCumulative 
+                          ? Math.round(forecastData.monthlyBaselineRunRate * m)
+                          : Math.round(forecastData.monthlyBaselineRunRate);
+                        const optimizedVal = isCumulative
+                          ? Math.round((forecastData.monthlyBaselineRunRate - forecastData.monthlySavings) * m)
+                          : Math.round(forecastData.monthlyBaselineRunRate - forecastData.monthlySavings);
+                        const baselineHeight = Math.max(15, (baselineVal / maxVal) * baseMaxHeight);
+                        const optimizedHeight = Math.max(15, (optimizedVal / maxVal) * baseMaxHeight);
 
                         return (
                           <div key={m} style={{
