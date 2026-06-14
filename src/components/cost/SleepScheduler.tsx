@@ -41,15 +41,13 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [savingsEstimate, setSavingsEstimate] = useState(84.50);
 
-  const [isAppsExpanded, setIsAppsExpanded] = useState(false);
-  const [isHoursExpanded, setIsHoursExpanded] = useState(false);
+  const [expandedSection, setExpandedSection] = useState<'apps' | 'hours' | null>(null);
 
   const isLight = theme === 'light';
 
   // Collapse accordions when schedule selection changes
   useEffect(() => {
-    setIsAppsExpanded(false);
-    setIsHoursExpanded(false);
+    setExpandedSection(null);
   }, [selectedScheduleId]);
 
   // Normalize backend policy format to modern multi-schedule rules representation
@@ -478,7 +476,7 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
               Active Policies
             </h4>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', maxHeight: '420px', flex: 1, paddingRight: '4px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', flex: '1 1 0%', paddingRight: '4px', minHeight: 0 }}>
               {rules.schedules.map(s => {
                 const isSelected = selectedScheduleId === s.id;
                 const activeDaysCount = daysLabel.filter(d => (s[d.key] as DaySchedule).enabled).length;
@@ -559,7 +557,7 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
         {/* Right Column: Schedule detail editor */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
           {activeSchedule ? (
-            <div className="glass-panel" style={{ padding: '24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div className="glass-panel" style={{ padding: '24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
               
               {/* Policy Name Edit */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -587,7 +585,7 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
               {/* Enrolled Applications Accordion */}
               <div style={{ borderTop: '1px solid var(--divider)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div 
-                  onClick={() => setIsAppsExpanded(!isAppsExpanded)}
+                  onClick={() => setExpandedSection(expandedSection === 'apps' ? null : 'apps')}
                   className="accordion-header"
                 >
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -595,7 +593,7 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
                       <ShieldCheck size={14} style={{ color: 'var(--success)' }} />
                       Policy Enrolled Applications
                     </h5>
-                    {!isAppsExpanded && (
+                    {expandedSection !== 'apps' && (
                       <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
                         {activeSchedule.selectedApps.length > 0 
                           ? `Enrolled: ${activeSchedule.selectedApps.join(', ')} (${activeSchedule.selectedApps.length} apps)`
@@ -604,11 +602,11 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
                     )}
                   </div>
                   <div style={{ color: 'var(--text-secondary)' }}>
-                    {isAppsExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    {expandedSection === 'apps' ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </div>
                 </div>
 
-                {isAppsExpanded && (
+                {expandedSection === 'apps' && (
                   <div className="accordion-content" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--text-muted)' }}>
                       Select which applications are managed specifically by this operational hours policy.
@@ -681,7 +679,7 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
               {/* Operational Hours Accordion */}
               <div style={{ borderTop: '1px solid var(--divider)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div 
-                  onClick={() => setIsHoursExpanded(!isHoursExpanded)}
+                  onClick={() => setExpandedSection(expandedSection === 'hours' ? null : 'hours')}
                   className="accordion-header"
                 >
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -689,7 +687,7 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
                       <Clock size={14} style={{ color: 'var(--accent-purple)' }} />
                       Operational Hours Ranges
                     </h5>
-                    {!isHoursExpanded && (
+                    {expandedSection !== 'hours' && (
                       <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
                         {(() => {
                           const activeDays = daysLabel.filter(d => (activeSchedule[d.key] as DaySchedule).enabled);
@@ -705,11 +703,11 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
                     )}
                   </div>
                   <div style={{ color: 'var(--text-secondary)' }}>
-                    {isHoursExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    {expandedSection === 'hours' ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </div>
                 </div>
 
-                {isHoursExpanded && (
+                {expandedSection === 'hours' && (
                   <div className="accordion-content" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {daysLabel.map((dayObj) => {
                       const dayRule = activeSchedule[dayObj.key] as DaySchedule;
@@ -800,7 +798,7 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
 
             </div>
           ) : (
-            <div className="glass-panel" style={{ padding: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', minHeight: '300px' }}>
+            <div className="glass-panel" style={{ padding: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)', minHeight: '300px', flex: 1 }}>
               No sleep policy selected. Click "+ Add Policy Range" on the sidebar to get started.
             </div>
           )}
