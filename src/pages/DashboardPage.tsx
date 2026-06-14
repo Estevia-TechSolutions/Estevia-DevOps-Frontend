@@ -976,60 +976,113 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                             {/* Blue-Green routing switch for ACA & CNAME swap config for SWA */}
                             {item.type !== 'vm' && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(255,255,255,0.02)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--glass-border)' }}>
-                                <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-secondary)' }}>B/G Mode:</span>
-                                <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '28px', height: '16px' }}>
-                                  <input 
-                                    type="checkbox" 
-                                    checked={item.type === 'backend' ? (bgModeState[item.name] === 'Multiple' || item.status === 'multiple') : false}
-                                    onChange={async (e) => {
-                                      e.stopPropagation();
-                                      if (item.type === 'backend') {
-                                        const newMode = e.target.checked ? 'Multiple' : 'Single';
-                                        await handleToggleRevisionMode(item.name, newMode);
-                                      } else {
-                                        // SWA: open DNS swap drawer directly
+                              item.type === 'backend' ? (
+                                <div style={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  gap: '6px', 
+                                  backgroundColor: 'rgba(255,255,255,0.02)', 
+                                  padding: '3px 6px', 
+                                  borderRadius: '8px', 
+                                  border: '1px solid var(--glass-border)' 
+                                }}>
+                                  <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', padding: '0 4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>B/G Mode:</span>
+                                  <div style={{ display: 'flex', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', padding: '2px' }}>
+                                    <button
+                                      type="button"
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        await handleToggleRevisionMode(item.name, 'Single');
+                                      }}
+                                      style={{
+                                        padding: '4px 10px',
+                                        fontSize: '0.66rem',
+                                        fontWeight: 700,
+                                        borderRadius: '4px',
+                                        border: 'none',
+                                        backgroundColor: (bgModeState[item.name] !== 'Multiple' && item.status !== 'multiple') ? 'var(--accent-purple, #8b5cf6)' : 'transparent',
+                                        color: (bgModeState[item.name] !== 'Multiple' && item.status !== 'multiple') ? '#fff' : 'var(--text-secondary)',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease'
+                                      }}
+                                    >
+                                      Single
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        await handleToggleRevisionMode(item.name, 'Multiple');
                                         setBgDrawerApp(item);
                                         fetchRevisions(item);
-                                      }
+                                      }}
+                                      style={{
+                                        padding: '4px 10px',
+                                        fontSize: '0.66rem',
+                                        fontWeight: 700,
+                                        borderRadius: '4px',
+                                        border: 'none',
+                                        backgroundColor: (bgModeState[item.name] === 'Multiple' || item.status === 'multiple') ? 'var(--accent-purple, #8b5cf6)' : 'transparent',
+                                        color: (bgModeState[item.name] === 'Multiple' || item.status === 'multiple') ? '#fff' : 'var(--text-secondary)',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease'
+                                      }}
+                                    >
+                                      Multi
+                                    </button>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className="btn-secondary"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setBgDrawerApp(item);
+                                      fetchRevisions(item);
                                     }}
-                                    style={{ opacity: 0, width: 0, height: 0, cursor: 'pointer' }}
-                                  />
-                                  <span className="slider round" style={{
-                                    position: 'absolute',
-                                    cursor: 'pointer',
-                                    top: 0, left: 0, right: 0, bottom: 0,
-                                    backgroundColor: (item.type === 'backend' && (bgModeState[item.name] === 'Multiple' || item.status === 'multiple')) ? 'var(--accent-purple)' : 'rgba(255,255,255,0.1)',
-                                    transition: '0.3s',
-                                    borderRadius: '34px'
-                                  }}>
-                                    <span style={{
-                                      position: 'absolute',
-                                      content: '""',
-                                      height: '10px',
-                                      width: '10px',
-                                      left: (item.type === 'backend' && (bgModeState[item.name] === 'Multiple' || item.status === 'multiple')) ? '15px' : '3px',
-                                      bottom: '3px',
-                                      backgroundColor: 'white',
-                                      transition: '0.3s',
-                                      borderRadius: '50%'
-                                    }} />
-                                  </span>
-                                </label>
+                                    style={{
+                                      width: '24px',
+                                      height: '24px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      borderRadius: '6px',
+                                      padding: 0,
+                                      border: 'none',
+                                      background: 'rgba(255, 255, 255, 0.04)',
+                                      cursor: 'pointer'
+                                    }}
+                                    title="Configure Traffic Split"
+                                  >
+                                    <Sliders size={11} style={{ color: 'var(--accent-purple)' }} />
+                                  </button>
+                                </div>
+                              ) : (
                                 <button
                                   type="button"
-                                  className="btn-secondary"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setBgDrawerApp(item);
                                     fetchRevisions(item);
                                   }}
-                                  style={{ padding: '2px 6px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: '3px', border: 'none', background: 'none' }}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    padding: '5px 12px',
+                                    fontSize: '0.7rem',
+                                    borderRadius: '8px',
+                                    fontWeight: 700,
+                                    backgroundColor: 'rgba(139, 92, 246, 0.08)',
+                                    border: '1px solid rgba(139, 92, 246, 0.2)',
+                                    color: 'var(--accent-purple, #8b5cf6)',
+                                    transition: 'all 0.2s ease',
+                                    cursor: 'pointer'
+                                  }}
                                 >
-                                  <Sliders size={10} style={{ color: 'var(--accent-purple)' }} />
-                                  <span style={{ color: 'var(--text-secondary)' }}>Configure</span>
+                                  <GitCompare size={12} />
+                                  Configure B/G Swap
                                 </button>
-                              </div>
+                              )
                             )}
 
                             {/* Direct Power controls */}
@@ -1043,145 +1096,163 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               const isStopped = s === 'stopped' || s === 'sleep' || s === 'offline';
 
                               return (
-                                 <div style={{ display: 'flex', gap: '4px', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.02)', padding: '4px 6px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
-                                   {/* Start */}
-                                   {isCritical ? (
-                                     <button
-                                       type="button"
-                                       disabled={true}
-                                       style={{ 
-                                         border: '1px solid rgba(239, 68, 68, 0.15)',
-                                         borderRadius: '4px',
-                                         padding: '4px 8px', 
-                                         fontSize: '0.7rem', 
-                                         display: 'flex', 
-                                         alignItems: 'center', 
-                                         gap: '4px',
-                                         color: 'var(--text-muted, #94a3b8)',
-                                         cursor: 'not-allowed',
-                                         backgroundColor: 'rgba(239, 68, 68, 0.02)'
-                                       }}
-                                       title="Start action locked on critical platform infrastructure."
-                                     >
-                                       <Lock size={10} style={{ color: '#ef4444' }} />
-                                       <span>Start</span>
-                                     </button>
-                                   ) : (
-                                     <button
-                                       type="button"
-                                       onClick={(e) => { e.stopPropagation(); onResourceControl?.(item.name, 'start'); }}
-                                       disabled={isViewer || isControlling || isStarted}
-                                       style={{ 
-                                         background: isStarted ? 'transparent' : 'rgba(16, 185, 129, 0.08)',
-                                         border: `1px solid ${isStarted ? 'transparent' : 'rgba(16, 185, 129, 0.2)'}`,
-                                         borderRadius: '4px',
-                                         padding: '4px 8px', 
-                                         fontSize: '0.7rem', 
-                                         display: 'flex', 
-                                         alignItems: 'center', 
-                                         gap: '4px',
-                                         color: isStarted ? 'var(--text-muted)' : '#10b981',
-                                         cursor: isStarted ? 'not-allowed' : 'pointer'
-                                       }}
-                                       title="Start Resource"
-                                     >
-                                       <Play size={10} fill={isStarted ? 'none' : 'currentColor'} />
-                                       <span>Start</span>
-                                     </button>
-                                   )}
+                                <div style={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  backgroundColor: 'rgba(0,0,0,0.25)', 
+                                  padding: '3px', 
+                                  borderRadius: '8px', 
+                                  border: '1px solid var(--glass-border)' 
+                                }}>
+                                  {/* Start Segment */}
+                                  {isCritical ? (
+                                    <button
+                                      type="button"
+                                      disabled={true}
+                                      style={{
+                                        border: 'none',
+                                        background: 'transparent',
+                                        color: 'var(--text-muted, #64748b)',
+                                        opacity: 0.5,
+                                        padding: '5px 10px',
+                                        fontSize: '0.68rem',
+                                        fontWeight: 700,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        cursor: 'not-allowed'
+                                      }}
+                                      title="Start locked on system apps."
+                                    >
+                                      <Lock size={10} />
+                                      <span>Start</span>
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); onResourceControl?.(item.name, 'start'); }}
+                                      disabled={isViewer || isControlling || isStarted}
+                                      style={{
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        backgroundColor: isStarted ? '#10b981' : 'transparent',
+                                        color: isStarted ? '#fff' : 'var(--text-secondary)',
+                                        padding: '5px 10px',
+                                        fontSize: '0.68rem',
+                                        fontWeight: 700,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        cursor: (isViewer || isControlling || isStarted) ? 'not-allowed' : 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        boxShadow: isStarted ? '0 2px 6px rgba(16,185,129,0.3)' : 'none'
+                                      }}
+                                      title="Start Resource"
+                                    >
+                                      <Play size={10} fill={isStarted ? '#fff' : 'none'} />
+                                      <span>Start</span>
+                                    </button>
+                                  )}
 
-                                   {/* Stop */}
-                                   {isCritical ? (
-                                     <button
-                                       type="button"
-                                       disabled={true}
-                                       style={{ 
-                                         border: '1px solid rgba(239, 68, 68, 0.25)',
-                                         borderRadius: '4px',
-                                         padding: '4px 8px', 
-                                         fontSize: '0.7rem', 
-                                         display: 'flex', 
-                                         alignItems: 'center', 
-                                         gap: '4px',
-                                         color: '#ef4444',
-                                         cursor: 'not-allowed',
-                                         backgroundColor: 'rgba(239, 68, 68, 0.08)'
-                                       }}
-                                       title="Stop action blocked on critical platform infrastructure."
-                                     >
-                                       <Lock size={10} style={{ color: '#ef4444' }} />
-                                       <span style={{ fontWeight: 600 }}>Locked</span>
-                                     </button>
-                                   ) : (
-                                     <button
-                                       type="button"
-                                       onClick={(e) => { e.stopPropagation(); onResourceControl?.(item.name, 'stop'); }}
-                                       disabled={isViewer || isControlling || isStopped}
-                                       style={{ 
-                                         background: isStopped ? 'transparent' : 'rgba(239, 68, 68, 0.08)',
-                                         border: `1px solid ${isStopped ? 'transparent' : 'rgba(239, 68, 68, 0.2)'}`,
-                                         borderRadius: '4px',
-                                         padding: '4px 8px', 
-                                         fontSize: '0.7rem', 
-                                         display: 'flex', 
-                                         alignItems: 'center', 
-                                         gap: '4px',
-                                         color: isStopped ? 'var(--text-muted)' : '#ef4444',
-                                         cursor: isStopped ? 'not-allowed' : 'pointer'
-                                       }}
-                                       title="Stop Resource"
-                                     >
-                                       <Square size={10} fill={isStopped ? 'none' : 'currentColor'} />
-                                       <span>Stop</span>
-                                     </button>
-                                   )}
+                                  {/* Restart Segment */}
+                                  {isCritical ? (
+                                    <button
+                                      type="button"
+                                      disabled={true}
+                                      style={{
+                                        border: 'none',
+                                        background: 'transparent',
+                                        color: 'var(--text-muted, #64748b)',
+                                        opacity: 0.5,
+                                        padding: '5px 10px',
+                                        fontSize: '0.68rem',
+                                        fontWeight: 700,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        cursor: 'not-allowed'
+                                      }}
+                                      title="Restart locked on system apps."
+                                    >
+                                      <Lock size={10} />
+                                      <span>Restart</span>
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); onResourceControl?.(item.name, 'restart'); }}
+                                      disabled={isViewer || isControlling || isStopped}
+                                      style={{
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        backgroundColor: isControlling ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+                                        color: isControlling ? '#3b82f6' : 'var(--text-secondary)',
+                                        padding: '5px 10px',
+                                        fontSize: '0.68rem',
+                                        fontWeight: 700,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        cursor: (isViewer || isControlling || isStopped) ? 'not-allowed' : 'pointer',
+                                        transition: 'all 0.2s ease'
+                                      }}
+                                      title="Restart Resource"
+                                    >
+                                      <RefreshCw size={10} className={isControlling ? 'spin-anim' : ''} />
+                                      <span>Restart</span>
+                                    </button>
+                                  )}
 
-                                   {/* Restart */}
-                                   {isCritical ? (
-                                     <button
-                                       type="button"
-                                       disabled={true}
-                                       style={{ 
-                                         border: '1px solid rgba(239, 68, 68, 0.15)',
-                                         borderRadius: '4px',
-                                         padding: '4px 8px', 
-                                         fontSize: '0.7rem', 
-                                         display: 'flex', 
-                                         alignItems: 'center', 
-                                         gap: '4px',
-                                         color: 'var(--text-muted, #94a3b8)',
-                                         cursor: 'not-allowed',
-                                         backgroundColor: 'rgba(239, 68, 68, 0.02)'
-                                       }}
-                                       title="Restart action locked on critical platform infrastructure."
-                                     >
-                                       <Lock size={10} style={{ color: '#ef4444' }} />
-                                       <span>Restart</span>
-                                     </button>
-                                   ) : (
-                                     <button
-                                       type="button"
-                                       onClick={(e) => { e.stopPropagation(); onResourceControl?.(item.name, 'restart'); }}
-                                       disabled={isViewer || isControlling}
-                                       style={{ 
-                                         background: 'rgba(59, 130, 246, 0.08)',
-                                         border: '1px solid rgba(59, 130, 246, 0.2)',
-                                         borderRadius: '4px',
-                                         padding: '4px 8px', 
-                                         fontSize: '0.7rem', 
-                                         display: 'flex', 
-                                         alignItems: 'center', 
-                                         gap: '4px',
-                                         color: '#3b82f6',
-                                         cursor: 'pointer'
-                                       }}
-                                       title="Restart Resource"
-                                     >
-                                       <RefreshCw size={10} className={isControlling ? 'spin-anim' : ''} />
-                                       <span>Restart</span>
-                                     </button>
-                                   )}
-                                 </div>
+                                  {/* Stop Segment */}
+                                  {isCritical ? (
+                                    <button
+                                      type="button"
+                                      disabled={true}
+                                      style={{
+                                        border: 'none',
+                                        background: 'transparent',
+                                        color: 'var(--text-muted, #64748b)',
+                                        opacity: 0.5,
+                                        padding: '5px 10px',
+                                        fontSize: '0.68rem',
+                                        fontWeight: 700,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        cursor: 'not-allowed'
+                                      }}
+                                      title="Stop locked on system apps."
+                                    >
+                                      <Lock size={10} />
+                                      <span>Stop</span>
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); onResourceControl?.(item.name, 'stop'); }}
+                                      disabled={isViewer || isControlling || isStopped}
+                                      style={{
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        backgroundColor: isStopped ? '#ef4444' : 'transparent',
+                                        color: isStopped ? '#fff' : 'var(--text-secondary)',
+                                        padding: '5px 10px',
+                                        fontSize: '0.68rem',
+                                        fontWeight: 700,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        cursor: (isViewer || isControlling || isStopped) ? 'not-allowed' : 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        boxShadow: isStopped ? '0 2px 6px rgba(239,68,68,0.3)' : 'none'
+                                      }}
+                                      title="Stop Resource"
+                                    >
+                                      <Square size={10} fill={isStopped ? '#fff' : 'none'} />
+                                      <span>Stop</span>
+                                    </button>
+                                  )}
+                                </div>
                               );
                             })()}
 
