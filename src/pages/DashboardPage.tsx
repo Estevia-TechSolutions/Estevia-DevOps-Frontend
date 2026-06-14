@@ -171,6 +171,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   // Secondary actions dropdown state
   const [activeDropdown, setActiveDropdown] = React.useState<string | null>(null);
+  const [dropdownCoords, setDropdownCoords] = React.useState<{top: number; left: number} | null>(null);
+  // Power controls dropdown state
+  const [activePowerDropdown, setActivePowerDropdown] = React.useState<string | null>(null);
+  const [powerDropdownCoords, setPowerDropdownCoords] = React.useState<{top: number; left: number} | null>(null);
 
   // Blue-Green Drawer state
   const [bgDrawerApp, setBgDrawerApp] = React.useState<AppResource | null>(null);
@@ -990,6 +994,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                   <div style={{ display: 'flex', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', padding: '2px' }}>
                                     <button
                                       type="button"
+                                      disabled={isViewer}
                                       onClick={async (e) => {
                                         e.stopPropagation();
                                         await handleToggleRevisionMode(item.name, 'Single');
@@ -1000,9 +1005,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                         fontWeight: 700,
                                         borderRadius: '4px',
                                         border: 'none',
-                                        backgroundColor: (bgModeState[item.name] !== 'Multiple' && item.status !== 'multiple') ? 'var(--accent-purple, #8b5cf6)' : 'transparent',
-                                        color: (bgModeState[item.name] !== 'Multiple' && item.status !== 'multiple') ? '#fff' : 'var(--text-secondary)',
-                                        cursor: 'pointer',
+                                        backgroundColor: isViewer ? 'transparent' : (bgModeState[item.name] !== 'Multiple' && item.status !== 'multiple') ? 'var(--accent-purple, #8b5cf6)' : 'transparent',
+                                        color: isViewer ? 'rgba(255,255,255,0.35)' : (bgModeState[item.name] !== 'Multiple' && item.status !== 'multiple') ? '#fff' : 'var(--text-secondary)',
+                                        cursor: isViewer ? 'not-allowed' : 'pointer',
+                                        opacity: isViewer ? 0.35 : 1,
                                         transition: 'all 0.2s ease'
                                       }}
                                     >
@@ -1010,6 +1016,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                     </button>
                                     <button
                                       type="button"
+                                      disabled={isViewer}
                                       onClick={async (e) => {
                                         e.stopPropagation();
                                         await handleToggleRevisionMode(item.name, 'Multiple');
@@ -1022,9 +1029,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                         fontWeight: 700,
                                         borderRadius: '4px',
                                         border: 'none',
-                                        backgroundColor: (bgModeState[item.name] === 'Multiple' || item.status === 'multiple') ? 'var(--accent-purple, #8b5cf6)' : 'transparent',
-                                        color: (bgModeState[item.name] === 'Multiple' || item.status === 'multiple') ? '#fff' : 'var(--text-secondary)',
-                                        cursor: 'pointer',
+                                        backgroundColor: isViewer ? 'transparent' : (bgModeState[item.name] === 'Multiple' || item.status === 'multiple') ? 'var(--accent-purple, #8b5cf6)' : 'transparent',
+                                        color: isViewer ? 'rgba(255,255,255,0.35)' : (bgModeState[item.name] === 'Multiple' || item.status === 'multiple') ? '#fff' : 'var(--text-secondary)',
+                                        cursor: isViewer ? 'not-allowed' : 'pointer',
+                                        opacity: isViewer ? 0.35 : 1,
                                         transition: 'all 0.2s ease'
                                       }}
                                     >
@@ -1085,172 +1093,188 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               )
                             )}
 
-                            {/* Direct Power controls */}
+                            {/* Power Controls — Status Dropdown */}
                             {(() => {
-                              const isCritical = item.name.toLowerCase().includes('evaops') || 
-                                                 item.name.toLowerCase().includes('devops-backend') || 
+                              const isCritical = item.name.toLowerCase().includes('evaops') ||
+                                                 item.name.toLowerCase().includes('devops-backend') ||
                                                  item.name.toLowerCase().includes('devops-frontend');
                               const isControlling = controllingResource === item.name;
                               const s = (item.status || '').toLowerCase();
                               const isStarted = s === 'running' || s === 'deployed';
                               const isStopped = s === 'stopped' || s === 'sleep' || s === 'offline';
+                              const isOpen = activePowerDropdown === item.name;
+                              const isDisabled = isViewer || isControlling;
+
+                              // Derive button appearance from runtime state
+                              let btnBg = 'rgba(255,255,255,0.02)';
+                              let btnColor = 'var(--text-secondary)';
+                              let btnBorder = 'var(--glass-border, rgba(255,255,255,0.08))';
+                              let btnText = 'Unknown';
+                              let btnIcon = <Square size={10} />;
+
+                              if (isControlling) {
+                                btnBg = 'rgba(59,130,246,0.08)'; btnColor = '#3b82f6';
+                                btnBorder = 'rgba(59,130,246,0.2)'; btnText = 'Updating…';
+                                btnIcon = <RefreshCw size={10} className="spin-anim" />;
+                              } else if (isStarted) {
+                                btnBg = 'rgba(16,185,129,0.08)'; btnColor = '#10b981';
+                                btnBorder = 'rgba(16,185,129,0.2)'; btnText = 'Running';
+                                btnIcon = <Play size={10} fill="#10b981" />;
+                              } else if (isStopped) {
+                                btnBg = 'rgba(239,68,68,0.08)'; btnColor = '#ef4444';
+                                btnBorder = 'rgba(239,68,68,0.2)'; btnText = 'Stopped';
+                                btnIcon = <Square size={10} fill="#ef4444" />;
+                              }
+
+                              // Per-action disabled flags
+                              const startDis  = isViewer || isControlling || isStarted  || isCritical;
+                              const restartDis = isViewer || isControlling || isStopped  || isCritical;
+                              const stopDis   = isViewer || isControlling || isStopped  || isCritical;
 
                               return (
-                                <div style={{ 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  backgroundColor: 'rgba(0,0,0,0.25)', 
-                                  padding: '3px', 
-                                  borderRadius: '8px', 
-                                  border: '1px solid var(--glass-border)' 
-                                }}>
-                                  {/* Start Segment */}
-                                  {isCritical ? (
-                                    <button
-                                      type="button"
-                                      disabled={true}
-                                      style={{
-                                        border: 'none',
-                                        background: 'transparent',
-                                        color: 'var(--text-muted, #64748b)',
-                                        opacity: 0.5,
-                                        padding: '5px 10px',
-                                        fontSize: '0.68rem',
-                                        fontWeight: 700,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        cursor: 'not-allowed'
-                                      }}
-                                      title="Start locked on system apps."
-                                    >
-                                      <Lock size={10} />
-                                      <span>Start</span>
-                                    </button>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => { e.stopPropagation(); onResourceControl?.(item.name, 'start'); }}
-                                      disabled={isViewer || isControlling || isStarted}
-                                      style={{
-                                        border: 'none',
-                                        borderRadius: '6px',
-                                        backgroundColor: isStarted ? '#10b981' : 'transparent',
-                                        color: isStarted ? '#fff' : 'var(--text-secondary)',
-                                        padding: '5px 10px',
-                                        fontSize: '0.68rem',
-                                        fontWeight: 700,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        cursor: (isViewer || isControlling || isStarted) ? 'not-allowed' : 'pointer',
-                                        transition: 'all 0.2s ease',
-                                        boxShadow: isStarted ? '0 2px 6px rgba(16,185,129,0.3)' : 'none'
-                                      }}
-                                      title="Start Resource"
-                                    >
-                                      <Play size={10} fill={isStarted ? '#fff' : 'none'} />
-                                      <span>Start</span>
-                                    </button>
-                                  )}
+                                <div style={{ position: 'relative' }}>
+                                  {/* Trigger button */}
+                                  <button
+                                    type="button"
+                                    disabled={isDisabled}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (isOpen) {
+                                        setActivePowerDropdown(null);
+                                        setPowerDropdownCoords(null);
+                                      } else {
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        setPowerDropdownCoords({ top: rect.bottom + 6, left: rect.right - 130 });
+                                        setActivePowerDropdown(item.name);
+                                      }
+                                    }}
+                                    style={{
+                                      display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                      padding: '6px 12px', borderRadius: '8px',
+                                      backgroundColor: isViewer ? 'rgba(255,255,255,0.01)' : btnBg,
+                                      color: isViewer ? 'rgba(255,255,255,0.35)' : btnColor,
+                                      border: isViewer ? '1px dashed var(--glass-border)' : `1px solid ${btnBorder}`,
+                                      fontSize: '0.72rem', fontWeight: 700,
+                                      cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                      transition: 'all 0.2s ease',
+                                      opacity: isViewer ? 0.35 : 1
+                                    }}
+                                  >
+                                    {btnIcon}
+                                    <span>{btnText}</span>
+                                    <ChevronDown size={12} style={{ opacity: isDisabled ? 0.35 : 0.7 }} />
+                                  </button>
 
-                                  {/* Restart Segment */}
-                                  {isCritical ? (
-                                    <button
-                                      type="button"
-                                      disabled={true}
-                                      style={{
-                                        border: 'none',
-                                        background: 'transparent',
-                                        color: 'var(--text-muted, #64748b)',
-                                        opacity: 0.5,
-                                        padding: '5px 10px',
-                                        fontSize: '0.68rem',
-                                        fontWeight: 700,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        cursor: 'not-allowed'
-                                      }}
-                                      title="Restart locked on system apps."
-                                    >
-                                      <Lock size={10} />
-                                      <span>Restart</span>
-                                    </button>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => { e.stopPropagation(); onResourceControl?.(item.name, 'restart'); }}
-                                      disabled={isViewer || isControlling || isStopped}
-                                      style={{
-                                        border: 'none',
-                                        borderRadius: '6px',
-                                        backgroundColor: isControlling ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
-                                        color: isControlling ? '#3b82f6' : 'var(--text-secondary)',
-                                        padding: '5px 10px',
-                                        fontSize: '0.68rem',
-                                        fontWeight: 700,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        cursor: (isViewer || isControlling || isStopped) ? 'not-allowed' : 'pointer',
-                                        transition: 'all 0.2s ease'
-                                      }}
-                                      title="Restart Resource"
-                                    >
-                                      <RefreshCw size={10} className={isControlling ? 'spin-anim' : ''} />
-                                      <span>Restart</span>
-                                    </button>
-                                  )}
+                                  {/* Dropdown menu */}
+                                  {isOpen && powerDropdownCoords && (
+                                    <>
+                                      {/* Backdrop to close on outside click */}
+                                      <div
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setActivePowerDropdown(null);
+                                          setPowerDropdownCoords(null);
+                                        }}
+                                        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998, cursor: 'default' }}
+                                      />
+                                      <div style={{
+                                        position: 'fixed',
+                                        top: powerDropdownCoords.top,
+                                        left: Math.max(8, powerDropdownCoords.left),
+                                        backgroundColor: 'var(--bg-secondary, #0f172a)',
+                                        border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
+                                        borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                                        zIndex: 9999, minWidth: '130px',
+                                        display: 'flex', flexDirection: 'column',
+                                        padding: '4px 0', overflow: 'hidden'
+                                      }}>
+                                        {/* Start */}
+                                        <button
+                                          type="button"
+                                          disabled={startDis}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            onResourceControl?.(item.name, 'start');
+                                            setActivePowerDropdown(null);
+                                            setPowerDropdownCoords(null);
+                                          }}
+                                          onMouseEnter={(e) => { if (!startDis) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
+                                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                          style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                            padding: '8px 14px', fontSize: '0.75rem',
+                                            background: 'none', border: 'none', width: '100%', textAlign: 'left',
+                                            color: startDis ? 'rgba(255,255,255,0.25)' : 'var(--text-primary)',
+                                            cursor: startDis ? 'not-allowed' : 'pointer',
+                                            opacity: startDis ? 0.35 : 1
+                                          }}
+                                        >
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Play size={12} style={{ color: startDis ? 'rgba(255,255,255,0.25)' : '#10b981' }}
+                                              fill={startDis ? 'none' : '#10b981'} />
+                                            <span>Start</span>
+                                          </div>
+                                          {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
+                                        </button>
 
-                                  {/* Stop Segment */}
-                                  {isCritical ? (
-                                    <button
-                                      type="button"
-                                      disabled={true}
-                                      style={{
-                                        border: 'none',
-                                        background: 'transparent',
-                                        color: 'var(--text-muted, #64748b)',
-                                        opacity: 0.5,
-                                        padding: '5px 10px',
-                                        fontSize: '0.68rem',
-                                        fontWeight: 700,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        cursor: 'not-allowed'
-                                      }}
-                                      title="Stop locked on system apps."
-                                    >
-                                      <Lock size={10} />
-                                      <span>Stop</span>
-                                    </button>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => { e.stopPropagation(); onResourceControl?.(item.name, 'stop'); }}
-                                      disabled={isViewer || isControlling || isStopped}
-                                      style={{
-                                        border: 'none',
-                                        borderRadius: '6px',
-                                        backgroundColor: isStopped ? '#ef4444' : 'transparent',
-                                        color: isStopped ? '#fff' : 'var(--text-secondary)',
-                                        padding: '5px 10px',
-                                        fontSize: '0.68rem',
-                                        fontWeight: 700,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        cursor: (isViewer || isControlling || isStopped) ? 'not-allowed' : 'pointer',
-                                        transition: 'all 0.2s ease',
-                                        boxShadow: isStopped ? '0 2px 6px rgba(239,68,68,0.3)' : 'none'
-                                      }}
-                                      title="Stop Resource"
-                                    >
-                                      <Square size={10} fill={isStopped ? '#fff' : 'none'} />
-                                      <span>Stop</span>
-                                    </button>
+                                        {/* Restart */}
+                                        <button
+                                          type="button"
+                                          disabled={restartDis}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            onResourceControl?.(item.name, 'restart');
+                                            setActivePowerDropdown(null);
+                                            setPowerDropdownCoords(null);
+                                          }}
+                                          onMouseEnter={(e) => { if (!restartDis) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
+                                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                          style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                            padding: '8px 14px', fontSize: '0.75rem',
+                                            background: 'none', border: 'none', width: '100%', textAlign: 'left',
+                                            color: restartDis ? 'rgba(255,255,255,0.25)' : 'var(--text-primary)',
+                                            cursor: restartDis ? 'not-allowed' : 'pointer',
+                                            opacity: restartDis ? 0.35 : 1
+                                          }}
+                                        >
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <RefreshCw size={12} style={{ color: restartDis ? 'rgba(255,255,255,0.25)' : '#3b82f6' }} />
+                                            <span>Restart</span>
+                                          </div>
+                                          {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
+                                        </button>
+
+                                        {/* Stop */}
+                                        <button
+                                          type="button"
+                                          disabled={stopDis}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            onResourceControl?.(item.name, 'stop');
+                                            setActivePowerDropdown(null);
+                                            setPowerDropdownCoords(null);
+                                          }}
+                                          onMouseEnter={(e) => { if (!stopDis) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
+                                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                          style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                            padding: '8px 14px', fontSize: '0.75rem',
+                                            background: 'none', border: 'none', width: '100%', textAlign: 'left',
+                                            color: stopDis ? 'rgba(255,255,255,0.25)' : 'var(--text-primary)',
+                                            cursor: stopDis ? 'not-allowed' : 'pointer',
+                                            opacity: stopDis ? 0.35 : 1
+                                          }}
+                                        >
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Square size={12} style={{ color: stopDis ? 'rgba(255,255,255,0.25)' : '#ef4444' }}
+                                              fill={stopDis ? 'none' : '#ef4444'} />
+                                            <span>Stop</span>
+                                          </div>
+                                          {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
+                                        </button>
+                                      </div>
+                                    </>
                                   )}
                                 </div>
                               );
@@ -1263,7 +1287,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 className="btn-secondary"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setActiveDropdown(activeDropdown === item.name ? null : item.name);
+                                  if (activeDropdown === item.name) {
+                                    setActiveDropdown(null);
+                                    setDropdownCoords(null);
+                                  } else {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setDropdownCoords({ top: rect.bottom + 6, left: rect.right - 170 });
+                                    setActiveDropdown(item.name);
+                                  }
                                 }}
                                 style={{ padding: '6px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
                                 title="Operations & Actions"
@@ -1271,22 +1302,21 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 <MoreVertical size={14} />
                               </button>
                               
-                              {activeDropdown === item.name && (
+                              {activeDropdown === item.name && dropdownCoords && (
                                 <>
                                   <div 
-                                    onClick={(e) => { e.stopPropagation(); setActiveDropdown(null); }}
+                                    onClick={(e) => { e.stopPropagation(); setActiveDropdown(null); setDropdownCoords(null); }}
                                     style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998, cursor: 'default' }}
                                   />
                                   <div style={{
-                                    position: 'absolute',
-                                    top: '100%',
-                                    right: 0,
-                                    marginTop: '6px',
+                                    position: 'fixed',
+                                    top: dropdownCoords.top,
+                                    left: Math.max(8, dropdownCoords.left),
                                     backgroundColor: 'var(--bg-secondary, #0f172a)',
                                     border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
                                     borderRadius: '8px',
                                     boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-                                    zIndex: 999,
+                                    zIndex: 9999,
                                     minWidth: '170px',
                                     display: 'flex',
                                     flexDirection: 'column',
@@ -1295,7 +1325,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                   }}>
                                     <button 
                                       type="button"
-                                      onClick={(e) => { e.stopPropagation(); openDnsModal(item); setActiveDropdown(null); }}
+                                      onClick={(e) => { e.stopPropagation(); openDnsModal(item); setActiveDropdown(null); setDropdownCoords(null); }}
                                       style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: 'pointer' }}
                                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
                                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -1339,11 +1369,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                          type="button"
                                          disabled={isViewer}
                                          onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); setActiveDropdown(null); }}
-                                         style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: isViewer ? 'var(--text-muted)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: isViewer ? 'not-allowed' : 'pointer', opacity: isViewer ? 0.6 : 1 }}
+                                         style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: isViewer ? 'not-allowed' : 'pointer', opacity: isViewer ? 0.35 : 1 }}
                                          onMouseEnter={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
                                          onMouseLeave={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'transparent'; }}
                                        >
-                                         <PlusCircle size={12} style={{ color: 'var(--accent-purple)' }} />
+                                         <PlusCircle size={12} style={{ color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--accent-purple)' }} />
                                          <span>Setup CI/CD</span>
                                        </button>
                                     )}
@@ -1366,11 +1396,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                         type="button"
                                         disabled={isViewer}
                                         onClick={(e) => { e.stopPropagation(); onCloneApp(item); setActiveDropdown(null); }}
-                                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: isViewer ? 'var(--text-muted)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: isViewer ? 'not-allowed' : 'pointer', opacity: isViewer ? 0.6 : 1 }}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: isViewer ? 'not-allowed' : 'pointer', opacity: isViewer ? 0.35 : 1 }}
                                         onMouseEnter={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
                                         onMouseLeave={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'transparent'; }}
                                       >
-                                        <GitBranch size={12} style={{ color: 'var(--success)' }} />
+                                        <GitBranch size={12} style={{ color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--success)' }} />
                                         <span>Clone App</span>
                                       </button>
                                     )}
@@ -1382,11 +1412,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                          type="button"
                                          onClick={(e) => { e.stopPropagation(); handleDeleteApp(item.name, item.type as 'frontend' | 'backend'); setActiveDropdown(null); }}
                                          disabled={isViewer || deletingAppName === item.name} 
-                                         style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: isViewer ? 'var(--text-muted)' : 'var(--error)', width: '100%', textAlign: 'left', cursor: isViewer ? 'not-allowed' : 'pointer', opacity: isViewer ? 0.6 : 1 }}
-                                         onMouseEnter={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.08)'; }}
-                                         onMouseLeave={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                         style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: (isViewer || deletingAppName === item.name) ? 'rgba(255,255,255,0.35)' : 'var(--error)', width: '100%', textAlign: 'left', cursor: (isViewer || deletingAppName === item.name) ? 'not-allowed' : 'pointer', opacity: (isViewer || deletingAppName === item.name) ? 0.35 : 1 }}
+                                         onMouseEnter={(e) => { if (!isViewer && deletingAppName !== item.name) e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.08)'; }}
+                                         onMouseLeave={(e) => { if (!isViewer && deletingAppName !== item.name) e.currentTarget.style.backgroundColor = 'transparent'; }}
                                        >
-                                         <Trash2 size={12} />
+                                         <Trash2 size={12} style={{ color: (isViewer || deletingAppName === item.name) ? 'rgba(255,255,255,0.35)' : 'var(--error)' }} />
                                          <span>Delete app</span>
                                        </button>
                                     )}
@@ -1674,15 +1704,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     <div style={{ display: 'flex', gap: '10px' }}>
                       <button
                         className={revisionMode === 'Single' ? 'btn-primary' : 'btn-secondary'}
+                        disabled={isViewer}
                         onClick={() => handleToggleRevisionMode(bgDrawerApp.name, 'Single')}
-                        style={{ flex: 1, padding: '8px', fontSize: '0.78rem' }}
+                        style={{ flex: 1, padding: '8px', fontSize: '0.78rem', opacity: isViewer ? 0.35 : 1, cursor: isViewer ? 'not-allowed' : 'pointer' }}
                       >
                         Single Revision
                       </button>
                       <button
                         className={revisionMode === 'Multiple' ? 'btn-primary' : 'btn-secondary'}
+                        disabled={isViewer}
                         onClick={() => handleToggleRevisionMode(bgDrawerApp.name, 'Multiple')}
-                        style={{ flex: 1, padding: '8px', fontSize: '0.78rem' }}
+                        style={{ flex: 1, padding: '8px', fontSize: '0.78rem', opacity: isViewer ? 0.35 : 1, cursor: isViewer ? 'not-allowed' : 'pointer' }}
                       >
                         Multiple Revisions (B/G)
                       </button>
@@ -1710,13 +1742,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 max="100"
                                 step="5"
                                 value={rev.trafficWeight}
+                                disabled={isViewer}
                                 onChange={(e) => {
                                   const val = parseInt(e.target.value) || 0;
                                   const updated = [...revisions];
                                   updated[idx].trafficWeight = val;
                                   setRevisions(updated);
                                 }}
-                                style={{ flex: 1, accentColor: 'var(--accent-purple)', height: '4px' }}
+                                style={{ flex: 1, accentColor: 'var(--accent-purple)', height: '4px', opacity: isViewer ? 0.35 : 1, cursor: isViewer ? 'not-allowed' : 'pointer' }}
                               />
                             </div>
                           ))
@@ -1738,9 +1771,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                         <button
                           className="btn-primary"
-                          disabled={savingTraffic || revisions.reduce((s, r) => s + (parseInt(r.trafficWeight) || 0), 0) !== 100}
+                          disabled={savingTraffic || isViewer || revisions.reduce((s, r) => s + (parseInt(r.trafficWeight) || 0), 0) !== 100}
                           onClick={handleSaveTrafficSplit}
-                          style={{ marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                          style={{
+                            marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                            opacity: isViewer ? 0.35 : 1,
+                            cursor: isViewer ? 'not-allowed' : 'pointer'
+                          }}
                         >
                           {savingTraffic ? <RefreshCw size={14} className="spin-anim" /> : <Sliders size={14} />}
                           <span>Save Traffic Splits</span>
@@ -1781,6 +1818,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         <label style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Select Swap Target Resource:</label>
                         <select
                           value={dnsSwapTargetAppName}
+                          disabled={isViewer}
                           onChange={(e) => setDnsSwapTargetAppName(e.target.value)}
                           style={{
                             padding: '10px 12px',
@@ -1788,7 +1826,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             backgroundColor: 'var(--input-bg)',
                             color: 'var(--text-primary)',
                             border: '1px solid var(--glass-border)',
-                            fontSize: '0.8rem'
+                            fontSize: '0.8rem',
+                            opacity: isViewer ? 0.35 : 1,
+                            cursor: isViewer ? 'not-allowed' : 'default'
                           }}
                         >
                           <option value="">-- Choose target app --</option>
@@ -1801,7 +1841,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                         <button
                           className="btn-primary"
-                          disabled={!dnsSwapTargetAppName || swappingDns}
+                          disabled={!dnsSwapTargetAppName || swappingDns || isViewer}
                           onClick={handleDnsSwap}
                           style={{ 
                             marginTop: '8px', 
@@ -1809,7 +1849,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             alignItems: 'center', 
                             justifyContent: 'center', 
                             gap: '8px',
-                            background: 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))'
+                            background: isViewer ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))',
+                            opacity: isViewer ? 0.35 : 1,
+                            cursor: isViewer ? 'not-allowed' : 'pointer'
                           }}
                         >
                           {swappingDns ? <RefreshCw size={14} className="spin-anim" /> : <GitCompare size={14} />}
