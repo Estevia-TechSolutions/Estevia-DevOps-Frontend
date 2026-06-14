@@ -1868,6 +1868,7 @@ function App() {
     setQueryExecuting(true);
     setQueryResult(null);
     setQueryError(null);
+    const startTime = performance.now();
     try {
       const res = await fetch(`${API_BASE}/apps/execute-query`, {
         method: 'POST',
@@ -1882,8 +1883,10 @@ function App() {
         })
       });
       const data = await res.json();
+      const endTime = performance.now();
+      const execTimeMs = Math.round(endTime - startTime);
       if (res.ok && data.success) {
-        setQueryResult(data);
+        setQueryResult({ ...data, execTimeMs });
         if (reloadSchemaAfter) {
           fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name);
         }

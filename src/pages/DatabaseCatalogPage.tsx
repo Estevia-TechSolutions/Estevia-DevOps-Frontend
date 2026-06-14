@@ -551,19 +551,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
               </div>
             </div>
 
-            {/* ERD action bar — non-scrolling, always visible when ERD tab is active */}
-            {dbDetailTab === 'erd' && (
-              <div style={{ flexShrink: 0, padding: '8px 24px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.005)' }}>
-                <button
-                  onClick={() => setIsErdExpanded(true)}
-                  title="Open ERD in fullscreen with full X + Y scroll"
-                  style={{ padding: '4px 14px', fontSize: '0.78rem', height: '30px', display: 'flex', alignItems: 'center', gap: '5px', borderRadius: '6px', border: '1px solid rgba(139,92,246,0.5)', background: 'rgba(139,92,246,0.15)', color: '#a78bfa', cursor: 'pointer', fontWeight: 700 }}
-                >
-                  <Maximize size={13} />
-                  Expand View
-                </button>
-              </div>
-            )}
+
 
             {/* Scrollable tab contents */}
             <div style={{ flex: 1, overflow: 'auto', padding: '24px', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
@@ -835,19 +823,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                       >
                         Clear
                       </button>
-                      {queryResult && queryResult.rows.length > 0 && (
-                        <>
-                          <div style={{ width: '1px', height: '18px', background: 'var(--glass-border)' }} />
-                          <button
-                            onClick={() => setIsResultsExpanded(true)}
-                            title="Open results in fullscreen with full X + Y scroll"
-                            style={{ padding: '4px 12px', fontSize: '0.78rem', height: '30px', display: 'flex', alignItems: 'center', gap: '5px', borderRadius: '6px', border: '1px solid rgba(139,92,246,0.45)', background: 'rgba(139,92,246,0.12)', color: 'var(--accent-purple)', cursor: 'pointer', fontWeight: 600 }}
-                          >
-                            <Maximize size={13} />
-                            Expand Results
-                          </button>
-                        </>
-                      )}
+
                     </div>
 
                     <textarea
@@ -888,11 +864,15 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
 
                   {/* Results Grid */}
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '220px', border: '1px solid var(--glass-border)', borderRadius: '8px', overflow: 'visible' }}>
-                    <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--divider)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.01)' }}>
-                      <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                        {queryResult ? `Result Payload (${queryResult.rows.length} rows in ${queryResult.execTimeMs}ms)` : 'Query Output Grid'}
-                      </span>
-                                <div style={{ flex: 1, overflowX: 'auto', overflowY: 'auto', padding: '24px', borderRadius: '0 0 8px 8px' }}>
+                    {(!queryResult || queryResult.rows.length === 0) && (
+                      <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--divider)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.01)' }}>
+                        <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                          Query Output Grid
+                        </span>
+                      </div>
+                    )}
+
+                    <div style={{ flex: 1, overflowX: 'auto', overflowY: 'auto', padding: '24px', borderRadius: '0 0 8px 8px' }}>
                       {!queryResult ? (
                         <div style={{ color: 'var(--text-secondary)', textAlign: 'center', fontSize: '0.82rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '8px' }}>
                           <Play size={24} style={{ opacity: 0.3 }} />
@@ -919,7 +899,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                             <div style={{ padding: '16px', borderRadius: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                               <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Execution Time</span>
                               <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f43f5e' }}>
-                                {queryResult.execTimeMs} ms
+                                {queryResult.execTimeMs !== undefined ? `${queryResult.execTimeMs} ms` : 'Calculating...'}
                               </span>
                             </div>
 
@@ -1019,7 +999,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
 
                         </div>
                       )}
-                    </div>          </div>
+                    </div>
                   </div>
 
                   {/* ── Fullscreen Results Modal (portal) ── */}
