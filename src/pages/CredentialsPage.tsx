@@ -72,12 +72,12 @@ interface CredentialsPageProps {
 
 type CredTab = 'github' | 'godaddy' | 'azure' | 'keyvault' | 'teams';
 
-const TABS: { id: CredTab; label: string; icon: React.ReactNode; accentVar: string }[] = [
-  { id: 'github',   label: 'GitHub',       icon: <GitBranch size={15} />,    accentVar: '#ca8a04' },
-  { id: 'godaddy',  label: 'GoDaddy',      icon: <Globe size={15} />,        accentVar: '#ca8a04' },
-  { id: 'azure',    label: 'Azure',        icon: <Cloud size={15} />,        accentVar: '#ca8a04' },
-  { id: 'keyvault', label: 'Vault & Logs', icon: <Database size={15} />,     accentVar: '#ca8a04' },
-  { id: 'teams',    label: 'MS Teams',     icon: <MessageSquare size={15} />, accentVar: '#6264a7' },
+const TABS: { id: CredTab; label: string; sublabel: string; icon: React.ReactNode; accentVar: string }[] = [
+  { id: 'github',   label: 'GitHub Integration',   sublabel: 'Personal Access Tokens & repository owner organization configuration', icon: <GitBranch size={15} />,    accentVar: '#ca8a04' },
+  { id: 'godaddy',  label: 'GoDaddy DNS Binding',  sublabel: 'Automated DNS record bindings for custom app domains', icon: <Globe size={15} />,        accentVar: '#ca8a04' },
+  { id: 'azure',    label: 'Azure Infrastructure', sublabel: 'Subscriptions, target resource groups, variable groups, and container registries', icon: <Cloud size={15} />,        accentVar: '#ca8a04' },
+  { id: 'keyvault', label: 'Key Vault & Monitoring', sublabel: 'Secure Key Vault mappings and Log Analytics auto-discovery setup', icon: <Database size={15} />,     accentVar: '#ca8a04' },
+  { id: 'teams',    label: 'MS Teams Alerts',      sublabel: 'Life-cycle webhooks and Azure DevOps service hook automated setup', icon: <MessageSquare size={15} />, accentVar: '#6264a7' },
 ];
 
 /* ── Shared sub-components ── */
@@ -231,8 +231,6 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
     }
   };
 
-  const accent = TABS.find(t => t.id === activeTab)?.accentVar ?? 'var(--accent-teal)';
-
   const canEdit = currentUser?.role === 'owner' || currentUser?.role === 'admin';
 
   return (
@@ -333,473 +331,559 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
       {/* 2-Column Split Layout */}
       <div style={{ display: 'flex', gap: '28px', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         
-        {/* Left Column - Vertical Navigation & Vault Summary */}
-        <div style={{ width: '280px', display: 'flex', flexDirection: 'column', gap: '20px', flexShrink: 0 }}>
-          {/* Vertical Tab Bar */}
-          <div style={{
-            display: 'flex', flexDirection: 'column', gap: '6px',
-            background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '6px',
-            border: '1px solid var(--glass-border)',
-          }}>
-            {TABS.map(tab => {
+        {/* Left Column - Stepper Style Vertical Menu (Yellow Theme) */}
+        <div className="glass-panel" style={{
+          width: '300px',
+          padding: '30px 20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          flexShrink: 0,
+          boxSizing: 'border-box',
+          background: 'linear-gradient(160deg, rgba(234, 179, 8, 0.12) 0%, rgba(202, 138, 4, 0.18) 60%, rgba(133, 77, 14, 0.22) 100%)',
+          borderColor: 'rgba(234, 179, 8, 0.20)',
+          boxShadow: '0 0 30px rgba(234, 179, 8, 0.06), inset 0 0 20px rgba(234, 179, 8, 0.04)',
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, overflowY: 'auto' }}>
+            {TABS.map((tab, idx) => {
               const isActive = activeTab === tab.id;
               const keyMap: Record<string, string> = { github: 'github', godaddy: 'godaddy', azure: 'azure_devops' };
               const configured = tab.id === 'keyvault' ? true : credentialStatus[keyMap[tab.id]];
               return (
-                <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} style={{
-                  width: '100%',
-                  display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '10px',
-                  padding: '11px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-                  fontSize: '0.88rem', fontWeight: isActive ? 600 : 400,
-                  color: isActive ? tab.accentVar : 'var(--text-secondary)',
-                  background: isActive ? `color-mix(in srgb, ${tab.accentVar} 12%, transparent)` : 'transparent',
-                  boxShadow: isActive ? `0 0 0 1px ${tab.accentVar}55` : 'none',
-                  transition: 'all 0.2s ease',
-                  textAlign: 'left'
-                }}>
-                  <span style={{ display: 'flex', alignItems: 'center', color: isActive ? tab.accentVar : 'var(--text-muted)' }}>
-                    {tab.icon}
-                  </span>
-                  <span style={{ flex: 1 }}>{tab.label}</span>
-                  {/* credential status dot */}
-                  <span style={{
-                    width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0,
-                    background: configured ? 'var(--success)' : 'rgba(239,68,68,0.6)',
-                  }} />
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    display: 'flex',
+                    gap: '12px',
+                    width: '100%',
+                    background: 'none',
+                    border: 'none',
+                    padding: '12px 8px',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    opacity: isActive ? 1 : 0.65,
+                    transition: 'all 0.2s ease',
+                    backgroundColor: isActive ? 'rgba(234, 179, 8, 0.08)' : 'transparent',
+                  }}
+                >
+                  {/* Stepper column line and circle */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      backgroundColor: isActive ? 'rgba(234, 179, 8, 0.15)' : '#1e293b',
+                      border: `2px solid ${isActive ? '#ca8a04' : 'rgba(255,255,255,0.1)'}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: isActive ? '#eab308' : 'var(--text-secondary)',
+                      fontSize: '0.88rem',
+                      fontWeight: 600,
+                      boxShadow: isActive ? '0 0 12px rgba(234, 179, 8, 0.3)' : 'none',
+                      transition: 'all 0.3s ease'
+                    }}>
+                      {tab.icon}
+                    </div>
+                    {idx < TABS.length - 1 && (
+                      <div style={{ 
+                        width: '2px', 
+                        height: '34px',
+                        background: isActive 
+                          ? 'linear-gradient(180deg, #ca8a04, rgba(255,255,255,0.06))' 
+                          : 'rgba(255,255,255,0.06)', 
+                        margin: '4px 0' 
+                      }} />
+                    )}
+                  </div>
+                  
+                  {/* Label & Sublabel */}
+                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, paddingTop: '2px' }}>
+                    <span style={{ 
+                      fontSize: '0.86rem', 
+                      color: isActive ? '#eab308' : 'var(--text-primary)', 
+                      fontWeight: isActive ? 700 : 500,
+                      lineHeight: '1.3'
+                    }}>
+                      {tab.label}
+                    </span>
+                    <span style={{ 
+                      fontSize: '0.72rem', 
+                      color: 'var(--text-secondary)',
+                      marginTop: '4px',
+                      lineHeight: '1.35',
+                      whiteSpace: 'normal',
+                    }}>
+                      {tab.sublabel}
+                    </span>
+                  </div>
                 </button>
               );
             })}
           </div>
 
-          {/* Vault & System Info */}
+          {/* Informative text at the bottom of the sidebar */}
+          <div style={{ 
+            marginTop: 'auto', 
+            paddingTop: '20px', 
+            borderTop: '1px solid var(--glass-border)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}>
+            <span style={{ 
+              fontSize: '0.72rem', 
+              color: 'var(--text-secondary)', 
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}>
+              Security &amp; Compliance
+            </span>
+            <p style={{ 
+              fontSize: '0.72rem', 
+              color: 'var(--text-secondary)', 
+              lineHeight: '1.45', 
+              margin: 0 
+            }}>
+              All organization API credentials and private keys are encrypted natively using AES-256-GCM. Decrypted scopes are processed on-demand.
+            </p>
+          </div>
+        </div>
+
+        {/* Right Column - Tab Contents & Horizontal Footer */}
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', paddingRight: '8px' }}>
+          
+          <div style={{ flex: 1 }}>
+            {/* ── GITHUB TAB ── */}
+            {activeTab === 'github' && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', alignItems: 'start' }}>
+                <SectionBlock
+                  title="Personal Access Token"
+                  subtitle="Powers pipeline template commits & repo scanner."
+                  accent="#ca8a04"
+                  status={credentialStatus.github}
+                  revealShown={showGithubToken && githubToken !== ''}
+                  onReveal={() => {
+                    if (githubToken !== '' && showGithubToken) { setGithubToken('••••••••••••••••••••'); setShowGithubToken(false); }
+                    else { handleLoadSavedCredential('github'); }
+                  }}
+                  disabledReveal={!canEdit}
+                >
+                  <div style={{ display: 'grid', gap: '12px' }}>
+                    <PasswordInput
+                      value={githubToken} onChange={setGithubToken}
+                      show={showGithubToken} onToggle={() => setShowGithubToken(!showGithubToken)}
+                      placeholder="ghp_................................."
+                      disabled={!canEdit}
+                    />
+                    <button className="btn-primary" style={{ width: '100%' }}
+                      onClick={() => handleSaveCredential('github', { token: githubToken }, 'GitHub Platform Token')}
+                      disabled={!canEdit || savingCredentials === 'github' || !githubToken || githubToken === '••••••••••••••••••••' || (!!decryptedGithubToken && githubToken === decryptedGithubToken)}
+                    >
+                      {savingCredentials === 'github' ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
+                </SectionBlock>
+
+                <SectionBlock
+                  title="GitHub Organization Settings"
+                  subtitle="Repository owner / org used when scanning and committing pipeline files."
+                  accent="#ca8a04"
+                >
+                  <form onSubmit={handleSaveSettings}>
+                    <div style={{ display: 'grid', gap: '14px' }}>
+                      <div>
+                        <FieldLabel>GitHub Owner / Org</FieldLabel>
+                        <input type="text" value={githubOwner} onChange={e => setGithubOwner(e.target.value)}
+                          placeholder="Estevia-TechSolutions" required disabled={!canEdit} />
+                      </div>
+                      {settingsMsg && (
+                        <div style={{
+                          padding: '10px 14px', borderRadius: '8px', fontSize: '0.88rem',
+                          color: settingsMsg.type === 'success' ? 'var(--success)' : 'var(--error)',
+                          background: settingsMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                        }}>
+                          {settingsMsg.text}
+                        </div>
+                      )}
+                      <button type="submit" className="btn-primary" disabled={!canEdit || savingSettings} style={{ width: '100%' }}>
+                        {savingSettings ? 'Saving...' : 'Save GitHub Settings'}
+                      </button>
+                    </div>
+                  </form>
+                </SectionBlock>
+              </div>
+            )}
+
+            {/* ── GODADDY TAB ── */}
+            {activeTab === 'godaddy' && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', alignItems: 'start' }}>
+                <SectionBlock
+                  title="GoDaddy API Credentials"
+                  subtitle="Powers automatic DNS record binding for custom domains."
+                  accent="#ca8a04"
+                  status={credentialStatus.godaddy}
+                  revealShown={showGodaddyKey && (godaddyKey !== '' || godaddySecret !== '')}
+                  onReveal={() => {
+                    if ((godaddyKey !== '' || godaddySecret !== '') && showGodaddyKey) {
+                      setGodaddyKey('••••••••••••••••••••'); setGodaddySecret('••••••••••••••••••••');
+                      setShowGodaddyKey(false); setShowGodaddySecret(false);
+                    } else { handleLoadSavedCredential('godaddy'); }
+                  }}
+                  disabledReveal={!canEdit}
+                >
+                  <div style={{ display: 'grid', gap: '10px', marginBottom: '12px' }}>
+                    <PasswordInput value={godaddyKey} onChange={setGodaddyKey}
+                      show={showGodaddyKey} onToggle={() => setShowGodaddyKey(!showGodaddyKey)}
+                      placeholder="GoDaddy API Key" disabled={!canEdit} />
+                    <PasswordInput value={godaddySecret} onChange={setGodaddySecret}
+                      show={showGodaddySecret} onToggle={() => setShowGodaddySecret(!showGodaddySecret)}
+                      placeholder="GoDaddy API Secret" disabled={!canEdit} />
+                  </div>
+                  <button className="btn-primary" style={{ width: '100%' }}
+                    onClick={() => handleSaveCredential('godaddy', { apiKey: godaddyKey, apiSecret: godaddySecret }, 'GoDaddy Domain API Keys')}
+                    disabled={!canEdit || savingCredentials === 'godaddy' || !godaddyKey || !godaddySecret || godaddyKey === '••••••••••••••••••••' || godaddySecret === '••••••••••••••••••••' || (!!decryptedGodaddyKey && godaddyKey === decryptedGodaddyKey && godaddySecret === decryptedGodaddySecret)}
+                  >
+                    {savingCredentials === 'godaddy' ? 'Saving GoDaddy API Keys...' : 'Save GoDaddy Keys'}
+                  </button>
+                </SectionBlock>
+
+                <SectionBlock
+                  title="Domain Settings"
+                  subtitle="Default DNS domain used when binding custom domains to apps."
+                  accent="#ca8a04"
+                >
+                  <form onSubmit={handleSaveSettings}>
+                    <div style={{ display: 'grid', gap: '14px' }}>
+                      <div>
+                        <FieldLabel>Default DNS Domain</FieldLabel>
+                        <input type="text" value={defaultDnsDomain} onChange={e => setDefaultDnsDomain(e.target.value)}
+                          placeholder="esteviatech.com" required disabled={!canEdit} />
+                      </div>
+                      {settingsMsg && (
+                        <div style={{
+                          padding: '10px 14px', borderRadius: '8px', fontSize: '0.88rem',
+                          color: settingsMsg.type === 'success' ? 'var(--success)' : 'var(--error)',
+                          background: settingsMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                        }}>
+                          {settingsMsg.text}
+                        </div>
+                      )}
+                      <button type="submit" className="btn-primary" disabled={!canEdit || savingSettings} style={{ width: '100%' }}>
+                        {savingSettings ? 'Saving...' : 'Save Domain Settings'}
+                      </button>
+                    </div>
+                  </form>
+                </SectionBlock>
+              </div>
+            )}
+
+            {/* ── AZURE TAB ── */}
+            {activeTab === 'azure' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', alignItems: 'start' }}>
+                  <SectionBlock
+                    title="Azure DevOps Personal Access Token"
+                    subtitle="Registers pipelines & triggers builds via Azure DevOps API."
+                    accent="#ca8a04"
+                    status={credentialStatus.azure_devops}
+                    revealShown={showDevopsPat && devopsPat !== ''}
+                    onReveal={() => {
+                      if (devopsPat !== '' && showDevopsPat) { setDevopsPat('••••••••••••••••••••'); setShowDevopsPat(false); }
+                      else { handleLoadSavedCredential('azure_devops'); }
+                    }}
+                    disabledReveal={!canEdit}
+                  >
+                    <div style={{ display: 'grid', gap: '12px' }}>
+                      <PasswordInput value={devopsPat} onChange={setDevopsPat}
+                        show={showDevopsPat} onToggle={() => setShowDevopsPat(!showDevopsPat)}
+                        placeholder="Azure DevOps PAT (Pipeline Scope)" disabled={!canEdit} />
+                      <button className="btn-primary" style={{ width: '100%' }}
+                        onClick={() => handleSaveCredential('azure_devops', { pat: devopsPat }, 'Azure DevOps Pipeline PAT')}
+                        disabled={!canEdit || savingCredentials === 'azure_devops' || !devopsPat || devopsPat === '••••••••••••••••••••' || (!!decryptedDevopsPat && devopsPat === decryptedDevopsPat)}
+                      >
+                        {savingCredentials === 'azure_devops' ? 'Saving...' : 'Save'}
+                      </button>
+                    </div>
+                  </SectionBlock>
+                </div>
+
+                <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', alignItems: 'start' }}>
+                    {/* Azure Infrastructure */}
+                    <SectionBlock title="Infrastructure" subtitle="Azure subscription, resource group, and container registry." accent="#ca8a04">
+                      <div style={{ display: 'grid', gap: '14px' }}>
+                        <div>
+                          <FieldLabel>Azure Subscription ID</FieldLabel>
+                          <input type="text" value={azureSubscriptionId} onChange={e => setAzureSubscriptionId(e.target.value)}
+                            placeholder="a812e8e3-34f9-4773-82ee-6398869533b0" required disabled={!canEdit} />
+                        </div>
+                        <div>
+                          <FieldLabel>Target Resource Group</FieldLabel>
+                          <input type="text" value={azureResourceGroup} onChange={e => setAzureResourceGroup(e.target.value)}
+                            placeholder="Estevia-Prod-RG" required disabled={!canEdit} />
+                        </div>
+                        <div>
+                          <FieldLabel>Azure Container Registry (ACR)</FieldLabel>
+                          <input type="text" list="acr-list" value={azureContainerRegistry}
+                            onChange={e => setAzureContainerRegistry(e.target.value)}
+                            placeholder="esteviacoreregistry.azurecr.io" disabled={!canEdit} />
+                          {(containerRegistries?.length ?? 0) > 0 && (
+                            <datalist id="acr-list">
+                              {containerRegistries.map((cr: any) => <option key={cr.id} value={cr.loginServer}>{cr.name}</option>)}
+                            </datalist>
+                          )}
+                        </div>
+                      </div>
+                    </SectionBlock>
+
+                    {/* Azure DevOps Pipeline */}
+                    <SectionBlock title="DevOps Pipeline Config" subtitle="Org URL, project name, variable group, and service connections." accent="#ca8a04">
+                      <div style={{ display: 'grid', gap: '14px' }}>
+                        <div>
+                          <FieldLabel>Azure DevOps Org URL</FieldLabel>
+                          <input type="text" value={azureDevopsOrgUrl} onChange={e => setAzureDevopsOrgUrl(e.target.value)}
+                            placeholder="https://dev.azure.com/esteviatech" required disabled={!canEdit} />
+                        </div>
+                        <div>
+                          <FieldLabel>Azure DevOps Project Name</FieldLabel>
+                          <input type="text" value={azureDevopsProject} onChange={e => setAzureDevopsProject(e.target.value)}
+                            placeholder="Estevia-Platform" required disabled={!canEdit} />
+                        </div>
+                        <div>
+                          <FieldLabel>Pipeline Variable Group</FieldLabel>
+                          <input type="text" value={pipelineVariableGroup} onChange={e => setPipelineVariableGroup(e.target.value)}
+                            placeholder="estevia-frontend-vars" required disabled={!canEdit} />
+                        </div>
+                        <div>
+                          <FieldLabel>Azure RM Service Connection</FieldLabel>
+                          <input type="text" list="arm-sc-list" value={azureDevopsServiceConnection}
+                            onChange={e => setAzureDevopsServiceConnection(e.target.value)}
+                            placeholder="protrack-azure-sc" disabled={!canEdit} />
+                          {(serviceConnections?.arm?.length ?? 0) > 0 && (
+                            <datalist id="arm-sc-list">
+                              {serviceConnections.arm.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                            </datalist>
+                          )}
+                        </div>
+                        <div>
+                          <FieldLabel>Docker Registry Service Connection</FieldLabel>
+                          <input type="text" list="docker-sc-list" value={dockerRegistryServiceConnection}
+                            onChange={e => setDockerRegistryServiceConnection(e.target.value)}
+                            placeholder="estevia-acr-sc" disabled={!canEdit} />
+                          {(serviceConnections?.docker?.length ?? 0) > 0 && (
+                            <datalist id="docker-sc-list">
+                              {serviceConnections.docker.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                            </datalist>
+                          )}
+                        </div>
+                      </div>
+                    </SectionBlock>
+                  </div>
+
+                  {loadingMetadata && (
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', textAlign: 'center', margin: 0 }}>
+                      ⟳ Loading Azure metadata for autocomplete suggestions…
+                    </p>
+                  )}
+
+                  {settingsMsg && (
+                    <div style={{
+                      padding: '10px 14px', borderRadius: '8px', fontSize: '0.88rem',
+                      color: settingsMsg.type === 'success' ? 'var(--success)' : 'var(--error)',
+                      background: settingsMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                    }}>
+                      {settingsMsg.text}
+                    </div>
+                  )}
+
+                  <button type="submit" className="btn-primary" disabled={!canEdit || savingSettings} style={{ width: '100%' }}>
+                    {savingSettings ? 'Saving Azure Settings...' : 'Save Azure Settings'}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* ── VAULT & LOGS TAB ── */}
+            {activeTab === 'keyvault' && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', alignItems: 'start' }}>
+                <SectionBlock
+                  title="Azure Key Vault Secret Mappings"
+                  subtitle="Sync target secret keys directly from Azure Key Vault into pipeline variable groups."
+                  accent="#ca8a04"
+                >
+                  <KeyVaultConfigurator API_BASE={API_BASE} theme={theme} canEdit={canEdit} />
+                </SectionBlock>
+
+                <SectionBlock
+                  title="Log Analytics Workspace (Observability Logs)"
+                  subtitle="Azure Monitor Log Analytics integration is dynamically resolved to query console logs with historical lookbacks."
+                  accent="#ca8a04"
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 16px',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid var(--glass-border)',
+                      flexWrap: 'wrap',
+                      gap: '12px'
+                    }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Integration Status</span>
+                        {logAnalyticsWorkspaceId ? (
+                          <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--success)', boxShadow: '0 0 8px var(--success-glow)' }}></span>
+                            Auto-Discovered & Active
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b', boxShadow: '0 0 8px #f59e0b' }}></span>
+                            Pending Discovery
+                          </span>
+                        )}
+                      </div>
+
+                      {logAnalyticsWorkspaceId && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start', minWidth: '220px' }}>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Workspace Customer ID</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{logAnalyticsWorkspaceId}</span>
+                        </div>
+                      )}
+
+                      {canEdit && (
+                        <button
+                          type="button"
+                          onClick={handleDiscoverWorkspace}
+                          disabled={discoveringWorkspace}
+                          className="btn-primary"
+                          style={{
+                            height: '32px',
+                            padding: '0 16px',
+                            fontSize: '0.78rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            cursor: 'pointer',
+                            borderRadius: '6px',
+                            margin: 0
+                          }}
+                        >
+                          {discoveringWorkspace ? (
+                            <>
+                              <Loader size={13} className="spin-anim" />
+                              Discovering…
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw size={13} />
+                              {logAnalyticsWorkspaceId ? 'Force Sync' : 'Discover Now'}
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                      {logAnalyticsWorkspaceId ? (
+                        <>
+                          ✓ EvaOps successfully scanned the Azure Container Apps environment in Resource Group <strong>{azureResourceGroup || 'Estevia-Prod-RG'}</strong> and auto-linked this workspace. Console logs are queryable via KQL in the Container Logs drawer.
+                        </>
+                      ) : (
+                        <>
+                          ⚠️ No workspace discovered yet. Ensure your subscription credentials and Resource Group are configured under the <strong>Azure</strong> tab. Once valid, EvaOps will auto-discover the linked workspace.
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </SectionBlock>
+              </div>
+            )}
+
+            {/* ── MICROSOFT TEAMS TAB ── */}
+            {activeTab === 'teams' && (
+              <TeamsConfigPanel
+                teamsWebhookUrl={teamsWebhookUrl}
+                setTeamsWebhookUrl={setTeamsWebhookUrl}
+                teamsWebhookToken={teamsWebhookToken}
+                logAnalyticsWorkspaceId={logAnalyticsWorkspaceId}
+                setLogAnalyticsWorkspaceId={setLogAnalyticsWorkspaceId}
+                handleSaveSettings={handleSaveSettings}
+                savingSettings={savingSettings}
+                settingsMsg={settingsMsg}
+                canEdit={canEdit}
+                API_BASE={API_BASE}
+              />
+            )}
+          </div>
+
+          {/* Horizontal Vault & System Info Footer */}
           <div className="glass-panel" style={{
-            padding: '20px',
-            background: 'rgba(255, 255, 255, 0.01)',
+            marginTop: 'auto',
+            padding: '16px 20px',
+            background: 'rgba(255, 255, 255, 0.015)',
             borderColor: 'rgba(234, 179, 8, 0.15)',
             borderRadius: '12px',
-            fontSize: '0.8rem',
             boxShadow: 'inset 0 0 12px rgba(234,179,8,0.01)',
           }}>
-            <h5 style={{ margin: '0 0 14px 0', fontSize: '0.85rem', color: '#ca8a04', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Settings size={14} />
-              Vault &amp; System Info
-            </h5>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Security Standard</div>
-                <div style={{ color: 'var(--text-primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--success)' }}></span>
-                  AES-256-GCM Encrypted
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Settings size={15} style={{ color: '#ca8a04' }} />
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>Vault &amp; System Status:</span>
                 </div>
-              </div>
-
-              <div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Access Scope</div>
-                <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Role: {currentUser?.role?.toUpperCase() || 'VIEWER'}</div>
-              </div>
-
-              <div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px' }}>Dynamic Decryption</div>
-                <div style={{ color: 'var(--text-secondary)', lineHeight: '1.45', fontSize: '0.76rem' }}>
-                  Restricted by RBAC settings. Decryption keys are loaded on demand and never cached.
+                
+                {/* Security standard */}
+                <div style={{ fontSize: '0.76rem' }}>
+                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.68rem', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Security Standard</span>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--success)' }}></span>
+                    AES-256-GCM Encrypted
+                  </span>
                 </div>
-              </div>
 
-              <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '12px' }}>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Integration Health</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {/* Access scope */}
+                <div style={{ fontSize: '0.76rem' }}>
+                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.68rem', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Access Scope</span>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Role: {currentUser?.role?.toUpperCase() || 'VIEWER'}</span>
+                </div>
+
+                {/* Dynamic Decryption */}
+                <div style={{ fontSize: '0.76rem', maxWidth: '220px' }}>
+                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.68rem', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Decryption Scope</span>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.72rem', lineHeight: '1.2' }}>Processed client-side on demand.</span>
+                </div>
+
+                {/* Health summary */}
+                <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
                   {[
                     { name: 'GitHub', ok: credentialStatus.github },
                     { name: 'GoDaddy', ok: credentialStatus.godaddy },
-                    { name: 'Azure DevOps', ok: credentialStatus.azure_devops },
+                    { name: 'Azure', ok: credentialStatus.azure_devops },
                   ].map((item, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ color: 'var(--text-primary)' }}>{item.name}</span>
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>{item.name}:</span>
                       <span style={{
                         fontSize: '0.68rem',
                         fontWeight: 600,
                         color: item.ok ? 'var(--success)' : '#f59e0b',
                         background: item.ok ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)',
-                        padding: '2px 6px',
+                        padding: '1px 6px',
                         borderRadius: '4px',
                       }}>
-                        {item.ok ? 'Configured' : 'Missing'}
+                        {item.ok ? 'Active' : 'Missing'}
                       </span>
                     </div>
                   ))}
                 </div>
-              </div>
-            </div>
+             </div>
           </div>
-        </div>
-
-        {/* Right Column - Tab Contents */}
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', paddingRight: '8px' }}>
-          
-          {/* ── GITHUB TAB ── */}
-          {activeTab === 'github' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', alignItems: 'start' }}>
-              <SectionBlock
-                title="Personal Access Token"
-                subtitle="Powers pipeline template commits & repo scanner."
-                accent="#ca8a04"
-                status={credentialStatus.github}
-                revealShown={showGithubToken && githubToken !== ''}
-                onReveal={() => {
-                  if (githubToken !== '' && showGithubToken) { setGithubToken('••••••••••••••••••••'); setShowGithubToken(false); }
-                  else { handleLoadSavedCredential('github'); }
-                }}
-                disabledReveal={!canEdit}
-              >
-                <div style={{ display: 'grid', gap: '12px' }}>
-                  <PasswordInput
-                    value={githubToken} onChange={setGithubToken}
-                    show={showGithubToken} onToggle={() => setShowGithubToken(!showGithubToken)}
-                    placeholder="ghp_................................."
-                    disabled={!canEdit}
-                  />
-                  <button className="btn-primary" style={{ width: '100%' }}
-                    onClick={() => handleSaveCredential('github', { token: githubToken }, 'GitHub Platform Token')}
-                    disabled={!canEdit || savingCredentials === 'github' || !githubToken || githubToken === '••••••••••••••••••••' || (!!decryptedGithubToken && githubToken === decryptedGithubToken)}
-                  >
-                    {savingCredentials === 'github' ? 'Saving...' : 'Save'}
-                  </button>
-                </div>
-              </SectionBlock>
-
-              <SectionBlock
-                title="GitHub Organization Settings"
-                subtitle="Repository owner / org used when scanning and committing pipeline files."
-                accent="#ca8a04"
-              >
-                <form onSubmit={handleSaveSettings}>
-                  <div style={{ display: 'grid', gap: '14px' }}>
-                    <div>
-                      <FieldLabel>GitHub Owner / Org</FieldLabel>
-                      <input type="text" value={githubOwner} onChange={e => setGithubOwner(e.target.value)}
-                        placeholder="Estevia-TechSolutions" required disabled={!canEdit} />
-                    </div>
-                    {settingsMsg && (
-                      <div style={{
-                        padding: '10px 14px', borderRadius: '8px', fontSize: '0.88rem',
-                        color: settingsMsg.type === 'success' ? 'var(--success)' : 'var(--error)',
-                        background: settingsMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-                      }}>
-                        {settingsMsg.text}
-                      </div>
-                    )}
-                    <button type="submit" className="btn-primary" disabled={!canEdit || savingSettings} style={{ width: '100%' }}>
-                      {savingSettings ? 'Saving...' : 'Save GitHub Settings'}
-                    </button>
-                  </div>
-                </form>
-              </SectionBlock>
-            </div>
-          )}
-
-          {/* ── GODADDY TAB ── */}
-          {activeTab === 'godaddy' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', alignItems: 'start' }}>
-              <SectionBlock
-                title="GoDaddy API Credentials"
-                subtitle="Powers automatic DNS record binding for custom domains."
-                accent="#ca8a04"
-                status={credentialStatus.godaddy}
-                revealShown={showGodaddyKey && (godaddyKey !== '' || godaddySecret !== '')}
-                onReveal={() => {
-                  if ((godaddyKey !== '' || godaddySecret !== '') && showGodaddyKey) {
-                    setGodaddyKey('••••••••••••••••••••'); setGodaddySecret('••••••••••••••••••••');
-                    setShowGodaddyKey(false); setShowGodaddySecret(false);
-                  } else { handleLoadSavedCredential('godaddy'); }
-                }}
-                disabledReveal={!canEdit}
-              >
-                <div style={{ display: 'grid', gap: '10px', marginBottom: '12px' }}>
-                  <PasswordInput value={godaddyKey} onChange={setGodaddyKey}
-                    show={showGodaddyKey} onToggle={() => setShowGodaddyKey(!showGodaddyKey)}
-                    placeholder="GoDaddy API Key" disabled={!canEdit} />
-                  <PasswordInput value={godaddySecret} onChange={setGodaddySecret}
-                    show={showGodaddySecret} onToggle={() => setShowGodaddySecret(!showGodaddySecret)}
-                    placeholder="GoDaddy API Secret" disabled={!canEdit} />
-                </div>
-                <button className="btn-primary" style={{ width: '100%' }}
-                  onClick={() => handleSaveCredential('godaddy', { apiKey: godaddyKey, apiSecret: godaddySecret }, 'GoDaddy Domain API Keys')}
-                  disabled={!canEdit || savingCredentials === 'godaddy' || !godaddyKey || !godaddySecret || godaddyKey === '••••••••••••••••••••' || godaddySecret === '••••••••••••••••••••' || (!!decryptedGodaddyKey && godaddyKey === decryptedGodaddyKey && godaddySecret === decryptedGodaddySecret)}
-                >
-                  {savingCredentials === 'godaddy' ? 'Saving GoDaddy API Keys...' : 'Save GoDaddy Keys'}
-                </button>
-              </SectionBlock>
-
-              <SectionBlock
-                title="Domain Settings"
-                subtitle="Default DNS domain used when binding custom domains to apps."
-                accent="#ca8a04"
-              >
-                <form onSubmit={handleSaveSettings}>
-                  <div style={{ display: 'grid', gap: '14px' }}>
-                    <div>
-                      <FieldLabel>Default DNS Domain</FieldLabel>
-                      <input type="text" value={defaultDnsDomain} onChange={e => setDefaultDnsDomain(e.target.value)}
-                        placeholder="esteviatech.com" required disabled={!canEdit} />
-                    </div>
-                    {settingsMsg && (
-                      <div style={{
-                        padding: '10px 14px', borderRadius: '8px', fontSize: '0.88rem',
-                        color: settingsMsg.type === 'success' ? 'var(--success)' : 'var(--error)',
-                        background: settingsMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-                      }}>
-                        {settingsMsg.text}
-                      </div>
-                    )}
-                    <button type="submit" className="btn-primary" disabled={!canEdit || savingSettings} style={{ width: '100%' }}>
-                      {savingSettings ? 'Saving...' : 'Save Domain Settings'}
-                    </button>
-                  </div>
-                </form>
-              </SectionBlock>
-            </div>
-          )}
-
-          {/* ── AZURE TAB ── */}
-          {activeTab === 'azure' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', alignItems: 'start' }}>
-                <SectionBlock
-                  title="Azure DevOps Personal Access Token"
-                  subtitle="Registers pipelines & triggers builds via Azure DevOps API."
-                  accent="#ca8a04"
-                  status={credentialStatus.azure_devops}
-                  revealShown={showDevopsPat && devopsPat !== ''}
-                  onReveal={() => {
-                    if (devopsPat !== '' && showDevopsPat) { setDevopsPat('••••••••••••••••••••'); setShowDevopsPat(false); }
-                    else { handleLoadSavedCredential('azure_devops'); }
-                  }}
-                  disabledReveal={!canEdit}
-                >
-                  <div style={{ display: 'grid', gap: '12px' }}>
-                    <PasswordInput value={devopsPat} onChange={setDevopsPat}
-                      show={showDevopsPat} onToggle={() => setShowDevopsPat(!showDevopsPat)}
-                      placeholder="Azure DevOps PAT (Pipeline Scope)" disabled={!canEdit} />
-                    <button className="btn-primary" style={{ width: '100%' }}
-                      onClick={() => handleSaveCredential('azure_devops', { pat: devopsPat }, 'Azure DevOps Pipeline PAT')}
-                      disabled={!canEdit || savingCredentials === 'azure_devops' || !devopsPat || devopsPat === '••••••••••••••••••••' || (!!decryptedDevopsPat && devopsPat === decryptedDevopsPat)}
-                    >
-                      {savingCredentials === 'azure_devops' ? 'Saving...' : 'Save'}
-                    </button>
-                  </div>
-                </SectionBlock>
-              </div>
-
-              <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', alignItems: 'start' }}>
-                  {/* Azure Infrastructure */}
-                  <SectionBlock title="Infrastructure" subtitle="Azure subscription, resource group, and container registry." accent="#ca8a04">
-                    <div style={{ display: 'grid', gap: '14px' }}>
-                      <div>
-                        <FieldLabel>Azure Subscription ID</FieldLabel>
-                        <input type="text" value={azureSubscriptionId} onChange={e => setAzureSubscriptionId(e.target.value)}
-                          placeholder="a812e8e3-34f9-4773-82ee-6398869533b0" required disabled={!canEdit} />
-                      </div>
-                      <div>
-                        <FieldLabel>Target Resource Group</FieldLabel>
-                        <input type="text" value={azureResourceGroup} onChange={e => setAzureResourceGroup(e.target.value)}
-                          placeholder="Estevia-Prod-RG" required disabled={!canEdit} />
-                      </div>
-                      <div>
-                        <FieldLabel>Azure Container Registry (ACR)</FieldLabel>
-                        <input type="text" list="acr-list" value={azureContainerRegistry}
-                          onChange={e => setAzureContainerRegistry(e.target.value)}
-                          placeholder="esteviacoreregistry.azurecr.io" disabled={!canEdit} />
-                        {(containerRegistries?.length ?? 0) > 0 && (
-                          <datalist id="acr-list">
-                            {containerRegistries.map((cr: any) => <option key={cr.id} value={cr.loginServer}>{cr.name}</option>)}
-                          </datalist>
-                        )}
-                      </div>
-                    </div>
-                  </SectionBlock>
-
-                  {/* Azure DevOps Pipeline */}
-                  <SectionBlock title="DevOps Pipeline Config" subtitle="Org URL, project name, variable group, and service connections." accent="#ca8a04">
-                    <div style={{ display: 'grid', gap: '14px' }}>
-                      <div>
-                        <FieldLabel>Azure DevOps Org URL</FieldLabel>
-                        <input type="text" value={azureDevopsOrgUrl} onChange={e => setAzureDevopsOrgUrl(e.target.value)}
-                          placeholder="https://dev.azure.com/esteviatech" required disabled={!canEdit} />
-                      </div>
-                      <div>
-                        <FieldLabel>Azure DevOps Project Name</FieldLabel>
-                        <input type="text" value={azureDevopsProject} onChange={e => setAzureDevopsProject(e.target.value)}
-                          placeholder="Estevia-Platform" required disabled={!canEdit} />
-                      </div>
-                      <div>
-                        <FieldLabel>Pipeline Variable Group</FieldLabel>
-                        <input type="text" value={pipelineVariableGroup} onChange={e => setPipelineVariableGroup(e.target.value)}
-                          placeholder="estevia-frontend-vars" required disabled={!canEdit} />
-                      </div>
-                      <div>
-                        <FieldLabel>Azure RM Service Connection</FieldLabel>
-                        <input type="text" list="arm-sc-list" value={azureDevopsServiceConnection}
-                          onChange={e => setAzureDevopsServiceConnection(e.target.value)}
-                          placeholder="protrack-azure-sc" disabled={!canEdit} />
-                        {(serviceConnections?.arm?.length ?? 0) > 0 && (
-                          <datalist id="arm-sc-list">
-                            {serviceConnections.arm.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
-                          </datalist>
-                        )}
-                      </div>
-                      <div>
-                        <FieldLabel>Docker Registry Service Connection</FieldLabel>
-                        <input type="text" list="docker-sc-list" value={dockerRegistryServiceConnection}
-                          onChange={e => setDockerRegistryServiceConnection(e.target.value)}
-                          placeholder="estevia-acr-sc" disabled={!canEdit} />
-                        {(serviceConnections?.docker?.length ?? 0) > 0 && (
-                          <datalist id="docker-sc-list">
-                            {serviceConnections.docker.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
-                          </datalist>
-                        )}
-                      </div>
-                    </div>
-                  </SectionBlock>
-                </div>
-
-                {loadingMetadata && (
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', textAlign: 'center', margin: 0 }}>
-                    ⟳ Loading Azure metadata for autocomplete suggestions…
-                  </p>
-                )}
-
-                {settingsMsg && (
-                  <div style={{
-                    padding: '10px 14px', borderRadius: '8px', fontSize: '0.88rem',
-                    color: settingsMsg.type === 'success' ? 'var(--success)' : 'var(--error)',
-                    background: settingsMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-                  }}>
-                    {settingsMsg.text}
-                  </div>
-                )}
-
-                <button type="submit" className="btn-primary" disabled={!canEdit || savingSettings} style={{ width: '100%' }}>
-                  {savingSettings ? 'Saving Azure Settings...' : 'Save Azure Settings'}
-                </button>
-              </form>
-            </div>
-          )}
-
-          {/* ── VAULT & LOGS TAB ── */}
-          {activeTab === 'keyvault' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', alignItems: 'start' }}>
-              <SectionBlock
-                title="Azure Key Vault Secret Mappings"
-                subtitle="Sync target secret keys directly from Azure Key Vault into pipeline variable groups."
-                accent="#ca8a04"
-              >
-                <KeyVaultConfigurator API_BASE={API_BASE} theme={theme} canEdit={canEdit} />
-              </SectionBlock>
-
-              <SectionBlock
-                title="Log Analytics Workspace (Observability Logs)"
-                subtitle="Azure Monitor Log Analytics integration is dynamically resolved to query console logs with historical lookbacks."
-                accent="#ca8a04"
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '12px 16px',
-                    borderRadius: '8px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                    border: '1px solid var(--glass-border)',
-                    flexWrap: 'wrap',
-                    gap: '12px'
-                  }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Integration Status</span>
-                      {logAnalyticsWorkspaceId ? (
-                        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--success)', boxShadow: '0 0 8px var(--success-glow)' }}></span>
-                          Auto-Discovered & Active
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b', boxShadow: '0 0 8px #f59e0b' }}></span>
-                          Pending Discovery
-                        </span>
-                      )}
-                    </div>
-
-                    {logAnalyticsWorkspaceId && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start', minWidth: '220px' }}>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Workspace Customer ID</span>
-                        <span style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{logAnalyticsWorkspaceId}</span>
-                      </div>
-                    )}
-
-                    {canEdit && (
-                      <button
-                        type="button"
-                        onClick={handleDiscoverWorkspace}
-                        disabled={discoveringWorkspace}
-                        className="btn-primary"
-                        style={{
-                          height: '32px',
-                          padding: '0 16px',
-                          fontSize: '0.78rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          cursor: 'pointer',
-                          borderRadius: '6px',
-                          margin: 0
-                        }}
-                      >
-                        {discoveringWorkspace ? (
-                          <>
-                            <Loader size={13} className="spin-anim" />
-                            Discovering…
-                          </>
-                        ) : (
-                          <>
-                            <RefreshCw size={13} />
-                            {logAnalyticsWorkspaceId ? 'Force Sync' : 'Discover Now'}
-                          </>
-                        )}
-                      </button>
-                    )}
-                  </div>
-
-                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-                    {logAnalyticsWorkspaceId ? (
-                      <>
-                        ✓ EvaOps successfully scanned the Azure Container Apps environment in Resource Group <strong>{azureResourceGroup || 'Estevia-Prod-RG'}</strong> and auto-linked this workspace. Console logs are queryable via KQL in the Container Logs drawer.
-                      </>
-                    ) : (
-                      <>
-                        ⚠️ No workspace discovered yet. Ensure your subscription credentials and Resource Group are configured under the <strong>Azure</strong> tab. Once valid, EvaOps will auto-discover the linked workspace.
-                      </>
-                    )}
-                  </p>
-                </div>
-              </SectionBlock>
-            </div>
-          )}
-
-          {/* ── MICROSOFT TEAMS TAB ── */}
-          {activeTab === 'teams' && (
-            <TeamsConfigPanel
-              teamsWebhookUrl={teamsWebhookUrl}
-              setTeamsWebhookUrl={setTeamsWebhookUrl}
-              teamsWebhookToken={teamsWebhookToken}
-              logAnalyticsWorkspaceId={logAnalyticsWorkspaceId}
-              setLogAnalyticsWorkspaceId={setLogAnalyticsWorkspaceId}
-              handleSaveSettings={handleSaveSettings}
-              savingSettings={savingSettings}
-              settingsMsg={settingsMsg}
-              canEdit={canEdit}
-              API_BASE={API_BASE}
-            />
-          )}
 
         </div>
       </div>
@@ -831,6 +915,9 @@ const TeamsConfigPanel: React.FC<TeamsConfigPanelProps> = ({
   const [testStatus, setTestStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [testMsg, setTestMsg]       = useState('');
   const [copied, setCopied]         = useState(false);
+
+  const [settingUpWebhook, setSettingUpWebhook] = useState(false);
+  const [webhookSetupMsg, setWebhookSetupMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const receiverUrl = teamsWebhookToken
     ? `${window.location.origin.replace(':5173', ':5005')}/api/webhooks/azure-devops/${teamsWebhookToken}`
@@ -870,6 +957,33 @@ const TeamsConfigPanel: React.FC<TeamsConfigPanelProps> = ({
     } catch (err: any) {
       setTestStatus('error');
       setTestMsg(`❌ Network error: ${err.message}`);
+    }
+  };
+
+  const handleSetupServiceHook = async () => {
+    if (!teamsWebhookToken) return;
+    setSettingUpWebhook(true);
+    setWebhookSetupMsg(null);
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken') || '';
+      const res = await fetch(`${API_BASE}/apps/setup-teams-service-hook`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ receiverUrl })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setWebhookSetupMsg({ type: 'success', text: `✅ ${data.message}` });
+      } else {
+        setWebhookSetupMsg({ type: 'error', text: `❌ ${data.message || 'Setup failed.'}` });
+      }
+    } catch (err: any) {
+      setWebhookSetupMsg({ type: 'error', text: `❌ Network error: ${err.message}` });
+    } finally {
+      setSettingUpWebhook(false);
     }
   };
 
@@ -986,6 +1100,50 @@ const TeamsConfigPanel: React.FC<TeamsConfigPanelProps> = ({
             <p style={{ marginTop: '8px', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
               In Azure DevOps: <strong>Project Settings → Service Hooks → + Create Subscription → Web Hooks → Build completed</strong>
             </p>
+
+            <div style={{ marginTop: '16px', borderTop: '1px solid var(--glass-border)', paddingTop: '16px' }}>
+              <button
+                type="button"
+                onClick={handleSetupServiceHook}
+                disabled={settingUpWebhook || !teamsWebhookToken || !canEdit}
+                className="btn-primary"
+                style={{
+                  width: '100%',
+                  height: '36px',
+                  fontSize: '0.82rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  borderRadius: '6px'
+                }}
+              >
+                {settingUpWebhook ? (
+                  <>
+                    <Loader size={13} className="spin-anim" />
+                    Automating DevOps Service Hook Setup...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={13} />
+                    Setup Service Hook Automatically
+                  </>
+                )}
+              </button>
+              {webhookSetupMsg && (
+                <div style={{
+                  marginTop: '12px',
+                  padding: '10px 14px',
+                  borderRadius: '6px',
+                  fontSize: '0.8rem',
+                  color: webhookSetupMsg.type === 'success' ? 'var(--success)' : 'var(--danger)',
+                  background: webhookSetupMsg.type === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+                  border: `1px solid ${webhookSetupMsg.type === 'success' ? 'var(--success)' : 'var(--danger)'}`
+                }}>
+                  {webhookSetupMsg.text}
+                </div>
+              )}
+            </div>
           </div>
         </SectionBlock>
       </div>
