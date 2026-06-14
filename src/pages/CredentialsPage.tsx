@@ -639,6 +639,20 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                           )}
                         </div>
                       </div>
+
+                      <div style={{
+                        marginTop: '18px',
+                        padding: '12px 14px',
+                        borderRadius: '8px',
+                        background: 'rgba(234, 179, 8, 0.04)',
+                        border: '1px solid rgba(234, 179, 8, 0.1)',
+                        fontSize: '0.76rem',
+                        color: 'var(--text-secondary)',
+                        lineHeight: '1.45',
+                      }}>
+                        <strong style={{ color: '#ca8a04', display: 'block', marginBottom: '4px' }}>💡 Infrastructure Scope Info</strong>
+                        Subscriptions and Resource Groups define the secure logical hosting boundaries for your applications. The Container Registry (ACR) hosts the dockerized microservice images compiled by your Azure Pipelines.
+                      </div>
                     </SectionBlock>
 
                     {/* Azure DevOps Pipeline */}
