@@ -637,6 +637,9 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                               {containerRegistries.map((cr: any) => <option key={cr.id} value={cr.loginServer}>{cr.name}</option>)}
                             </datalist>
                           )}
+                          <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            Optional. Auto-falls back to <code>esteviacoreregistry.azurecr.io</code>.
+                          </p>
                         </div>
                       </div>
 
