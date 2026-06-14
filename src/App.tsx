@@ -49,6 +49,7 @@ import { TeamPage } from './pages/TeamPage';
 import type { UserRecord } from './pages/TeamPage';
 import { LogDrawer } from './components/observability/LogDrawer';
 import { AuditLogsTable } from './components/team/AuditLogsTable';
+import { Footer } from './components/layout/Footer';
 
 const Github = ({ size = 24, ...props }: { size?: number; [key: string]: any }) => (
   <svg
@@ -3338,16 +3339,7 @@ function App() {
         </div>
 
         {/* Footer */}
-        <div style={{
-          padding: '24px',
-          borderTop: '1px solid var(--divider)',
-          textAlign: 'center',
-          fontSize: '0.8rem',
-          color: 'var(--text-secondary)',
-          background: 'rgba(2, 6, 23, 0.2)'
-        }}>
-          Powered by EvaOps. Security, isolation, and orchestration configured natively.
-        </div>
+        <Footer theme={theme} />
       </div>
     );
   }
@@ -4262,6 +4254,8 @@ function App() {
         )}
 
       </main>
+
+      <Footer theme={theme} />
 
       {activeLogsAppName && (
         <LogDrawer
