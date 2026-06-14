@@ -515,6 +515,20 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                       </button>
                     </div>
                   </form>
+
+                  <div style={{
+                    marginTop: '18px',
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    background: 'rgba(234, 179, 8, 0.04)',
+                    border: '1px solid rgba(234, 179, 8, 0.1)',
+                    fontSize: '0.76rem',
+                    color: 'var(--text-secondary)',
+                    lineHeight: '1.45',
+                  }}>
+                    <strong style={{ color: '#ca8a04', display: 'block', marginBottom: '4px' }}>💡 GitHub Integration Summary</strong>
+                    The GitHub Token is encrypted using AES-256-GCM. It authorizes the EvaOps orchestrator to discover repositories, scan branches, and configure CI/CD pipeline triggers. The repository owner or organization is utilized to set up webhook notifications and automatically commit configuration files directly to your code branches.
+                  </div>
                 </SectionBlock>
               </div>
             )}
@@ -578,6 +592,20 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                       </button>
                     </div>
                   </form>
+
+                  <div style={{
+                    marginTop: '18px',
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    background: 'rgba(234, 179, 8, 0.04)',
+                    border: '1px solid rgba(234, 179, 8, 0.1)',
+                    fontSize: '0.76rem',
+                    color: 'var(--text-secondary)',
+                    lineHeight: '1.45',
+                  }}>
+                    <strong style={{ color: '#ca8a04', display: 'block', marginBottom: '4px' }}>💡 GoDaddy DNS Automation</strong>
+                    The GoDaddy API Key and Secret are utilized to programmatically create and modify DNS records (specifically CNAME and TXT mappings). This enables automated, zero-touch SSL subdomain provisioning when creating new branch environments, automatically linking your deployment URLs to your custom domains without manual DNS updates.
+                  </div>
                 </SectionBlock>
               </div>
             )}
@@ -783,6 +811,20 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                         </>
                       )}
                     </p>
+
+                    <div style={{
+                      marginTop: '18px',
+                      padding: '12px 14px',
+                      borderRadius: '8px',
+                      background: 'rgba(234, 179, 8, 0.04)',
+                      border: '1px solid rgba(234, 179, 8, 0.1)',
+                      fontSize: '0.76rem',
+                      color: 'var(--text-secondary)',
+                      lineHeight: '1.45',
+                    }}>
+                      <strong style={{ color: '#ca8a04', display: 'block', marginBottom: '4px' }}>💡 Key Vault Mapping &amp; Secrets Sync</strong>
+                      Sync target credentials directly from your secure Azure Key Vault. Mapped secrets are injected dynamically into your Azure DevOps pipeline variable groups, ensuring zero raw secrets are ever exposed in source control or logs.
+                    </div>
                   </div>
                 </SectionBlock>
               </div>
@@ -1125,6 +1167,20 @@ const TeamsConfigPanel: React.FC<TeamsConfigPanelProps> = ({
                 </div>
               )}
             </div>
+          </div>
+
+          <div style={{
+            marginTop: '18px',
+            padding: '12px 14px',
+            borderRadius: '8px',
+            background: 'rgba(98, 100, 167, 0.04)',
+            border: '1px solid rgba(98, 100, 167, 0.1)',
+            fontSize: '0.76rem',
+            color: 'var(--text-secondary)',
+            lineHeight: '1.45',
+          }}>
+            <strong style={{ color: '#6264a7', display: 'block', marginBottom: '4px' }}>💡 Service Hook Receiver Info</strong>
+            The automated setup registers a "Build Completed" service hook subscription in Azure DevOps using your decrypted Azure PAT. When a pipeline finishes execution, Azure DevOps triggers a payload delivery to this secure receiver URL, which the platform processes to push status notifications directly into your Teams channel.
           </div>
         </SectionBlock>
       </div>
