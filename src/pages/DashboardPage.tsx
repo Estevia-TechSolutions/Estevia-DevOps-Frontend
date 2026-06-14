@@ -650,20 +650,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                           key={item.name} 
                           style={{ 
                             display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'space-between', 
-                            padding: '20px 18px 12px 18px', 
+                            flexDirection: 'column',
+                            alignItems: 'stretch', 
+                            padding: '20px 18px 16px 18px', 
                             borderRadius: '10px', 
                             border: `1px solid ${cardStyle.border}`, 
                             borderLeft: `4px solid ${cardStyle.color}`,
                             background: cardStyle.background,
                             transition: 'all 0.25s ease',
-                            flexWrap: 'wrap',
                             gap: '12px',
                             position: 'relative'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '280px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', width: '100%' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '280px' }}>
                             {/* Env Tag */}
                             <span style={{
                               fontSize: '0.68rem',
@@ -816,121 +816,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             </div>
                           </div>
 
-                          {/* Visual Deployment Pipeline Run Progress */}
-                          {item.pipelineRun && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '220px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 600 }}>BUILD RUN: #{item.pipelineRun.name || item.pipelineRun.id}</span>
-                                <span style={{ 
-                                  fontSize: '0.64rem', 
-                                  fontWeight: 700, 
-                                  textTransform: 'uppercase', 
-                                  color: getStageColor(item.pipelineRun.result, item.pipelineRun.state) 
-                                }}>
-                                  {isBuildActive(item.pipelineRun) ? 'BUILDING' : item.pipelineRun.result || item.pipelineRun.state}
-                                </span>
-                              </div>
-                              
-                              {/* Visual Pipeline Stages */}
-                              {item.pipelineRun.stages && item.pipelineRun.stages.length > 0 && (
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
-                                  {item.pipelineRun.stages.map((stage) => {
-                                    const stageColor = getStageColor(stage.result, stage.state);
-                                    const isSelected = activeStageInfo?.appName === item.name && activeStageInfo?.stageId === stage.id;
-                                    return (
-                                      <div
-                                        key={stage.id}
-                                        onClick={() => {
-                                          if (isSelected) {
-                                            setActiveStageInfo(null);
-                                          } else {
-                                            setActiveStageInfo({ appName: item.name, stageId: stage.id });
-                                          }
-                                          setSelectedStageForJobs(stage);
-                                        }}
-                                        style={{
-                                          padding: '4px 8px',
-                                          borderRadius: '6px',
-                                          backgroundColor: isSelected ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
-                                          border: `1px solid ${isSelected ? 'var(--accent-purple)' : (stage.state === 'inProgress' ? stageColor : 'var(--glass-border)')}`,
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          gap: '6px',
-                                          cursor: 'pointer',
-                                          fontSize: '0.7rem',
-                                          color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
-                                          transition: 'all 0.2s ease',
-                                          flex: '1 1 auto',
-                                          justifyContent: 'center'
-                                        }}
-                                        title={`${stage.displayName}: ${stage.result || stage.state}`}
-                                      >
-                                        {getStageIcon(stage.result, stage.state)}
-                                        <span style={{ fontWeight: isSelected ? 600 : 400 }}>{stage.displayName || stage.name}</span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-
-                              {/* Selected Stage Jobs list */}
-                              {activeStageInfo?.appName === item.name && (() => {
-                                const activeStage = item.pipelineRun.stages?.find(s => s.id === activeStageInfo.stageId);
-                                if (!activeStage || !activeStage.jobs || activeStage.jobs.length === 0) return null;
-                                return (
-                                  <div style={{
-                                    marginTop: '8px',
-                                    padding: '8px 10px',
-                                    borderRadius: '6px',
-                                    backgroundColor: 'rgba(0,0,0,0.15)',
-                                    borderLeft: '2px solid var(--accent-purple)',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '6px',
-                                    animation: 'fade-in-anim 0.2s ease-out'
-                                  }}>
-                                    <div style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                      Jobs in "{activeStage.displayName || activeStage.name}"
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                      {activeStage.jobs.map(job => (
-                                        <div 
-                                          key={job.id} 
-                                          onClick={() => setSelectedJobForModal(job)}
-                                          style={{ 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            justifyContent: 'space-between', 
-                                            fontSize: '0.7rem',
-                                            padding: '4px 6px',
-                                            borderRadius: '4px',
-                                            cursor: 'pointer',
-                                            transition: 'background-color 0.15s ease',
-                                            userSelect: 'none',
-                                            backgroundColor: 'transparent'
-                                          }}
-                                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)'}
-                                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                        >
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)' }}>
-                                            {getStageIcon(job.result, job.state)}
-                                            <span>{job.displayName || job.name}</span>
-                                          </div>
-                                          <span style={{
-                                            fontSize: '0.62rem',
-                                            fontWeight: 600,
-                                            color: getStageColor(job.result, job.state)
-                                          }}>
-                                            {job.state === 'inProgress' ? 'RUNNING' : job.result || job.state}
-                                          </span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                );
-                              })()}
-                            </div>
-                          )}
 
                            {/* Action Buttons & Decluttered controls */}
                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -1426,6 +1311,141 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             </div>
                           </div>
                         </div>
+
+                        {/* Visual Deployment Pipeline Run Progress (moved below details & actions with a divider) */}
+                        {item.pipelineRun && (
+                          <div style={{ 
+                            borderTop: '1px solid var(--glass-border, rgba(255,255,255,0.08))', 
+                            paddingTop: '12px', 
+                            marginTop: '4px',
+                            width: '100%',
+                            boxSizing: 'border-box'
+                          }}>
+                            <div style={{ 
+                              display: 'flex', 
+                              flexDirection: 'column', 
+                              gap: '6px', 
+                              width: '100%', 
+                              padding: '10px 14px', 
+                              borderRadius: '8px', 
+                              background: 'rgba(255,255,255,0.01)', 
+                              border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
+                              boxSizing: 'border-box'
+                            }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 600 }}>BUILD RUN: #{item.pipelineRun.name || item.pipelineRun.id}</span>
+                                <span style={{ 
+                                  fontSize: '0.64rem', 
+                                  fontWeight: 700, 
+                                  textTransform: 'uppercase', 
+                                  color: getStageColor(item.pipelineRun.result, item.pipelineRun.state) 
+                                }}>
+                                  {isBuildActive(item.pipelineRun) ? 'BUILDING' : item.pipelineRun.result || item.pipelineRun.state}
+                                </span>
+                              </div>
+                              
+                              {/* Visual Pipeline Stages */}
+                              {item.pipelineRun.stages && item.pipelineRun.stages.length > 0 && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
+                                  {item.pipelineRun.stages.map((stage) => {
+                                    const stageColor = getStageColor(stage.result, stage.state);
+                                    const isSelected = activeStageInfo?.appName === item.name && activeStageInfo?.stageId === stage.id;
+                                    return (
+                                      <div
+                                        key={stage.id}
+                                        onClick={() => {
+                                          if (isSelected) {
+                                            setActiveStageInfo(null);
+                                          } else {
+                                            setActiveStageInfo({ appName: item.name, stageId: stage.id });
+                                          }
+                                          setSelectedStageForJobs(stage);
+                                        }}
+                                        style={{
+                                          padding: '4px 8px',
+                                          borderRadius: '6px',
+                                          backgroundColor: isSelected ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
+                                          border: `1px solid ${isSelected ? 'var(--accent-purple)' : (stage.state === 'inProgress' ? stageColor : 'var(--glass-border)')}`,
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '6px',
+                                          cursor: 'pointer',
+                                          fontSize: '0.7rem',
+                                          color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                          transition: 'all 0.2s ease',
+                                          flex: '1 1 auto',
+                                          justifyContent: 'center'
+                                        }}
+                                        title={`${stage.displayName}: ${stage.result || stage.state}`}
+                                      >
+                                        {getStageIcon(stage.result, stage.state)}
+                                        <span style={{ fontWeight: isSelected ? 600 : 400 }}>{stage.displayName || stage.name}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              {/* Selected Stage Jobs list */}
+                              {activeStageInfo?.appName === item.name && (() => {
+                                const activeStage = item.pipelineRun.stages?.find(s => s.id === activeStageInfo.stageId);
+                                if (!activeStage || !activeStage.jobs || activeStage.jobs.length === 0) return null;
+                                return (
+                                  <div style={{
+                                    marginTop: '8px',
+                                    padding: '8px 10px',
+                                    borderRadius: '6px',
+                                    backgroundColor: 'rgba(0,0,0,0.15)',
+                                    borderLeft: '2px solid var(--accent-purple)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '6px',
+                                    animation: 'fade-in-anim 0.2s ease-out'
+                                  }}>
+                                    <div style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                      Jobs in "{activeStage.displayName || activeStage.name}"
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                      {activeStage.jobs.map(job => (
+                                        <div 
+                                          key={job.id} 
+                                          onClick={() => setSelectedJobForModal(job)}
+                                          style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            justifyContent: 'space-between', 
+                                            fontSize: '0.7rem',
+                                            padding: '4px 6px',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            transition: 'background-color 0.15s ease',
+                                            userSelect: 'none',
+                                            backgroundColor: 'transparent'
+                                          }}
+                                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)'}
+                                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)' }}>
+                                            {getStageIcon(job.result, job.state)}
+                                            <span>{job.displayName || job.name}</span>
+                                          </div>
+                                          <span style={{
+                                            fontSize: '0.62rem',
+                                            fontWeight: 600,
+                                            color: getStageColor(job.result, job.state)
+                                          }}>
+                                            {job.state === 'inProgress' ? 'RUNNING' : job.result || job.state}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                       );
                     })}
                     {(() => {
