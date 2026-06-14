@@ -11,9 +11,14 @@ import {
   ChevronDown,
   ChevronRight,
   GitBranch,
-  Trash2
+  Trash2,
+  Play,
+  Square,
+  Lock,
+  GitCompare
 } from 'lucide-react';
 import { SleepScheduler } from '../components/cost/SleepScheduler';
+
 
 const getBadgeBgColor = (type: string, theme: 'dark' | 'light') => {
   const isLight = theme === 'light';
@@ -132,6 +137,8 @@ interface CostPageProps {
   currentUser?: { role: string; name?: string; email?: string } | null;
   API_BASE: string;
   organizationId: string;
+  onResourceControl?: (name: string, action: 'start' | 'stop' | 'restart') => void;
+  controllingResource?: string | null;
 }
 
 export const CostPage: React.FC<CostPageProps> = ({
@@ -154,10 +161,42 @@ export const CostPage: React.FC<CostPageProps> = ({
   handleDeleteApp,
   currentUser,
   API_BASE,
-  organizationId
+  organizationId,
+  onResourceControl,
+  controllingResource
 }) => {
 
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  // Billing predictive forecast states
+  const [forecastData, setForecastData] = useState<any>(null);
+  const [loadingForecast, setLoadingForecast] = useState<boolean>(false);
+  const [selectedMonths, setSelectedMonths] = useState<3 | 6 | 12>(3);
+
+  React.useEffect(() => {
+    if (costTab === 'billing') {
+      const fetchForecast = async () => {
+        setLoadingForecast(true);
+        try {
+          const token = localStorage.getItem('devops_token');
+          const res = await fetch(`${API_BASE}/apps/billing/forecast?organizationId=${organizationId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setForecastData(data);
+          }
+        } catch (err) {
+          console.error('Failed to fetch forecast:', err);
+        } finally {
+          setLoadingForecast(false);
+        }
+      };
+      fetchForecast();
+    }
+  }, [costTab, API_BASE, organizationId]);
 
   const isLight = theme === 'light';
   const isViewer = currentUser?.role === 'viewer';
@@ -515,6 +554,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                   <th style={{ padding: '12px 16px', fontWeight: 600 }}>DNS Cost</th>
                   <th style={{ padding: '12px 16px', fontWeight: 600 }}>Total Cost</th>
                   <th style={{ padding: '12px 16px', fontWeight: 600 }}>Sizing & Config Details</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Operations</th>
                 </tr>
               </thead>
               <tbody>
@@ -555,6 +595,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                         <td style={{ padding: '14px 16px', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
                           {isExpanded ? 'Click to Collapse group' : 'Click to expand group'}
                         </td>
+                        <td style={{ padding: '14px 16px' }}></td>
                       </tr>
 
                       {/* Group Rows (only if expanded) */}
@@ -677,6 +718,117 @@ export const CostPage: React.FC<CostPageProps> = ({
                                 {item.details || 'Production Tier'}
                               </span>
                             </td>
+                            <td style={{ padding: '14px 16px' }}>
+                              {['frontend', 'backend', 'vm'].includes(item.type?.toLowerCase()) ? (
+                                (() => {
+                                  const isCritical = item.name.toLowerCase().includes('evaops') || 
+                                                     item.name.toLowerCase().includes('devops-backend') || 
+                                                     item.name.toLowerCase().includes('devops-frontend');
+                                  const isControlling = controllingResource === item.name;
+                                  const s = (item.status || '').toLowerCase();
+                                  const isStarted = s === 'running' || s === 'deployed';
+                                  const isStopped = s === 'stopped' || s === 'sleep' || s === 'offline';
+
+                                  return (
+                                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                      {/* Start */}
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); onResourceControl?.(item.name, 'start'); }}
+                                        disabled={isViewer || isControlling || isStarted}
+                                        style={{ 
+                                          background: isStarted ? 'transparent' : 'rgba(16, 185, 129, 0.08)',
+                                          border: `1px solid ${isStarted ? 'transparent' : 'rgba(16, 185, 129, 0.2)'}`,
+                                          borderRadius: '4px',
+                                          padding: '4px 8px', 
+                                          fontSize: '0.7rem', 
+                                          display: 'flex', 
+                                          alignItems: 'center', 
+                                          gap: '4px',
+                                          color: isStarted ? 'var(--text-muted)' : '#10b981',
+                                          cursor: isStarted ? 'not-allowed' : 'pointer'
+                                        }}
+                                        title="Start Resource"
+                                      >
+                                        <Play size={10} fill={isStarted ? 'none' : 'currentColor'} />
+                                        <span>Start</span>
+                                      </button>
+
+                                      {/* Stop */}
+                                      {isCritical ? (
+                                        <button
+                                          type="button"
+                                          disabled={true}
+                                          style={{ 
+                                            border: '1px solid rgba(239, 68, 68, 0.25)',
+                                            borderRadius: '4px',
+                                            padding: '4px 8px', 
+                                            fontSize: '0.7rem', 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            gap: '4px',
+                                            color: '#ef4444',
+                                            cursor: 'not-allowed',
+                                            backgroundColor: 'rgba(239, 68, 68, 0.08)'
+                                          }}
+                                          title="Stop action blocked on critical platform infrastructure."
+                                        >
+                                          <Lock size={10} />
+                                          <span style={{ fontWeight: 600 }}>Locked</span>
+                                        </button>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => { e.stopPropagation(); onResourceControl?.(item.name, 'stop'); }}
+                                          disabled={isViewer || isControlling || isStopped}
+                                          style={{ 
+                                            background: isStopped ? 'transparent' : 'rgba(239, 68, 68, 0.08)',
+                                            border: `1px solid ${isStopped ? 'transparent' : 'rgba(239, 68, 68, 0.2)'}`,
+                                            borderRadius: '4px',
+                                            padding: '4px 8px', 
+                                            fontSize: '0.7rem', 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            gap: '4px',
+                                            color: isStopped ? 'var(--text-muted)' : '#ef4444',
+                                            cursor: isStopped ? 'not-allowed' : 'pointer'
+                                          }}
+                                          title="Stop Resource"
+                                        >
+                                          <Square size={10} fill={isStopped ? 'none' : 'currentColor'} />
+                                          <span>Stop</span>
+                                        </button>
+                                      )}
+
+                                      {/* Restart */}
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); onResourceControl?.(item.name, 'restart'); }}
+                                        disabled={isViewer || isControlling}
+                                        style={{ 
+                                          background: 'rgba(59, 130, 246, 0.08)',
+                                          border: '1px solid rgba(59, 130, 246, 0.2)',
+                                          borderRadius: '4px',
+                                          padding: '4px 8px', 
+                                          fontSize: '0.7rem', 
+                                          display: 'flex', 
+                                          alignItems: 'center', 
+                                          gap: '4px',
+                                          color: '#3b82f6',
+                                          cursor: 'pointer'
+                                        }}
+                                        title="Restart Resource"
+                                      >
+                                        <RefreshCw size={10} className={isControlling ? 'spin-anim' : ''} />
+                                        <span>Restart</span>
+                                      </button>
+                                    </div>
+                                  );
+                                })()
+                              ) : (
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>N/A</span>
+                              )}
+                            </td>
                           </tr>
                         );
                       })}
@@ -690,6 +842,167 @@ export const CostPage: React.FC<CostPageProps> = ({
       ) : costTab === 'billing' ? (
         /* Billing & Invoices Table */
         <div className="glass-panel" style={{ padding: '32px', background: 'rgba(255, 255, 255, 0.01)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
+          {/* Predictive Forecast Section */}
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '20px', 
+            marginBottom: '32px', 
+            padding: '24px', 
+            borderRadius: '12px', 
+            backgroundColor: 'rgba(255,255,255,0.01)', 
+            border: '1px solid var(--glass-border)' 
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-primary)' }}>Cost Projections & Forecast</h4>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  Compare your baseline projection with potential savings after applying cost optimization policies.
+                </p>
+              </div>
+              
+              {/* Timeframe Selector */}
+              <div style={{ display: 'flex', gap: '6px', backgroundColor: 'rgba(0,0,0,0.15)', padding: '4px', borderRadius: '8px' }}>
+                {([3, 6, 12] as const).map(months => (
+                  <button
+                    key={months}
+                    type="button"
+                    onClick={() => setSelectedMonths(months)}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '0.74rem',
+                      fontWeight: 600,
+                      borderRadius: '6px',
+                      border: 'none',
+                      backgroundColor: selectedMonths === months ? '#10b981' : 'transparent',
+                      color: selectedMonths === months ? '#fff' : 'var(--text-secondary)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {months} Months
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {loadingForecast ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '20px 0' }}>
+                <RefreshCw size={16} className="spin-anim" style={{ color: '#10b981' }} />
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Calculating projection...</span>
+              </div>
+            ) : forecastData ? (
+              (() => {
+                const forecast = forecastData.forecast[selectedMonths];
+                const baseline = forecast.baseline;
+                const optimized = forecast.optimized;
+                const savings = forecast.savings;
+                
+                const baseHeight = 160;
+                const optHeight = (optimized / baseline) * baseHeight;
+
+                return (
+                  <div style={{ display: 'flex', gap: '30px', alignItems: 'center', flexWrap: 'wrap', marginTop: '10px' }}>
+                    {/* Custom CSS Bar Chart */}
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: '40px', 
+                      alignItems: 'flex-end', 
+                      height: '190px', 
+                      padding: '10px 20px 20px 20px', 
+                      backgroundColor: 'rgba(0,0,0,0.1)', 
+                      borderRadius: '10px',
+                      border: '1px solid var(--glass-border)',
+                      minWidth: '220px',
+                      justifyContent: 'center',
+                      position: 'relative'
+                    }}>
+                      <div style={{ position: 'absolute', bottom: '60px', left: 0, right: 0, height: '1px', borderBottom: '1px dashed rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
+                      <div style={{ position: 'absolute', bottom: '110px', left: 0, right: 0, height: '1px', borderBottom: '1px dashed rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
+                      
+                      {/* Baseline Bar */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ 
+                          width: '44px', 
+                          height: `${baseHeight}px`, 
+                          background: 'linear-gradient(180deg, #64748b 0%, #334155 100%)', 
+                          borderRadius: '6px 6px 0 0',
+                          boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+                          position: 'relative',
+                          transition: 'height 0.3s ease-out'
+                        }}>
+                          <span style={{ position: 'absolute', top: '-22px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.76rem', fontWeight: 700, fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
+                            ${baseline}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Baseline</span>
+                      </div>
+
+                      {/* Optimized Bar */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ 
+                          width: '44px', 
+                          height: `${optHeight}px`, 
+                          background: 'linear-gradient(180deg, #34d399 0%, #10b981 100%)', 
+                          borderRadius: '6px 6px 0 0',
+                          boxShadow: '0 4px 15px rgba(16,185,129,0.3)',
+                          position: 'relative',
+                          transition: 'height 0.3s ease-out'
+                        }}>
+                          <span style={{ position: 'absolute', top: '-22px', left: '50%', transform: 'translateX(-50%)', fontSize: '0.76rem', fontWeight: 700, fontFamily: 'monospace', color: '#10b981' }}>
+                            ${optimized}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#10b981' }}>Optimized</span>
+                      </div>
+                    </div>
+
+                    {/* Details / Text Summary */}
+                    <div style={{ flex: 1, minWidth: '220px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ 
+                          fontSize: '0.72rem', 
+                          fontWeight: 700, 
+                          backgroundColor: 'rgba(16, 185, 129, 0.12)', 
+                          color: '#10b981', 
+                          padding: '4px 10px', 
+                          borderRadius: '20px', 
+                          border: '1px solid rgba(16,185,129,0.2)' 
+                        }}>
+                          Saves ${savings} ({( (savings / baseline) * 100 ).toFixed(0)}% lower run-rate)
+                        </span>
+                      </div>
+                      
+                      <h5 style={{ margin: '6px 0 0 0', fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        Projected Savings: <span style={{ color: '#10b981' }}>${savings} USD</span>
+                      </h5>
+                      
+                      <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                        Over the next <strong>{selectedMonths} months</strong>, executing scheduled hibernation policies on dev sandbox VMs and scaling down idle ACAs can reduce your overall cloud spending from <strong style={{ textDecoration: 'line-through' }}>${baseline}</strong> down to <strong>${optimized}</strong>.
+                      </p>
+                      
+                      <div style={{ display: 'flex', gap: '14px', marginTop: '4px' }}>
+                        <div>
+                          <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block' }}>Monthly Baseline</span>
+                          <span style={{ fontSize: '0.95rem', fontWeight: 700, fontFamily: 'monospace', color: 'var(--text-primary)' }}>
+                            ${forecastData.monthlyBaselineRunRate.toFixed(2)}/mo
+                          </span>
+                        </div>
+                        <div style={{ borderLeft: '1px solid var(--glass-border)', paddingLeft: '14px' }}>
+                          <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block' }}>Projected Savings</span>
+                          <span style={{ fontSize: '0.95rem', fontWeight: 700, fontFamily: 'monospace', color: '#10b981' }}>
+                            -${forecastData.monthlySavings.toFixed(2)}/mo
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()
+            ) : (
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Could not load cost forecast projections.</span>
+            )}
+          </div>
+
           <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             Billing & Invoices History
           </h3>

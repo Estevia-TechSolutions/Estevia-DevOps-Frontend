@@ -85,7 +85,7 @@ const PREDEFINED_REPOS = [
 
 interface AppResource {
   name: string;
-  type: 'frontend' | 'backend';
+  type: 'frontend' | 'backend' | 'vm';
   location: string;
   hostname: string;
   resourceId: string;
@@ -136,6 +136,7 @@ interface AppResource {
     }[];
   } | null;
   branches?: { name: string; protected: boolean }[];
+  isTestResource?: boolean;
 }
 
 interface AppGroup {
@@ -143,7 +144,7 @@ interface AppGroup {
   label: string;          // prettified display name (e.g. "ProTrack Frontend")
   repoPath: string;       // e.g. "Estevia-TechSolutions/protrack-frontend"
   repoUrl: string;        // full github url
-  type: 'frontend' | 'backend';
+  type: 'frontend' | 'backend' | 'vm';
   envs: AppResource[];    // sorted dev → qa → prod
   pipelineId?: string;    // from any member that has one
   pipelineName?: string;
@@ -192,7 +193,9 @@ function groupApps(apps: AppResource[]): AppGroup[] {
     let repoPath = '';
     let repoUrl = app.repositoryUrl || '';
 
-    if (app.repositoryUrl) {
+    if (app.type === 'vm') {
+      key = 'virtual-machines';
+    } else if (app.repositoryUrl) {
       // Group by repo path (lowercased for stable key)
       repoPath = app.repositoryUrl
         .replace('https://github.com/', '')
@@ -215,7 +218,9 @@ function groupApps(apps: AppResource[]): AppGroup[] {
       // Label: if we have a repo path, use the last segment prettified
       // Otherwise use the full app name with only env/swa suffixes stripped
       let label: string;
-      if (repoPath) {
+      if (app.type === 'vm') {
+        label = 'Virtual Machines';
+      } else if (repoPath) {
         const repoSegment = repoPath.split('/').pop() || key;
         label = repoSegment
           .replace(/-/g, ' ')
@@ -2060,6 +2065,35 @@ function App() {
         }
       }
     });
+  };
+
+  const [controllingResource, setControllingResource] = useState<string | null>(null);
+
+  const handleResourceControl = async (name: string, action: 'start' | 'stop' | 'restart') => {
+    setControllingResource(name);
+    try {
+      const token = localStorage.getItem('devops_token');
+      const res = await fetch(`${API_BASE}/apps/${name}/control`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ action, organizationId })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        // Refresh scanned resources list to update statuses
+        handleScan();
+      } else {
+        alert(data.message || `Failed to perform ${action} action.`);
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert('Network error executing power control action.');
+    } finally {
+      setControllingResource(null);
+    }
   };
 
   const handleScan = async () => {
@@ -3933,6 +3967,8 @@ function App() {
             currentUser={user}
             onShowLogs={setActiveLogsAppName}
             onCloneApp={setCloningApp}
+            onResourceControl={handleResourceControl}
+            controllingResource={controllingResource}
           />
         )}
 
@@ -4126,6 +4162,8 @@ function App() {
             currentUser={user}
             API_BASE={API_BASE}
             organizationId={organizationId}
+            onResourceControl={handleResourceControl}
+            controllingResource={controllingResource}
           />
         )}
 

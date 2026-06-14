@@ -15,8 +15,19 @@ import {
   Building2,
   Cpu,
   X,
-  Terminal
+  Terminal,
+  Settings,
+  Play,
+  Square,
+  Sliders,
+  MoreVertical,
+  GitCompare,
+  Shield,
+  Lock
 } from 'lucide-react';
+
+const API_BASE = (import.meta as any).env?.VITE_API_BASE || `http://${window.location.hostname}:5005/api`;
+
 
 const Github = ({ size = 12, ...props }: { size?: number; [key: string]: any }) => (
   <svg
@@ -38,7 +49,7 @@ const Github = ({ size = 12, ...props }: { size?: number; [key: string]: any }) 
 
 interface AppResource {
   name: string;
-  type: 'frontend' | 'backend';
+  type: 'frontend' | 'backend' | 'vm';
   location: string;
   hostname: string;
   resourceId: string;
@@ -97,7 +108,7 @@ interface AppGroup {
   label: string;
   repoPath: string;
   repoUrl: string;
-  type: 'frontend' | 'backend';
+  type: 'frontend' | 'backend' | 'vm';
   envs: AppResource[];
   pipelineId?: string;
   pipelineName?: string;
@@ -125,6 +136,8 @@ interface DashboardPageProps {
   currentUser?: any;
   onShowLogs?: (appName: string) => void;
   onCloneApp?: (app: AppResource) => void;
+  onResourceControl?: (name: string, action: 'start' | 'stop' | 'restart') => void;
+  controllingResource?: string | null;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
@@ -147,12 +160,170 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   onDeployBranch,
   currentUser,
   onShowLogs,
-  onCloneApp
+  onCloneApp,
+  onResourceControl,
+  controllingResource
 }) => {
   const isViewer = currentUser?.role === 'viewer';
 
   const [activeStageInfo, setActiveStageInfo] = React.useState<{appName: string, stageId: string} | null>(null);
   const [selectedJobForModal, setSelectedJobForModal] = React.useState<any | null>(null);
+
+  // Secondary actions dropdown state
+  const [activeDropdown, setActiveDropdown] = React.useState<string | null>(null);
+
+  // Blue-Green Drawer state
+  const [bgDrawerApp, setBgDrawerApp] = React.useState<AppResource | null>(null);
+  const [revisions, setRevisions] = React.useState<any[]>([]);
+  const [revisionMode, setRevisionMode] = React.useState<'Single' | 'Multiple'>('Single');
+  const [loadingRevisions, setLoadingRevisions] = React.useState<boolean>(false);
+  const [savingTraffic, setSavingTraffic] = React.useState<boolean>(false);
+
+  // SWA DNS Swap state
+  const [dnsSwapTargetAppName, setDnsSwapTargetAppName] = React.useState<string>('');
+  const [swappingDns, setSwappingDns] = React.useState<boolean>(false);
+
+  // Local BG mode cache to avoid blank toggle state
+  const [bgModeState, setBgModeState] = React.useState<Record<string, 'Single' | 'Multiple'>>({});
+
+  const organizationId = currentUser?.organization_id || 'estevia';
+
+  const fetchRevisions = async (app: AppResource) => {
+    setLoadingRevisions(true);
+    try {
+      const token = localStorage.getItem('devops_token');
+      const res = await fetch(`${API_BASE}/apps/${app.name}/revisions?organizationId=${organizationId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setRevisions(data.revisions || []);
+        setRevisionMode(data.activeRevisionsMode || 'Single');
+        setBgModeState(prev => ({ ...prev, [app.name]: data.activeRevisionsMode }));
+      } else {
+        console.error('Failed to fetch revisions:', data.message);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingRevisions(false);
+    }
+  };
+
+  const handleToggleRevisionMode = async (appName: string, newMode: 'Single' | 'Multiple') => {
+    try {
+      const token = localStorage.getItem('devops_token');
+      const res = await fetch(`${API_BASE}/apps/${appName}/revision-mode`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ mode: newMode, organizationId })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBgModeState(prev => ({ ...prev, [appName]: newMode }));
+        if (bgDrawerApp?.name === appName) {
+          setRevisionMode(newMode);
+          fetchRevisions(bgDrawerApp);
+        }
+      } else {
+        alert(data.message || 'Failed to update revision mode.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error updating revision mode.');
+    }
+  };
+
+  const handleSaveTrafficSplit = async () => {
+    if (!bgDrawerApp) return;
+    
+    const total = revisions.reduce((sum, rev) => sum + (parseInt(rev.trafficWeight) || 0), 0);
+    if (total !== 100) {
+      alert(`Total traffic split weight must equal 100%. Current sum: ${total}%`);
+      return;
+    }
+
+    setSavingTraffic(true);
+    try {
+      const token = localStorage.getItem('devops_token');
+      const trafficData = revisions.map(r => ({
+        revisionName: r.name,
+        weight: parseInt(r.trafficWeight) || 0,
+        latestRevision: !!r.latestRevision
+      }));
+
+      const res = await fetch(`${API_BASE}/apps/${bgDrawerApp.name}/traffic`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ traffic: trafficData, organizationId })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('Traffic split saved successfully!');
+        fetchRevisions(bgDrawerApp);
+      } else {
+        alert(data.message || 'Failed to update traffic split.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error saving traffic split.');
+    } finally {
+      setSavingTraffic(false);
+    }
+  };
+
+  const handleDnsSwap = async () => {
+    if (!bgDrawerApp || !dnsSwapTargetAppName) return;
+    setSwappingDns(true);
+    try {
+      const token = localStorage.getItem('devops_token');
+      const res = await fetch(`${API_BASE}/apps/dns-swap`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          app1Name: bgDrawerApp.name,
+          app2Name: dnsSwapTargetAppName,
+          organizationId
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || 'DNS swap completed successfully!');
+        setBgDrawerApp(null);
+        handleScan();
+      } else {
+        alert(data.message || 'Failed to execute DNS swap.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Network error executing DNS CNAME swap.');
+    } finally {
+      setSwappingDns(false);
+    }
+  };
+
+  const getStatusDetails = (status: string | undefined, type: string) => {
+    const s = (status || '').toLowerCase();
+    if (s === 'running' || s === 'deployed') {
+      return { label: s === 'running' ? 'Running' : 'Online', color: '#10b981', glow: 'rgba(16, 185, 129, 0.4)' };
+    }
+    if (s === 'stopped' || s === 'sleep' || s === 'offline') {
+      return { label: s === 'stopped' ? 'Stopped' : 'Sleeping', color: '#ef4444', glow: 'rgba(239, 68, 68, 0.4)' };
+    }
+    return { label: status || 'Unknown', color: '#94a3b8', glow: 'rgba(148, 163, 184, 0.4)' };
+  };
+
 
   const resolveBranchName = (app: AppResource) => {
     const n = app.name.toLowerCase();
@@ -183,6 +354,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         return isLight ? 'rgba(37, 99, 235, 0.1)' : 'rgba(59, 130, 246, 0.15)';
       case 'backend':
         return isLight ? 'rgba(13, 148, 136, 0.1)' : 'rgba(16, 185, 129, 0.15)';
+      case 'vm':
+        return isLight ? 'rgba(217, 119, 6, 0.1)' : 'rgba(245, 158, 11, 0.15)';
       default:
         return isLight ? 'rgba(75, 85, 99, 0.08)' : 'rgba(156, 163, 175, 0.1)';
     }
@@ -195,6 +368,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         return isLight ? '#2563eb' : '#93c5fd';
       case 'backend':
         return isLight ? '#0d9488' : '#a7f3d0';
+      case 'vm':
+        return isLight ? '#d97706' : '#fde047';
       default:
         return isLight ? '#475569' : '#94a3b8';
     }
@@ -336,9 +511,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {appGroups.map((group) => {
-            const accentColor = group.type === 'frontend' ? 'var(--accent-purple)' : 'var(--accent-teal)';
-            const accentBg = group.type === 'frontend' ? 'rgba(139,92,246,0.1)' : 'rgba(20,184,166,0.1)';
-            const accentGlow = group.type === 'frontend' ? '0 0 10px var(--accent-purple-glow)' : '0 0 10px var(--accent-teal-glow)';
+            const accentColor = group.type === 'vm' ? '#f59e0b' : (group.type === 'frontend' ? 'var(--accent-purple)' : 'var(--accent-teal)');
+            const accentBg = group.type === 'vm' ? 'rgba(245,158,11,0.1)' : (group.type === 'frontend' ? 'rgba(139,92,246,0.1)' : 'rgba(20,184,166,0.1)');
+            const accentGlow = group.type === 'vm' ? '0 0 10px rgba(245,158,11,0.4)' : (group.type === 'frontend' ? '0 0 10px var(--accent-purple-glow)' : '0 0 10px var(--accent-teal-glow)');
 
             const isCollapsed = collapsedScanGroups[group.key] !== false;
             const groupHasActiveDeployment = group.envs.some(app => !!(app.pipelineRun && isBuildActive(app.pipelineRun)));
@@ -375,7 +550,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                       justifyContent: 'center',
                       boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)'
                     }}>
-                      {group.type === 'frontend' ? <Globe size={16} style={{ color: 'var(--accent-purple)' }} /> : <Cpu size={16} style={{ color: 'var(--accent-teal)' }} />}
+                      {group.type === 'frontend' ? (
+                        <Globe size={16} style={{ color: 'var(--accent-purple)' }} />
+                      ) : group.type === 'vm' ? (
+                        <Server size={16} style={{ color: '#f59e0b' }} />
+                      ) : (
+                        <Cpu size={16} style={{ color: 'var(--accent-teal)' }} />
+                      )}
                     </div>
                     <div>
                       <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
@@ -389,9 +570,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                           color: getBadgeTextColor(group.type),
                           padding: '2px 8px',
                           borderRadius: '10px',
-                          border: '1px solid ' + (group.type === 'frontend' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(16, 185, 129, 0.2)')
+                          border: '1px solid ' + (group.type === 'frontend' ? 'rgba(59, 130, 246, 0.2)' : group.type === 'vm' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)')
                         }}>
-                          {group.type === 'frontend' ? 'SWA' : 'ACA'}
+                          {group.type === 'frontend' ? 'SWA' : group.type === 'vm' ? 'VM' : 'ACA'}
                         </span>
                       </h3>
                       {group.repoPath && (
@@ -500,12 +681,32 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             {/* Name & Domain Details */}
                             <div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                {item.type === 'frontend' ? (
-                                  <Globe size={12} style={{ color: 'var(--accent-purple)', opacity: 0.8, flexShrink: 0 }} />
-                                ) : (
-                                  <Cpu size={12} style={{ color: 'var(--accent-teal)', opacity: 0.8, flexShrink: 0 }} />
-                                )}
-                                <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)' }}>{item.name}</span>
+                                 {item.type === 'frontend' ? (
+                                   <Globe size={12} style={{ color: 'var(--accent-purple)', opacity: 0.8, flexShrink: 0 }} />
+                                 ) : item.type === 'vm' ? (
+                                   <Server size={12} style={{ color: '#f59e0b', opacity: 0.8, flexShrink: 0 }} />
+                                 ) : (
+                                   <Cpu size={12} style={{ color: 'var(--accent-teal)', opacity: 0.8, flexShrink: 0 }} />
+                                 )}
+                                 <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)' }}>{item.name}</span>
+                                 
+                                 {/* Glowing status indicator dot */}
+                                 {(() => {
+                                   const statusInfo = getStatusDetails(item.status, item.type);
+                                   return (
+                                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginLeft: '8px' }} title={`Status: ${statusInfo.label}`}>
+                                       <span style={{
+                                         width: '7px',
+                                         height: '7px',
+                                         borderRadius: '50%',
+                                         backgroundColor: statusInfo.color,
+                                         boxShadow: `0 0 6px ${statusInfo.glow}`,
+                                         display: 'inline-block'
+                                       }} />
+                                       <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{statusInfo.label}</span>
+                                     </div>
+                                   );
+                                 })()}
                                 {item.isTestResource && (
                                   <span style={{
                                     fontSize: '0.62rem',
@@ -539,7 +740,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                          type="button"
                                          onClick={(e) => {
                                            e.stopPropagation();
-                                           handleDeleteApp(item.name, item.type);
+                                           handleDeleteApp(item.name, item.type as 'frontend' | 'backend');
                                          }}
                                          disabled={isViewer || deletingAppName === item.name}
                                          style={{
@@ -743,9 +944,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             </div>
                           )}
 
-                          {/* Action Buttons */}
-                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                            {item.hostname && (
+                          {/* Action Buttons & Decluttered controls */}
+                          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            {/* Primary Browse Link (Only SWAs/ACAs with hostnames) */}
+                            {item.hostname && item.type !== 'vm' && (
                               <a 
                                 href={item.dnsDetails?.fqdn ? `https://${item.dnsDetails.fqdn}` : `https://${item.hostname}`} 
                                 target="_blank" 
@@ -757,131 +959,310 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 Browse
                               </a>
                             )}
-                            <button 
-                              className="btn-secondary" 
-                              onClick={() => openDnsModal(item)}
-                              style={{ padding: '6px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
-                            >
-                              <ExternalLink size={12} />
-                              DNS
-                            </button>
-                            
-                            {item.pipelineId ? (
-                              <a 
-                                href={(() => {
-                                  if (item.pipelineRun?.webUrl) {
-                                    try {
-                                      const url = new URL(item.pipelineRun.webUrl);
-                                      const parts = url.pathname.split('/');
-                                      const buildIndex = parts.indexOf('_build');
-                                      if (buildIndex !== -1) {
-                                        const basePath = parts.slice(0, buildIndex + 1).join('/');
-                                        return `${url.origin}${basePath}?definitionId=${item.pipelineId}`;
+
+                            {/* Blue-Green routing switch for ACA & CNAME swap config for SWA */}
+                            {item.type !== 'vm' && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(255,255,255,0.02)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--glass-border)' }}>
+                                <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-secondary)' }}>B/G Mode:</span>
+                                <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '28px', height: '16px' }}>
+                                  <input 
+                                    type="checkbox" 
+                                    checked={item.type === 'backend' ? (bgModeState[item.name] === 'Multiple' || item.status === 'multiple') : false}
+                                    onChange={async (e) => {
+                                      e.stopPropagation();
+                                      if (item.type === 'backend') {
+                                        const newMode = e.target.checked ? 'Multiple' : 'Single';
+                                        await handleToggleRevisionMode(item.name, newMode);
+                                      } else {
+                                        // SWA: open DNS swap drawer directly
+                                        setBgDrawerApp(item);
+                                        fetchRevisions(item);
                                       }
-                                    } catch (e) {
-                                      console.warn('Failed to parse webUrl:', e);
-                                    }
-                                  }
-                                  const baseOrg = (azureDevopsOrgUrl || 'https://dev.azure.com/esteviatech').replace(/\/$/, '');
-                                  const baseProj = azureDevopsProject || 'Estevia-Platform';
-                                  return `${baseOrg}/${baseProj}/_build?definitionId=${item.pipelineId}`;
-                                })()}
-                                target="_blank"
-                                rel="noreferrer"
+                                    }}
+                                    style={{ opacity: 0, width: 0, height: 0, cursor: 'pointer' }}
+                                  />
+                                  <span className="slider round" style={{
+                                    position: 'absolute',
+                                    cursor: 'pointer',
+                                    top: 0, left: 0, right: 0, bottom: 0,
+                                    backgroundColor: (item.type === 'backend' && (bgModeState[item.name] === 'Multiple' || item.status === 'multiple')) ? 'var(--accent-purple)' : 'rgba(255,255,255,0.1)',
+                                    transition: '0.3s',
+                                    borderRadius: '34px'
+                                  }}>
+                                    <span style={{
+                                      position: 'absolute',
+                                      content: '""',
+                                      height: '10px',
+                                      width: '10px',
+                                      left: (item.type === 'backend' && (bgModeState[item.name] === 'Multiple' || item.status === 'multiple')) ? '15px' : '3px',
+                                      bottom: '3px',
+                                      backgroundColor: 'white',
+                                      transition: '0.3s',
+                                      borderRadius: '50%'
+                                    }} />
+                                  </span>
+                                </label>
+                                <button
+                                  type="button"
+                                  className="btn-secondary"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setBgDrawerApp(item);
+                                    fetchRevisions(item);
+                                  }}
+                                  style={{ padding: '2px 6px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', gap: '3px', border: 'none', background: 'none' }}
+                                >
+                                  <Sliders size={10} style={{ color: 'var(--accent-purple)' }} />
+                                  <span style={{ color: 'var(--text-secondary)' }}>Configure</span>
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Direct Power controls */}
+                            {(() => {
+                              const isCritical = item.name.toLowerCase().includes('evaops') || 
+                                                 item.name.toLowerCase().includes('devops-backend') || 
+                                                 item.name.toLowerCase().includes('devops-frontend');
+                              const isControlling = controllingResource === item.name;
+                              const s = (item.status || '').toLowerCase();
+                              const isStarted = s === 'running' || s === 'deployed';
+                              const isStopped = s === 'stopped' || s === 'sleep' || s === 'offline';
+
+                              return (
+                                <div style={{ display: 'flex', gap: '4px', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.02)', padding: '4px 6px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+                                  {/* Start */}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); onResourceControl?.(item.name, 'start'); }}
+                                    disabled={isViewer || isControlling || isStarted}
+                                    style={{ 
+                                      background: isStarted ? 'transparent' : 'rgba(16, 185, 129, 0.08)',
+                                      border: `1px solid ${isStarted ? 'transparent' : 'rgba(16, 185, 129, 0.2)'}`,
+                                      borderRadius: '4px',
+                                      padding: '4px 8px', 
+                                      fontSize: '0.7rem', 
+                                      display: 'flex', 
+                                      alignItems: 'center', 
+                                      gap: '4px',
+                                      color: isStarted ? 'var(--text-muted)' : '#10b981',
+                                      cursor: isStarted ? 'not-allowed' : 'pointer'
+                                    }}
+                                    title="Start Resource"
+                                  >
+                                    <Play size={10} fill={isStarted ? 'none' : 'currentColor'} />
+                                    <span>Start</span>
+                                  </button>
+
+                                  {/* Stop with self-preservation block */}
+                                  {isCritical ? (
+                                    <button
+                                      type="button"
+                                      disabled={true}
+                                      style={{ 
+                                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                                        borderRadius: '4px',
+                                        padding: '4px 8px', 
+                                        fontSize: '0.7rem', 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: '4px',
+                                        color: '#ef4444',
+                                        cursor: 'not-allowed',
+                                        backgroundColor: 'rgba(239, 68, 68, 0.08)'
+                                      }}
+                                      title="Stop action blocked on critical platform infrastructure."
+                                    >
+                                      <Lock size={10} style={{ color: '#ef4444' }} />
+                                      <span style={{ fontWeight: 600 }}>Locked</span>
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); onResourceControl?.(item.name, 'stop'); }}
+                                      disabled={isViewer || isControlling || isStopped}
+                                      style={{ 
+                                        background: isStopped ? 'transparent' : 'rgba(239, 68, 68, 0.08)',
+                                        border: `1px solid ${isStopped ? 'transparent' : 'rgba(239, 68, 68, 0.2)'}`,
+                                        borderRadius: '4px',
+                                        padding: '4px 8px', 
+                                        fontSize: '0.7rem', 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: '4px',
+                                        color: isStopped ? 'var(--text-muted)' : '#ef4444',
+                                        cursor: isStopped ? 'not-allowed' : 'pointer'
+                                      }}
+                                      title="Stop Resource"
+                                    >
+                                      <Square size={10} fill={isStopped ? 'none' : 'currentColor'} />
+                                      <span>Stop</span>
+                                    </button>
+                                  )}
+
+                                  {/* Restart */}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); onResourceControl?.(item.name, 'restart'); }}
+                                    disabled={isViewer || isControlling}
+                                    style={{ 
+                                      background: 'rgba(59, 130, 246, 0.08)',
+                                      border: '1px solid rgba(59, 130, 246, 0.2)',
+                                      borderRadius: '4px',
+                                      padding: '4px 8px', 
+                                      fontSize: '0.7rem', 
+                                      display: 'flex', 
+                                      alignItems: 'center', 
+                                      gap: '4px',
+                                      color: '#3b82f6',
+                                      cursor: 'pointer'
+                                    }}
+                                    title="Restart Resource"
+                                  >
+                                    <RefreshCw size={10} className={isControlling ? 'spin-anim' : ''} />
+                                    <span>Restart</span>
+                                  </button>
+                                </div>
+                              );
+                            })()}
+
+                            {/* Decluttered Actions Dropdown Menu */}
+                            <div style={{ position: 'relative' }}>
+                              <button
+                                type="button"
                                 className="btn-secondary"
-                                style={{ padding: '6px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', textDecoration: 'none' }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveDropdown(activeDropdown === item.name ? null : item.name);
+                                }}
+                                style={{ padding: '6px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                                title="Operations & Actions"
                               >
-                                <GitBranch size={12} />
-                                CI/CD
-                              </a>
-                            ) : (
-                               <button 
-                                 className="btn-secondary" 
-                                 disabled={isViewer}
-                                 onClick={() => openPipelineModal(item, group)}
-                                 style={{ 
-                                   padding: '6px 10px', 
-                                   fontSize: '0.75rem', 
-                                   display: 'flex', 
-                                   alignItems: 'center', 
-                                   justifyContent: 'center', 
-                                   gap: '4px', 
-                                   borderColor: isViewer ? 'var(--glass-border)' : 'var(--accent-purple)',
-                                   color: isViewer ? 'var(--text-muted)' : 'var(--text-primary)',
-                                   background: isViewer ? 'rgba(255,255,255,0.01)' : 'rgba(139, 92, 246, 0.04)',
-                                   transition: 'all 0.25s ease',
-                                   cursor: isViewer ? 'not-allowed' : 'pointer',
-                                   opacity: isViewer ? 0.6 : 1
-                                 }}
-                                 onMouseEnter={(e) => {
-                                   if (isViewer) return;
-                                   e.currentTarget.style.background = 'rgba(139, 92, 246, 0.12)';
-                                   e.currentTarget.style.boxShadow = '0 0 10px rgba(139, 92, 246, 0.3)';
-                                 }}
-                                 onMouseLeave={(e) => {
-                                   if (isViewer) return;
-                                   e.currentTarget.style.background = 'rgba(139, 92, 246, 0.04)';
-                                   e.currentTarget.style.boxShadow = 'none';
-                                 }}
-                               >
-                                 <PlusCircle size={12} style={{ color: isViewer ? 'var(--text-muted)' : 'var(--accent-purple)' }} />
-                                 Setup CI/CD
-                               </button>
-                            )}
+                                <MoreVertical size={14} />
+                              </button>
+                              
+                              {activeDropdown === item.name && (
+                                <>
+                                  <div 
+                                    onClick={(e) => { e.stopPropagation(); setActiveDropdown(null); }}
+                                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998, cursor: 'default' }}
+                                  />
+                                  <div style={{
+                                    position: 'absolute',
+                                    top: '100%',
+                                    right: 0,
+                                    marginTop: '6px',
+                                    backgroundColor: 'var(--bg-secondary, #0f172a)',
+                                    border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                                    zIndex: 999,
+                                    minWidth: '170px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    padding: '4px 0',
+                                    overflow: 'hidden'
+                                  }}>
+                                    <button 
+                                      type="button"
+                                      onClick={(e) => { e.stopPropagation(); openDnsModal(item); setActiveDropdown(null); }}
+                                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: 'pointer' }}
+                                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+                                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    >
+                                      <Globe size={12} style={{ color: 'var(--accent-purple)' }} />
+                                      <span>DNS Settings</span>
+                                    </button>
 
-                             {item.type === 'backend' && onShowLogs && (
-                               <button 
-                                 className="btn-secondary" 
-                                 onClick={() => onShowLogs(item.name)}
-                                 style={{ padding: '6px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
-                               >
-                                 <Terminal size={12} style={{ color: 'var(--accent-blue)' }} />
-                                 Logs
-                               </button>
-                             )}
+                                    {item.pipelineId ? (
+                                      <a 
+                                        href={(() => {
+                                          if (item.pipelineRun?.webUrl) {
+                                            try {
+                                              const url = new URL(item.pipelineRun.webUrl);
+                                              const parts = url.pathname.split('/');
+                                              const buildIndex = parts.indexOf('_build');
+                                              if (buildIndex !== -1) {
+                                                const basePath = parts.slice(0, buildIndex + 1).join('/');
+                                                return `${url.origin}${basePath}?definitionId=${item.pipelineId}`;
+                                              }
+                                            } catch (e) {
+                                              console.warn('Failed to parse webUrl:', e);
+                                            }
+                                          }
+                                          const baseOrg = (azureDevopsOrgUrl || 'https://dev.azure.com/esteviatech').replace(/\/$/, '');
+                                          const baseProj = azureDevopsProject || 'Estevia-Platform';
+                                          return `${baseOrg}/${baseProj}/_build?definitionId=${item.pipelineId}`;
+                                        })()}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', color: 'var(--text-primary)', width: '100%', textDecoration: 'none', boxSizing: 'border-box' }}
+                                        onClick={() => setActiveDropdown(null)}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                      >
+                                        <GitBranch size={12} style={{ color: 'var(--accent-teal)' }} />
+                                        <span>View CI/CD Pipeline</span>
+                                      </a>
+                                    ) : (
+                                       <button 
+                                         type="button"
+                                         disabled={isViewer}
+                                         onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); setActiveDropdown(null); }}
+                                         style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: isViewer ? 'var(--text-muted)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: isViewer ? 'not-allowed' : 'pointer', opacity: isViewer ? 0.6 : 1 }}
+                                         onMouseEnter={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
+                                         onMouseLeave={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                       >
+                                         <PlusCircle size={12} style={{ color: 'var(--accent-purple)' }} />
+                                         <span>Setup CI/CD</span>
+                                       </button>
+                                    )}
 
-                             {onCloneApp && (
-                               <button 
-                                 className="btn-secondary" 
-                                 disabled={isViewer}
-                                 onClick={() => onCloneApp(item)}
-                                 style={{ 
-                                   padding: '6px 10px', 
-                                   fontSize: '0.75rem', 
-                                   display: 'flex', 
-                                   alignItems: 'center', 
-                                   justifyContent: 'center', 
-                                   gap: '4px',
-                                   opacity: isViewer ? 0.6 : 1,
-                                   cursor: isViewer ? 'not-allowed' : 'pointer'
-                                 }}
-                               >
-                                 <GitBranch size={12} style={{ color: 'var(--success)' }} />
-                                 Clone
-                               </button>
-                             )}
+                                    {item.type === 'backend' && onShowLogs && (
+                                      <button 
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); onShowLogs(item.name); setActiveDropdown(null); }}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: 'pointer' }}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                      >
+                                        <Terminal size={12} style={{ color: 'var(--accent-blue)' }} />
+                                        <span>View Logs</span>
+                                      </button>
+                                    )}
 
-                            {!isOrphaned && (
-                              <button 
-                                 className="btn-secondary" 
-                                 onClick={() => handleDeleteApp(item.name, item.type)}
-                                 disabled={isViewer || deletingAppName === item.name} 
-                                 style={{ 
-                                   padding: '6px 10px', 
-                                   fontSize: '0.75rem', 
-                                   display: 'flex', 
-                                   alignItems: 'center', 
-                                   justifyContent: 'center', 
-                                   color: isViewer ? 'var(--text-muted)' : 'var(--error)', 
-                                   borderColor: isViewer ? 'var(--glass-border)' : 'rgba(239,68,68,0.2)', 
-                                   backgroundColor: isViewer ? 'rgba(255,255,255,0.01)' : 'rgba(239,68,68,0.03)',
-                                   cursor: isViewer ? 'not-allowed' : 'pointer',
-                                   opacity: isViewer ? 0.6 : 1
-                                 }}
-                               >
-                                 {deletingAppName === item.name ? <RefreshCw size={12} className="spin-anim" /> : <Trash2 size={12} />}
-                               </button>
-                            )}
+                                    {onCloneApp && (
+                                      <button 
+                                        type="button"
+                                        disabled={isViewer}
+                                        onClick={(e) => { e.stopPropagation(); onCloneApp(item); setActiveDropdown(null); }}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: isViewer ? 'var(--text-muted)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: isViewer ? 'not-allowed' : 'pointer', opacity: isViewer ? 0.6 : 1 }}
+                                        onMouseEnter={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
+                                        onMouseLeave={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                      >
+                                        <GitBranch size={12} style={{ color: 'var(--success)' }} />
+                                        <span>Clone App</span>
+                                      </button>
+                                    )}
+
+                                    {item.type !== 'vm' && <div style={{ height: '1px', backgroundColor: 'var(--glass-border)', margin: '4px 0' }} />}
+
+                                    {!isOrphaned && item.type !== 'vm' && (
+                                      <button 
+                                         type="button"
+                                         onClick={(e) => { e.stopPropagation(); handleDeleteApp(item.name, item.type as 'frontend' | 'backend'); setActiveDropdown(null); }}
+                                         disabled={isViewer || deletingAppName === item.name} 
+                                         style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: isViewer ? 'var(--text-muted)' : 'var(--error)', width: '100%', textAlign: 'left', cursor: isViewer ? 'not-allowed' : 'pointer', opacity: isViewer ? 0.6 : 1 }}
+                                         onMouseEnter={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.08)'; }}
+                                         onMouseLeave={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                       >
+                                         <Trash2 size={12} />
+                                         <span>Delete app</span>
+                                       </button>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
@@ -944,7 +1325,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                <button 
                                  className="btn-secondary" 
                                  disabled={isViewer}
-                                 onClick={() => onDeployBranch(group.repoPath, branch.name, group.type)}
+                                 onClick={() => onDeployBranch(group.repoPath, branch.name, group.type as 'frontend' | 'backend')}
                                  style={{ 
                                    padding: '6px 12px', 
                                    fontSize: '0.75rem', 
@@ -1115,6 +1496,203 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* ─── Blue-Green Routing & DNS Swap Drawer ─── */}
+      {bgDrawerApp && (
+        <>
+          <div className="drawer-backdrop" onClick={() => setBgDrawerApp(null)} />
+          <div className="drawer-container">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '16px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <GitCompare size={18} style={{ color: 'var(--accent-purple)' }} />
+                  Blue/Green Routing
+                </h3>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  Resource: <strong>{bgDrawerApp.name}</strong> ({bgDrawerApp.type === 'frontend' ? 'Static Web App' : 'Container App'})
+                </span>
+              </div>
+              <button 
+                className="btn-secondary" 
+                onClick={() => setBgDrawerApp(null)}
+                style={{ padding: '6px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {loadingRevisions ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '40px 0' }}>
+                <RefreshCw size={24} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
+                <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Loading configuration details...</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                
+                {/* ACA Revision Routing Split (Container App only) */}
+                {bgDrawerApp.type === 'backend' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ borderBottom: '1px solid var(--glass-border)', paddingBottom: '12px' }}>
+                      <h4 style={{ margin: '0 0 6px 0', fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-primary)' }}>Traffic Routing Mode</h4>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                        Single Mode directs 100% traffic to the latest active revision. Multiple Mode allows custom percentage splits.
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button
+                        className={revisionMode === 'Single' ? 'btn-primary' : 'btn-secondary'}
+                        onClick={() => handleToggleRevisionMode(bgDrawerApp.name, 'Single')}
+                        style={{ flex: 1, padding: '8px', fontSize: '0.78rem' }}
+                      >
+                        Single Revision
+                      </button>
+                      <button
+                        className={revisionMode === 'Multiple' ? 'btn-primary' : 'btn-secondary'}
+                        onClick={() => handleToggleRevisionMode(bgDrawerApp.name, 'Multiple')}
+                        style={{ flex: 1, padding: '8px', fontSize: '0.78rem' }}
+                      >
+                        Multiple Revisions (B/G)
+                      </button>
+                    </div>
+
+                    {revisionMode === 'Multiple' && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
+                        <h4 style={{ margin: 0, fontSize: '0.86rem', color: 'var(--text-primary)', fontWeight: 600 }}>Active Revisions Split</h4>
+                        
+                        {revisions.length === 0 ? (
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>No revisions found. Deploy a new revision first.</span>
+                        ) : (
+                          revisions.map((rev, idx) => (
+                            <div key={rev.name} style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', borderRadius: '8px', backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', wordBreak: 'break-all' }}>
+                                  {rev.name}
+                                  {rev.latestRevision && <span style={{ marginLeft: '6px', fontSize: '0.62rem', backgroundColor: 'rgba(16,185,129,0.15)', color: '#10b981', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(16,185,129,0.3)' }}>Latest</span>}
+                                </span>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-purple)' }}>{rev.trafficWeight}%</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                step="5"
+                                value={rev.trafficWeight}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value) || 0;
+                                  const updated = [...revisions];
+                                  updated[idx].trafficWeight = val;
+                                  setRevisions(updated);
+                                }}
+                                style={{ flex: 1, accentColor: 'var(--accent-purple)', height: '4px' }}
+                              />
+                            </div>
+                          ))
+                        )}
+
+                        {revisions.length > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px', padding: '8px 12px', borderRadius: '6px', backgroundColor: 'rgba(255,255,255,0.01)' }}>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Total Weight Sum:</span>
+                            {(() => {
+                              const sum = revisions.reduce((s, r) => s + (parseInt(r.trafficWeight) || 0), 0);
+                              return (
+                                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: sum === 100 ? 'var(--success)' : 'var(--error)' }}>
+                                  {sum}% (Must be 100%)
+                                </span>
+                              );
+                            })()}
+                          </div>
+                        )}
+
+                        <button
+                          className="btn-primary"
+                          disabled={savingTraffic || revisions.reduce((s, r) => s + (parseInt(r.trafficWeight) || 0), 0) !== 100}
+                          onClick={handleSaveTrafficSplit}
+                          style={{ marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                        >
+                          {savingTraffic ? <RefreshCw size={14} className="spin-anim" /> : <Sliders size={14} />}
+                          <span>Save Traffic Splits</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* SWA / ACA CNAME Domain Swapping */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderTop: bgDrawerApp.type === 'backend' ? '1px solid var(--glass-border)' : 'none', paddingTop: bgDrawerApp.type === 'backend' ? '24px' : '0' }}>
+                  <div>
+                    <h4 style={{ margin: '0 0 6px 0', fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-primary)' }}>DNS CNAME Swapping</h4>
+                    <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                      Swap active domains CNAME targets on GoDaddy. This instantly redirects custom DNS URLs between staging and production instances.
+                    </p>
+                  </div>
+
+                  <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)' }}>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Current Domain Mapping:</span>
+                    <strong style={{ fontSize: '0.84rem', color: 'var(--accent-purple)' }}>
+                      {bgDrawerApp.dnsDetails?.fqdn || 'No custom domain bound yet'}
+                    </strong>
+                  </div>
+
+                  {(() => {
+                    const targets = apps.filter(a => a.type === bgDrawerApp.type && a.name !== bgDrawerApp.name && a.dnsDetails?.subdomain);
+                    if (targets.length === 0) {
+                      return (
+                        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                          No other {bgDrawerApp.type === 'frontend' ? 'SWA' : 'ACA'} resources with mapped custom subdomains found to swap DNS with.
+                        </span>
+                      );
+                    }
+
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <label style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Select Swap Target Resource:</label>
+                        <select
+                          value={dnsSwapTargetAppName}
+                          onChange={(e) => setDnsSwapTargetAppName(e.target.value)}
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: '8px',
+                            backgroundColor: 'var(--input-bg)',
+                            color: 'var(--text-primary)',
+                            border: '1px solid var(--glass-border)',
+                            fontSize: '0.8rem'
+                          }}
+                        >
+                          <option value="">-- Choose target app --</option>
+                          {targets.map(t => (
+                            <option key={t.name} value={t.name}>
+                              {t.name} ({t.dnsDetails?.fqdn})
+                            </option>
+                          ))}
+                        </select>
+
+                        <button
+                          className="btn-primary"
+                          disabled={!dnsSwapTargetAppName || swappingDns}
+                          onClick={handleDnsSwap}
+                          style={{ 
+                            marginTop: '8px', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            gap: '8px',
+                            background: 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))'
+                          }}
+                        >
+                          {swappingDns ? <RefreshCw size={14} className="spin-anim" /> : <GitCompare size={14} />}
+                          <span>Execute DNS Swap</span>
+                        </button>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

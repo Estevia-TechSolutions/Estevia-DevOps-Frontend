@@ -18,7 +18,7 @@ import {
 
 interface AppResource {
   name: string;
-  type: 'frontend' | 'backend';
+  type: 'frontend' | 'backend' | 'vm';
   location: string;
   hostname: string;
   resourceId: string;

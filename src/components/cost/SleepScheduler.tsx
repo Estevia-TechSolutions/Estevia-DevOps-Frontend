@@ -618,7 +618,15 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
                         {appsList.map((app) => {
                           const isChecked = activeSchedule.selectedApps.includes(app.name);
                           const isBackend = app.app_type === 'backend';
+                          const isVm = app.app_type === 'vm';
                           
+                          let borderColor = '1px solid var(--glass-border)';
+                          if (isChecked) {
+                            if (isBackend) borderColor = '1px solid rgba(16, 185, 129, 0.35)';
+                            else if (isVm) borderColor = '1px solid rgba(245, 158, 11, 0.35)';
+                            else borderColor = '1px solid rgba(59, 130, 246, 0.35)';
+                          }
+
                           return (
                             <div 
                               key={app.id || app.name}
@@ -627,9 +635,7 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
                                 padding: '10px 14px',
                                 borderRadius: '6px',
                                 background: isChecked ? 'rgba(255,255,255,0.02)' : 'transparent',
-                                border: isChecked 
-                                  ? (isBackend ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(59, 130, 246, 0.35)') 
-                                  : '1px solid var(--glass-border)',
+                                border: borderColor,
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '10px',
@@ -659,12 +665,12 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
                                   alignSelf: 'flex-start',
                                   fontWeight: 600,
                                   textTransform: 'uppercase',
-                                  color: isBackend ? 'var(--success)' : 'var(--accent-blue)',
-                                  background: isBackend ? 'rgba(34,197,94,0.08)' : 'rgba(59,130,246,0.08)',
+                                  color: isBackend ? 'var(--success)' : isVm ? '#f59e0b' : 'var(--accent-blue)',
+                                  background: isBackend ? 'rgba(34,197,94,0.08)' : isVm ? 'rgba(245,158,11,0.08)' : 'rgba(59,130,246,0.08)',
                                   padding: '0 4px',
                                   borderRadius: '2px'
                                 }}>
-                                  {isBackend ? 'ACA' : 'SWA'}
+                                  {isBackend ? 'ACA' : isVm ? 'VM' : 'SWA'}
                                 </span>
                               </div>
                             </div>
