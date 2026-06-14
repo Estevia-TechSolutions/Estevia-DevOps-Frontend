@@ -648,14 +648,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             display: 'flex', 
                             alignItems: 'center', 
                             justifyContent: 'space-between', 
-                            padding: '12px 18px', 
+                            padding: '20px 18px 12px 18px', 
                             borderRadius: '10px', 
                             border: `1px solid ${cardStyle.border}`, 
                             borderLeft: `4px solid ${cardStyle.color}`,
                             background: cardStyle.background,
                             transition: 'all 0.25s ease',
                             flexWrap: 'wrap',
-                            gap: '12px'
+                            gap: '12px',
+                            position: 'relative'
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '280px' }}>
@@ -929,32 +930,35 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                            {/* Action Buttons & Decluttered controls */}
                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                             {/* Glowing status indicator dot */}
-                             {(() => {
-                               const statusInfo = getStatusDetails(item.status, item.type);
-                               return (
-                                 <div style={{ 
-                                   display: 'inline-flex', 
-                                   alignItems: 'center', 
-                                   gap: '6px', 
-                                   padding: '4px 8px', 
-                                   borderRadius: '6px',
-                                   backgroundColor: 'rgba(255,255,255,0.02)',
-                                   border: '1px solid var(--glass-border)',
-                                   marginRight: '4px'
-                                 }} title={`Status: ${statusInfo.label}`}>
-                                   <span style={{
-                                     width: '7px',
-                                     height: '7px',
-                                     borderRadius: '50%',
-                                     backgroundColor: statusInfo.color,
-                                     boxShadow: `0 0 6px ${statusInfo.glow}`,
-                                     display: 'inline-block'
-                                   }} />
-                                   <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{statusInfo.label}</span>
-                                 </div>
-                               );
-                             })()}
+                              {/* Glowing status indicator dot */}
+                              {(() => {
+                                const statusInfo = getStatusDetails(item.status, item.type);
+                                return (
+                                  <div style={{ 
+                                    display: 'inline-flex', 
+                                    alignItems: 'center', 
+                                    gap: '6px', 
+                                    padding: '3px 8px', 
+                                    borderRadius: '4px',
+                                    backgroundColor: 'rgba(255,255,255,0.02)',
+                                    border: '1px solid var(--glass-border)',
+                                    position: 'absolute',
+                                    top: '8px',
+                                    right: '8px',
+                                    zIndex: 5
+                                  }} title={`Status: ${statusInfo.label}`}>
+                                    <span style={{
+                                      width: '6px',
+                                      height: '6px',
+                                      borderRadius: '50%',
+                                      backgroundColor: statusInfo.color,
+                                      boxShadow: `0 0 6px ${statusInfo.glow}`,
+                                      display: 'inline-block'
+                                    }} />
+                                    <span style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{statusInfo.label}</span>
+                                  </div>
+                                );
+                              })()}
 
                              {/* Primary Browse Link (Only SWAs/ACAs with hostnames) */}
                             {item.hostname && item.type !== 'vm' && (

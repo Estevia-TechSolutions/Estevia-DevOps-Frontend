@@ -173,6 +173,7 @@ export const CostPage: React.FC<CostPageProps> = ({
   const [loadingForecast, setLoadingForecast] = useState<boolean>(false);
   const [selectedMonths, setSelectedMonths] = useState<3 | 6 | 12>(3);
   const [isCumulative, setIsCumulative] = useState<boolean>(false);
+  const [chartViewMode, setChartViewMode] = useState<'forecast' | 'historical'>('forecast');
 
   React.useEffect(() => {
     if (costTab === 'billing') {
@@ -902,76 +903,324 @@ export const CostPage: React.FC<CostPageProps> = ({
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
               <div>
-                <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-primary)' }}>Cost Projections & Forecast</h4>
+                <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {chartViewMode === 'forecast' ? 'Cost Projections & Forecast' : 'Historical Cost History'}
+                </h4>
                 <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                  Compare your baseline projection with potential savings after applying cost optimization policies.
+                  {chartViewMode === 'forecast' 
+                    ? 'Compare your baseline projection with potential savings after applying cost optimization policies.'
+                    : 'Trace your actual cloud invoices over past periods using live billing data.'}
                 </p>
               </div>
               
               {/* Controls Container */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                {/* View Mode Toggle */}
+                {/* Forecast vs Historical Toggle */}
                 <div style={{ display: 'flex', gap: '4px', backgroundColor: 'rgba(0,0,0,0.15)', padding: '4px', borderRadius: '8px' }}>
                   <button
                     type="button"
-                    onClick={() => setIsCumulative(false)}
+                    onClick={() => setChartViewMode('forecast')}
                     style={{
                       padding: '6px 12px',
                       fontSize: '0.74rem',
                       fontWeight: 600,
                       borderRadius: '6px',
                       border: 'none',
-                      backgroundColor: !isCumulative ? '#10b981' : 'transparent',
-                      color: !isCumulative ? '#fff' : 'var(--text-secondary)',
+                      backgroundColor: chartViewMode === 'forecast' ? 'var(--accent-purple, #8b5cf6)' : 'transparent',
+                      color: chartViewMode === 'forecast' ? '#fff' : 'var(--text-secondary)',
                       cursor: 'pointer'
                     }}
                   >
-                    Month-on-Month
+                    Forecast View
                   </button>
                   <button
                     type="button"
-                    onClick={() => setIsCumulative(true)}
+                    onClick={() => setChartViewMode('historical')}
                     style={{
                       padding: '6px 12px',
                       fontSize: '0.74rem',
                       fontWeight: 600,
                       borderRadius: '6px',
                       border: 'none',
-                      backgroundColor: isCumulative ? '#10b981' : 'transparent',
-                      color: isCumulative ? '#fff' : 'var(--text-secondary)',
+                      backgroundColor: chartViewMode === 'historical' ? 'var(--accent-purple, #8b5cf6)' : 'transparent',
+                      color: chartViewMode === 'historical' ? '#fff' : 'var(--text-secondary)',
                       cursor: 'pointer'
                     }}
                   >
-                    Cumulative
+                    Historical View
                   </button>
                 </div>
 
-                {/* Timeframe Selector */}
-                <div style={{ display: 'flex', gap: '6px', backgroundColor: 'rgba(0,0,0,0.15)', padding: '4px', borderRadius: '8px' }}>
-                  {([3, 6, 12] as const).map(months => (
-                    <button
-                      key={months}
-                      type="button"
-                      onClick={() => setSelectedMonths(months)}
-                      style={{
-                        padding: '6px 12px',
-                        fontSize: '0.74rem',
-                        fontWeight: 600,
-                        borderRadius: '6px',
-                        border: 'none',
-                        backgroundColor: selectedMonths === months ? '#10b981' : 'transparent',
-                        color: selectedMonths === months ? '#fff' : 'var(--text-secondary)',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {months} Months
-                    </button>
-                  ))}
-                </div>
+                {chartViewMode === 'forecast' && (
+                  <>
+                    {/* View Mode Toggle */}
+                    <div style={{ display: 'flex', gap: '4px', backgroundColor: 'rgba(0,0,0,0.15)', padding: '4px', borderRadius: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setIsCumulative(false)}
+                        style={{
+                          padding: '6px 12px',
+                          fontSize: '0.74rem',
+                          fontWeight: 600,
+                          borderRadius: '6px',
+                          border: 'none',
+                          backgroundColor: !isCumulative ? '#10b981' : 'transparent',
+                          color: !isCumulative ? '#fff' : 'var(--text-secondary)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Month-on-Month
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsCumulative(true)}
+                        style={{
+                          padding: '6px 12px',
+                          fontSize: '0.74rem',
+                          fontWeight: 600,
+                          borderRadius: '6px',
+                          border: 'none',
+                          backgroundColor: isCumulative ? '#10b981' : 'transparent',
+                          color: isCumulative ? '#fff' : 'var(--text-secondary)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Cumulative
+                      </button>
+                    </div>
+
+                    {/* Timeframe Selector */}
+                    <div style={{ display: 'flex', gap: '6px', backgroundColor: 'rgba(0,0,0,0.15)', padding: '4px', borderRadius: '8px' }}>
+                      {([3, 6, 12] as const).map(months => (
+                        <button
+                          key={months}
+                          type="button"
+                          onClick={() => setSelectedMonths(months)}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '0.74rem',
+                            fontWeight: 600,
+                            borderRadius: '6px',
+                            border: 'none',
+                            backgroundColor: selectedMonths === months ? '#10b981' : 'transparent',
+                            color: selectedMonths === months ? '#fff' : 'var(--text-secondary)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {months} Months
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
-            {loadingForecast ? (
+            {chartViewMode === 'historical' ? (
+              (() => {
+                const sortedInvoices = invoices && invoices.length > 0
+                  ? [...invoices].sort((a, b) => {
+                      const timeA = a.due_date ? new Date(a.due_date).getTime() : 0;
+                      const timeB = b.due_date ? new Date(b.due_date).getTime() : 0;
+                      return timeA - timeB;
+                    })
+                  : [];
+
+                if (sortedInvoices.length === 0) {
+                  return (
+                    <div className="glass-panel" style={{ 
+                      padding: '40px', 
+                      textAlign: 'center', 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center', 
+                      gap: '12px',
+                      borderColor: 'rgba(217, 119, 6, 0.2)',
+                      backgroundColor: 'rgba(217, 119, 6, 0.04)',
+                      borderRadius: '8px'
+                    }}>
+                      <AlertCircle size={36} style={{ color: 'var(--warning, #f59e0b)' }} />
+                      <h4 style={{ margin: 0, color: 'var(--text-primary)' }}>No Live Billing Data Available</h4>
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', margin: 0 }}>
+                        No historical invoice records found to render graph.
+                      </p>
+                    </div>
+                  );
+                }
+
+                const maxAmount = Math.max(...sortedInvoices.map(inv => Number(inv.amount)), 1);
+                const baseMaxHeight = 140;
+
+                const getInvoiceMonthLabel = (dateStr: string) => {
+                  if (!dateStr) return '';
+                  const parts = dateStr.split('-');
+                  if (parts.length === 3) {
+                    const year = parseInt(parts[0], 10);
+                    const month = parseInt(parts[1], 10) - 1; // 0-indexed
+                    const day = parseInt(parts[2], 10);
+                    const d = new Date(year, month, day);
+                    return d.toLocaleString('default', { month: 'short', year: '2-digit' });
+                  }
+                  const d = new Date(dateStr);
+                  return d.toLocaleString('default', { month: 'short', year: '2-digit' });
+                };
+
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '32px' }}>
+                    {/* Graph Legend */}
+                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'linear-gradient(180deg, var(--accent-purple, #8b5cf6) 0%, #6d28d9 100%)' }} />
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Invoice Spend</span>
+                      </div>
+                    </div>
+
+                    {/* Custom CSS Bar Chart Container */}
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: '24px', 
+                      alignItems: 'flex-end', 
+                      height: '210px', 
+                      padding: '16px 20px', 
+                      backgroundColor: 'rgba(0,0,0,0.15)', 
+                      borderRadius: '10px',
+                      border: '1px solid var(--glass-border)',
+                      overflowX: 'auto',
+                      position: 'relative',
+                      whiteSpace: 'nowrap',
+                      scrollbarWidth: 'thin',
+                      scrollbarColor: 'rgba(255,255,255,0.1) transparent'
+                    }}>
+                      {sortedInvoices.map((inv) => {
+                        const amountVal = Number(inv.amount);
+                        const barHeight = Math.max(15, (amountVal / maxAmount) * baseMaxHeight);
+                        const issueMonthLabel = getInvoiceMonthLabel(inv.issue_date);
+
+                        return (
+                          <div key={inv.id} style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '10px',
+                            minWidth: '100px',
+                            flexShrink: 0
+                          }}>
+                            {/* Bar Container */}
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'flex-end',
+                              justifyContent: 'center',
+                              height: `${baseMaxHeight + 25}px`,
+                              position: 'relative',
+                              paddingBottom: '2px'
+                            }}>
+                              {/* Invoice Single Bar */}
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <div style={{
+                                  width: '38px',
+                                  height: `${barHeight}px`,
+                                  background: 'linear-gradient(180deg, var(--accent-purple, #8b5cf6) 0%, #6d28d9 100%)',
+                                  borderRadius: '4px 4px 0 0',
+                                  boxShadow: '0 4px 10px rgba(139, 92, 246, 0.2)',
+                                  position: 'relative',
+                                  transition: 'height 0.3s ease-out'
+                                }}>
+                                  {/* Value Label above the bar */}
+                                  <div style={{
+                                    position: 'absolute',
+                                    top: '-28px',
+                                    left: '50%',
+                                    transform: 'translateX(-50%)',
+                                    fontSize: '0.64rem',
+                                    fontWeight: 700,
+                                    fontFamily: 'monospace',
+                                    color: 'var(--text-primary)',
+                                    textAlign: 'center',
+                                    lineHeight: 1.1
+                                  }}>
+                                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.58rem', fontWeight: 500 }}>
+                                      {inv.invoice_number}
+                                    </div>
+                                    <div>
+                                      ${amountVal.toFixed(0)}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Month Label */}
+                            <span style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
+                              color: 'var(--text-secondary)',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.04em'
+                            }}>
+                              {issueMonthLabel}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Details / Text Summary (rendered below the graph) */}
+                    <div style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      gap: '12px', 
+                      backgroundColor: 'rgba(255,255,255,0.01)', 
+                      padding: '20px', 
+                      borderRadius: '10px', 
+                      border: '1px solid var(--glass-border)' 
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ 
+                          fontSize: '0.72rem', 
+                          fontWeight: 700, 
+                          backgroundColor: 'rgba(139, 92, 246, 0.12)', 
+                          color: 'var(--accent-purple, #8b5cf6)', 
+                          padding: '4px 10px', 
+                          borderRadius: '20px', 
+                          border: '1px solid rgba(139, 92, 246, 0.2)' 
+                        }}>
+                          Historical Invoices Summary
+                        </span>
+                      </div>
+                      
+                      <h5 style={{ margin: '4px 0 0 0', fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                        Total Invoiced Spend: <span style={{ color: 'var(--accent-purple, #8b5cf6)' }}>${sortedInvoices.reduce((sum, inv) => sum + Number(inv.amount), 0).toFixed(2)} USD</span>
+                      </h5>
+                      
+                      <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                        This details the total sum of all invoices fetched from your live billing logs. A total of <strong>{sortedInvoices.length} invoices</strong> have been recorded in this subscription, including paid, pending, and overdue balances.
+                      </p>
+                      
+                      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '6px', borderTop: '1px solid var(--glass-border)', paddingTop: '12px' }}>
+                        <div>
+                          <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Paid Invoices</span>
+                          <span style={{ fontSize: '0.95rem', fontWeight: 700, fontFamily: 'monospace', color: 'var(--success)' }}>
+                            ${sortedInvoices.filter(inv => inv.status.toLowerCase() === 'paid').reduce((sum, inv) => sum + Number(inv.amount), 0).toFixed(2)}
+                          </span>
+                        </div>
+                        <div style={{ borderLeft: '1px solid var(--glass-border)', paddingLeft: '20px' }}>
+                          <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Pending / Overdue</span>
+                          <span style={{ fontSize: '0.95rem', fontWeight: 700, fontFamily: 'monospace', color: 'var(--warning)' }}>
+                            ${sortedInvoices.filter(inv => inv.status.toLowerCase() !== 'paid').reduce((sum, inv) => sum + Number(inv.amount), 0).toFixed(2)}
+                          </span>
+                        </div>
+                        <div style={{ borderLeft: '1px solid var(--glass-border)', paddingLeft: '20px' }}>
+                          <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Average Invoice</span>
+                          <span style={{ fontSize: '0.95rem', fontWeight: 700, fontFamily: 'monospace', color: 'var(--text-primary)' }}>
+                            ${(sortedInvoices.reduce((sum, inv) => sum + Number(inv.amount), 0) / sortedInvoices.length).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()
+            ) : loadingForecast ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '20px 0' }}>
                 <RefreshCw size={16} className="spin-anim" style={{ color: '#10b981' }} />
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Calculating projection...</span>
