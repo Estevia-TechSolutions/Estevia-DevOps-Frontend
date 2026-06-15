@@ -320,21 +320,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const localAppGroups = React.useMemo(() => {
     return appGroups.map(group => {
       const updatedEnvs = group.envs.map(app => {
-        // Primary lookup: by buildId from the last known scan pipelineRun
         const runId = app.pipelineRun?.id;
-        if (runId && livePipelineRuns[runId]) {
-          return {
-            ...app,
-            pipelineRun: livePipelineRuns[runId]
-          };
-        }
-        // Secondary lookup: by pipelineId (set by the discovery poller when scan returned null)
-        // Stored under 'pid-{pipelineId}' key to avoid collision with build IDs
         const pidKey = app.pipelineId ? `pid-${app.pipelineId}` : null;
-        if (pidKey && livePipelineRuns[pidKey]) {
+        const liveRun =
+          (pidKey && livePipelineRuns[pidKey]) ||
+          (runId && livePipelineRuns[runId]) ||
+          null;
+
+        if (liveRun) {
           return {
             ...app,
-            pipelineRun: livePipelineRuns[pidKey]
+            pipelineRun: liveRun
           };
         }
         return app;
@@ -353,8 +349,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         const runId = app.pipelineRun?.id;
         const pidKey = app.pipelineId ? `pid-${app.pipelineId}` : null;
         const liveRun =
-          (runId && livePipelineRuns[runId]) ||
           (pidKey && livePipelineRuns[pidKey]) ||
+          (runId && livePipelineRuns[runId]) ||
           app.pipelineRun;
         return {
           buildId: liveRun?.id,
@@ -376,8 +372,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         // Primary lookup: by known runId from scan; secondary: by pipelineId (set by discovery poller)
         const pidKey = app.pipelineId ? `pid-${app.pipelineId}` : null;
         const liveRun =
-          (runId && livePipelineRunsRef.current[runId]) ||
           (pidKey && livePipelineRunsRef.current[pidKey]) ||
+          (runId && livePipelineRunsRef.current[runId]) ||
           app.pipelineRun;
         return {
           appName: app.name,
