@@ -750,7 +750,7 @@ function App() {
     onConfirm: () => void;
   } | null>(null);
 
-  const [syncCountdown, setSyncCountdown] = useState<number>(60);
+  const [syncCountdown, setSyncCountdown] = useState<number>(300);
 
   // Authentication states
   const [token, setToken] = useState<string | null>(localStorage.getItem('devops_token'));
@@ -1574,16 +1574,16 @@ function App() {
     }
   }, [organizationId, token, user?.role]);
 
-  // Auto-scan cloud resources and refresh costs with a 1-minute countdown timer
+  // Auto-scan cloud resources and refresh costs with a 5-minute countdown timer
   useEffect(() => {
     if (token) {
-      setSyncCountdown(60);
+      setSyncCountdown(300);
       const interval = setInterval(() => {
         setSyncCountdown((prev) => {
           if (prev <= 1) {
             console.log('[DevOps Auto Refresh] Timer reached 0. Triggering auto cloud & cost scan...');
             handleScan();
-            return 60;
+            return 300;
           }
           return prev - 1;
         });
@@ -2115,7 +2115,7 @@ function App() {
   const handleScan = async (rg?: string) => {
     setScanning(true);
     setScanError(null);
-    setSyncCountdown(60); // Reset timer on manual scan
+    setSyncCountdown(300); // Reset timer on manual scan
     const activeRg = rg !== undefined ? rg : selectedControlResourceGroup;
     const scanUrl = `${API_BASE}/apps/scan?organizationId=${organizationId}${activeRg ? `&resourceGroup=${activeRg}` : ''}`;
     console.log('[DevOps Scan] [START] Initiating Cloud Scan.', { organizationId, scanUrl });
