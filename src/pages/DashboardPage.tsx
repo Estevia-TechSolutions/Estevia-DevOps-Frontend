@@ -221,6 +221,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [activeDashboardTab, setActiveDashboardTab] = React.useState<'swa' | 'aca' | 'vm'>('swa');
   const [hoveredTab, setHoveredTab] = React.useState<'swa' | 'aca' | 'vm' | null>(null);
   const [hoveredEnv, setHoveredEnv] = React.useState<string | null>(null);
+  // Fixed-position tooltip data for the group header "X Environments" hover
+  const [groupTooltipData, setGroupTooltipData] = React.useState<{
+    groupKey: string;
+    accentColor: string;
+    envs: any[];
+    top: number;
+    right: number;
+  } | null>(null);
 
   // Live pipeline build runs overridden telemetry
   const [livePipelineRuns, setLivePipelineRuns] = React.useState<Record<number, any>>({});
@@ -1128,118 +1136,30 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     </span>
                   )}
 
-                  {/* Environments count with last-build hover tooltip */}
-                  <div
-                    style={{ position: 'relative', display: 'inline-flex' }}
-                    onMouseEnter={() => setHoveredEnv(`group-${group.key}`)}
-                    onMouseLeave={() => setHoveredEnv(null)}
-                  >
-                    <span style={{
+                  {/* Environments count — hover opens a fixed-position portal tooltip */}
+                  <span
+                    style={{
                       fontSize: '0.76rem',
                       color: 'var(--text-secondary)',
                       fontWeight: 500,
                       cursor: 'default',
                       textDecoration: 'underline dotted',
                       textUnderlineOffset: '3px'
-                    }}>
-                      {group.envs.length} {group.envs.length === 1 ? 'Environment' : 'Environments'}
-                    </span>
-
-                    {/* Last Build Tooltip */}
-                    {hoveredEnv === `group-${group.key}` && (
-                      <div
-                        onClick={e => e.stopPropagation()}
-                        style={{
-                          position: 'absolute',
-                          bottom: 'calc(100% + 10px)',
-                          right: 0,
-                          zIndex: 9500,
-                          background: theme === 'light' ? 'rgba(255,255,255,0.98)' : 'rgba(15,23,42,0.98)',
-                          border: `1px solid ${accentColor}30`,
-                          borderRadius: '10px',
-                          padding: '10px 14px',
-                          minWidth: '240px',
-                          boxShadow: '0 8px 30px rgba(0,0,0,0.35)',
-                          pointerEvents: 'none'
-                        }}
-                      >
-                        {/* Arrow */}
-                        <div style={{
-                          position: 'absolute',
-                          bottom: '-5px',
-                          right: '24px',
-                          width: '10px',
-                          height: '10px',
-                          background: theme === 'light' ? 'rgba(255,255,255,0.98)' : 'rgba(15,23,42,0.98)',
-                          border: `1px solid ${accentColor}30`,
-                          borderTop: 'none',
-                          borderLeft: 'none',
-                          rotate: '45deg'
-                        }} />
-                        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: accentColor, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                          Last Build Times
-                        </div>
-                        {group.envs.map(env => {
-                          const run = env.pipelineRun;
-                          const finishTime = run?.finishTime;
-                          let timeLabel = 'Never built';
-                          if (run && isBuildActive(run)) {
-                            timeLabel = '🔄 Building now…';
-                          } else if (finishTime) {
-                            try {
-                              const d = new Date(finishTime);
-                              const now = new Date();
-                              const diffMs = now.getTime() - d.getTime();
-                              const diffMins = Math.floor(diffMs / 60000);
-                              const diffHrs = Math.floor(diffMins / 60);
-                              const diffDays = Math.floor(diffHrs / 24);
-                              if (diffMins < 1) timeLabel = 'Just now';
-                              else if (diffMins < 60) timeLabel = `${diffMins}m ago`;
-                              else if (diffHrs < 24) timeLabel = `${diffHrs}h ${diffMins % 60}m ago`;
-                              else timeLabel = `${diffDays}d ago  (${d.toLocaleDateString()})`;
-                            } catch {
-                              timeLabel = finishTime;
-                            }
-                          }
-                          const envTag = getEnvTag(env.name);
-                          return (
-                            <div key={env.name} style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              gap: '10px',
-                              padding: '5px 0',
-                              borderBottom: '1px solid var(--glass-border)'
-                            }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-                                <span style={{
-                                  fontSize: '0.58rem', fontWeight: 700,
-                                  color: envTag.color, background: envTag.bg,
-                                  border: `1px solid ${envTag.border}`,
-                                  padding: '1px 5px', borderRadius: '3px',
-                                  flexShrink: 0
-                                }}>
-                                  {envTag.label}
-                                </span>
-                                <span style={{ fontSize: '0.7rem', fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {env.name}
-                                </span>
-                              </div>
-                              <span style={{
-                                fontSize: '0.68rem',
-                                fontWeight: 600,
-                                color: run && isBuildActive(run) ? '#10b981' : finishTime ? 'var(--text-secondary)' : 'rgba(148,163,184,0.6)',
-                                whiteSpace: 'nowrap',
-                                flexShrink: 0
-                              }}>
-                                {timeLabel}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
+                    }}
+                    onMouseEnter={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setGroupTooltipData({
+                        groupKey: group.key,
+                        accentColor,
+                        envs: group.envs,
+                        top: rect.top - 8,  // will render above
+                        right: window.innerWidth - rect.right
+                      });
+                    }}
+                    onMouseLeave={() => setGroupTooltipData(null)}
+                  >
+                    {group.envs.length} {group.envs.length === 1 ? 'Environment' : 'Environments'}
+                  </span>
                   
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', opacity: 0.8, marginRight: '6px' }}>
                     {isCollapsed ? 'Click to expand group' : 'Click to Collapse group'}
@@ -2367,6 +2287,106 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           })()}
         </div>
       )}
+      {/* ── Group Header "X Environments" Fixed-Position Tooltip Portal ── */}
+      {groupTooltipData && (() => {
+        const { accentColor: ttAccent, envs, top, right } = groupTooltipData;
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              top: `${top}px`,
+              right: `${right}px`,
+              zIndex: 99999,
+              transform: 'translateY(-100%)',
+              background: theme === 'light' ? 'rgba(255,255,255,0.98)' : 'rgba(15,23,42,0.98)',
+              border: `1px solid ${ttAccent}40`,
+              borderRadius: '12px',
+              padding: '12px 16px',
+              minWidth: '260px',
+              maxWidth: '340px',
+              boxShadow: `0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px ${ttAccent}20`,
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              pointerEvents: 'none'
+            }}
+          >
+            {/* Arrow pointing down */}
+            <div style={{
+              position: 'absolute',
+              bottom: '-6px',
+              right: '20px',
+              width: '12px',
+              height: '12px',
+              background: theme === 'light' ? '#fff' : 'rgb(15,23,42)',
+              border: `1px solid ${ttAccent}40`,
+              borderTop: 'none',
+              borderLeft: 'none',
+              transform: 'rotate(45deg)'
+            }} />
+            {/* Header */}
+            <div style={{
+              fontSize: '0.65rem', fontWeight: 800, color: ttAccent,
+              textTransform: 'uppercase', letterSpacing: '0.08em',
+              marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px'
+            }}>
+              <span>Last Build Times</span>
+              <span style={{ opacity: 0.5 }}>·</span>
+              <span style={{ opacity: 0.7, textTransform: 'none', fontWeight: 500 }}>{envs.length} env{envs.length !== 1 ? 's' : ''}</span>
+            </div>
+            {/* Rows */}
+            {envs.map((env: any, idx: number) => {
+              const run = env.pipelineRun;
+              const finishTime = run?.finishTime;
+              let timeLabel = 'Never built';
+              let timeColor = 'rgba(148,163,184,0.6)';
+              if (run && isBuildActive(run)) {
+                timeLabel = '🔄 Building now…';
+                timeColor = '#10b981';
+              } else if (finishTime) {
+                try {
+                  const d = new Date(finishTime);
+                  const diffMs = Date.now() - d.getTime();
+                  const diffMins = Math.floor(diffMs / 60000);
+                  const diffHrs = Math.floor(diffMins / 60);
+                  const diffDays = Math.floor(diffHrs / 24);
+                  if (diffMins < 1) timeLabel = 'Just now';
+                  else if (diffMins < 60) timeLabel = `${diffMins}m ago`;
+                  else if (diffHrs < 24) timeLabel = `${diffHrs}h ${diffMins % 60}m ago`;
+                  else timeLabel = `${diffDays}d ago (${d.toLocaleDateString()})`;
+                  timeColor = 'var(--text-secondary)';
+                } catch { timeLabel = finishTime; }
+              }
+              const envTag = getEnvTag(env.name);
+              return (
+                <div key={env.name} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  gap: '10px', padding: '6px 0',
+                  borderBottom: idx < envs.length - 1 ? '1px solid var(--glass-border)' : 'none'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
+                    <span style={{
+                      fontSize: '0.58rem', fontWeight: 700,
+                      color: envTag.color, background: envTag.bg,
+                      border: `1px solid ${envTag.border}`,
+                      padding: '1px 5px', borderRadius: '4px', flexShrink: 0
+                    }}>{envTag.label}</span>
+                    <span style={{
+                      fontSize: '0.72rem', fontWeight: 500,
+                      color: 'var(--text-primary)',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                    }}>{env.name}</span>
+                  </div>
+                  <span style={{
+                    fontSize: '0.68rem', fontWeight: 600,
+                    color: timeColor, whiteSpace: 'nowrap', flexShrink: 0
+                  }}>{timeLabel}</span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
+
       {/* Job Steps Modal Overlay */}
       {selectedJobForModal && (
         <div style={{
