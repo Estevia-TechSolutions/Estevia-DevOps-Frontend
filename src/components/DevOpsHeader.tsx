@@ -71,7 +71,7 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
           {/* Scan button */}
           <button
             className="btn-primary"
-            onClick={handleScan}
+            onClick={() => handleScan()}
             disabled={scanning}
             style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '8px 16px', fontSize: '0.82rem', height: '36px' }}
           >
