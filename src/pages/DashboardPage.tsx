@@ -343,10 +343,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     const activeBuilds = apps
       .map(app => {
         const runId = app.pipelineRun?.id;
-        const liveRun = (runId && livePipelineRunsRef.current[runId]) || app.pipelineRun;
+        // Primary lookup: by known runId from scan; secondary: by pipelineId (set by discovery poller)
+        const pidKey = app.pipelineId ? `pid-${app.pipelineId}` : null;
+        const liveRun =
+          (runId && livePipelineRunsRef.current[runId]) ||
+          (pidKey && livePipelineRunsRef.current[pidKey]) ||
+          app.pipelineRun;
         return {
           appName: app.name,
           buildId: liveRun?.id,
+          pipelineId: app.pipelineId,
           isActive: isBuildActive(liveRun)
         };
       })
@@ -369,10 +375,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           if (!res.ok) continue;
           const data = await res.json();
           if (data.success && data.pipelineRun) {
-            setLivePipelineRuns(prev => ({
-              ...prev,
-              [build.buildId]: data.pipelineRun
-            }));
+            const updates: Record<string, any> = { [build.buildId]: data.pipelineRun };
+            // Also update the pid- key so localAppGroups shows the fresh timeline
+            if (build.pipelineId) updates[`pid-${build.pipelineId}`] = data.pipelineRun;
+            setLivePipelineRuns(prev => ({ ...prev, ...updates }));
             
             // If the task modal is open for a task under this build, update selectedTaskForModal!
             if (selectedTaskForModal && selectedTaskForModal.buildId === build.buildId) {
@@ -443,10 +449,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
           const latestRun = data.pipelineRun;
 
-          // Only inject into livePipelineRuns if:
-          // 1. The build is active (inProgress / notStarted / queued), OR
-          // 2. It's a brand-new build ID that isn't in livePipelineRuns yet
-          const existingLiveId = app.pipelineRun?.id;
+          // Check existing live run via primary (scan runId) or secondary (pid key) index
+          const pidKey = `pid-${app.pipelineId}`;
+          const existingLiveId =
+            app.pipelineRun?.id ||
+            livePipelineRunsRef.current[pidKey]?.id;
           const isNewBuild = latestRun.id !== existingLiveId;
           const isActive = isBuildActive(latestRun);
 
