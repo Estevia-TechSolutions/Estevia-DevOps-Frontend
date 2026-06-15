@@ -384,6 +384,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       })
       .filter(b => b.buildId && b.isActive);
 
+    console.log('[DevOps Poller] Evaluated active builds list:', activeBuilds);
+
     if (activeBuilds.length === 0) return;
 
     let isSubscribed = true;
@@ -393,13 +395,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       for (const build of activeBuilds) {
         if (!isSubscribed) break;
         try {
+          console.log(`[DevOps Poller] Polling timeline for build ${build.buildId} (${build.appName})...`);
           const res = await fetch(`${API_BASE}/apps/pipeline/timeline?organizationId=${organizationId}&buildId=${build.buildId}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
           });
-          if (!res.ok) continue;
+          if (!res.ok) {
+            console.error(`[DevOps Poller] Timeline API request failed for build ${build.buildId} with status ${res.status}`);
+            continue;
+          }
           const data = await res.json();
+          console.log(`[DevOps Poller] Timeline API response for build ${build.buildId}:`, data);
           if (data.success && data.pipelineRun) {
             const updates: Record<string, any> = { [build.buildId]: data.pipelineRun };
             // Also update the pid- key so localAppGroups shows the fresh timeline
@@ -471,19 +478,25 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         try {
           // Resolve the branch for this specific app environment so we only get builds for the right branch
           const resolvedBranch = `refs/heads/${resolveBranchName(app)}`;
+          console.log(`[DevOps Discovery] Checking latest build for app ${app.name} | Pipeline: ${pipelineId} | Branch: ${resolvedBranch}`);
           const res = await fetch(
             `${API_BASE}/apps/pipeline/latest?organizationId=${organizationId}&pipelineId=${pipelineId}&branchName=${encodeURIComponent(resolvedBranch)}`,
             { headers: { 'Authorization': `Bearer ${token}` } }
           );
           if (!res.ok) {
+            console.error(`[DevOps Discovery] Latest build API failed for app ${app.name}: status ${res.status}`);
             setLoadedPipelines(prev => ({ ...prev, [pipelineId]: true }));
             continue;
           }
           const data = await res.json();
+          console.log(`[DevOps Discovery] Latest build response for app ${app.name}:`, data);
           
           setLoadedPipelines(prev => ({ ...prev, [pipelineId]: true }));
 
-          if (!data.success || !data.pipelineRun) continue;
+          if (!data.success || !data.pipelineRun) {
+            console.log(`[DevOps Discovery] No success or no pipelineRun returned for ${app.name}`);
+            continue;
+          }
 
           const latestRun = data.pipelineRun;
 
@@ -495,7 +508,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           const isNewBuild = latestRun.id !== existingLiveId;
           const isActive = isBuildActive(latestRun);
 
+          console.log(`[DevOps Discovery] app: ${app.name} | latestRunId: ${latestRun.id} | existingLiveId: ${existingLiveId} | isNew: ${isNewBuild} | isActive: ${isActive}`);
+
           if (isActive || isNewBuild) {
+            console.log(`[DevOps Discovery] Updating livePipelineRuns for app ${app.name} with build ${latestRun.id} (state: ${latestRun.state})`);
             setLivePipelineRuns(prev => ({
               ...prev,
               [latestRun.id]: latestRun,
@@ -505,8 +521,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             }));
           }
         } catch (err) {
+          console.error(`[DevOps Discovery] Error checking latest build for ${app.name}:`, err);
           setLoadedPipelines(prev => ({ ...prev, [pipelineId]: true }));
-          // Silent - this is a background discovery, don't spam console
         }
       }
     };
