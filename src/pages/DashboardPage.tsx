@@ -194,6 +194,59 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   const organizationId = currentUser?.organization_id || 'estevia';
 
+  // Power control confirmation state
+  const [pendingPowerAction, setPendingPowerAction] = React.useState<{ name: string; action: 'start' | 'stop' | 'restart' } | null>(null);
+
+  // Live DevOps pipeline task logs state
+  const [logs, setLogs] = React.useState<string>('');
+  const [loadingLogs, setLoadingLogs] = React.useState<boolean>(false);
+
+  // Close dropdowns on scroll to prevent drifting
+  React.useEffect(() => {
+    const handleScroll = () => {
+      setActiveDropdown(null);
+      setDropdownCoords(null);
+      setActivePowerDropdown(null);
+      setPowerDropdownCoords(null);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // Fetch live DevOps step logs
+  React.useEffect(() => {
+    if (!selectedTaskForModal || !selectedTaskForModal.buildId || !selectedTaskForModal.step.logId) {
+      setLogs('');
+      return;
+    }
+    const fetchLogs = async () => {
+      setLoadingLogs(true);
+      setLogs('');
+      try {
+        const token = localStorage.getItem('devops_token');
+        const { buildId, step } = selectedTaskForModal;
+        const res = await fetch(`${API_BASE}/apps/pipeline/logs?organizationId=${organizationId}&buildId=${buildId}&logId=${step.logId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setLogs(data.logs || 'No log data returned from Azure.');
+        } else {
+          setLogs(`Failed to fetch logs: ${data.message || 'Unknown error'}`);
+        }
+      } catch (err: any) {
+        setLogs(`Error loading logs: ${err.message}`);
+      } finally {
+        setLoadingLogs(false);
+      }
+    };
+    fetchLogs();
+  }, [selectedTaskForModal, organizationId]);
+
   const fetchRevisions = async (app: AppResource) => {
     setLoadingRevisions(true);
     try {
@@ -490,6 +543,23 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   return (
     <div>
+      <style>{`
+        @keyframes play-pulse {
+          0%, 100% {
+            transform: scale(1);
+            filter: drop-shadow(0 0 1px rgba(16, 185, 129, 0.4));
+            opacity: 0.9;
+          }
+          50% {
+            transform: scale(1.22);
+            filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.95));
+            opacity: 1;
+          }
+        }
+        .play-pulse-anim {
+          animation: play-pulse 2s infinite ease-in-out;
+        }
+      `}</style>
       {scanError && (
         <div className="glass-panel" style={{ padding: '16px', borderColor: 'var(--error)', backgroundColor: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
           <AlertCircle style={{ color: 'var(--error)' }} />
@@ -1006,7 +1076,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               } else if (isStarted) {
                                 btnBg = 'rgba(16,185,129,0.08)'; btnColor = '#10b981';
                                 btnBorder = 'rgba(16,185,129,0.2)'; btnText = 'Running';
-                                btnIcon = <Play size={10} fill="#10b981" />;
+                                btnIcon = <Play size={10} fill="#10b981" className="play-pulse-anim" />;
                               } else if (isStopped) {
                                 btnBg = 'rgba(239,68,68,0.08)'; btnColor = '#ef4444';
                                 btnBorder = 'rgba(239,68,68,0.2)'; btnText = 'Stopped';
@@ -1084,7 +1154,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                             disabled={startDis}
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              onResourceControl?.(item.name, 'start');
+                                              setPendingPowerAction({ name: item.name, action: 'start' });
                                               setActivePowerDropdown(null);
                                               setPowerDropdownCoords(null);
                                             }}
@@ -1113,7 +1183,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                             disabled={restartDis}
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              onResourceControl?.(item.name, 'restart');
+                                              setPendingPowerAction({ name: item.name, action: 'restart' });
                                               setActivePowerDropdown(null);
                                               setPowerDropdownCoords(null);
                                             }}
@@ -1141,7 +1211,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                             disabled={stopDis}
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              onResourceControl?.(item.name, 'stop');
+                                              setPendingPowerAction({ name: item.name, action: 'stop' });
                                               setActivePowerDropdown(null);
                                               setPowerDropdownCoords(null);
                                             }}
@@ -1576,7 +1646,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                                   onClick={() => setSelectedTaskForModal({
                                                                     step,
                                                                     jobName: job.displayName || job.name,
-                                                                    stageName: stage.displayName || stage.name
+                                                                    stageName: stage.displayName || stage.name,
+                                                                    buildId: item.pipelineRun?.id
                                                                   })}
                                                                   style={{
                                                                     display: 'flex',
@@ -1887,7 +1958,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           animation: 'fade-in-anim 0.2s ease-out'
         }}>
           <div className="glass-panel" style={{
-            maxWidth: '500px',
+            maxWidth: '700px',
             width: '100%',
             padding: '24px',
             border: '1px solid var(--glass-border)',
@@ -1982,6 +2053,45 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>
                     {selectedTaskForModal.step.finishTime ? new Date(selectedTaskForModal.step.finishTime).toLocaleString() : (selectedTaskForModal.step.startTime ? 'Running...' : 'N/A')}
                   </span>
+                </div>
+              </div>
+
+              {/* Console logs terminal UI */}
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '6px', 
+                borderTop: '1px solid var(--glass-border)', 
+                paddingTop: '12px', 
+                marginTop: '8px' 
+              }}>
+                <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>Console Log Output</span>
+                <div style={{
+                  backgroundColor: '#020617',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: '6px',
+                  padding: '12px',
+                  height: '240px',
+                  overflowY: 'auto',
+                  fontFamily: 'monospace',
+                  fontSize: '0.74rem',
+                  lineHeight: '1.4',
+                  color: '#e2e8f0',
+                  whiteSpace: 'pre-wrap',
+                  textAlign: 'left'
+                }}>
+                  {loadingLogs ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', height: '100%', color: 'var(--text-secondary)' }}>
+                      <RefreshCw size={14} className="spin-anim" />
+                      <span>Loading live logs from Azure DevOps...</span>
+                    </div>
+                  ) : selectedTaskForModal.step.logId ? (
+                    logs || 'Console log is empty.'
+                  ) : (
+                    <span style={{ color: 'var(--text-muted)' }}>
+                      No live logs available. This task may have been skipped, is pending, or did not register execution logs.
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -2202,11 +2312,75 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     );
                   })()}
                 </div>
-
               </div>
             )}
           </div>
         </>
+      )}
+      {/* Power Control Confirmation Modal */}
+      {pendingPowerAction && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(2, 6, 23, 0.7)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          zIndex: 10001,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+          animation: 'fade-in-anim 0.2s ease-out'
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: '400px',
+            width: '100%',
+            padding: '24px',
+            border: '1px solid var(--glass-border)',
+            boxShadow: 'var(--modal-shadow)',
+            position: 'relative',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Confirm Action
+            </h3>
+            <p style={{ margin: '0 0 24px 0', fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+              Are you sure you want to <strong style={{ color: pendingPowerAction.action === 'stop' ? 'var(--error)' : 'var(--success)' }}>{pendingPowerAction.action.toUpperCase()}</strong> the resource <strong>{pendingPowerAction.name}</strong>?
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                className="btn-secondary"
+                onClick={() => setPendingPowerAction(null)}
+                style={{ padding: '8px 20px', fontSize: '0.82rem', flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  if (onResourceControl && pendingPowerAction) {
+                    onResourceControl(pendingPowerAction.name, pendingPowerAction.action);
+                  }
+                  setPendingPowerAction(null);
+                }}
+                style={{
+                  padding: '8px 20px',
+                  fontSize: '0.82rem',
+                  flex: 1,
+                  background: pendingPowerAction.action === 'stop' 
+                    ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+                    : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  border: pendingPowerAction.action === 'stop' ? '1px solid #dc2626' : '1px solid #059669'
+                }}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -170,6 +170,21 @@ export const CostPage: React.FC<CostPageProps> = ({
   const [activePowerDropdown, setActivePowerDropdown] = useState<string | null>(null);
   const [powerDropdownCoords, setPowerDropdownCoords] = useState<{top: number; left: number} | null>(null);
 
+  // Power action confirmation state
+  const [pendingPowerAction, setPendingPowerAction] = useState<{ name: string; action: 'start' | 'stop' | 'restart' } | null>(null);
+
+  // Close dropdown on window scroll to prevent drifting
+  React.useEffect(() => {
+    const handleScroll = () => {
+      setActivePowerDropdown(null);
+      setPowerDropdownCoords(null);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
   // Billing predictive forecast states
   const [forecastData, setForecastData] = useState<any>(null);
   const [loadingForecast, setLoadingForecast] = useState<boolean>(false);
@@ -281,6 +296,22 @@ export const CostPage: React.FC<CostPageProps> = ({
 
       {/* Scoped green button and layout styles */}
       <style>{`
+        @keyframes play-pulse {
+          0%, 100% {
+            transform: scale(1);
+            filter: drop-shadow(0 0 1px rgba(16, 185, 129, 0.4));
+            opacity: 0.9;
+          }
+          50% {
+            transform: scale(1.22);
+            filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.95));
+            opacity: 1;
+          }
+        }
+        .play-pulse-anim {
+          animation: play-pulse 2s infinite ease-in-out;
+        }
+
         .cost-green .btn-primary {
           background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
           border-color: #047857 !important;
@@ -751,7 +782,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                                     } else if (isStarted) {
                                       btnBg = 'rgba(16,185,129,0.08)'; btnColor = '#10b981';
                                       btnBorder = 'rgba(16,185,129,0.2)'; btnText = 'Running';
-                                      btnIcon = <Play size={10} fill="#10b981" />;
+                                      btnIcon = <Play size={10} fill="#10b981" className="play-pulse-anim" />;
                                     } else if (isStopped) {
                                       btnBg = 'rgba(239,68,68,0.08)'; btnColor = '#ef4444';
                                       btnBorder = 'rgba(239,68,68,0.2)'; btnText = 'Stopped';
@@ -829,7 +860,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                                                   disabled={startDis}
                                                   onClick={(e) => {
                                                     e.stopPropagation();
-                                                    onResourceControl?.(item.name, 'start');
+                                                    setPendingPowerAction({ name: item.name, action: 'start' });
                                                     setActivePowerDropdown(null);
                                                     setPowerDropdownCoords(null);
                                                   }}
@@ -858,7 +889,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                                                   disabled={restartDis}
                                                   onClick={(e) => {
                                                     e.stopPropagation();
-                                                    onResourceControl?.(item.name, 'restart');
+                                                    setPendingPowerAction({ name: item.name, action: 'restart' });
                                                     setActivePowerDropdown(null);
                                                     setPowerDropdownCoords(null);
                                                   }}
@@ -886,7 +917,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                                                   disabled={stopDis}
                                                   onClick={(e) => {
                                                     e.stopPropagation();
-                                                    onResourceControl?.(item.name, 'stop');
+                                                    setPendingPowerAction({ name: item.name, action: 'stop' });
                                                     setActivePowerDropdown(null);
                                                     setPowerDropdownCoords(null);
                                                   }}
@@ -1679,6 +1710,71 @@ export const CostPage: React.FC<CostPageProps> = ({
         </div>
       )}
       </div>
+      {/* Power Control Confirmation Modal */}
+      {pendingPowerAction && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(2, 6, 23, 0.7)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          zIndex: 10001,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+          animation: 'fade-in-anim 0.2s ease-out'
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: '400px',
+            width: '100%',
+            padding: '24px',
+            border: '1px solid var(--glass-border)',
+            boxShadow: 'var(--modal-shadow)',
+            position: 'relative',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Confirm Action
+            </h3>
+            <p style={{ margin: '0 0 24px 0', fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+              Are you sure you want to <strong style={{ color: pendingPowerAction.action === 'stop' ? 'var(--error)' : 'var(--success)' }}>{pendingPowerAction.action.toUpperCase()}</strong> the resource <strong>{pendingPowerAction.name}</strong>?
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                className="btn-secondary"
+                onClick={() => setPendingPowerAction(null)}
+                style={{ padding: '8px 20px', fontSize: '0.82rem', flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  if (onResourceControl && pendingPowerAction) {
+                    onResourceControl(pendingPowerAction.name, pendingPowerAction.action);
+                  }
+                  setPendingPowerAction(null);
+                }}
+                style={{
+                  padding: '8px 20px',
+                  fontSize: '0.82rem',
+                  flex: 1,
+                  background: pendingPowerAction.action === 'stop' 
+                    ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+                    : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  border: pendingPowerAction.action === 'stop' ? '1px solid #dc2626' : '1px solid #059669'
+                }}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
