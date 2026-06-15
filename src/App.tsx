@@ -712,6 +712,13 @@ function App() {
   const [teamsWebhookUrl, setTeamsWebhookUrl] = useState('');
   const [teamsWebhookToken, setTeamsWebhookToken] = useState('');
   const [logAnalyticsWorkspaceId, setLogAnalyticsWorkspaceId] = useState('');
+  const [azureKeyVaultUrl, setAzureKeyVaultUrl] = useState('');
+  const [devDbHost, setDevDbHost] = useState('');
+  const [qaDbHost, setQaDbHost] = useState('');
+  const [prodDbHost, setProdDbHost] = useState('');
+  const [devManagedEnvId, setDevManagedEnvId] = useState('');
+  const [prodManagedEnvId, setProdManagedEnvId] = useState('');
+  const [discoveringInfra, setDiscoveringInfra] = useState(false);
 
   // Dynamic Provisioning Metadata States
   const [locations, setLocations] = useState<any[]>([]);
@@ -1780,6 +1787,12 @@ function App() {
         setTeamsWebhookUrl(data.settings.teams_webhook_url || '');
         setTeamsWebhookToken(data.settings.teams_webhook_token || '');
         setLogAnalyticsWorkspaceId(data.settings.log_analytics_workspace_id || '');
+        setAzureKeyVaultUrl(data.settings.azure_key_vault_url || '');
+        setDevDbHost(data.settings.dev_db_host || '');
+        setQaDbHost(data.settings.qa_db_host || '');
+        setProdDbHost(data.settings.prod_db_host || '');
+        setDevManagedEnvId(data.settings.dev_managed_env_id || '');
+        setProdManagedEnvId(data.settings.prod_managed_env_id || '');
         
         // Auto-configure default inputs
         setDomainInput(data.settings.default_dns_domain || 'esteviatech.com');
@@ -1856,7 +1869,13 @@ function App() {
           azureDevopsServiceConnection,
           dockerRegistryServiceConnection,
           teamsWebhookUrl,
-          logAnalyticsWorkspaceId
+          logAnalyticsWorkspaceId,
+          azureKeyVaultUrl,
+          devDbHost,
+          qaDbHost,
+          prodDbHost,
+          devManagedEnvId,
+          prodManagedEnvId
         })
       });
       const data = await res.json();
@@ -1871,6 +1890,31 @@ function App() {
       setSettingsMsg({ type: 'error', text: e.message || 'Error saving organization settings.' });
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  const handleDiscoverAzureResources = async () => {
+    setDiscoveringInfra(true);
+    setSettingsMsg(null);
+    try {
+      const res = await fetch(`${API_BASE}/apps/discover-azure-resources?organizationId=${organizationId}`);
+      const data = await res.json();
+      if (data.success && data.resources) {
+        const { devDbHost, qaDbHost, prodDbHost, devManagedEnvId, prodManagedEnvId } = data.resources;
+        if (devDbHost) setDevDbHost(devDbHost);
+        if (qaDbHost) setQaDbHost(qaDbHost);
+        if (prodDbHost) setProdDbHost(prodDbHost);
+        if (devManagedEnvId) setDevManagedEnvId(devManagedEnvId);
+        if (prodManagedEnvId) setProdManagedEnvId(prodManagedEnvId);
+        
+        setSettingsMsg({ type: 'success', text: 'Infrastructure resources discovered successfully!' });
+      } else {
+        setSettingsMsg({ type: 'error', text: data.message || 'Auto-discovery did not find any resources. Please verify your Azure credentials and resource group.' });
+      }
+    } catch (e: any) {
+      setSettingsMsg({ type: 'error', text: e.message || 'Error discovering Azure resources.' });
+    } finally {
+      setDiscoveringInfra(false);
     }
   };
 
@@ -4436,6 +4480,20 @@ function App() {
             currentUser={user}
             API_BASE={API_BASE}
             theme={theme}
+            azureKeyVaultUrl={azureKeyVaultUrl}
+            setAzureKeyVaultUrl={setAzureKeyVaultUrl}
+            devDbHost={devDbHost}
+            setDevDbHost={setDevDbHost}
+            qaDbHost={qaDbHost}
+            setQaDbHost={setQaDbHost}
+            prodDbHost={prodDbHost}
+            setProdDbHost={setProdDbHost}
+            devManagedEnvId={devManagedEnvId}
+            setDevManagedEnvId={setDevManagedEnvId}
+            prodManagedEnvId={prodManagedEnvId}
+            setProdManagedEnvId={setProdManagedEnvId}
+            discoveringInfra={discoveringInfra}
+            handleDiscoverAzureResources={handleDiscoverAzureResources}
             testingCredential={testingCredential}
             validationResult={validationResult}
             handleValidateCredential={handleValidateCredential}

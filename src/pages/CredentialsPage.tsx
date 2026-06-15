@@ -54,6 +54,20 @@ interface CredentialsPageProps {
   setAzureDevopsServiceConnection: (val: string) => void;
   dockerRegistryServiceConnection: string;
   setDockerRegistryServiceConnection: (val: string) => void;
+  azureKeyVaultUrl: string;
+  setAzureKeyVaultUrl: (val: string) => void;
+  devDbHost: string;
+  setDevDbHost: (val: string) => void;
+  qaDbHost: string;
+  setQaDbHost: (val: string) => void;
+  prodDbHost: string;
+  setProdDbHost: (val: string) => void;
+  devManagedEnvId: string;
+  setDevManagedEnvId: (val: string) => void;
+  prodManagedEnvId: string;
+  setProdManagedEnvId: (val: string) => void;
+  discoveringInfra: boolean;
+  handleDiscoverAzureResources: () => void;
   savingSettings: boolean;
   settingsMsg: { type: 'success' | 'error'; text: string } | null;
   handleSaveSettings: (e: React.FormEvent) => void;
@@ -194,6 +208,13 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
   githubOwner, setGithubOwner,
   azureContainerRegistry, setAzureContainerRegistry,
   savingSettings, settingsMsg, handleSaveSettings,
+  azureKeyVaultUrl, setAzureKeyVaultUrl,
+  devDbHost, setDevDbHost,
+  qaDbHost, setQaDbHost,
+  prodDbHost, setProdDbHost,
+  devManagedEnvId, setDevManagedEnvId,
+  prodManagedEnvId, setProdManagedEnvId,
+  discoveringInfra, handleDiscoverAzureResources,
   containerRegistries, loadingMetadata,
   currentUser,
   API_BASE,
@@ -830,6 +851,75 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                       </div>
                     </SectionBlock>
 
+                    {/* Database Hostnames */}
+                    <SectionBlock title="Database Hostnames" subtitle="Configure hostname values resolved dynamically per environment." accent="#ca8a04">
+                      <div style={{ display: 'grid', gap: '14px' }}>
+                        <div>
+                          <FieldLabel>Dev Database Host</FieldLabel>
+                          <input type="text" value={devDbHost} onChange={e => setDevDbHost(e.target.value)}
+                            placeholder="estevia-dev-db.mysql.database.azure.com" disabled={!canEdit} />
+                        </div>
+                        <div>
+                          <FieldLabel>QA Database Host</FieldLabel>
+                          <input type="text" value={qaDbHost} onChange={e => setQaDbHost(e.target.value)}
+                            placeholder="estevia-qa-db.mysql.database.azure.com" disabled={!canEdit} />
+                        </div>
+                        <div>
+                          <FieldLabel>Prod Database Host</FieldLabel>
+                          <input type="text" value={prodDbHost} onChange={e => setProdDbHost(e.target.value)}
+                            placeholder="estevia-prod-db.mysql.database.azure.com" disabled={!canEdit} />
+                        </div>
+                      </div>
+                    </SectionBlock>
+
+                    {/* Managed Environments */}
+                    <SectionBlock title="Managed Environments" subtitle="Container App Managed Environments for Dev and Prod targets." accent="#ca8a04">
+                      <div style={{ display: 'grid', gap: '14px' }}>
+                        <div>
+                          <FieldLabel>Dev Managed Environment ID</FieldLabel>
+                          <input type="text" value={devManagedEnvId} onChange={e => setDevManagedEnvId(e.target.value)}
+                            placeholder="/subscriptions/.../managedEnvironments/dev-env" disabled={!canEdit} />
+                        </div>
+                        <div>
+                          <FieldLabel>Prod Managed Environment ID</FieldLabel>
+                          <input type="text" value={prodManagedEnvId} onChange={e => setProdManagedEnvId(e.target.value)}
+                            placeholder="/subscriptions/.../managedEnvironments/prod-env" disabled={!canEdit} />
+                        </div>
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={handleDiscoverAzureResources}
+                            disabled={discoveringInfra}
+                            className="btn-primary"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '8px',
+                              width: '100%',
+                              marginTop: '6px',
+                              padding: '10px 16px',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              fontWeight: 600
+                            }}
+                          >
+                            {discoveringInfra ? (
+                              <>
+                                <Loader size={14} className="spin-anim" />
+                                <span>Auto-discovering...</span>
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw size={14} />
+                                <span>Auto-Discover Infrastructure</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </SectionBlock>
+
                     {/* Azure DevOps Pipeline */}
                     <SectionBlock title="DevOps Pipeline Config" subtitle="Org URL, project name, variable group, and service connections." accent="#ca8a04">
                       <div style={{ display: 'grid', gap: '14px' }}>
@@ -884,6 +974,16 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                     subtitle="Sync target secret keys directly from Azure Key Vault into pipeline variable groups."
                     accent="#ca8a04"
                   >
+                    <div style={{ marginBottom: '20px', paddingBottom: '20px', borderBottom: '1px solid var(--glass-border)' }}>
+                      <FieldLabel>Azure Key Vault URL</FieldLabel>
+                      <form onSubmit={handleSaveSettings} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <input type="text" value={azureKeyVaultUrl} onChange={e => setAzureKeyVaultUrl(e.target.value)}
+                          placeholder="https://myvault.vault.azure.net" style={{ flex: 1, margin: 0 }} disabled={!canEdit} />
+                        <button type="submit" className="btn-primary" disabled={!canEdit || savingSettings} style={{ margin: 0, padding: '0 16px', height: '38px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
+                          {savingSettings ? 'Saving...' : 'Save URL'}
+                        </button>
+                      </form>
+                    </div>
                     <KeyVaultConfigurator API_BASE={API_BASE} theme={theme} canEdit={canEdit} />
                   </SectionBlock>
 
