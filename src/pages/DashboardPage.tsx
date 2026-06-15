@@ -23,7 +23,9 @@ import {
   MoreVertical,
   GitCompare,
   Shield,
-  Lock
+  Lock,
+  Copy,
+  Check
 } from 'lucide-react';
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE || `http://${window.location.hostname}:5005/api`;
@@ -202,6 +204,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   // Live DevOps pipeline task logs state
   const [logs, setLogs] = React.useState<string>('');
   const [loadingLogs, setLoadingLogs] = React.useState<boolean>(false);
+  const [copiedLogs, setCopiedLogs] = React.useState<boolean>(false);
+  const handleCopyLogs = () => {
+    if (!logs) return;
+    navigator.clipboard.writeText(logs);
+    setCopiedLogs(true);
+    setTimeout(() => setCopiedLogs(false), 2000);
+  };
 
   // Close dropdowns on scroll to prevent drifting
   React.useEffect(() => {
@@ -986,13 +995,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             left: '50%',
                             transform: 'translateX(-50%)',
                             zIndex: 9000,
-                            background: theme === 'light' ? 'rgba(255,255,255,0.98)' : 'rgba(15,23,42,0.98)',
-                            border: `1px solid ${cat.colorRaw}30`,
+                            background: '#090d16',
+                            border: '1px solid rgba(255, 255, 255, 0.15)',
                             borderRadius: '10px',
                             padding: '12px 14px',
                             minWidth: '220px',
-                            boxShadow: `0 8px 30px rgba(0,0,0,0.35), 0 0 0 1px ${cat.glow}20`,
-                            pointerEvents: 'none'
+                            boxShadow: '0 8px 30px rgba(0,0,0,0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+                            pointerEvents: 'none',
+                            color: '#e2e8f0'
                           }}>
                             {/* Arrow */}
                             <div style={{
@@ -1002,8 +1012,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               transform: 'translateX(-50%)',
                               width: '10px',
                               height: '10px',
-                              background: theme === 'light' ? 'rgba(255,255,255,0.98)' : 'rgba(15,23,42,0.98)',
-                              border: `1px solid ${cat.colorRaw}30`,
+                              background: '#090d16',
+                              border: '1px solid rgba(255, 255, 255, 0.15)',
                               borderBottom: 'none',
                               borderRight: 'none',
                               rotate: '45deg'
@@ -1011,16 +1021,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             <div style={{ fontSize: '0.75rem', fontWeight: 700, color: cat.color, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                               {cat.icon} {cat.label} ({cat.shortLabel})
                             </div>
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '8px' }}>
+                            <div style={{ fontSize: '0.7rem', color: '#cbd5e1', lineHeight: 1.5, marginBottom: '8px' }}>
                               {cat.description}
                             </div>
-                            <div style={{ display: 'flex', gap: '10px', paddingTop: '6px', borderTop: '1px solid var(--glass-border)' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', fontWeight: 600, color: '#10b981' }}>
-                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }} />
+                            <div style={{ display: 'flex', gap: '10px', paddingTop: '6px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', fontWeight: 600, color: '#34d399' }}>
+                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#34d399', display: 'inline-block' }} />
                                 {runningCount} Running
                               </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', fontWeight: 600, color: '#ef4444' }}>
-                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#ef4444', display: 'inline-block' }} />
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', fontWeight: 600, color: '#f87171' }}>
+                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#f87171', display: 'inline-block' }} />
                                 {stoppedCount} Stopped
                               </div>
                               {totalEnvs - runningCount - stoppedCount > 0 && (
@@ -2363,23 +2373,51 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               const finishTime = run?.finishTime;
               let timeLabel = 'Never built';
               let timeColor = 'rgba(148,163,184,0.6)';
-              if (run && isBuildActive(run)) {
-                timeLabel = '🔄 Building now…';
-                timeColor = '#34d399';
-              } else if (finishTime) {
-                try {
-                  const d = new Date(finishTime);
-                  const diffMs = Date.now() - d.getTime();
-                  const diffMins = Math.floor(diffMs / 60000);
-                  const diffHrs = Math.floor(diffMins / 60);
-                  const diffDays = Math.floor(diffHrs / 24);
-                  if (diffMins < 1) timeLabel = 'Just now';
-                  else if (diffMins < 60) timeLabel = `${diffMins}m ago`;
-                  else if (diffHrs < 24) timeLabel = `${diffHrs}h ${diffMins % 60}m ago`;
-                  else timeLabel = `${diffDays}d ago (${d.toLocaleDateString()})`;
-                  timeColor = '#cbd5e1';
-                } catch { timeLabel = finishTime; }
+              let statusLabel = '';
+              let statusColor = '#94a3b8';
+
+              if (run) {
+                if (isBuildActive(run)) {
+                  timeLabel = '🔄 Building now…';
+                  timeColor = '#34d399';
+                  statusLabel = 'BUILDING';
+                  statusColor = '#34d399';
+                } else {
+                  if (finishTime) {
+                    try {
+                      const d = new Date(finishTime);
+                      const diffMs = Date.now() - d.getTime();
+                      const diffMins = Math.floor(diffMs / 60000);
+                      const diffHrs = Math.floor(diffMins / 60);
+                      const diffDays = Math.floor(diffHrs / 24);
+                      if (diffMins < 1) timeLabel = 'Just now';
+                      else if (diffMins < 60) timeLabel = `${diffMins}m ago`;
+                      else if (diffHrs < 24) timeLabel = `${diffHrs}h ${diffMins % 60}m ago`;
+                      else timeLabel = `${diffDays}d ago (${d.toLocaleDateString()})`;
+                      timeColor = '#cbd5e1';
+                    } catch { timeLabel = finishTime; }
+                  }
+
+                  const res = (run.result || '').toLowerCase();
+                  if (res === 'succeeded') {
+                    statusLabel = 'SUCCESS';
+                    statusColor = '#34d399';
+                  } else if (res === 'failed') {
+                    statusLabel = 'FAILED';
+                    statusColor = '#f87171';
+                  } else if (res === 'canceled' || res === 'cancelled') {
+                    statusLabel = 'CANCELED';
+                    statusColor = '#94a3b8';
+                  } else if (res === 'partiallysucceeded') {
+                    statusLabel = 'PARTIAL';
+                    statusColor = '#f59e0b';
+                  } else {
+                    statusLabel = (run.result || run.state || 'UNKNOWN').toUpperCase();
+                    statusColor = '#94a3b8';
+                  }
+                }
               }
+
               const envTag = getEnvTag(env.name);
               return (
                 <div key={env.name} style={{
@@ -2400,10 +2438,24 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                     }}>{env.name}</span>
                   </div>
-                  <span style={{
-                    fontSize: '0.68rem', fontWeight: 600,
-                    color: timeColor, whiteSpace: 'nowrap', flexShrink: 0
-                  }}>{timeLabel}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    {statusLabel && (
+                      <span style={{
+                        fontSize: '0.58rem',
+                        fontWeight: 800,
+                        color: statusColor,
+                        backgroundColor: `${statusColor}15`,
+                        border: `1px solid ${statusColor}30`,
+                        padding: '1px 5px',
+                        borderRadius: '4px',
+                        letterSpacing: '0.03em'
+                      }}>{statusLabel}</span>
+                    )}
+                    <span style={{
+                      fontSize: '0.68rem', fontWeight: 600,
+                      color: timeColor, whiteSpace: 'nowrap'
+                    }}>{timeLabel}</span>
+                  </div>
                 </div>
               );
             })}
@@ -2670,7 +2722,34 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 paddingTop: '12px', 
                 marginTop: '8px' 
               }}>
-                <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>Console Log Output</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>Console Log Output</span>
+                  {logs && !loadingLogs && (
+                    <button
+                      onClick={handleCopyLogs}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: 'none',
+                        border: 'none',
+                        color: copiedLogs ? '#34d399' : 'var(--text-secondary)',
+                        fontSize: '0.68rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        backgroundColor: 'rgba(255,255,255,0.03)',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)'; }}
+                    >
+                      {copiedLogs ? <Check size={11} /> : <Copy size={11} />}
+                      <span>{copiedLogs ? 'Copied!' : 'Copy Logs'}</span>
+                    </button>
+                  )}
+                </div>
                 <div style={{
                   backgroundColor: '#020617',
                   border: '1px solid rgba(255,255,255,0.06)',
