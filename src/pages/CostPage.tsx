@@ -243,7 +243,20 @@ export const CostPage: React.FC<CostPageProps> = ({
       return matchesSearch && isTest;
     }
     if (envFilter === 'stale') {
-      return matchesSearch && (item.resourceCost === 0 || item.details?.toLowerCase().includes('stale'));
+      const isOrphaned = !item.repositoryUrl && !item.fqdn && 
+        (item.type === 'frontend' || item.type === 'backend' || 
+         item.name.toLowerCase().includes('test') || item.name.toLowerCase().includes('example'));
+      const isStaleName = item.name.toLowerCase().includes('test') || 
+                          item.name.toLowerCase().includes('stale') || 
+                          item.name.toLowerCase().includes('temp') ||
+                          item.name.toLowerCase().includes('sandbox') ||
+                          item.name.toLowerCase().includes('demo');
+      return matchesSearch && (
+        item.resourceCost === 0 || 
+        item.details?.toLowerCase().includes('stale') || 
+        isOrphaned || 
+        isStaleName
+      );
     }
     return matchesSearch;
   });

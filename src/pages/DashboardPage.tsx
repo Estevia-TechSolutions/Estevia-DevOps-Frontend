@@ -215,6 +215,120 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     };
   }, []);
 
+  // Collapsed categories state (SWA, ACA, VM)
+  const [collapsedCategories, setCollapsedCategories] = React.useState<Record<'swa' | 'aca' | 'vm', boolean>>({
+    swa: false,
+    aca: false,
+    vm: false
+  });
+
+  // Live pipeline build runs overridden telemetry
+  const [livePipelineRuns, setLivePipelineRuns] = React.useState<Record<number, any>>({});
+
+  // Ref to hold live overrides and avoid dependency trigger loops in effect
+  const livePipelineRunsRef = React.useRef(livePipelineRuns);
+  React.useEffect(() => {
+    livePipelineRunsRef.current = livePipelineRuns;
+  }, [livePipelineRuns]);
+
+  // Map appGroups to override pipelineRun statuses with live data
+  const localAppGroups = React.useMemo(() => {
+    return appGroups.map(group => {
+      const updatedEnvs = group.envs.map(app => {
+        const runId = app.pipelineRun?.id;
+        if (runId && livePipelineRuns[runId]) {
+          return {
+            ...app,
+            pipelineRun: livePipelineRuns[runId]
+          };
+        }
+        return app;
+      });
+      return {
+        ...group,
+        envs: updatedEnvs
+      };
+    });
+  }, [appGroups, livePipelineRuns]);
+
+  // Active Telemetry Polling for active builds
+  React.useEffect(() => {
+    // Find all builds that are active
+    const activeBuilds = apps
+      .map(app => {
+        const runId = app.pipelineRun?.id;
+        const liveRun = (runId && livePipelineRunsRef.current[runId]) || app.pipelineRun;
+        return {
+          appName: app.name,
+          buildId: liveRun?.id,
+          isActive: isBuildActive(liveRun)
+        };
+      })
+      .filter(b => b.buildId && b.isActive);
+
+    if (activeBuilds.length === 0) return;
+
+    let isSubscribed = true;
+
+    const pollTimeline = async () => {
+      const token = localStorage.getItem('devops_token');
+      for (const build of activeBuilds) {
+        if (!isSubscribed) break;
+        try {
+          const res = await fetch(`${API_BASE}/apps/pipeline/timeline?organizationId=${organizationId}&buildId=${build.buildId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          if (!res.ok) continue;
+          const data = await res.json();
+          if (data.success && data.pipelineRun) {
+            setLivePipelineRuns(prev => ({
+              ...prev,
+              [build.buildId]: data.pipelineRun
+            }));
+            
+            // If the task modal is open for a task under this build, update selectedTaskForModal!
+            if (selectedTaskForModal && selectedTaskForModal.buildId === build.buildId) {
+              setSelectedTaskForModal((prevModal: any) => {
+                if (!prevModal) return null;
+                let updatedStep = prevModal.step;
+                let found = false;
+                for (const stage of data.pipelineRun.stages) {
+                  for (const job of stage.jobs) {
+                    for (const step of job.steps) {
+                      if (step.id === prevModal.step.id) {
+                        updatedStep = step;
+                        found = true;
+                        break;
+                      }
+                    }
+                    if (found) break;
+                  }
+                  if (found) break;
+                }
+                return {
+                  ...prevModal,
+                  step: updatedStep
+                };
+              });
+            }
+          }
+        } catch (err) {
+          console.error(`Failed to poll timeline for build ${build.buildId}:`, err);
+        }
+      }
+    };
+
+    const intervalId = setInterval(pollTimeline, 5000);
+    pollTimeline();
+
+    return () => {
+      isSubscribed = false;
+      clearInterval(intervalId);
+    };
+  }, [apps, organizationId, selectedTaskForModal]);
+
   // Fetch live DevOps step logs
   React.useEffect(() => {
     if (!selectedTaskForModal || !selectedTaskForModal.buildId || !selectedTaskForModal.step.logId) {
@@ -585,17 +699,111 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>Click the "Scan Active Cloud" button above to query Azure subscription.</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {appGroups.map((group) => {
-            const accentColor = group.type === 'vm' ? '#f59e0b' : (group.type === 'frontend' ? 'var(--accent-purple)' : 'var(--accent-teal)');
-            const accentBg = group.type === 'vm' ? 'rgba(245,158,11,0.1)' : (group.type === 'frontend' ? 'rgba(139,92,246,0.1)' : 'rgba(20,184,166,0.1)');
-            const accentGlow = group.type === 'vm' ? '0 0 10px rgba(245,158,11,0.4)' : (group.type === 'frontend' ? '0 0 10px var(--accent-purple-glow)' : '0 0 10px var(--accent-teal-glow)');
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {(() => {
+            const swaGroups = localAppGroups.filter(g => g.type === 'frontend');
+            const acaGroups = localAppGroups.filter(g => g.type === 'backend');
+            const vmGroups = localAppGroups.filter(g => g.type === 'vm');
 
-            const isCollapsed = collapsedScanGroups[group.key] !== false;
-            const groupHasActiveDeployment = group.envs.some(app => !!(app.pipelineRun && isBuildActive(app.pipelineRun)));
+            const categories = [
+              { key: 'swa' as const, label: 'Static Web Apps (SWA)', groups: swaGroups, icon: <Globe size={18} style={{ color: 'var(--accent-purple)' }} />, color: 'var(--accent-purple)', bg: 'rgba(139,92,246,0.1)', glow: '0 0 10px var(--accent-purple-glow)' },
+              { key: 'aca' as const, label: 'Container Apps (ACA)', groups: acaGroups, icon: <Cpu size={18} style={{ color: 'var(--accent-teal)' }} />, color: 'var(--accent-teal)', bg: 'rgba(20,184,166,0.1)', glow: '0 0 10px var(--accent-teal-glow)' },
+              { key: 'vm' as const, label: 'Virtual Machines (VM)', groups: vmGroups, icon: <Server size={18} style={{ color: '#f59e0b' }} />, color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', glow: '0 0 10px rgba(245,158,11,0.4)' }
+            ];
 
-            return (
-              <div key={group.key} className="glass-panel" style={{ padding: '0', position: 'relative', overflow: 'hidden' }}>
+            return categories.filter(c => c.groups.length > 0).map((cat) => {
+              const isCatCollapsed = collapsedCategories[cat.key] === true;
+
+              return (
+                <div 
+                  key={cat.key} 
+                  className="glass-panel" 
+                  style={{ 
+                    padding: '0', 
+                    borderRadius: '12px',
+                    border: '1px solid var(--glass-border)',
+                    overflow: 'hidden',
+                    background: theme === 'light' ? 'rgba(255,255,255,0.4)' : 'rgba(15, 23, 42, 0.3)',
+                    marginBottom: '20px'
+                  }}
+                >
+                  {/* Category Header Banner */}
+                  <div 
+                    onClick={() => setCollapsedCategories(prev => ({ ...prev, [cat.key]: !prev[cat.key] }))}
+                    style={{
+                      padding: '16px 20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      borderBottom: isCatCollapsed ? 'none' : '1px solid var(--glass-border)',
+                      background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.015)',
+                      transition: 'background-color 0.2s ease',
+                      position: 'relative'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.03)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.015)'}
+                  >
+                    {/* Left accent indicator */}
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', backgroundColor: cat.color, boxShadow: cat.glow }} />
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingLeft: '8px' }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        backgroundColor: cat.bg,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)'
+                      }}>
+                        {cat.icon}
+                      </div>
+                      <span style={{ fontSize: '0.95rem', fontWeight: 800, letterSpacing: '0.02em', color: 'var(--text-primary)' }}>
+                        {cat.label}
+                      </span>
+                      <span style={{
+                        fontSize: '0.66rem',
+                        fontWeight: 700,
+                        backgroundColor: cat.bg,
+                        color: cat.color,
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        border: `1px solid ${cat.color}30`
+                      }}>
+                        {cat.groups.length} {cat.groups.length === 1 ? 'Resource' : 'Resources'}
+                      </span>
+                    </div>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}>
+                      {isCatCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
+                    </div>
+                  </div>
+
+                  {/* Category Content */}
+                  <div style={{
+                    maxHeight: isCatCollapsed ? '0px' : '20000px',
+                    opacity: isCatCollapsed ? 0 : 1,
+                    overflow: 'hidden',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    padding: isCatCollapsed ? '0' : '20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '20px',
+                    background: 'transparent'
+                  }}>
+                    {cat.groups.map((group) => {
+                      const accentColor = group.type === 'vm' ? '#f59e0b' : (group.type === 'frontend' ? 'var(--accent-purple)' : 'var(--accent-teal)');
+                      const accentBg = group.type === 'vm' ? 'rgba(245,158,11,0.1)' : (group.type === 'frontend' ? 'rgba(139,92,246,0.1)' : 'rgba(20,184,166,0.1)');
+                      const accentGlow = group.type === 'vm' ? '0 0 10px rgba(245,158,11,0.4)' : (group.type === 'frontend' ? '0 0 10px var(--accent-purple-glow)' : '0 0 10px var(--accent-teal-glow)');
+
+                      const isCollapsed = collapsedScanGroups[group.key] !== false;
+                      const groupHasActiveDeployment = group.envs.some(app => !!(app.pipelineRun && isBuildActive(app.pipelineRun)));
+
+                      return (
+                        <div key={group.key} className="glass-panel" style={{ padding: '0', position: 'relative', overflow: 'hidden' }}>
                 {/* Left accent strip */}
                 <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', backgroundColor: accentColor, boxShadow: accentGlow }} />
 
@@ -1801,9 +2009,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     })()}
                   </div>
                 )}
-              </div>
-            );
-          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            });
+          })()}
         </div>
       )}
       {/* Job Steps Modal Overlay */}
