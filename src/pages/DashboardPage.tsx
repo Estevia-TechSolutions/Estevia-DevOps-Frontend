@@ -421,8 +421,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       for (const app of appsWithPipelines) {
         if (!isSubscribed) break;
         try {
+          // Resolve the branch for this specific app environment so we only get builds for the right branch
+          const resolvedBranch = `refs/heads/${resolveBranchName(app)}`;
           const res = await fetch(
-            `${API_BASE}/apps/pipeline/latest?organizationId=${organizationId}&pipelineId=${app.pipelineId}`,
+            `${API_BASE}/apps/pipeline/latest?organizationId=${organizationId}&pipelineId=${app.pipelineId}&branchName=${encodeURIComponent(resolvedBranch)}`,
             { headers: { 'Authorization': `Bearer ${token}` } }
           );
           if (!res.ok) continue;
