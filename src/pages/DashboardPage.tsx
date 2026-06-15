@@ -122,6 +122,7 @@ interface DashboardPageProps {
   scanError: string | null;
   appGroups: AppGroup[];
   collapsedScanGroups: Record<string, boolean>;
+  setCollapsedScanGroups: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   toggleGroupScan: (key: string) => void;
   deletingAppName: string | null;
   handleDeleteApp: (name: string, type: 'frontend' | 'backend') => void;
@@ -147,6 +148,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   scanError,
   appGroups,
   collapsedScanGroups,
+  setCollapsedScanGroups,
   toggleGroupScan,
   deletingAppName,
   handleDeleteApp,
@@ -215,12 +217,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     };
   }, []);
 
-  // Collapsed categories state (SWA, ACA, VM)
-  const [collapsedCategories, setCollapsedCategories] = React.useState<Record<'swa' | 'aca' | 'vm', boolean>>({
-    swa: false,
-    aca: false,
-    vm: false
-  });
+  // Active dashboard tab state ('swa' | 'aca' | 'vm')
+  const [activeDashboardTab, setActiveDashboardTab] = React.useState<'swa' | 'aca' | 'vm'>('swa');
+  const [hoveredTab, setHoveredTab] = React.useState<'swa' | 'aca' | 'vm' | null>(null);
+  const [hoveredEnv, setHoveredEnv] = React.useState<string | null>(null);
 
   // Live pipeline build runs overridden telemetry
   const [livePipelineRuns, setLivePipelineRuns] = React.useState<Record<number, any>>({});
@@ -520,6 +520,45 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     return s === 'inprogress' || s === 'running' || s === 'canceling' || s === 'cancelling' || s === 'notstarted' || s === 'queued';
   };
 
+  // Auto-switch tabs and auto-expand/collapse accordions based on active builds
+  const prevActiveBuildGroupsRef = React.useRef<Record<string, boolean>>({});
+  React.useEffect(() => {
+    const nextActiveBuildGroups: Record<string, boolean> = {};
+    let matchedTab: 'swa' | 'aca' | 'vm' | null = null;
+    let matchedGroupKey: string | null = null;
+
+    localAppGroups.forEach(group => {
+      const hasActive = group.envs.some(app => app.pipelineRun && isBuildActive(app.pipelineRun));
+      if (hasActive) {
+        nextActiveBuildGroups[group.key] = true;
+        matchedGroupKey = group.key;
+        if (group.type === 'frontend') matchedTab = 'swa';
+        else if (group.type === 'backend') matchedTab = 'aca';
+        else if (group.type === 'vm') matchedTab = 'vm';
+      }
+    });
+
+    // 1. If any group just started an active build, switch active tab and expand it
+    if (matchedTab && matchedGroupKey) {
+      const groupKey = matchedGroupKey;
+      setActiveDashboardTab(matchedTab);
+      if (collapsedScanGroups[groupKey] !== false) {
+        setCollapsedScanGroups(prev => ({ ...prev, [groupKey]: false }));
+      }
+    }
+
+    // 2. If a group previously had an active build, but no longer does, collapse it
+    const prevActive = prevActiveBuildGroupsRef.current;
+    Object.keys(prevActive).forEach(key => {
+      if (prevActive[key] && !nextActiveBuildGroups[key]) {
+        console.log(`[Dashboard Auto Collapse] Build completed for group ${key}. Collapsing accordion...`);
+        setCollapsedScanGroups(prev => ({ ...prev, [key]: true }));
+      }
+    });
+
+    prevActiveBuildGroupsRef.current = nextActiveBuildGroups;
+  }, [localAppGroups, collapsedScanGroups, setCollapsedScanGroups]);
+
   const getBadgeBgColor = (type: string) => {
     const isLight = theme === 'light';
     switch (type.toLowerCase()) {
@@ -699,227 +738,368 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>Click the "Scan Active Cloud" button above to query Azure subscription.</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
           {(() => {
             const swaGroups = localAppGroups.filter(g => g.type === 'frontend');
             const acaGroups = localAppGroups.filter(g => g.type === 'backend');
             const vmGroups = localAppGroups.filter(g => g.type === 'vm');
 
-            const categories = [
-              { key: 'swa' as const, label: 'Static Web Apps (SWA)', groups: swaGroups, icon: <Globe size={18} style={{ color: 'var(--accent-purple)' }} />, color: 'var(--accent-purple)', bg: 'rgba(139,92,246,0.1)', glow: '0 0 10px var(--accent-purple-glow)' },
-              { key: 'aca' as const, label: 'Container Apps (ACA)', groups: acaGroups, icon: <Cpu size={18} style={{ color: 'var(--accent-teal)' }} />, color: 'var(--accent-teal)', bg: 'rgba(20,184,166,0.1)', glow: '0 0 10px var(--accent-teal-glow)' },
-              { key: 'vm' as const, label: 'Virtual Machines (VM)', groups: vmGroups, icon: <Server size={18} style={{ color: '#f59e0b' }} />, color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', glow: '0 0 10px rgba(245,158,11,0.4)' }
+            const allCategories = [
+              {
+                key: 'swa' as const,
+                label: 'Static Web Apps',
+                shortLabel: 'SWA',
+                description: 'Azure Static Web Apps — host frontend SPAs and static sites with global CDN, SSL, and custom domains.',
+                groups: swaGroups,
+                icon: <Globe size={16} />,
+                color: 'var(--accent-purple)',
+                colorRaw: '#8b5cf6',
+                bg: 'rgba(139,92,246,0.12)',
+                glow: 'rgba(139,92,246,0.4)'
+              },
+              {
+                key: 'aca' as const,
+                label: 'Container Apps',
+                shortLabel: 'ACA',
+                description: 'Azure Container Apps — serverless containers with automatic scaling, zero-downtime blue/green deployments, and traffic splitting.',
+                groups: acaGroups,
+                icon: <Cpu size={16} />,
+                color: 'var(--accent-teal)',
+                colorRaw: '#14b8a6',
+                bg: 'rgba(20,184,166,0.12)',
+                glow: 'rgba(20,184,166,0.4)'
+              },
+              {
+                key: 'vm' as const,
+                label: 'Virtual Machines',
+                shortLabel: 'VM',
+                description: 'Azure Virtual Machines — full IaaS compute instances with SSH access, custom OS, and on-demand start/stop power controls.',
+                groups: vmGroups,
+                icon: <Server size={16} />,
+                color: '#f59e0b',
+                colorRaw: '#f59e0b',
+                bg: 'rgba(245,158,11,0.12)',
+                glow: 'rgba(245,158,11,0.4)'
+              }
             ];
 
-            return categories.filter(c => c.groups.length > 0).map((cat) => {
-              const isCatCollapsed = collapsedCategories[cat.key] === true;
+            const visibleCategories = allCategories.filter(c => c.groups.length > 0);
+            // Default to first visible tab if activeDashboardTab not visible
+            const activeTab = visibleCategories.find(c => c.key === activeDashboardTab) ? activeDashboardTab : (visibleCategories[0]?.key ?? 'swa');
+            const activeCategory = visibleCategories.find(c => c.key === activeTab);
 
-              return (
-                <div 
-                  key={cat.key} 
-                  className="glass-panel" 
-                  style={{ 
-                    padding: '0', 
-                    borderRadius: '12px',
-                    border: '1px solid var(--glass-border)',
-                    overflow: 'hidden',
-                    background: theme === 'light' ? 'rgba(255,255,255,0.4)' : 'rgba(15, 23, 42, 0.3)',
-                    marginBottom: '20px'
-                  }}
-                >
-                  {/* Category Header Banner */}
-                  <div 
-                    onClick={() => setCollapsedCategories(prev => ({ ...prev, [cat.key]: !prev[cat.key] }))}
-                    style={{
-                      padding: '16px 20px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      cursor: 'pointer',
-                      userSelect: 'none',
-                      borderBottom: isCatCollapsed ? 'none' : '1px solid var(--glass-border)',
-                      background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.015)',
-                      transition: 'background-color 0.2s ease',
-                      position: 'relative'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.03)'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.015)'}
-                  >
-                    {/* Left accent indicator */}
-                    <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', backgroundColor: cat.color, boxShadow: cat.glow }} />
-                    
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingLeft: '8px' }}>
-                      <div style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '8px',
-                        backgroundColor: cat.bg,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)'
-                      }}>
-                        {cat.icon}
+            return (
+              <>
+                {/* ── Tab Navigation Bar ── */}
+                <div style={{
+                  display: 'flex',
+                  gap: '4px',
+                  padding: '6px',
+                  marginBottom: '20px',
+                  background: theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)',
+                  borderRadius: '14px',
+                  border: '1px solid var(--glass-border)',
+                  position: 'relative'
+                }}>
+                  {visibleCategories.map(cat => {
+                    const isActive = cat.key === activeTab;
+                    const catHasActiveBuild = cat.groups.some(g => g.envs.some(e => e.pipelineRun && isBuildActive(e.pipelineRun)));
+                    const runningCount = cat.groups.reduce((sum, g) => sum + g.envs.filter(e => (e.status || '').toLowerCase() === 'running' || (e.status || '').toLowerCase() === 'deployed').length, 0);
+                    const stoppedCount = cat.groups.reduce((sum, g) => sum + g.envs.filter(e => (e.status || '').toLowerCase() === 'stopped' || (e.status || '').toLowerCase() === 'sleep').length, 0);
+                    const totalEnvs = cat.groups.reduce((sum, g) => sum + g.envs.length, 0);
+
+                    return (
+                      <div
+                        key={cat.key}
+                        style={{ position: 'relative', flex: 1 }}
+                        onMouseEnter={() => setHoveredTab(cat.key)}
+                        onMouseLeave={() => setHoveredTab(null)}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setActiveDashboardTab(cat.key)}
+                          style={{
+                            width: '100%',
+                            padding: '10px 16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            borderRadius: '10px',
+                            border: isActive ? `1px solid ${cat.color}50` : '1px solid transparent',
+                            background: isActive
+                              ? (theme === 'light' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.07)')
+                              : 'transparent',
+                            boxShadow: isActive ? `0 2px 12px ${cat.glow}30, inset 0 1px 0 rgba(255,255,255,0.1)` : 'none',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            color: isActive ? cat.color : 'var(--text-secondary)',
+                            fontWeight: isActive ? 700 : 500,
+                            fontSize: '0.84rem',
+                            letterSpacing: '0.01em',
+                            position: 'relative',
+                            overflow: 'hidden'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isActive) {
+                              e.currentTarget.style.background = theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)';
+                              e.currentTarget.style.color = 'var(--text-primary)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isActive) {
+                              e.currentTarget.style.background = 'transparent';
+                              e.currentTarget.style.color = 'var(--text-secondary)';
+                            }
+                          }}
+                        >
+                          {/* Tab icon */}
+                          <span style={{ opacity: isActive ? 1 : 0.65 }}>{cat.icon}</span>
+
+                          {/* Tab label */}
+                          <span>{cat.shortLabel}</span>
+
+                          {/* Resources count badge */}
+                          <span style={{
+                            fontSize: '0.62rem',
+                            fontWeight: 700,
+                            backgroundColor: isActive ? cat.bg : 'rgba(148,163,184,0.15)',
+                            color: isActive ? cat.color : 'var(--text-secondary)',
+                            padding: '1px 7px',
+                            borderRadius: '10px',
+                            border: isActive ? `1px solid ${cat.colorRaw}30` : '1px solid transparent',
+                            transition: 'all 0.2s ease'
+                          }}>
+                            {cat.groups.length}
+                          </span>
+
+                          {/* Pulsing build-in-progress indicator */}
+                          {catHasActiveBuild && (
+                            <span style={{
+                              width: '7px',
+                              height: '7px',
+                              borderRadius: '50%',
+                              backgroundColor: '#10b981',
+                              boxShadow: '0 0 6px rgba(16,185,129,0.8)',
+                              display: 'inline-block',
+                              flexShrink: 0
+                            }} className="play-pulse-anim" title="Active build in progress" />
+                          )}
+                        </button>
+
+                        {/* Hover Tooltip */}
+                        {hoveredTab === cat.key && (
+                          <div style={{
+                            position: 'absolute',
+                            top: 'calc(100% + 8px)',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            zIndex: 9000,
+                            background: theme === 'light' ? 'rgba(255,255,255,0.98)' : 'rgba(15,23,42,0.98)',
+                            border: `1px solid ${cat.colorRaw}30`,
+                            borderRadius: '10px',
+                            padding: '12px 14px',
+                            minWidth: '220px',
+                            boxShadow: `0 8px 30px rgba(0,0,0,0.35), 0 0 0 1px ${cat.glow}20`,
+                            pointerEvents: 'none'
+                          }}>
+                            {/* Arrow */}
+                            <div style={{
+                              position: 'absolute',
+                              top: '-5px',
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              width: '10px',
+                              height: '10px',
+                              background: theme === 'light' ? 'rgba(255,255,255,0.98)' : 'rgba(15,23,42,0.98)',
+                              border: `1px solid ${cat.colorRaw}30`,
+                              borderBottom: 'none',
+                              borderRight: 'none',
+                              rotate: '45deg'
+                            }} />
+                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: cat.color, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              {cat.icon} {cat.label} ({cat.shortLabel})
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '8px' }}>
+                              {cat.description}
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px', paddingTop: '6px', borderTop: '1px solid var(--glass-border)' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', fontWeight: 600, color: '#10b981' }}>
+                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }} />
+                                {runningCount} Running
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', fontWeight: 600, color: '#ef4444' }}>
+                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#ef4444', display: 'inline-block' }} />
+                                {stoppedCount} Stopped
+                              </div>
+                              {totalEnvs - runningCount - stoppedCount > 0 && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', fontWeight: 600, color: '#94a3b8' }}>
+                                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#94a3b8', display: 'inline-block' }} />
+                                  {totalEnvs - runningCount - stoppedCount} Other
+                                </div>
+                              )}
+                            </div>
+                            {catHasActiveBuild && (
+                              <div style={{ marginTop: '6px', padding: '4px 8px', background: 'rgba(16,185,129,0.1)', borderRadius: '6px', border: '1px solid rgba(16,185,129,0.25)', fontSize: '0.66rem', fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }} className="play-pulse-anim" />
+                                Active build in progress
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <span style={{ fontSize: '0.95rem', fontWeight: 800, letterSpacing: '0.02em', color: 'var(--text-primary)' }}>
-                        {cat.label}
-                      </span>
-                      <span style={{
-                        fontSize: '0.66rem',
-                        fontWeight: 700,
-                        backgroundColor: cat.bg,
-                        color: cat.color,
-                        padding: '2px 8px',
-                        borderRadius: '12px',
-                        border: `1px solid ${cat.color}30`
-                      }}>
-                        {cat.groups.length} {cat.groups.length === 1 ? 'Resource' : 'Resources'}
-                      </span>
-                    </div>
-                    
-                    <div style={{ display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}>
-                      {isCatCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
-                    </div>
-                  </div>
+                    );
+                  })}
+                </div>
 
-                  {/* Category Content */}
+                {/* ── Active Tab Description Banner ── */}
+                {activeCategory && (
                   <div style={{
-                    maxHeight: isCatCollapsed ? '0px' : '20000px',
-                    opacity: isCatCollapsed ? 0 : 1,
-                    overflow: 'hidden',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    padding: isCatCollapsed ? '0' : '20px',
                     display: 'flex',
-                    flexDirection: 'column',
-                    gap: '20px',
-                    background: 'transparent'
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '10px 16px',
+                    marginBottom: '16px',
+                    borderRadius: '10px',
+                    background: activeCategory.bg,
+                    border: `1px solid ${activeCategory.colorRaw}25`,
+                    fontSize: '0.74rem',
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1.5
                   }}>
-                    {cat.groups.map((group) => {
-                      const accentColor = group.type === 'vm' ? '#f59e0b' : (group.type === 'frontend' ? 'var(--accent-purple)' : 'var(--accent-teal)');
-                      const accentBg = group.type === 'vm' ? 'rgba(245,158,11,0.1)' : (group.type === 'frontend' ? 'rgba(139,92,246,0.1)' : 'rgba(20,184,166,0.1)');
-                      const accentGlow = group.type === 'vm' ? '0 0 10px rgba(245,158,11,0.4)' : (group.type === 'frontend' ? '0 0 10px var(--accent-purple-glow)' : '0 0 10px var(--accent-teal-glow)');
+                    <span style={{ color: activeCategory.color, flexShrink: 0 }}>{activeCategory.icon}</span>
+                    <span><strong style={{ color: activeCategory.color }}>{activeCategory.label} ({activeCategory.shortLabel}):</strong> {activeCategory.description}</span>
+                  </div>
+                )}
 
-                      const isCollapsed = collapsedScanGroups[group.key] !== false;
-                      const groupHasActiveDeployment = group.envs.some(app => !!(app.pipelineRun && isBuildActive(app.pipelineRun)));
+                {/* ── Active Tab Groups ── */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {(activeCategory?.groups ?? []).map((group) => {
+                    const accentColor = group.type === 'vm' ? '#f59e0b' : (group.type === 'frontend' ? 'var(--accent-purple)' : 'var(--accent-teal)');
+                    const accentBg = group.type === 'vm' ? 'rgba(245,158,11,0.1)' : (group.type === 'frontend' ? 'rgba(139,92,246,0.1)' : 'rgba(20,184,166,0.1)');
+                    const accentGlow = group.type === 'vm' ? '0 0 10px rgba(245,158,11,0.4)' : (group.type === 'frontend' ? '0 0 10px var(--accent-purple-glow)' : '0 0 10px var(--accent-teal-glow)');
 
-                      return (
-                        <div key={group.key} className="glass-panel" style={{ padding: '0', position: 'relative', overflow: 'hidden' }}>
-                {/* Left accent strip */}
-                <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', backgroundColor: accentColor, boxShadow: accentGlow }} />
+                    const isCollapsed = collapsedScanGroups[group.key] !== false;
+                    const groupHasActiveDeployment = group.envs.some(app => !!(app.pipelineRun && isBuildActive(app.pipelineRun)));
 
-                {/* Group Header */}
-                <div 
-                  onClick={() => toggleGroupScan(group.key)}
-                  style={{ 
-                    padding: '20px 24px 14px 28px', 
-                    borderBottom: isCollapsed ? 'none' : '1px solid var(--glass-border)', 
+                    return (
+                      <div key={group.key} className="glass-panel" style={{ padding: '0', position: 'relative', overflow: 'hidden' }}>
+              {/* Left accent strip */}
+              <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', backgroundColor: accentColor, boxShadow: accentGlow }} />
+
+              {/* Group Header */}
+              <div 
+                onClick={() => toggleGroupScan(group.key)}
+                style={{ 
+                  padding: '20px 24px 14px 28px', 
+                  borderBottom: isCollapsed ? 'none' : '1px solid var(--glass-border)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between', 
+                  flexWrap: 'wrap', 
+                  gap: '10px',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  transition: 'background-color 0.2s ease'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{ 
+                    width: '32px', 
+                    height: '32px', 
+                    borderRadius: '8px', 
+                    backgroundColor: accentBg, 
                     display: 'flex', 
                     alignItems: 'center', 
-                    justifyContent: 'space-between', 
-                    flexWrap: 'wrap', 
-                    gap: '10px',
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    transition: 'background-color 0.2s ease'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <div style={{ 
-                      width: '32px', 
-                      height: '32px', 
-                      borderRadius: '8px', 
-                      backgroundColor: accentBg, 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)'
-                    }}>
-                      {group.type === 'frontend' ? (
-                        <Globe size={16} style={{ color: 'var(--accent-purple)' }} />
-                      ) : group.type === 'vm' ? (
-                        <Server size={16} style={{ color: '#f59e0b' }} />
-                      ) : (
-                        <Cpu size={16} style={{ color: 'var(--accent-teal)' }} />
-                      )}
-                    </div>
-                    <div>
-                      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-                        {group.label}
-                        <span style={{ 
-                          fontSize: '0.62rem', 
-                          fontWeight: 700, 
-                          textTransform: 'uppercase', 
-                          letterSpacing: '0.04em',
-                          backgroundColor: getBadgeBgColor(group.type),
-                          color: getBadgeTextColor(group.type),
-                          padding: '2px 8px',
-                          borderRadius: '10px',
-                          border: '1px solid ' + (group.type === 'frontend' ? 'rgba(59, 130, 246, 0.2)' : group.type === 'vm' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)')
-                        }}>
-                          {group.type === 'frontend' ? 'SWA' : group.type === 'vm' ? 'VM' : 'ACA'}
-                        </span>
-                      </h3>
-                      {group.repoPath && (
-                        <p style={{ margin: '4px 0 0 0', fontSize: '0.74rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                          <GitBranch size={12} />
-                          {group.repoPath}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    {groupHasActiveDeployment && (
-                      <span style={{ 
-                        fontSize: '0.68rem', 
-                        fontWeight: 700,
-                        color: 'var(--accent-purple)', 
-                        background: 'rgba(139, 92, 246, 0.12)',
-                        border: '1px solid rgba(139, 92, 246, 0.3)',
-                        padding: '3px 8px',
-                        borderRadius: '12px',
-                        display: 'inline-flex', 
-                        alignItems: 'center', 
-                        gap: '6px',
-                        boxShadow: '0 0 8px rgba(139, 92, 246, 0.2)'
-                      }}>
-                        <RefreshCw size={10} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
-                        BUILD IN PROGRESS
-                      </span>
+                    justifyContent: 'center',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)'
+                  }}>
+                    {group.type === 'frontend' ? (
+                      <Globe size={16} style={{ color: 'var(--accent-purple)' }} />
+                    ) : group.type === 'vm' ? (
+                      <Server size={16} style={{ color: '#f59e0b' }} />
+                    ) : (
+                      <Cpu size={16} style={{ color: 'var(--accent-teal)' }} />
                     )}
-
-                    <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                      {group.envs.length} {group.envs.length === 1 ? 'Environment' : 'Environments'}
-                    </span>
-                    
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', opacity: 0.8, marginRight: '6px' }}>
-                      {isCollapsed ? 'Click to expand group' : 'Click to Collapse group'}
-                    </span>
-                    
-                    <button
-                      type="button"
-                      onClick={() => toggleGroupScan(group.key)}
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid var(--glass-border)',
-                        color: 'var(--text-secondary)',
-                        borderRadius: '6px',
-                        width: '28px',
-                        height: '28px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-                    </button>
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                      {group.label}
+                      <span style={{ 
+                        fontSize: '0.62rem', 
+                        fontWeight: 700, 
+                        textTransform: 'uppercase', 
+                        letterSpacing: '0.04em',
+                        backgroundColor: getBadgeBgColor(group.type),
+                        color: getBadgeTextColor(group.type),
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                        border: '1px solid ' + (group.type === 'frontend' ? 'rgba(59, 130, 246, 0.2)' : group.type === 'vm' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)')
+                      }}>
+                        {group.type === 'frontend' ? 'SWA' : group.type === 'vm' ? 'VM' : 'ACA'}
+                      </span>
+                    </h3>
+                    {group.repoPath && (
+                      <p style={{ margin: '4px 0 0 0', fontSize: '0.74rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <GitBranch size={12} />
+                        {group.repoPath}
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                {/* Group Environments List */}
-                {!isCollapsed && (
-                  <div style={{ padding: '8px 16px 20px 28px', display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(0,0,0,0.03)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {groupHasActiveDeployment && (
+                    <span style={{ 
+                      fontSize: '0.68rem', 
+                      fontWeight: 700,
+                      color: 'var(--accent-purple)', 
+                      background: 'rgba(139, 92, 246, 0.12)',
+                      border: '1px solid rgba(139, 92, 246, 0.3)',
+                      padding: '3px 8px',
+                      borderRadius: '12px',
+                      display: 'inline-flex', 
+                      alignItems: 'center', 
+                      gap: '6px',
+                      boxShadow: '0 0 8px rgba(139, 92, 246, 0.2)'
+                    }}>
+                      <RefreshCw size={10} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
+                      BUILD IN PROGRESS
+                    </span>
+                  )}
+
+                  <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                    {group.envs.length} {group.envs.length === 1 ? 'Environment' : 'Environments'}
+                  </span>
+                  
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', opacity: 0.8, marginRight: '6px' }}>
+                    {isCollapsed ? 'Click to expand group' : 'Click to Collapse group'}
+                  </span>
+                  
+                  <button
+                    type="button"
+                    onClick={() => toggleGroupScan(group.key)}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid var(--glass-border)',
+                      color: 'var(--text-secondary)',
+                      borderRadius: '6px',
+                      width: '28px',
+                      height: '28px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Group Environments List */}
+              {!isCollapsed && (
+                <div style={{ padding: '8px 16px 20px 28px', display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(0,0,0,0.03)' }}>
                     {group.envs.map((item) => {
                       const tag = getEnvTag(item.name);
                       const cardStyle = getCardStyles(item.name, theme);
@@ -2009,13 +2189,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     })()}
                   </div>
                 )}
-                        </div>
-                      );
-                    })}
                   </div>
-                </div>
-              );
-            });
+                );
+              })}
+              </div>
+            </>
+            );
           })()}
         </div>
       )}

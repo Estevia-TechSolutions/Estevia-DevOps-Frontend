@@ -3983,6 +3983,7 @@ function App() {
             scanError={scanError}
             appGroups={appGroups}
             collapsedScanGroups={collapsedScanGroups}
+            setCollapsedScanGroups={setCollapsedScanGroups}
             toggleGroupScan={toggleGroupScan}
             deletingAppName={deletingAppName}
             handleDeleteApp={handleDeleteApp}
