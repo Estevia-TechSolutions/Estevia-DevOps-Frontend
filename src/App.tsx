@@ -4099,8 +4099,8 @@ function App() {
 
               <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 {/* Top Row: Title & Resource Group Dropdown & Status */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '24px' }}>
+                  <div>
                     <h1 style={{ 
                       margin: 0,
                       fontSize: '1.6rem', 
@@ -4109,15 +4109,18 @@ function App() {
                       background: 'linear-gradient(to right, var(--text-primary) 30%, rgba(167, 139, 250, 0.95))', 
                       WebkitBackgroundClip: 'text', 
                       WebkitTextFillColor: 'transparent',
-                      display: 'inline-block'
+                      display: 'inline-block',
+                      whiteSpace: 'nowrap'
                     }}>
                       DevOps Control Centre
                     </h1>
+                  </div>
 
-                    {/* Resource Group Dropdown Selector */}
+                  {/* Resource Group Dropdown Selector & Status Display */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
                     {controlResourceGroups && controlResourceGroups.length > 0 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Resource Group:</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>Resource Group:</span>
                         <select
                           value={selectedControlResourceGroup}
                           onChange={(e) => handleResourceGroupChange(e.target.value)}
@@ -4130,7 +4133,8 @@ function App() {
                             backgroundColor: 'rgba(15, 23, 42, 0.4)',
                             color: 'var(--text-primary)',
                             outline: 'none',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap'
                           }}
                         >
                           {controlResourceGroups.map((rg) => {
@@ -4144,12 +4148,9 @@ function App() {
                         </select>
                       </div>
                     )}
-                  </div>
 
-                  {/* System Status / Scan Status Display */}
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
                     {!scanning && scanProgress === 0 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '12px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.12)', fontSize: '0.74rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '12px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.12)', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
                         <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--success)' }} />
                         <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Connected</span>
                       </div>
