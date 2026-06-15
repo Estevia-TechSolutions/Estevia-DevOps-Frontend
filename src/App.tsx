@@ -162,17 +162,48 @@ function groupApps(apps: AppResource[]): AppGroup[] {
   // Determine sort order: dev(0) → qa(1) → prod(2) → bare-name treated as prod(2) → other(3)
   const hasEnvSuffix = (name: string) => {
     const n = name.toLowerCase();
-    return n.endsWith('-dev') || n.includes('-dev-') ||
-           n.endsWith('-qa')  || n.includes('-qa-')  ||
-           n.endsWith('-prod') || n.includes('-prod-') ||
-           n.endsWith('-main') || n.endsWith('-staging') || n.endsWith('-test');
+    
+    // Check for dev candidates
+    const isDev = n.endsWith('-dev') || n.includes('-dev-') || 
+                  n.endsWith('-development') || n.includes('-development-');
+                  
+    // Check for qa candidates
+    const isQa = n.endsWith('-qa') || n.includes('-qa-') ||
+                 n.endsWith('-test') || n.includes('-test-') ||
+                 n.endsWith('-testing') || n.includes('-testing-') ||
+                 n.endsWith('-staging') || n.includes('-staging-');
+                 
+    // Check for prod candidates
+    const isProd = n.endsWith('-prod') || n.includes('-prod-') ||
+                   n.endsWith('-production') || n.includes('-production-') ||
+                   n.endsWith('-release') || n.includes('-release-') ||
+                   n.endsWith('-main') || n.includes('-main-') ||
+                   n.endsWith('-master') || n.includes('-master-');
+                   
+    return isDev || isQa || isProd;
   };
 
   const getEnvOrder = (name: string) => {
     const n = name.toLowerCase();
-    if (n.endsWith('-dev') || n.includes('-dev-')) return 0;
-    if (n.endsWith('-qa')  || n.includes('-qa-'))  return 1;
-    if (n.endsWith('-prod') || n.includes('-prod-')) return 2;
+    
+    if (n.endsWith('-dev') || n.includes('-dev-') || 
+        n.endsWith('-development') || n.includes('-development-')) {
+      return 0;
+    }
+    if (n.endsWith('-qa') || n.includes('-qa-') ||
+        n.endsWith('-test') || n.includes('-test-') ||
+        n.endsWith('-testing') || n.includes('-testing-') ||
+        n.endsWith('-staging') || n.includes('-staging-')) {
+      return 1;
+    }
+    if (n.endsWith('-prod') || n.includes('-prod-') ||
+        n.endsWith('-production') || n.includes('-production-') ||
+        n.endsWith('-release') || n.includes('-release-') ||
+        n.endsWith('-main') || n.includes('-main-') ||
+        n.endsWith('-master') || n.includes('-master-')) {
+      return 2;
+    }
+    
     // Bare-name (no env suffix) = production/main deployment → sort with prod
     if (!hasEnvSuffix(name)) return 2;
     return 3;
@@ -184,9 +215,7 @@ function groupApps(apps: AppResource[]): AppGroup[] {
     return name
       .replace(/^estevia-estevia-/, 'estevia-') // collapse duplicate prefix
       .replace(/-swa$/, '')
-      .replace(/-dev$/, '')
-      .replace(/-qa$/, '')
-      .replace(/-prod$/, '')
+      .replace(/-(dev|development|qa|test|testing|staging|prod|production|release|main|master)$/, '')
       .replace(/-/g, ' ')
       .replace(/\b\w/g, (c) => c.toUpperCase())
       .trim();
@@ -213,9 +242,7 @@ function groupApps(apps: AppResource[]): AppGroup[] {
         .replace(/^estevia-estevia-/, 'estevia-') // collapse duplicate prefix
         .replace(/^estevia-/, '')
         .replace(/-swa$/, '')
-        .replace(/-dev$/, '')
-        .replace(/-qa$/, '')
-        .replace(/-prod$/, '');
+        .replace(/-(dev|development|qa|test|testing|staging|prod|production|release|main|master)$/, '');
     }
 
     if (!map.has(key)) {

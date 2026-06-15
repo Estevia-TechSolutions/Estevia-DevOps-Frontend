@@ -26,7 +26,7 @@ interface GuidePageProps {
   theme?: 'dark' | 'light';
 }
 
-type TabType = 'getting-started' | 'capabilities' | 'security' | 'entra-manual' | 'faq';
+type TabType = 'getting-started' | 'capabilities' | 'branch-matching' | 'security' | 'entra-manual' | 'faq';
 
 export const GuidePage: React.FC<GuidePageProps> = () => {
   const [activeSubTab, setActiveSubTab] = useState<TabType>('getting-started');
@@ -39,6 +39,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
   const navItems = [
     { id: 'getting-started', label: 'Getting Started', icon: BookOpen, desc: 'Operational workflow checklist' },
     { id: 'capabilities', label: 'System Boundaries', icon: Cpu, desc: 'Capabilities & exclusions' },
+    { id: 'branch-matching', label: 'Branch Naming Rules', icon: GitBranch, desc: 'Environment matching priorities' },
     { id: 'security', label: 'Security & Scopes', icon: Lock, desc: 'Token permission matrix' },
     { id: 'entra-manual', label: 'Manual Entra ID Setup', icon: Key, desc: 'Manual App Registration guide' },
     { id: 'faq', label: 'FAQs & Troubleshooting', icon: HelpCircle, desc: 'Common queries & issues' }
@@ -403,7 +404,13 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                           { title: 'Active Telemetry Polling', text: 'Background polling updates active builds and stage status tree (Stage -> Job -> Step) dynamically every 5 seconds.' },
                           { title: 'Interactive Log Proxy', text: 'Streams raw console logs from Azure DevOps pipelines directly into a terminal overlay.' },
                           { title: 'Categorized Resource Grouping', text: 'Groups Azure resources by SWA, ACA, and VM with collapse/expand accordions and count badges.' },
-                          { title: 'Glassmorphic Power Confirmations', text: 'Prompts users with confirmation modals before starting, stopping, or restarting resources.' }
+                          { title: 'Glassmorphic Power Confirmations', text: 'Prompts users with confirmation modals before starting, stopping, or restarting resources.' },
+                          { title: 'Search & Tag Filter Bar', text: 'Allows real-time searching and filtering of apps and resources by tags, status, type, and name.' },
+                          { title: 'Floating Notification Toasts', text: 'Streams real-time toast alerts for background tasks, operation statuses, and webhook integrations.' },
+                          { title: 'System Events Stream', text: 'Tracks and displays a dynamic log of recent operations, migration histories, and system status logs.' },
+                          { title: 'Monospace Log Downloads', text: 'Allows downloading of raw, monospaced application and pipeline logs directly from the UI drawer.' },
+                          { title: 'Blue-Green Revision Control', text: 'Provides visual traffic splitting controls across revisions of active Container Apps.' },
+                          { title: 'VM Power Controls', text: 'Directly initiates start, stop, and restart controls on target cloud VMs with safety confirmation alerts.' }
                         ]
                       },
                       {
@@ -423,7 +430,8 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                         category: 'Security & Governance',
                         items: [
                           { title: 'Key Vault Secrets Mapping', text: 'Syncs Azure Key Vault configurations directly to Azure DevOps Variable Groups.' },
-                          { title: 'Enterprise Audit Trail Logs', text: 'Maintains tamper-proof activity logs tracking SQL queries, domain bindings, and pipeline creation.' }
+                          { title: 'Enterprise Audit Trail Logs', text: 'Maintains tamper-proof activity logs tracking SQL queries, domain bindings, and pipeline creation.' },
+                          { title: 'Outbound Credentials Connection Check', text: 'Validates outbound API endpoints and credentials connectivity on GitHub, Azure DevOps, and GoDaddy in real time.' }
                         ]
                       },
                       {
@@ -560,6 +568,138 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                     <li>In Azure DevOps, go to <strong>Project Settings → Service Hooks → + Create Subscription → Web Hooks → Build completed</strong>. Paste the receiver URL and save.</li>
                     <li>For historical ACA logs, navigate to <strong>Azure Portal → Log Analytics Workspaces → Overview → Workspace ID</strong>. Paste it in the <strong>Log Analytics Workspace</strong> field and save.</li>
                   </ol>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB CONTENT: BRANCH MATCHING */}
+          {activeSubTab === 'branch-matching' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                  Dynamic Branch Resolution Rules
+                </h3>
+                <p style={{ margin: '6px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                  Understand how EvaOps dynamically scans, matches, and resolves repository branch names across environments.
+                </p>
+              </div>
+
+              <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                EvaOps automatically matches repository branches to environment pipelines. The system queries GitHub APIs to fetch all available branches, then resolves the target branch using a priority-based matching candidate list.
+              </p>
+
+              {/* Candidates Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px' }}>
+                {[
+                  {
+                    env: 'Development',
+                    icon: Cpu,
+                    color: 'var(--accent-purple)',
+                    candidates: ['dev', 'development', 'dev-main', 'dev-master'],
+                    desc: 'Suffixes: -dev, -development'
+                  },
+                  {
+                    env: 'QA & Staging',
+                    icon: Server,
+                    color: 'var(--accent-teal)',
+                    candidates: ['qa', 'test', 'testing', 'staging'],
+                    desc: 'Suffixes: -qa, -test, -testing, -staging'
+                  },
+                  {
+                    env: 'Production',
+                    icon: ShieldCheck,
+                    color: 'var(--success)',
+                    candidates: ['main', 'master', 'prod', 'production', 'release'],
+                    desc: 'Suffixes: -prod, -production, -release, -main, -master, or bare name'
+                  }
+                ].map((item, idx) => {
+                  const Icon = item.icon;
+                  return (
+                    <div className="glass-panel" key={idx} style={{
+                      padding: '20px',
+                      borderRadius: '12px',
+                      border: '1px solid var(--glass-border)',
+                      background: 'rgba(255, 255, 255, 0.01)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          background: `rgba(255, 255, 255, 0.03)`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: item.color
+                        }}>
+                          <Icon size={16} />
+                        </div>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 650, color: 'var(--text-primary)' }}>{item.env}</span>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {item.candidates.map((cand, cidx) => (
+                          <code key={cidx} style={{
+                            background: 'rgba(255, 255, 255, 0.04)',
+                            border: '1px solid var(--glass-border)',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            color: 'var(--text-primary)',
+                            fontSize: '0.76rem'
+                          }}>
+                            {cand}
+                          </code>
+                        ))}
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        {item.desc}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Behavior highlights */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '8px' }}>
+                <div style={{
+                  display: 'flex',
+                  gap: '12px',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  background: 'rgba(16, 185, 129, 0.04)',
+                  border: '1px solid rgba(16, 185, 129, 0.15)'
+                }}>
+                  <CheckCircle2 size={18} style={{ color: 'var(--success)', flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong style={{ color: 'var(--text-primary)', fontSize: '0.84rem', display: 'block', marginBottom: '4px' }}>
+                      Exact Casing Preservation (Git Ref Safety)
+                    </strong>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                      Git reference paths (e.g. <code>refs/heads/...</code>) are case-sensitive. While our candidate matching is case-insensitive (e.g. matching <code>PROD</code> or <code>prod</code>), the resolved branch name preserves the exact casing from the remote Git repository. This avoids checkout errors on case-sensitive build agents.
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  gap: '12px',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  background: 'rgba(59, 130, 246, 0.04)',
+                  border: '1px solid rgba(59, 130, 246, 0.15)'
+                }}>
+                  <Info size={18} style={{ color: 'var(--accent-blue)', flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <strong style={{ color: 'var(--text-primary)', fontSize: '0.84rem', display: 'block', marginBottom: '4px' }}>
+                      Smart Fallback Logic
+                    </strong>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                      If none of the candidate branches are found in the remote repository, the system falls back to the repository's designated default branch (e.g. <code>main</code> or <code>master</code>). If no default branch is reported, it falls back to the first candidate of that environment category (e.g. <code>dev</code> for dev, <code>qa</code> for QA/Staging, and <code>main</code> for production).
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

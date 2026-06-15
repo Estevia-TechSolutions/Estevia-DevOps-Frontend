@@ -633,25 +633,37 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   };
 
 
-  // Match -dev / -qa / -prod only when they are at end of string or followed by a hyphen
-  // This prevents 'evafusion-devhub-qa' from matching as 'dev' due to the '-devhub' substring.
+  // Match environment segments only when they are at the end of the string or followed by a hyphen
+  // This prevents false positives like 'evafusion-devhub-qa' matching as 'dev'.
   const hasEnvSegment = (n: string, seg: string) =>
     new RegExp(`-${seg}(-|$)`).test(n);
 
   const resolveBranchName = (app: AppResource) => {
     const n = app.name.toLowerCase();
-    let targetSimpleName = 'main';
-    if (hasEnvSegment(n, 'dev'))  targetSimpleName = 'dev';
-    else if (hasEnvSegment(n, 'qa'))   targetSimpleName = 'qa';
-    else if (hasEnvSegment(n, 'prod')) targetSimpleName = 'main';
     
-    const match = (app.branches || []).find(b => {
-      const bName = b.name.toLowerCase();
-      return bName === targetSimpleName || 
-             (targetSimpleName === 'main' && bName === 'master') ||
-             (targetSimpleName === 'dev' && bName === 'development');
-    });
-    return match ? match.name : targetSimpleName;
+    let envType: 'dev' | 'qa' | 'prod' = 'prod';
+    if (hasEnvSegment(n, 'dev') || hasEnvSegment(n, 'development')) envType = 'dev';
+    else if (hasEnvSegment(n, 'qa') || hasEnvSegment(n, 'staging') || hasEnvSegment(n, 'test') || hasEnvSegment(n, 'testing')) envType = 'qa';
+    
+    const candidates = {
+      dev: ['dev', 'development', 'dev-main', 'dev-master'],
+      qa: ['qa', 'test', 'testing', 'staging'],
+      prod: ['main', 'master', 'prod', 'production', 'release']
+    };
+    
+    const candidateList = candidates[envType];
+    const availableBranches = app.branches || [];
+    
+    const matchedCandidate = candidateList.find((cand: string) => 
+      availableBranches.some(b => b.name.toLowerCase() === cand)
+    );
+    
+    if (matchedCandidate) {
+      return availableBranches.find(b => b.name.toLowerCase() === matchedCandidate)!.name;
+    }
+    
+    const defaultBranch = availableBranches.find(b => (b as any).default || (b as any).isDefault || b.protected);
+    return defaultBranch ? defaultBranch.name : candidateList[0];
   };
 
   const isBuildActive = (run: any) => {
