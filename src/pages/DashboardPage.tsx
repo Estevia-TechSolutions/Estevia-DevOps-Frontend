@@ -2324,6 +2324,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                       {getStageIcon(item.pipelineRun.result, item.pipelineRun.state)}
                                       {runStatus}
                                     </span>
+                                    {item.pipelineRun.result === 'failed' && (
+                                      <span style={{
+                                        fontSize: '0.68rem',
+                                        color: 'var(--error)',
+                                        fontWeight: 600,
+                                        marginLeft: '8px'
+                                      }}>
+                                        (Last build failed)
+                                      </span>
+                                    )}
                                   </div>
                                   
                                   {/* Right side Actions (CI/CD Pipeline Link) */}
@@ -2413,6 +2423,23 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                     flexDirection: 'column',
                                     gap: '12px'
                                   }}>
+                                    {item.pipelineRun.result === 'failed' && (
+                                      <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        padding: '10px 12px',
+                                        borderRadius: '6px',
+                                        backgroundColor: isLight ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.15)',
+                                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                                        color: isLight ? '#b91c1c' : '#f87171',
+                                        fontSize: '0.72rem',
+                                        fontWeight: 600
+                                      }}>
+                                        <AlertCircle size={14} style={{ color: isLight ? '#b91c1c' : '#f87171', flexShrink: 0 }} />
+                                        <span>Build failed for the last build. Please check step logs below.</span>
+                                      </div>
+                                    )}
                                     {!item.pipelineRun.stages || item.pipelineRun.stages.length === 0 ? (
                                       <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontStyle: 'italic', padding: '6px 0' }}>
                                         No stages defined for this run.
