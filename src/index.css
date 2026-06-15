@@ -506,6 +506,83 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus {
   color: #4f46e5;
 }
 
+/* Premium Tabs Grid & Buttons */
+.premium-tabs-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+  width: 100%;
+}
+
+@media (max-width: 1400px) {
+  .premium-tabs-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .premium-tabs-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.premium-tab-btn {
+  background: rgba(255, 255, 255, 0.015);
+  color: var(--text-secondary);
+  border: 1px solid var(--glass-border);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+[data-theme="light"] .premium-tab-btn {
+  background: rgba(0, 0, 0, 0.01);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+.premium-tab-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+[data-theme="light"] .premium-tab-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.premium-tab-btn.active {
+  color: var(--text-primary);
+  background: var(--badge-bg);
+  border-color: var(--badge-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  position: relative;
+}
+
+.premium-tab-btn.active svg {
+  color: var(--accent-purple);
+}
+
+.premium-tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue));
+  border-radius: 2px;
+}
+
 /* Branch Checklist */
 .branch-checkbox-item {
   display: flex;

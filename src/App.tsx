@@ -4083,63 +4083,143 @@ function App() {
           </div>
         ) : (
           <>
-            {/* Hero */}
-            <ControlBanner
-              scanning={scanning}
-              scanProgress={scanProgress}
-              hasApps={apps.length > 0}
-              resourceGroups={controlResourceGroups}
-              selectedResourceGroup={selectedControlResourceGroup}
-              onResourceGroupChange={handleResourceGroupChange}
-              primaryResourceGroup={primaryResourceGroup}
-            />
+            {/* Unified DevOps Control Centre & Navigation Panel */}
+            <div className="glass-panel" style={{ padding: '24px', marginBottom: '30px', position: 'relative', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
+              {/* Background gradient */}
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'linear-gradient(210deg, rgba(139, 92, 246, 0.03) 0%, rgba(59, 130, 246, 0.005) 100%)',
+                pointerEvents: 'none',
+                transition: 'background 0.3s ease'
+              }} />
 
-        {/* Tabs */}
-        <div className="tabs-container">
-        <button className={`tab-btn tab-btn-scan ${activeTab === 'scan' ? 'active' : ''}`} onClick={() => setActiveTab('scan')}>
-          <Server size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-          Cloud Resource Scanning
-          <span className="tab-tooltip">Scan active Azure subscriptions for app services, container resources, and cost metrics.</span>
-        </button>
-        <button className={`tab-btn tab-btn-provision ${activeTab === 'provision' ? 'active' : ''}`} onClick={() => setActiveTab('provision')}>
-          <PlusCircle size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-          Provision Web App
-          <span className="tab-tooltip">Create and provision new Azure Static Web Apps automatically.</span>
-        </button>
-        <button className={`tab-btn tab-btn-cost ${activeTab === 'cost' ? 'active' : ''}`} onClick={() => setActiveTab('cost')}>
-          <Database size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-          Cost Management
-          <span className="tab-tooltip">Monitor infrastructure cost trends, resource footprints, and budget insights.</span>
-        </button>
-        <button className={`tab-btn tab-btn-databases ${activeTab === 'databases' ? 'active' : ''}`} onClick={() => setActiveTab('databases')}>
-          <Database size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-          Database Hub
-          <span className="tab-tooltip">Manage databases, query schemas, and perform secure backups.</span>
-        </button>
-        <button className={`tab-btn tab-btn-credentials ${activeTab === 'credentials' ? 'active' : ''}`} onClick={() => setActiveTab('credentials')}>
-          <ShieldCheck size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-          Credentials
-          <span className="tab-tooltip">Manage API keys, access tokens, and organization infrastructure settings.</span>
-        </button>
-        {(user?.role === 'owner' || user?.role === 'admin') && (
-          <button className={`tab-btn tab-btn-users ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>
-            <Users size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-            Team Settings
-            <span className="tab-tooltip">Manage organization directory users, sync from Azure Active Directory, and adjust roles.</span>
-          </button>
-        )}
-        <button className={`tab-btn tab-btn-events ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')} style={{ position: 'relative' }}>
-          <Activity size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-          Events Feed
-          <span className="tab-tooltip">Review real-time and historical pipeline builds, power controls, and cloud scan events.</span>
-        </button>
-        <button className={`tab-btn tab-btn-guide ${activeTab === 'guide' ? 'active' : ''}`} onClick={() => setActiveTab('guide')}>
-          <Info size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-          User Guide
-          <span className="tab-tooltip">Step-by-step user instructions, capability scope, and system boundaries.</span>
-        </button>
+              <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Top Row: Title & Resource Group Dropdown & Status */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                    <h1 style={{ 
+                      margin: 0,
+                      fontSize: '1.6rem', 
+                      fontWeight: 800, 
+                      letterSpacing: '-0.02em',
+                      background: 'linear-gradient(to right, var(--text-primary) 30%, rgba(167, 139, 250, 0.95))', 
+                      WebkitBackgroundClip: 'text', 
+                      WebkitTextFillColor: 'transparent',
+                      display: 'inline-block'
+                    }}>
+                      DevOps Control Centre
+                    </h1>
 
-      </div>
+                    {/* Resource Group Dropdown Selector */}
+                    {controlResourceGroups && controlResourceGroups.length > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Resource Group:</span>
+                        <select
+                          value={selectedControlResourceGroup}
+                          onChange={(e) => handleResourceGroupChange(e.target.value)}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '0.8rem',
+                            fontWeight: 650,
+                            borderRadius: '8px',
+                            border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
+                            backgroundColor: 'rgba(15, 23, 42, 0.4)',
+                            color: 'var(--text-primary)',
+                            outline: 'none',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {controlResourceGroups.map((rg) => {
+                            const isPrimary = rg === primaryResourceGroup;
+                            return (
+                              <option key={rg} value={rg} style={{ backgroundColor: '#0f172a', color: '#fff' }}>
+                                {rg} {isPrimary ? ' (Primary)' : ''}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* System Status / Scan Status Display */}
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    {!scanning && scanProgress === 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '12px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.12)', fontSize: '0.74rem' }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--success)' }} />
+                        <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Connected</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ height: '1px', background: 'var(--divider)', margin: '0' }} />
+
+                {/* Bottom Row: Tab buttons grid */}
+                <div className="premium-tabs-grid">
+                  <button className={`premium-tab-btn ${activeTab === 'scan' ? 'active' : ''}`} onClick={() => setActiveTab('scan')}>
+                    <Server size={16} />
+                    <span>Cloud Scanning</span>
+                  </button>
+                  <button className={`premium-tab-btn ${activeTab === 'provision' ? 'active' : ''}`} onClick={() => setActiveTab('provision')}>
+                    <PlusCircle size={16} />
+                    <span>Provision App</span>
+                  </button>
+                  <button className={`premium-tab-btn ${activeTab === 'cost' ? 'active' : ''}`} onClick={() => setActiveTab('cost')}>
+                    <Database size={16} />
+                    <span>Cost Page</span>
+                  </button>
+                  <button className={`premium-tab-btn ${activeTab === 'databases' ? 'active' : ''}`} onClick={() => setActiveTab('databases')}>
+                    <Database size={16} />
+                    <span>DB Hub</span>
+                  </button>
+                  <button className={`premium-tab-btn ${activeTab === 'credentials' ? 'active' : ''}`} onClick={() => setActiveTab('credentials')}>
+                    <ShieldCheck size={16} />
+                    <span>Credentials</span>
+                  </button>
+                  {(user?.role === 'owner' || user?.role === 'admin') && (
+                    <button className={`premium-tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>
+                      <Users size={16} />
+                      <span>Team Settings</span>
+                    </button>
+                  )}
+                  <button className={`premium-tab-btn ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')} style={{ position: 'relative' }}>
+                    <Activity size={16} />
+                    <span>Events Feed</span>
+                  </button>
+                  <button className={`premium-tab-btn ${activeTab === 'guide' ? 'active' : ''}`} onClick={() => setActiveTab('guide')}>
+                    <Info size={16} />
+                    <span>User Guide</span>
+                  </button>
+                </div>
+
+                {/* Cloud Scan Progress Bar (placed below tabs grid when active) */}
+                {(scanning || scanProgress > 0) && (
+                  <div style={{ 
+                    marginTop: '4px', 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    gap: '8px',
+                    animation: 'fade-in-anim 0.3s ease-out'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <RefreshCw size={13} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Scanning active cloud and refreshing cost metrics...</span>
+                      </div>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-purple)' }}>{Math.floor(scanProgress)}%</span>
+                    </div>
+                    <div style={{ width: '100%', height: '4px', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div style={{ width: `${scanProgress}%`, height: '100%', backgroundColor: 'var(--accent-purple)', boxShadow: '0 0 8px var(--accent-purple-glow)', transition: 'width 0.15s ease-out', borderRadius: '2px' }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
 
       {/* Tab Contents */}
       <main style={{ paddingBottom: '80px' }}>
