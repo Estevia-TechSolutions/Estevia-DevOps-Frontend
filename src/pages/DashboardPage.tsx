@@ -168,6 +168,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   const [activeStageInfo, setActiveStageInfo] = React.useState<{appName: string, stageId: string} | null>(null);
   const [selectedJobForModal, setSelectedJobForModal] = React.useState<any | null>(null);
+  const [expandedBuilds, setExpandedBuilds] = React.useState<Record<string, boolean>>({});
+  const [selectedTaskForModal, setSelectedTaskForModal] = React.useState<any | null>(null);
 
   // Secondary actions dropdown state
   const [activeDropdown, setActiveDropdown] = React.useState<string | null>(null);
@@ -1036,8 +1038,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                     style={{
                                       display: 'inline-flex', alignItems: 'center', gap: '6px',
                                       padding: '6px 12px', borderRadius: '8px',
-                                      backgroundColor: isViewer ? 'rgba(255,255,255,0.01)' : btnBg,
-                                      color: isViewer ? 'rgba(255,255,255,0.35)' : btnColor,
+                                      backgroundColor: isViewer ? (theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)') : btnBg,
+                                      color: isViewer ? (theme === 'light' ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)') : btnColor,
                                       border: isViewer ? '1px dashed var(--glass-border)' : `1px solid ${btnBorder}`,
                                       fontSize: '0.72rem', fontWeight: 700,
                                       cursor: isDisabled ? 'not-allowed' : 'pointer',
@@ -1051,116 +1053,120 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                   </button>
 
                                   {/* Dropdown menu */}
-                                  {isOpen && powerDropdownCoords && (
-                                    <>
-                                      {/* Backdrop to close on outside click */}
-                                      <div
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setActivePowerDropdown(null);
-                                          setPowerDropdownCoords(null);
-                                        }}
-                                        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998, cursor: 'default' }}
-                                      />
-                                      <div style={{
-                                        position: 'fixed',
-                                        top: powerDropdownCoords.top,
-                                        left: Math.max(8, powerDropdownCoords.left),
-                                        backgroundColor: 'var(--bg-secondary, #0f172a)',
-                                        border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
-                                        borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-                                        zIndex: 9999, minWidth: '130px',
-                                        display: 'flex', flexDirection: 'column',
-                                        padding: '4px 0', overflow: 'hidden'
-                                      }}>
-                                        {/* Start */}
-                                        <button
-                                          type="button"
-                                          disabled={startDis}
+                                  {isOpen && powerDropdownCoords && (() => {
+                                    const disabledColor = theme === 'light' ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.25)';
+                                    const hoverBgColor = theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)';
+                                    return (
+                                      <>
+                                        {/* Backdrop to close on outside click */}
+                                        <div
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            onResourceControl?.(item.name, 'start');
                                             setActivePowerDropdown(null);
                                             setPowerDropdownCoords(null);
                                           }}
-                                          onMouseEnter={(e) => { if (!startDis) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
-                                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                          style={{
-                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                            padding: '8px 14px', fontSize: '0.75rem',
-                                            background: 'none', border: 'none', width: '100%', textAlign: 'left',
-                                            color: startDis ? 'rgba(255,255,255,0.25)' : 'var(--text-primary)',
-                                            cursor: startDis ? 'not-allowed' : 'pointer',
-                                            opacity: startDis ? 0.35 : 1
-                                          }}
-                                        >
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <Play size={12} style={{ color: startDis ? 'rgba(255,255,255,0.25)' : '#10b981' }}
-                                              fill={startDis ? 'none' : '#10b981'} />
-                                            <span>Start</span>
-                                          </div>
-                                          {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
-                                        </button>
+                                          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998, cursor: 'default' }}
+                                        />
+                                        <div style={{
+                                          position: 'fixed',
+                                          top: powerDropdownCoords.top,
+                                          left: Math.max(8, powerDropdownCoords.left),
+                                          backgroundColor: 'var(--bg-secondary, #0f172a)',
+                                          border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
+                                          borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                                          zIndex: 9999, minWidth: '130px',
+                                          display: 'flex', flexDirection: 'column',
+                                          padding: '4px 0', overflow: 'hidden'
+                                        }}>
+                                          {/* Start */}
+                                          <button
+                                            type="button"
+                                            disabled={startDis}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              onResourceControl?.(item.name, 'start');
+                                              setActivePowerDropdown(null);
+                                              setPowerDropdownCoords(null);
+                                            }}
+                                            onMouseEnter={(e) => { if (!startDis) e.currentTarget.style.backgroundColor = hoverBgColor; }}
+                                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                            style={{
+                                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                              padding: '8px 14px', fontSize: '0.75rem',
+                                              background: 'none', border: 'none', width: '100%', textAlign: 'left',
+                                              color: startDis ? disabledColor : 'var(--text-primary)',
+                                              cursor: startDis ? 'not-allowed' : 'pointer',
+                                              opacity: startDis ? 0.35 : 1
+                                            }}
+                                          >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                              <Play size={12} style={{ color: startDis ? disabledColor : '#10b981' }}
+                                                fill={startDis ? 'none' : '#10b981'} />
+                                              <span>Start</span>
+                                            </div>
+                                            {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
+                                          </button>
 
-                                        {/* Restart */}
-                                        <button
-                                          type="button"
-                                          disabled={restartDis}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            onResourceControl?.(item.name, 'restart');
-                                            setActivePowerDropdown(null);
-                                            setPowerDropdownCoords(null);
-                                          }}
-                                          onMouseEnter={(e) => { if (!restartDis) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
-                                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                          style={{
-                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                            padding: '8px 14px', fontSize: '0.75rem',
-                                            background: 'none', border: 'none', width: '100%', textAlign: 'left',
-                                            color: restartDis ? 'rgba(255,255,255,0.25)' : 'var(--text-primary)',
-                                            cursor: restartDis ? 'not-allowed' : 'pointer',
-                                            opacity: restartDis ? 0.35 : 1
-                                          }}
-                                        >
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <RefreshCw size={12} style={{ color: restartDis ? 'rgba(255,255,255,0.25)' : '#3b82f6' }} />
-                                            <span>Restart</span>
-                                          </div>
-                                          {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
-                                        </button>
+                                          {/* Restart */}
+                                          <button
+                                            type="button"
+                                            disabled={restartDis}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              onResourceControl?.(item.name, 'restart');
+                                              setActivePowerDropdown(null);
+                                              setPowerDropdownCoords(null);
+                                            }}
+                                            onMouseEnter={(e) => { if (!restartDis) e.currentTarget.style.backgroundColor = hoverBgColor; }}
+                                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                            style={{
+                                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                              padding: '8px 14px', fontSize: '0.75rem',
+                                              background: 'none', border: 'none', width: '100%', textAlign: 'left',
+                                              color: restartDis ? disabledColor : 'var(--text-primary)',
+                                              cursor: restartDis ? 'not-allowed' : 'pointer',
+                                              opacity: restartDis ? 0.35 : 1
+                                            }}
+                                          >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                              <RefreshCw size={12} style={{ color: restartDis ? disabledColor : '#3b82f6' }} />
+                                              <span>Restart</span>
+                                            </div>
+                                            {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
+                                          </button>
 
-                                        {/* Stop */}
-                                        <button
-                                          type="button"
-                                          disabled={stopDis}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            onResourceControl?.(item.name, 'stop');
-                                            setActivePowerDropdown(null);
-                                            setPowerDropdownCoords(null);
-                                          }}
-                                          onMouseEnter={(e) => { if (!stopDis) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
-                                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                          style={{
-                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                            padding: '8px 14px', fontSize: '0.75rem',
-                                            background: 'none', border: 'none', width: '100%', textAlign: 'left',
-                                            color: stopDis ? 'rgba(255,255,255,0.25)' : 'var(--text-primary)',
-                                            cursor: stopDis ? 'not-allowed' : 'pointer',
-                                            opacity: stopDis ? 0.35 : 1
-                                          }}
-                                        >
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <Square size={12} style={{ color: stopDis ? 'rgba(255,255,255,0.25)' : '#ef4444' }}
-                                              fill={stopDis ? 'none' : '#ef4444'} />
-                                            <span>Stop</span>
-                                          </div>
-                                          {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
-                                        </button>
-                                      </div>
-                                    </>
-                                  )}
+                                          {/* Stop */}
+                                          <button
+                                            type="button"
+                                            disabled={stopDis}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              onResourceControl?.(item.name, 'stop');
+                                              setActivePowerDropdown(null);
+                                              setPowerDropdownCoords(null);
+                                            }}
+                                            onMouseEnter={(e) => { if (!stopDis) e.currentTarget.style.backgroundColor = hoverBgColor; }}
+                                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                            style={{
+                                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                              padding: '8px 14px', fontSize: '0.75rem',
+                                              background: 'none', border: 'none', width: '100%', textAlign: 'left',
+                                              color: stopDis ? disabledColor : 'var(--text-primary)',
+                                              cursor: stopDis ? 'not-allowed' : 'pointer',
+                                              opacity: stopDis ? 0.35 : 1
+                                            }}
+                                          >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                              <Square size={12} style={{ color: stopDis ? disabledColor : '#ef4444' }}
+                                                fill={stopDis ? 'none' : '#ef4444'} />
+                                              <span>Stop</span>
+                                            </div>
+                                            {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
+                                          </button>
+                                        </div>
+                                      </>
+                                    );
+                                  })()}
                                 </div>
                               );
                             })()}
@@ -1312,139 +1318,322 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                           </div>
                         </div>
 
-                        {/* Visual Deployment Pipeline Run Progress (moved below details & actions with a divider) */}
-                        {item.pipelineRun && (
-                          <div style={{ 
-                            borderTop: '1px solid var(--glass-border, rgba(255,255,255,0.08))', 
-                            paddingTop: '12px', 
-                            marginTop: '4px',
-                            width: '100%',
-                            boxSizing: 'border-box'
-                          }}>
+                        {/* Visual Deployment Pipeline Run Progress (moved below details & actions with a collapsible divider) */}
+                        {item.pipelineRun && (() => {
+                          const isExpanded = expandedBuilds[item.name] ?? isBuildActive(item.pipelineRun);
+                          const isLight = theme === 'light';
+                          const runStatus = isBuildActive(item.pipelineRun) ? 'BUILDING' : item.pipelineRun.result || item.pipelineRun.state;
+                          const runStatusColor = getStageColor(item.pipelineRun.result, item.pipelineRun.state);
+                          
+                          return (
                             <div style={{ 
-                              display: 'flex', 
-                              flexDirection: 'column', 
-                              gap: '6px', 
-                              width: '100%', 
-                              padding: '10px 14px', 
-                              borderRadius: '8px', 
-                              background: 'rgba(255,255,255,0.01)', 
-                              border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
+                              borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`, 
+                              paddingTop: '12px', 
+                              marginTop: '8px',
+                              width: '100%',
                               boxSizing: 'border-box'
                             }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 600 }}>BUILD RUN: #{item.pipelineRun.name || item.pipelineRun.id}</span>
-                                <span style={{ 
-                                  fontSize: '0.64rem', 
-                                  fontWeight: 700, 
-                                  textTransform: 'uppercase', 
-                                  color: getStageColor(item.pipelineRun.result, item.pipelineRun.state) 
-                                }}>
-                                  {isBuildActive(item.pipelineRun) ? 'BUILDING' : item.pipelineRun.result || item.pipelineRun.state}
-                                </span>
-                              </div>
-                              
-                              {/* Visual Pipeline Stages */}
-                              {item.pipelineRun.stages && item.pipelineRun.stages.length > 0 && (
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
-                                  {item.pipelineRun.stages.map((stage) => {
-                                    const stageColor = getStageColor(stage.result, stage.state);
-                                    const isSelected = activeStageInfo?.appName === item.name && activeStageInfo?.stageId === stage.id;
-                                    return (
-                                      <div
-                                        key={stage.id}
-                                        onClick={() => {
-                                          if (isSelected) {
-                                            setActiveStageInfo(null);
-                                          } else {
-                                            setActiveStageInfo({ appName: item.name, stageId: stage.id });
+                              <div style={{ 
+                                display: 'flex', 
+                                flexDirection: 'column', 
+                                gap: '6px', 
+                                width: '100%', 
+                                borderRadius: '8px', 
+                                background: isLight 
+                                  ? 'linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(243, 244, 246, 0.75) 100%)' 
+                                  : 'linear-gradient(180deg, rgba(30, 41, 59, 0.2) 0%, rgba(15, 23, 42, 0.35) 100%)', 
+                                border: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
+                                boxSizing: 'border-box',
+                                overflow: 'hidden'
+                              }}>
+                                {/* Collapsible Header */}
+                                <div 
+                                  onClick={() => setExpandedBuilds(prev => ({ ...prev, [item.name]: !isExpanded }))}
+                                  style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    padding: '10px 14px',
+                                    cursor: 'pointer',
+                                    userSelect: 'none',
+                                    background: isExpanded 
+                                      ? (isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)')
+                                      : 'transparent',
+                                    transition: 'background-color 0.2s ease',
+                                    borderBottom: isExpanded ? `1px solid ${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'}` : 'none'
+                                  }}
+                                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)'}
+                                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isExpanded ? (isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)') : 'transparent'}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <ChevronRight 
+                                      size={14} 
+                                      style={{ 
+                                        color: 'var(--text-secondary)',
+                                        transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                                        transition: 'transform 0.2s ease'
+                                      }} 
+                                    />
+                                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
+                                      BUILD RUN: #{item.pipelineRun.name || item.pipelineRun.id}
+                                    </span>
+                                    <span style={{
+                                      fontSize: '0.64rem',
+                                      fontWeight: 800,
+                                      padding: '2px 6px',
+                                      borderRadius: '4px',
+                                      backgroundColor: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)',
+                                      color: runStatusColor,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px'
+                                    }}>
+                                      {getStageIcon(item.pipelineRun.result, item.pipelineRun.state)}
+                                      {runStatus}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Right side Actions (CI/CD Pipeline Link) */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    {item.pipelineId ? (
+                                      <a 
+                                        href={(() => {
+                                          if (item.pipelineRun?.webUrl) {
+                                            try {
+                                              const url = new URL(item.pipelineRun.webUrl);
+                                              const parts = url.pathname.split('/');
+                                              const buildIndex = parts.indexOf('_build');
+                                              if (buildIndex !== -1) {
+                                                const basePath = parts.slice(0, buildIndex + 1).join('/');
+                                                return `${url.origin}${basePath}?definitionId=${item.pipelineId}`;
+                                              }
+                                            } catch (e) {
+                                              console.warn('Failed to parse webUrl:', e);
+                                            }
                                           }
-                                          setSelectedStageForJobs(stage);
-                                        }}
-                                        style={{
-                                          padding: '4px 8px',
+                                          const baseOrg = (azureDevopsOrgUrl || 'https://dev.azure.com/esteviatech').replace(/\/$/, '');
+                                          const baseProj = azureDevopsProject || 'Estevia-Platform';
+                                          return `${baseOrg}/${baseProj}/_build?definitionId=${item.pipelineId}`;
+                                        })()}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        style={{ 
+                                          display: 'flex', 
+                                          alignItems: 'center', 
+                                          gap: '6px', 
+                                          padding: '4px 10px', 
                                           borderRadius: '6px',
-                                          backgroundColor: isSelected ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
-                                          border: `1px solid ${isSelected ? 'var(--accent-purple)' : (stage.state === 'inProgress' ? stageColor : 'var(--glass-border)')}`,
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          gap: '6px',
-                                          cursor: 'pointer',
-                                          fontSize: '0.7rem',
-                                          color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)',
-                                          transition: 'all 0.2s ease',
-                                          flex: '1 1 auto',
-                                          justifyContent: 'center'
+                                          fontSize: '0.68rem', 
+                                          fontWeight: 600,
+                                          color: 'var(--text-primary)', 
+                                          backgroundColor: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)',
+                                          border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'var(--glass-border)'}`,
+                                          textDecoration: 'none', 
+                                          boxSizing: 'border-box' 
                                         }}
-                                        title={`${stage.displayName}: ${stage.result || stage.state}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'}
                                       >
-                                        {getStageIcon(stage.result, stage.state)}
-                                        <span style={{ fontWeight: isSelected ? 600 : 400 }}>{stage.displayName || stage.name}</span>
-                                      </div>
-                                    );
-                                  })}
+                                        <GitBranch size={10} style={{ color: 'var(--accent-teal)' }} />
+                                        <span>View CI/CD Pipeline</span>
+                                      </a>
+                                    ) : (
+                                      <button 
+                                        type="button"
+                                        disabled={isViewer}
+                                        onClick={(e) => { 
+                                          e.stopPropagation(); 
+                                          openPipelineModal(item, group); 
+                                        }}
+                                        style={{ 
+                                          display: 'flex', 
+                                          alignItems: 'center', 
+                                          gap: '6px', 
+                                          padding: '4px 10px', 
+                                          borderRadius: '6px',
+                                          fontSize: '0.68rem', 
+                                          fontWeight: 600,
+                                          background: 'none', 
+                                          color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', 
+                                          backgroundColor: isViewer ? 'transparent' : (isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'),
+                                          border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'var(--glass-border)'}`,
+                                          textAlign: 'left', 
+                                          cursor: isViewer ? 'not-allowed' : 'pointer', 
+                                          opacity: isViewer ? 0.35 : 1 
+                                        }}
+                                        onMouseEnter={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)'; }}
+                                        onMouseLeave={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'; }}
+                                      >
+                                        <PlusCircle size={10} style={{ color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--accent-purple)' }} />
+                                        <span>Setup CI/CD</span>
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
-                              )}
-
-                              {/* Selected Stage Jobs list */}
-                              {activeStageInfo?.appName === item.name && (() => {
-                                const activeStage = item.pipelineRun.stages?.find(s => s.id === activeStageInfo.stageId);
-                                if (!activeStage || !activeStage.jobs || activeStage.jobs.length === 0) return null;
-                                return (
+                                
+                                {/* Collapsible Content */}
+                                {isExpanded && (
                                   <div style={{
-                                    marginTop: '8px',
-                                    padding: '8px 10px',
-                                    borderRadius: '6px',
-                                    backgroundColor: 'rgba(0,0,0,0.15)',
-                                    borderLeft: '2px solid var(--accent-purple)',
+                                    padding: '12px 14px',
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    gap: '6px',
-                                    animation: 'fade-in-anim 0.2s ease-out'
+                                    gap: '12px'
                                   }}>
-                                    <div style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                                      Jobs in "{activeStage.displayName || activeStage.name}"
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                      {activeStage.jobs.map(job => (
-                                        <div 
-                                          key={job.id} 
-                                          onClick={() => setSelectedJobForModal(job)}
-                                          style={{ 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            justifyContent: 'space-between', 
-                                            fontSize: '0.7rem',
-                                            padding: '4px 6px',
-                                            borderRadius: '4px',
-                                            cursor: 'pointer',
-                                            transition: 'background-color 0.15s ease',
-                                            userSelect: 'none',
-                                            backgroundColor: 'transparent'
-                                          }}
-                                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)'}
-                                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                        >
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-primary)' }}>
-                                            {getStageIcon(job.result, job.state)}
-                                            <span>{job.displayName || job.name}</span>
-                                          </div>
-                                          <span style={{
-                                            fontSize: '0.62rem',
-                                            fontWeight: 600,
-                                            color: getStageColor(job.result, job.state)
-                                          }}>
-                                            {job.state === 'inProgress' ? 'RUNNING' : job.result || job.state}
-                                          </span>
-                                        </div>
-                                      ))}
-                                    </div>
+                                    {!item.pipelineRun.stages || item.pipelineRun.stages.length === 0 ? (
+                                      <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontStyle: 'italic', padding: '6px 0' }}>
+                                        No stages defined for this run.
+                                      </div>
+                                    ) : (
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        {item.pipelineRun.stages.map((stage: any) => {
+                                          const stageColor = getStageColor(stage.result, stage.state);
+                                          const stageStatus = stage.state === 'inProgress' ? 'RUNNING' : stage.result || stage.state;
+                                          
+                                          return (
+                                            <div key={stage.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                              {/* Stage Row */}
+                                              <div style={{ 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                justifyContent: 'space-between',
+                                                fontSize: '0.74rem',
+                                                fontWeight: 600,
+                                                color: 'var(--text-primary)',
+                                                padding: '4px 6px',
+                                                borderRadius: '4px',
+                                                backgroundColor: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)'
+                                              }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                  {getStageIcon(stage.result, stage.state)}
+                                                  <span>{stage.displayName || stage.name}</span>
+                                                </div>
+                                                <span style={{ fontSize: '0.66rem', fontWeight: 700, color: stageColor }}>
+                                                  {stageStatus.toUpperCase()}
+                                                </span>
+                                              </div>
+                                              
+                                              {/* Jobs list under this Stage */}
+                                              {stage.jobs && stage.jobs.length > 0 && (
+                                                <div style={{ 
+                                                  display: 'flex', 
+                                                  flexDirection: 'column', 
+                                                  gap: '6px', 
+                                                  paddingLeft: '16px',
+                                                  borderLeft: `1px dashed ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}` 
+                                                }}>
+                                                  {stage.jobs.map((job: any) => {
+                                                    const jobColor = getStageColor(job.result, job.state);
+                                                    const jobStatus = job.state === 'inProgress' ? 'RUNNING' : job.result || job.state;
+                                                    
+                                                    return (
+                                                      <div key={job.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                        {/* Job Row */}
+                                                        <div style={{ 
+                                                          display: 'flex', 
+                                                          alignItems: 'center', 
+                                                          justifyContent: 'space-between',
+                                                          fontSize: '0.7rem',
+                                                          color: 'var(--text-secondary)',
+                                                          padding: '3px 6px',
+                                                          borderRadius: '4px'
+                                                        }}>
+                                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            {getStageIcon(job.result, job.state)}
+                                                            <span style={{ fontWeight: 500 }}>{job.displayName || job.name}</span>
+                                                          </div>
+                                                          <span style={{ fontSize: '0.62rem', fontWeight: 600, color: jobColor }}>
+                                                            {jobStatus.toUpperCase()}
+                                                          </span>
+                                                        </div>
+                                                        
+                                                        {/* Job Tasks (Steps) under this Job */}
+                                                        {job.steps && job.steps.length > 0 && (
+                                                          <div style={{ 
+                                                            display: 'flex', 
+                                                            flexDirection: 'column', 
+                                                            gap: '3px', 
+                                                            paddingLeft: '14px',
+                                                            borderLeft: `1px dotted ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`
+                                                          }}>
+                                                            {job.steps.map((step: any, idx: number) => {
+                                                              const stepColor = getStageColor(step.result, step.state);
+                                                              const stepStatus = step.state === 'inProgress' ? 'RUNNING' : step.result || step.state;
+                                                              
+                                                              // Compute step duration helper
+                                                              const getStepDuration = () => {
+                                                                if (!step.startTime) return null;
+                                                                const start = new Date(step.startTime).getTime();
+                                                                const end = step.finishTime ? new Date(step.finishTime).getTime() : Date.now();
+                                                                const dur = Math.max(0, Math.floor((end - start) / 1000));
+                                                                return `${dur}s`;
+                                                              };
+                                                              const dur = getStepDuration();
+                                                              
+                                                              return (
+                                                                <div 
+                                                                  key={step.id || idx}
+                                                                  onClick={() => setSelectedTaskForModal({
+                                                                    step,
+                                                                    jobName: job.displayName || job.name,
+                                                                    stageName: stage.displayName || stage.name
+                                                                  })}
+                                                                  style={{
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'space-between',
+                                                                    padding: '3px 6px',
+                                                                    borderRadius: '4px',
+                                                                    cursor: 'pointer',
+                                                                    userSelect: 'none',
+                                                                    fontSize: '0.68rem',
+                                                                    transition: 'all 0.15s ease',
+                                                                    backgroundColor: 'transparent'
+                                                                  }}
+                                                                  onMouseEnter={(e) => {
+                                                                    e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)';
+                                                                    e.currentTarget.style.color = 'var(--text-primary)';
+                                                                  }}
+                                                                  onMouseLeave={(e) => {
+                                                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                                                    e.currentTarget.style.color = 'var(--text-secondary)';
+                                                                  }}
+                                                                >
+                                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                    {getStageIcon(step.result, step.state)}
+                                                                    <span style={{ color: 'var(--text-secondary)' }}>{step.displayName || step.name}</span>
+                                                                  </div>
+                                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                    <span style={{ fontSize: '0.62rem', fontWeight: 600, color: stepColor }}>
+                                                                      {stepStatus.toUpperCase()}
+                                                                    </span>
+                                                                    {dur && (
+                                                                      <span style={{ fontSize: '0.6rem', color: 'var(--text-muted, #94a3b8)', fontFamily: 'monospace' }}>
+                                                                        ({dur})
+                                                                      </span>
+                                                                    )}
+                                                                  </div>
+                                                                </div>
+                                                              );
+                                                            })}
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    );
+                                                  })}
+                                                </div>
+                                              )}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
                                   </div>
-                                );
-                              })()}
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          );
+                        })()}
                       </div>
                       );
                     })}
@@ -1671,6 +1860,138 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 className="btn-secondary"
                 onClick={() => setSelectedJobForModal(null)}
                 style={{ padding: '8px 20px', fontSize: '0.85rem' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Job Task Details Modal Overlay */}
+      {selectedTaskForModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(2, 6, 23, 0.75)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+          animation: 'fade-in-anim 0.2s ease-out'
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: '500px',
+            width: '100%',
+            padding: '24px',
+            border: '1px solid var(--glass-border)',
+            boxShadow: 'var(--modal-shadow)',
+            position: 'relative'
+          }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                <CheckCircle2 size={18} style={{ color: 'var(--accent-purple)' }} />
+                Task Details
+              </h3>
+              <button 
+                onClick={() => setSelectedTaskForModal(null)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  padding: '4px'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>Task Name</span>
+                <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  {selectedTaskForModal.step.displayName || selectedTaskForModal.step.name}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>Stage</span>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-primary)', fontWeight: 500 }}>
+                    {selectedTaskForModal.stageName}
+                  </span>
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>Job</span>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-primary)', fontWeight: 500 }}>
+                    {selectedTaskForModal.jobName}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>Status</span>
+                  <span style={{ 
+                    fontSize: '0.74rem', 
+                    fontWeight: 700, 
+                    color: getStageColor(selectedTaskForModal.step.result, selectedTaskForModal.step.state),
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    {getStageIcon(selectedTaskForModal.step.result, selectedTaskForModal.step.state)}
+                    {(selectedTaskForModal.step.state === 'inProgress' ? 'RUNNING' : selectedTaskForModal.step.result || selectedTaskForModal.step.state || 'UNKNOWN').toUpperCase()}
+                  </span>
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>Duration</span>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+                    {(() => {
+                      if (!selectedTaskForModal.step.startTime) return 'N/A';
+                      const start = new Date(selectedTaskForModal.step.startTime).getTime();
+                      const end = selectedTaskForModal.step.finishTime ? new Date(selectedTaskForModal.step.finishTime).getTime() : Date.now();
+                      const totalSecs = Math.max(0, Math.floor((end - start) / 1000));
+                      if (totalSecs < 60) return `${totalSecs}s`;
+                      const mins = Math.floor(totalSecs / 60);
+                      const secs = totalSecs % 60;
+                      return `${mins}m ${secs}s`;
+                    })()}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid var(--glass-border)', paddingTop: '12px', marginTop: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Started:</span>
+                  <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+                    {selectedTaskForModal.step.startTime ? new Date(selectedTaskForModal.step.startTime).toLocaleString() : 'N/A'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', marginTop: '4px' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Finished:</span>
+                  <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+                    {selectedTaskForModal.step.finishTime ? new Date(selectedTaskForModal.step.finishTime).toLocaleString() : (selectedTaskForModal.step.startTime ? 'Running...' : 'N/A')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+              <button
+                className="btn-secondary"
+                onClick={() => setSelectedTaskForModal(null)}
+                style={{ padding: '6px 16px', fontSize: '0.8rem' }}
               >
                 Close
               </button>

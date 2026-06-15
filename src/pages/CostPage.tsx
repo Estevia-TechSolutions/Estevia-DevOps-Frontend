@@ -167,6 +167,8 @@ export const CostPage: React.FC<CostPageProps> = ({
 }) => {
 
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [activePowerDropdown, setActivePowerDropdown] = useState<string | null>(null);
+  const [powerDropdownCoords, setPowerDropdownCoords] = useState<{top: number; left: number} | null>(null);
 
   // Billing predictive forecast states
   const [forecastData, setForecastData] = useState<any>(null);
@@ -731,147 +733,188 @@ export const CostPage: React.FC<CostPageProps> = ({
                                   const isStarted = s === 'running' || s === 'deployed';
                                   const isStopped = s === 'stopped' || s === 'sleep' || s === 'offline';
 
-                                  return (
-                                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                                      {/* Start */}
-                                      {isCritical ? (
-                                        <button
-                                          type="button"
-                                          disabled={true}
-                                          style={{ 
-                                            border: '1px solid rgba(239, 68, 68, 0.15)',
-                                            borderRadius: '4px',
-                                            padding: '4px 8px', 
-                                            fontSize: '0.7rem', 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            gap: '4px',
-                                            color: 'var(--text-muted, #94a3b8)',
-                                            cursor: 'not-allowed',
-                                            backgroundColor: 'rgba(239, 68, 68, 0.02)'
-                                          }}
-                                          title="Start action locked on critical platform infrastructure."
-                                        >
-                                          <Lock size={10} style={{ color: '#ef4444' }} />
-                                          <span>Start</span>
-                                        </button>
-                                      ) : (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => { e.stopPropagation(); onResourceControl?.(item.name, 'start'); }}
-                                          disabled={isViewer || isControlling || isStarted}
-                                          style={{ 
-                                            background: isStarted ? 'transparent' : 'rgba(16, 185, 129, 0.08)',
-                                            border: `1px solid ${isStarted ? 'transparent' : 'rgba(16, 185, 129, 0.2)'}`,
-                                            borderRadius: '4px',
-                                            padding: '4px 8px', 
-                                            fontSize: '0.7rem', 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            gap: '4px',
-                                            color: isStarted ? 'var(--text-muted)' : '#10b981',
-                                            cursor: isStarted ? 'not-allowed' : 'pointer'
-                                          }}
-                                          title="Start Resource"
-                                        >
-                                          <Play size={10} fill={isStarted ? 'none' : 'currentColor'} />
-                                          <span>Start</span>
-                                        </button>
-                                      )}
+                                  return (() => {
+                                    const isOpen = activePowerDropdown === item.name;
+                                    const isDisabled = isViewer || isControlling;
 
-                                      {/* Stop */}
-                                      {isCritical ? (
-                                        <button
-                                          type="button"
-                                          disabled={true}
-                                          style={{ 
-                                            border: '1px solid rgba(239, 68, 68, 0.25)',
-                                            borderRadius: '4px',
-                                            padding: '4px 8px', 
-                                            fontSize: '0.7rem', 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            gap: '4px',
-                                            color: '#ef4444',
-                                            cursor: 'not-allowed',
-                                            backgroundColor: 'rgba(239, 68, 68, 0.08)'
-                                          }}
-                                          title="Stop action blocked on critical platform infrastructure."
-                                        >
-                                          <Lock size={10} />
-                                          <span style={{ fontWeight: 600 }}>Locked</span>
-                                        </button>
-                                      ) : (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => { e.stopPropagation(); onResourceControl?.(item.name, 'stop'); }}
-                                          disabled={isViewer || isControlling || isStopped}
-                                          style={{ 
-                                            background: isStopped ? 'transparent' : 'rgba(239, 68, 68, 0.08)',
-                                            border: `1px solid ${isStopped ? 'transparent' : 'rgba(239, 68, 68, 0.2)'}`,
-                                            borderRadius: '4px',
-                                            padding: '4px 8px', 
-                                            fontSize: '0.7rem', 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            gap: '4px',
-                                            color: isStopped ? 'var(--text-muted)' : '#ef4444',
-                                            cursor: isStopped ? 'not-allowed' : 'pointer'
-                                          }}
-                                          title="Stop Resource"
-                                        >
-                                          <Square size={10} fill={isStopped ? 'none' : 'currentColor'} />
-                                          <span>Stop</span>
-                                        </button>
-                                      )}
+                                    // Derive button appearance from runtime state
+                                    let btnBg = 'rgba(255,255,255,0.02)';
+                                    let btnColor = 'var(--text-secondary)';
+                                    let btnBorder = 'var(--glass-border, rgba(255,255,255,0.08))';
+                                    let btnText = 'Unknown';
+                                    let btnIcon = <Square size={10} />;
 
-                                      {/* Restart */}
-                                      {isCritical ? (
+                                    if (isControlling) {
+                                      btnBg = 'rgba(59,130,246,0.08)'; btnColor = '#3b82f6';
+                                      btnBorder = 'rgba(59,130,246,0.2)'; btnText = 'Updating…';
+                                      btnIcon = <RefreshCw size={10} className="spin-anim" />;
+                                    } else if (isStarted) {
+                                      btnBg = 'rgba(16,185,129,0.08)'; btnColor = '#10b981';
+                                      btnBorder = 'rgba(16,185,129,0.2)'; btnText = 'Running';
+                                      btnIcon = <Play size={10} fill="#10b981" />;
+                                    } else if (isStopped) {
+                                      btnBg = 'rgba(239,68,68,0.08)'; btnColor = '#ef4444';
+                                      btnBorder = 'rgba(239,68,68,0.2)'; btnText = 'Stopped';
+                                      btnIcon = <Square size={10} fill="#ef4444" />;
+                                    }
+
+                                    // Per-action disabled flags
+                                    const startDis  = isViewer || isControlling || isStarted  || isCritical;
+                                    const restartDis = isViewer || isControlling || isStopped  || isCritical;
+                                    const stopDis   = isViewer || isControlling || isStopped  || isCritical;
+
+                                    return (
+                                      <div style={{ position: 'relative' }}>
+                                        {/* Trigger button */}
                                         <button
                                           type="button"
-                                          disabled={true}
-                                          style={{ 
-                                            border: '1px solid rgba(239, 68, 68, 0.15)',
-                                            borderRadius: '4px',
-                                            padding: '4px 8px', 
-                                            fontSize: '0.7rem', 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            gap: '4px',
-                                            color: 'var(--text-muted, #94a3b8)',
-                                            cursor: 'not-allowed',
-                                            backgroundColor: 'rgba(239, 68, 68, 0.02)'
+                                          disabled={isDisabled}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (isOpen) {
+                                              setActivePowerDropdown(null);
+                                              setPowerDropdownCoords(null);
+                                            } else {
+                                              const rect = e.currentTarget.getBoundingClientRect();
+                                              setPowerDropdownCoords({ top: rect.bottom + 6, left: rect.right - 130 });
+                                              setActivePowerDropdown(item.name);
+                                            }
                                           }}
-                                          title="Restart action locked on critical platform infrastructure."
-                                        >
-                                          <Lock size={10} style={{ color: '#ef4444' }} />
-                                          <span>Restart</span>
-                                        </button>
-                                      ) : (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => { e.stopPropagation(); onResourceControl?.(item.name, 'restart'); }}
-                                          disabled={isViewer || isControlling}
-                                          style={{ 
-                                            background: 'rgba(59, 130, 246, 0.08)',
-                                            border: '1px solid rgba(59, 130, 246, 0.2)',
-                                            borderRadius: '4px',
-                                            padding: '4px 8px', 
-                                            fontSize: '0.7rem', 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            gap: '4px',
-                                            color: '#3b82f6',
-                                            cursor: 'pointer'
+                                          style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                            padding: '6px 12px', borderRadius: '8px',
+                                            backgroundColor: isViewer ? (theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)') : btnBg,
+                                            color: isViewer ? (theme === 'light' ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)') : btnColor,
+                                            border: isViewer ? '1px dashed var(--glass-border)' : `1px solid ${btnBorder}`,
+                                            fontSize: '0.72rem', fontWeight: 700,
+                                            cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                            transition: 'all 0.2s ease',
+                                            opacity: isViewer ? 0.35 : 1
                                           }}
-                                          title="Restart Resource"
                                         >
-                                          <RefreshCw size={10} className={isControlling ? 'spin-anim' : ''} />
-                                          <span>Restart</span>
+                                          {btnIcon}
+                                          <span>{btnText}</span>
+                                          <ChevronDown size={12} style={{ opacity: isDisabled ? 0.35 : 0.7 }} />
                                         </button>
-                                      )}
-                                    </div>
-                                  );
+
+                                        {/* Dropdown menu */}
+                                        {isOpen && powerDropdownCoords && (() => {
+                                          const disabledColor = theme === 'light' ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.25)';
+                                          const hoverBgColor = theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)';
+                                          return (
+                                            <>
+                                              {/* Backdrop to close on outside click */}
+                                              <div
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setActivePowerDropdown(null);
+                                                  setPowerDropdownCoords(null);
+                                                }}
+                                                style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998, cursor: 'default' }}
+                                              />
+                                              <div style={{
+                                                position: 'fixed',
+                                                top: powerDropdownCoords.top,
+                                                left: Math.max(8, powerDropdownCoords.left),
+                                                backgroundColor: 'var(--bg-secondary, #0f172a)',
+                                                border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
+                                                borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                                                zIndex: 9999, minWidth: '130px',
+                                                display: 'flex', flexDirection: 'column',
+                                                padding: '4px 0', overflow: 'hidden'
+                                              }}>
+                                                {/* Start */}
+                                                <button
+                                                  type="button"
+                                                  disabled={startDis}
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onResourceControl?.(item.name, 'start');
+                                                    setActivePowerDropdown(null);
+                                                    setPowerDropdownCoords(null);
+                                                  }}
+                                                  onMouseEnter={(e) => { if (!startDis) e.currentTarget.style.backgroundColor = hoverBgColor; }}
+                                                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                                  style={{
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                    padding: '8px 14px', fontSize: '0.75rem',
+                                                    background: 'none', border: 'none', width: '100%', textAlign: 'left',
+                                                    color: startDis ? disabledColor : 'var(--text-primary)',
+                                                    cursor: startDis ? 'not-allowed' : 'pointer',
+                                                    opacity: startDis ? 0.35 : 1
+                                                  }}
+                                                >
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <Play size={12} style={{ color: startDis ? disabledColor : '#10b981' }}
+                                                      fill={startDis ? 'none' : '#10b981'} />
+                                                    <span>Start</span>
+                                                  </div>
+                                                  {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
+                                                </button>
+
+                                                {/* Restart */}
+                                                <button
+                                                  type="button"
+                                                  disabled={restartDis}
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onResourceControl?.(item.name, 'restart');
+                                                    setActivePowerDropdown(null);
+                                                    setPowerDropdownCoords(null);
+                                                  }}
+                                                  onMouseEnter={(e) => { if (!restartDis) e.currentTarget.style.backgroundColor = hoverBgColor; }}
+                                                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                                  style={{
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                    padding: '8px 14px', fontSize: '0.75rem',
+                                                    background: 'none', border: 'none', width: '100%', textAlign: 'left',
+                                                    color: restartDis ? disabledColor : 'var(--text-primary)',
+                                                    cursor: restartDis ? 'not-allowed' : 'pointer',
+                                                    opacity: restartDis ? 0.35 : 1
+                                                  }}
+                                                >
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <RefreshCw size={12} style={{ color: restartDis ? disabledColor : '#3b82f6' }} />
+                                                    <span>Restart</span>
+                                                  </div>
+                                                  {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
+                                                </button>
+
+                                                {/* Stop */}
+                                                <button
+                                                  type="button"
+                                                  disabled={stopDis}
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onResourceControl?.(item.name, 'stop');
+                                                    setActivePowerDropdown(null);
+                                                    setPowerDropdownCoords(null);
+                                                  }}
+                                                  onMouseEnter={(e) => { if (!stopDis) e.currentTarget.style.backgroundColor = hoverBgColor; }}
+                                                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                                  style={{
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                    padding: '8px 14px', fontSize: '0.75rem',
+                                                    background: 'none', border: 'none', width: '100%', textAlign: 'left',
+                                                    color: stopDis ? disabledColor : 'var(--text-primary)',
+                                                    cursor: stopDis ? 'not-allowed' : 'pointer',
+                                                    opacity: stopDis ? 0.35 : 1
+                                                  }}
+                                                >
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <Square size={12} style={{ color: stopDis ? disabledColor : '#ef4444' }}
+                                                      fill={stopDis ? 'none' : '#ef4444'} />
+                                                    <span>Stop</span>
+                                                  </div>
+                                                  {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
+                                                </button>
+                                              </div>
+                                            </>
+                                          );
+                                        })()}
+                                      </div>
+                                    );
+                                  })()
                                 })()
                               ) : (
                                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>N/A</span>
