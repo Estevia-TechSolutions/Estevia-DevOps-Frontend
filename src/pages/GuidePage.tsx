@@ -60,6 +60,18 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
     {
       question: 'What if scanning does not show my newly provisioned apps?',
       answer: 'Make sure you have linked the correct Azure Subscription and Resource Group credentials. Newly provisioned apps can also take 30-60 seconds to populate inside Azure\'s resource catalog API.'
+    },
+    {
+      question: 'How do I view live logs for my pipeline build task steps?',
+      answer: 'Click the terminal icon on any active build task/step to open a slide-out drawer containing a live-updating console log viewer. The system proxies raw console lines from the Azure DevOps agent directly to the UI.'
+    },
+    {
+      question: 'Why does the platform prompt me before starting, stopping, or restarting resources?',
+      answer: 'To prevent accidental downtime in your environments, EvaOps uses glassmorphic confirmation dialogs. You must explicitly confirm power transitions (Start, Stop, Restart) before the action is dispatched to Azure Resource Manager.'
+    },
+    {
+      question: 'How does the live build run updating system work?',
+      answer: 'An active telemetry polling worker runs in the background. If there are active pipeline runs, it queries their status every 5 seconds, updating the timeline tree and log viewer in real time without needing a full Cloud Resource Scan.'
     }
   ];
 
@@ -386,8 +398,12 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                       {
                         category: 'Observability & Operations',
                         items: [
-                          { title: 'Build Telemetry Dashboard', text: 'Tracks pipeline run stages, durations, and results in real time.' },
-                          { title: 'Live Log Tailing & Metrics', text: 'Tails Container App console logs in real time and streams actual CPU/Memory metrics polled directly from Azure Monitor.' }
+                          { title: 'Build Telemetry Dashboard', text: 'Tracks pipeline run stages, durations, and results in real time with a collapsible visualizer.' },
+                          { title: 'Live Log Tailing & Metrics', text: 'Tails Container App console logs in real time and streams actual CPU/Memory metrics polled directly from Azure Monitor.' },
+                          { title: 'Active Telemetry Polling', text: 'Background polling updates active builds and stage status tree (Stage -> Job -> Step) dynamically every 5 seconds.' },
+                          { title: 'Interactive Log Proxy', text: 'Streams raw console logs from Azure DevOps pipelines directly into a terminal overlay.' },
+                          { title: 'Categorized Resource Grouping', text: 'Groups Azure resources by SWA, ACA, and VM with collapse/expand accordions and count badges.' },
+                          { title: 'Glassmorphic Power Confirmations', text: 'Prompts users with confirmation modals before starting, stopping, or restarting resources.' }
                         ]
                       },
                       {
