@@ -145,6 +145,12 @@ interface DashboardPageProps {
   onBuildTransition?: (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
 }
 
+const isBuildActive = (run: any) => {
+  if (!run || !run.state) return false;
+  const s = run.state.toLowerCase();
+  return s === 'inprogress' || s === 'running' || s === 'canceling' || s === 'cancelling' || s === 'notstarted' || s === 'queued';
+};
+
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   apps,
   scanning,
@@ -725,11 +731,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     return defaultBranch ? defaultBranch.name : candidateList[0];
   };
 
-  const isBuildActive = (run: any) => {
-    if (!run || !run.state) return false;
-    const s = run.state.toLowerCase();
-    return s === 'inprogress' || s === 'running' || s === 'canceling' || s === 'cancelling' || s === 'notstarted' || s === 'queued';
-  };
 
   // Auto-switch tabs and auto-expand/collapse accordions based on active builds (concurrent-safe)
   const prevActiveBuildGroupsRef = React.useRef<Record<string, boolean>>({});
