@@ -4756,58 +4756,20 @@ function App() {
 
                 {/* GitHub Repo */}
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <label style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
-                      GitHub Repository
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setUseCustomRepo(!useCustomRepo)}
-                      style={{ background: 'transparent', border: 'none', color: 'var(--accent-blue)', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600 }}
-                    >
-                      {useCustomRepo ? 'Select from list' : 'Enter manually'}
-                    </button>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                    GitHub Repository
+                  </label>
+                  <div style={{
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    backgroundColor: 'var(--bg-primary)',
+                    border: '1px solid var(--glass-border)',
+                    fontSize: '0.86rem',
+                    color: 'var(--text-primary)',
+                    fontWeight: 500
+                  }}>
+                    {githubRepo || 'N/A'}
                   </div>
-                  {useCustomRepo ? (
-                    <input
-                      type="text"
-                      required
-                      placeholder="owner/repository-name"
-                      value={githubRepo}
-                      onChange={(e) => setGithubRepo(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        borderRadius: '8px',
-                        backgroundColor: 'var(--input-bg)',
-                        border: '1px solid var(--glass-border)',
-                        color: 'var(--text-primary)',
-                        fontSize: '0.86rem',
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  ) : (
-                    <select
-                      value={githubRepo}
-                      onChange={(e) => setGithubRepo(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        borderRadius: '8px',
-                        backgroundColor: 'var(--input-bg)',
-                        border: '1px solid var(--glass-border)',
-                        color: 'var(--text-primary)',
-                        fontSize: '0.86rem',
-                        outline: 'none'
-                      }}
-                    >
-                      <option value="">-- Select GitHub Repository --</option>
-                      {githubRepos.map(repo => (
-                        <option key={repo.id} value={repo.fullName}>{repo.fullName}</option>
-                      ))}
-                    </select>
-                  )}
                 </div>
 
                 {/* Git Branch */}
@@ -4815,71 +4777,55 @@ function App() {
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
                     Target Branch
                   </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. main"
-                    value={pipelineBranch}
-                    onChange={(e) => setPipelineBranch(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      backgroundColor: 'var(--input-bg)',
-                      border: '1px solid var(--glass-border)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.86rem',
-                      outline: 'none',
-                      boxSizing: 'border-box'
-                    }}
-                  />
+                  <div style={{
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    backgroundColor: 'var(--bg-primary)',
+                    border: '1px solid var(--glass-border)',
+                    fontSize: '0.86rem',
+                    color: 'var(--text-primary)',
+                    fontWeight: 500
+                  }}>
+                    {pipelineBranch || 'N/A'}
+                  </div>
                 </div>
 
                 {/* DevOps Settings */}
                 <div style={{ display: 'flex', gap: '16px' }}>
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
                       DevOps Org URL
                     </label>
-                    <input
-                      type="text"
-                      required
-                      value={devopsOrgUrl}
-                      onChange={(e) => setDevopsOrgUrl(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        borderRadius: '8px',
-                        backgroundColor: 'var(--input-bg)',
-                        border: '1px solid var(--glass-border)',
-                        color: 'var(--text-primary)',
-                        fontSize: '0.86rem',
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
+                    <div style={{
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      backgroundColor: 'var(--bg-primary)',
+                      border: '1px solid var(--glass-border)',
+                      fontSize: '0.86rem',
+                      color: 'var(--text-primary)',
+                      fontWeight: 500,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {devopsOrgUrl}
+                    </div>
                   </div>
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
                       DevOps Project
                     </label>
-                    <input
-                      type="text"
-                      required
-                      value={devopsProject}
-                      onChange={(e) => setDevopsProject(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        borderRadius: '8px',
-                        backgroundColor: 'var(--input-bg)',
-                        border: '1px solid var(--glass-border)',
-                        color: 'var(--text-primary)',
-                        fontSize: '0.86rem',
-                        outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
+                    <div style={{
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      backgroundColor: 'var(--bg-primary)',
+                      border: '1px solid var(--glass-border)',
+                      fontSize: '0.86rem',
+                      color: 'var(--text-primary)',
+                      fontWeight: 500
+                    }}>
+                      {devopsProject}
+                    </div>
                   </div>
                 </div>
 
