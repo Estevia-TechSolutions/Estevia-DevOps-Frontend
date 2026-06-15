@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, Fragment, useRef } from 'react';
+import { useState, useEffect, useMemo, Fragment, useRef, useCallback } from 'react';
 import { 
   Settings, 
   Cpu, 
@@ -31,7 +31,10 @@ import {
   TrendingDown,
   Info,
   Users,
-  Terminal
+  Terminal,
+  Sliders,
+  Activity,
+  Download
 } from 'lucide-react';
 import './App.css';
 
@@ -315,11 +318,75 @@ const getBadgeTextColor = (type: string, theme: 'dark' | 'light') => {
   }
 };
 
+interface Toast {
+  id: string;
+  title: string;
+  message: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+}
+
+interface EventLog {
+  id: string;
+  timestamp: string;
+  title: string;
+  message: string;
+  type: 'build' | 'power' | 'scan' | 'credential' | 'general';
+  status: 'success' | 'failed' | 'info' | 'warning';
+}
+
 function App() {
-  const [activeTab, setActiveTab] = useState<'scan' | 'provision' | 'credentials' | 'cost' | 'databases' | 'guide' | 'users'>('scan');
+  const [activeTab, setActiveTab] = useState<'scan' | 'provision' | 'credentials' | 'cost' | 'databases' | 'guide' | 'users' | 'events'>('scan');
   const [organizationId, setOrganizationId] = useState<string>(
     new URLSearchParams(window.location.search).get('org') || 'estevia'
   );
+
+  // Event filter state for Events Feed page
+  const [eventFilter, setEventFilter] = useState<'all' | 'build' | 'power' | 'scan' | 'credential'>('all');
+
+  // Real-time Toast Alerts States & Helpers
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const showToast = useCallback((title: string, message: string, type: Toast['type'] = 'info') => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts(prev => [...prev, { id, title, message, type }]);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 5000);
+  }, []);
+
+  const removeToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  // Persistent Audit Events Stream States & Helpers
+  const [events, setEvents] = useState<EventLog[]>(() => {
+    const saved = localStorage.getItem('evaops_events');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const addEvent = useCallback((
+    title: string,
+    message: string,
+    type: EventLog['type'],
+    status: EventLog['status'] = 'info'
+  ) => {
+    const newEvent: EventLog = {
+      id: Math.random().toString(36).substring(2, 9),
+      timestamp: new Date().toISOString(),
+      title,
+      message,
+      type,
+      status
+    };
+    
+    setEvents(prev => {
+      const updated = [newEvent, ...prev].slice(0, 100);
+      localStorage.setItem('evaops_events', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
   
   const isGuidedProvisionRef = useRef(false);
   
@@ -446,6 +513,58 @@ function App() {
   const [savingCredentials, setSavingCredentials] = useState<string | null>(null);
   const [credMsg, setCredMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [deletingAppName, setDeletingAppName] = useState<string | null>(null);
+
+  // Credentials connection health validation states
+  const [testingCredential, setTestingCredential] = useState<string | null>(null);
+  const [validationResult, setValidationResult] = useState<Record<string, { success: boolean; message: string }>>({});
+
+  const handleValidateCredential = async (provider: 'github' | 'godaddy' | 'azure_devops') => {
+    setTestingCredential(provider);
+    setValidationResult(prev => {
+      const copy = { ...prev };
+      delete copy[provider];
+      return copy;
+    });
+    try {
+      const activeToken = token || localStorage.getItem('devops_token');
+      const res = await fetch(`${API_BASE}/credentials/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${activeToken}`
+        },
+        body: JSON.stringify({
+          organizationId: organizationId,
+          provider
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setValidationResult(prev => ({
+          ...prev,
+          [provider]: { success: true, message: data.message || 'Connection healthy!' }
+        }));
+        showToast('Connection Validated', `Successfully verified connection to ${provider.toUpperCase()}`, 'success');
+        addEvent('Connection Health Check Passed', `Successfully verified connection to ${provider.toUpperCase()}: ${data.message || 'Connection healthy!'}`, 'credential', 'success');
+      } else {
+        setValidationResult(prev => ({
+          ...prev,
+          [provider]: { success: false, message: data.message || 'Connection test failed.' }
+        }));
+        showToast('Connection Validation Failed', data.message || `Failed to verify connection to ${provider.toUpperCase()}`, 'error');
+        addEvent('Connection Health Check Failed', `Failed to verify connection to ${provider.toUpperCase()}: ${data.message || 'Connection test failed.'}`, 'credential', 'failed');
+      }
+    } catch (err: any) {
+      setValidationResult(prev => ({
+        ...prev,
+        [provider]: { success: false, message: err.message || 'Failed to trigger connection test.' }
+      }));
+      showToast('Connection Check Error', err.message || `Error executing validation request for ${provider.toUpperCase()}`, 'error');
+      addEvent('Connection Health Check Error', `Error executing validation request for ${provider.toUpperCase()}: ${err.message || 'Error occurred.'}`, 'credential', 'failed');
+    } finally {
+      setTestingCredential(null);
+    }
+  };
 
   // Theme state
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -2087,6 +2206,10 @@ function App() {
 
   const handleResourceControl = async (name: string, action: 'start' | 'stop' | 'restart') => {
     setControllingResource(name);
+    const actionLabel = action === 'start' ? 'Starting' : action === 'stop' ? 'Stopping' : 'Restarting';
+    const actionFinishedLabel = action === 'start' ? 'Started' : action === 'stop' ? 'Stopped' : 'Restarted';
+    showToast(`${actionLabel} VM`, `Initiated ${action} action on Virtual Machine: ${name}`, 'info');
+    addEvent(`${actionLabel} VM`, `Initiated ${action} action on Virtual Machine: ${name}`, 'power', 'info');
     try {
       const token = localStorage.getItem('devops_token');
       const res = await fetch(`${API_BASE}/apps/${name}/control`, {
@@ -2099,13 +2222,19 @@ function App() {
       });
       const data = await res.json();
       if (res.ok) {
+        showToast(`VM ${actionFinishedLabel}`, `Virtual Machine: ${name} was successfully ${actionFinishedLabel.toLowerCase()}`, 'success');
+        addEvent(`VM ${actionFinishedLabel}`, `Virtual Machine: ${name} was successfully ${actionFinishedLabel.toLowerCase()}`, 'power', 'success');
         // Refresh scanned resources list to update statuses
         handleScan();
       } else {
+        showToast(`VM Power Control Failed`, data.message || `Failed to perform ${action} action.`, 'error');
+        addEvent(`VM Power Control Failed`, data.message || `Failed to perform ${action} action on ${name}.`, 'power', 'failed');
         alert(data.message || `Failed to perform ${action} action.`);
       }
     } catch (err: any) {
       console.error(err);
+      showToast(`VM Power Control Error`, `Network error executing power control action on ${name}.`, 'error');
+      addEvent(`VM Power Control Error`, `Network error executing power control action on ${name}.`, 'power', 'failed');
       alert('Network error executing power control action.');
     } finally {
       setControllingResource(null);
@@ -2133,6 +2262,7 @@ function App() {
           console.warn('[DevOps Scan] [WARN] Scan returned 0 active resources. Check Azure subscription permissions or resource group filters.');
         }
         setApps(data.apps || []);
+        addEvent('Cloud Scan Completed', `Discovered ${appsCount} resources in resource group: ${activeRg || 'All'}.`, 'scan', 'success');
         
         // Auto-update cost management metrics as part of the scan flow
         console.log('[DevOps Scan] Triggering cost metrics refresh...');
@@ -2140,10 +2270,12 @@ function App() {
       } else {
         console.error('[DevOps Scan] [API ERROR] Backend reported failure:', data.message || data.error);
         setScanError(data.message || 'Failed to scan Azure resources.');
+        addEvent('Cloud Scan Failed', data.message || 'Failed to scan Azure resources.', 'scan', 'failed');
       }
     } catch (e: any) {
       console.error('[DevOps Scan] [FETCH EXCEPTION] Connection/parsing error:', e);
       setScanError(e.message || 'Error connecting to the DevOps backend server.');
+      addEvent('Cloud Scan Error', e.message || 'Error connecting to the DevOps backend server.', 'scan', 'failed');
     } finally {
       console.log('[DevOps Scan] [END] Scan finished.');
       setScanning(false);
@@ -2185,6 +2317,8 @@ function App() {
       const data = await res.json();
       if (data.success) {
         setCredMsg({ type: 'success', text: `${provider.toUpperCase()} credentials registered successfully.` });
+        showToast('Credentials Saved', `${provider.toUpperCase()} credentials successfully updated.`, 'success');
+        addEvent('Credentials Updated', `${provider.toUpperCase()} credentials registered successfully.`, 'credential', 'success');
         fetchCredentialStatus();
         // Clear forms and decrypted tracking
         if (provider === 'github') {
@@ -2203,9 +2337,13 @@ function App() {
         }
       } else {
         setCredMsg({ type: 'error', text: data.message || 'Failed to save credentials.' });
+        showToast('Credentials Save Failed', data.message || `Failed to save ${provider.toUpperCase()} credentials.`, 'error');
+        addEvent('Credentials Update Failed', data.message || `Failed to save ${provider.toUpperCase()} credentials.`, 'credential', 'failed');
       }
     } catch (e: any) {
       setCredMsg({ type: 'error', text: e.message || 'Error saving credentials.' });
+      showToast('Credentials Save Error', e.message || 'Error saving credentials.', 'error');
+      addEvent('Credentials Update Error', e.message || 'Error saving credentials.', 'credential', 'failed');
     } finally {
       setSavingCredentials(null);
     }
@@ -3963,6 +4101,11 @@ function App() {
             <span className="tab-tooltip">Manage organization directory users, sync from Azure Active Directory, and adjust roles.</span>
           </button>
         )}
+        <button className={`tab-btn tab-btn-events ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')} style={{ position: 'relative' }}>
+          <Activity size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+          Events Feed
+          <span className="tab-tooltip">Review real-time and historical pipeline builds, power controls, and cloud scan events.</span>
+        </button>
         <button className={`tab-btn tab-btn-guide ${activeTab === 'guide' ? 'active' : ''}`} onClick={() => setActiveTab('guide')}>
           <Info size={18} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
           User Guide
@@ -4000,6 +4143,10 @@ function App() {
             onCloneApp={setCloningApp}
             onResourceControl={handleResourceControl}
             controllingResource={controllingResource}
+            onBuildTransition={(title, message, type) => {
+              showToast(title, message, type);
+              addEvent(title, message, 'build', type === 'success' ? 'success' : type === 'error' ? 'failed' : 'info');
+            }}
           />
         )}
 
@@ -4165,6 +4312,9 @@ function App() {
             currentUser={user}
             API_BASE={API_BASE}
             theme={theme}
+            testingCredential={testingCredential}
+            validationResult={validationResult}
+            handleValidateCredential={handleValidateCredential}
           />
         )}
 
@@ -4290,6 +4440,220 @@ function App() {
         {/* TAB 6: USER GUIDE */}
         {activeTab === 'guide' && (
           <GuidePage theme={theme} />
+        )}
+
+        {/* TAB 8: PERSISTENT EVENTS STREAM */}
+        {activeTab === 'events' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div className="glass-panel" style={{ padding: '24px', position: 'relative' }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '16px',
+                marginBottom: '20px',
+                borderBottom: '1px solid var(--glass-border)',
+                paddingBottom: '16px'
+              }}>
+                <div>
+                  <h2 style={{ fontSize: '1.4rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                    <Activity size={20} style={{ color: 'var(--accent-purple)' }} />
+                    System Events Feed
+                  </h2>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                    Audit trail of pipeline builds, power controls, credentials connection checks, and cloud scanning.
+                  </p>
+                </div>
+                {events.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to clear the entire events history?')) {
+                        setEvents([]);
+                        localStorage.removeItem('evaops_events');
+                        showToast('Events Feed Cleared', 'All system event logs were successfully removed.', 'info');
+                      }
+                    }}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(239, 68, 68, 0.2)',
+                      background: 'rgba(239, 68, 68, 0.08)',
+                      color: '#f87171',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(239, 68, 68, 0.18)';
+                      e.currentTarget.style.color = '#fca5a5';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
+                      e.currentTarget.style.color = '#f87171';
+                    }}
+                  >
+                    Clear History
+                  </button>
+                )}
+              </div>
+
+              {/* Event Filters */}
+              {events.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'flex', gap: '6px', width: '100%', marginBottom: '4px', flexWrap: 'wrap' }}>
+                    {(['all', 'build', 'power', 'scan', 'credential'] as const).map((filter) => {
+                      const isFilterActive = eventFilter === filter;
+                      const filterLabel = filter === 'all' ? 'All Events'
+                                        : filter === 'build' ? 'Pipeline Builds'
+                                        : filter === 'power' ? 'Power Actions'
+                                        : filter === 'scan' ? 'Cloud Scans'
+                                        : 'Credentials';
+                      return (
+                        <button
+                          key={filter}
+                          type="button"
+                          onClick={() => setEventFilter(filter)}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            border: isFilterActive ? '1px solid var(--accent-purple)' : '1px solid var(--glass-border)',
+                            background: isFilterActive ? 'var(--badge-bg)' : 'transparent',
+                            color: isFilterActive ? 'var(--accent-purple)' : 'var(--text-secondary)',
+                            fontWeight: isFilterActive ? 600 : 500,
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isFilterActive) {
+                              e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                              e.currentTarget.style.color = 'var(--text-primary)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isFilterActive) {
+                              e.currentTarget.style.background = 'transparent';
+                              e.currentTarget.style.color = 'var(--text-secondary)';
+                            }
+                          }}
+                        >
+                          {filterLabel}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {(() => {
+                    const filteredEvents = events.filter(e => eventFilter === 'all' || e.type === eventFilter);
+
+                    if (filteredEvents.length === 0) {
+                      return (
+                        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)', border: '1px dashed var(--glass-border)', borderRadius: '10px' }}>
+                          <p>No events found matching the selected filter.</p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {filteredEvents.map(event => {
+                          const timestampText = new Date(event.timestamp).toLocaleString();
+                          
+                          // Category color & icon resolves
+                          const getCategoryConfig = (type: string, status: string) => {
+                            const colors: Record<string, { border: string; text: string; bg: string }> = {
+                              success: { border: '#22c55e', text: '#22c55e', bg: 'rgba(34, 197, 94, 0.08)' },
+                              failed: { border: '#ef4444', text: '#ef4444', bg: 'rgba(239, 68, 68, 0.08)' },
+                              warning: { border: '#f59e0b', text: '#f59e0b', bg: 'rgba(245, 158, 11, 0.08)' },
+                              info: { border: '#3b82f6', text: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)' }
+                            };
+                            const state = colors[status] || colors.info;
+
+                            let icon = <Terminal size={14} />;
+                            if (type === 'build') icon = <GitBranch size={14} />;
+                            if (type === 'power') icon = <Sliders size={14} />;
+                            if (type === 'scan') icon = <Server size={14} />;
+                            if (type === 'credential') icon = <ShieldCheck size={14} />;
+
+                            return { state, icon };
+                          };
+
+                          const { state, icon } = getCategoryConfig(event.type, event.status);
+
+                          return (
+                            <div
+                              key={event.id}
+                              style={{
+                                display: 'flex',
+                                gap: '16px',
+                                padding: '16px',
+                                borderRadius: '10px',
+                                background: theme === 'light' ? 'rgba(0,0,0,0.01)' : 'rgba(255,255,255,0.01)',
+                                border: '1px solid var(--glass-border)',
+                                position: 'relative'
+                              }}
+                            >
+                              <div style={{
+                                position: 'absolute',
+                                left: 0,
+                                top: 0,
+                                bottom: 0,
+                                width: '3px',
+                                backgroundColor: state.border,
+                                borderRadius: '3px 0 0 3px'
+                              }} />
+
+                              <div style={{
+                                width: '30px',
+                                height: '30px',
+                                borderRadius: '8px',
+                                background: state.bg,
+                                color: state.text,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                              }}>
+                                {icon}
+                              </div>
+
+                              <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <h4 style={{ margin: 0, fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                    {event.title}
+                                  </h4>
+                                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                                    {event.message}
+                                  </p>
+                                </div>
+                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                                  {timestampText}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* General Empty State if absolutely no logs */}
+              {events.length === 0 && (
+                <div style={{ padding: '60px 20px', textAlign: 'center' }}>
+                  <Activity size={48} style={{ color: 'var(--text-secondary)', marginBottom: '16px' }} />
+                  <h3>No system events recorded yet</h3>
+                  <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
+                    Trigger active cloud scans, credentials checks, or VM power controls to populate the events feed.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
       </main>
@@ -5016,6 +5380,94 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* Real-time Toast Alerts Stack */}
+      <div style={{
+        position: 'fixed',
+        top: '24px',
+        right: '24px',
+        zIndex: 9999,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        maxWidth: '380px',
+        width: '100%',
+        pointerEvents: 'none'
+      }}>
+        {toasts.map(toast => {
+          const typeColors = {
+            success: { border: '#22c55e', bg: 'rgba(34, 197, 94, 0.12)', text: '#22c55e', glow: 'rgba(34, 197, 94, 0.4)' },
+            error: { border: '#ef4444', bg: 'rgba(239, 68, 68, 0.12)', text: '#ef4444', glow: 'rgba(239, 68, 68, 0.4)' },
+            warning: { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.12)', text: '#f59e0b', glow: 'rgba(245, 158, 11, 0.4)' },
+            info: { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.12)', text: '#3b82f6', glow: 'rgba(59, 130, 246, 0.4)' }
+          };
+          const colors = typeColors[toast.type] || typeColors.info;
+          
+          return (
+            <div
+              key={toast.id}
+              className="glass-panel"
+              style={{
+                display: 'flex',
+                gap: '12px',
+                padding: '16px',
+                borderRadius: '12px',
+                border: `1px solid ${colors.border}40`,
+                borderLeft: `4px solid ${colors.border}`,
+                boxShadow: `0 8px 32px 0 rgba(0, 0, 0, 0.3), 0 0 12px ${colors.glow}15`,
+                pointerEvents: 'auto',
+                animation: 'slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                background: theme === 'light' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 23, 42, 0.85)',
+                backdropFilter: 'blur(12px)',
+                position: 'relative'
+              }}
+            >
+              <div style={{ color: colors.text, display: 'flex', alignItems: 'center', flexShrink: 0, marginTop: '2px' }}>
+                {toast.type === 'success' && <CheckCircle2 size={18} />}
+                {toast.type === 'error' && <AlertCircle size={18} />}
+                {toast.type === 'warning' && <AlertTriangle size={18} />}
+                {toast.type === 'info' && <Info size={18} />}
+              </div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 700, color: theme === 'light' ? '#0f172a' : '#f8fafc' }}>
+                  {toast.title}
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                  {toast.message}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => removeToast(toast.id)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  alignSelf: 'flex-start',
+                  marginTop: '-4px',
+                  marginRight: '-4px',
+                  borderRadius: '4px',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                  e.currentTarget.style.background = 'none';
+                }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          );
+        })}
+      </div>
 
       </div>
     </div>

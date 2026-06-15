@@ -25,7 +25,8 @@ import {
   Shield,
   Lock,
   Copy,
-  Check
+  Check,
+  Download
 } from 'lucide-react';
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE || `http://${window.location.hostname}:5005/api`;
@@ -141,6 +142,7 @@ interface DashboardPageProps {
   onCloneApp?: (app: AppResource) => void;
   onResourceControl?: (name: string, action: 'start' | 'stop' | 'restart') => void;
   controllingResource?: string | null;
+  onBuildTransition?: (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
@@ -166,7 +168,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   onShowLogs,
   onCloneApp,
   onResourceControl,
-  controllingResource
+  controllingResource,
+  onBuildTransition
 }) => {
   const isViewer = currentUser?.role === 'viewer';
 
@@ -212,6 +215,24 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     setTimeout(() => setCopiedLogs(false), 2000);
   };
 
+  const handleDownloadLogs = () => {
+    if (!logs) return;
+    const blob = new Blob([logs], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const taskName = (selectedTaskForModal?.step?.displayName || selectedTaskForModal?.step?.name || 'task')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/(^_+|_+$)/g, '');
+    const buildId = selectedTaskForModal?.buildId ? `_build_${selectedTaskForModal.buildId}` : '';
+    link.download = `evaops${buildId}_${taskName}.log`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // Close dropdowns on scroll to prevent drifting
   React.useEffect(() => {
     const handleScroll = () => {
@@ -242,11 +263,49 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   // Live pipeline build runs overridden telemetry
   const [livePipelineRuns, setLivePipelineRuns] = React.useState<Record<number, any>>({});
 
+  // Search and Filter States
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [selectedEnvFilter, setSelectedEnvFilter] = React.useState<'all' | 'dev' | 'qa' | 'prod'>('all');
+
   // Ref to hold live overrides and avoid dependency trigger loops in effect
   const livePipelineRunsRef = React.useRef(livePipelineRuns);
   React.useEffect(() => {
     livePipelineRunsRef.current = livePipelineRuns;
   }, [livePipelineRuns]);
+
+  // Monitor livePipelineRuns for transitions (build finished/failed)
+  const prevPipelineRunsRef = React.useRef<Record<number, any>>({});
+  React.useEffect(() => {
+    const prevRuns = prevPipelineRunsRef.current;
+    Object.keys(livePipelineRuns).forEach(key => {
+      const runId = Number(key);
+      const currentRun = livePipelineRuns[runId];
+      const previousRun = prevRuns[runId];
+
+      if (previousRun && isBuildActive(previousRun) && !isBuildActive(currentRun)) {
+        const result = (currentRun.result || 'unknown').toLowerCase();
+        const isSuccess = result === 'succeeded' || result === 'partiallysucceeded';
+        const stateText = isSuccess ? 'Success' : 'Failed';
+        const type = isSuccess ? 'success' : 'error';
+
+        // Find the app name associated with this build ID
+        const app = apps.find(a => a.pipelineRun?.id === runId) || 
+                    apps.find(a => Object.values(livePipelineRunsRef.current).some((r: any) => r.id === runId));
+        const appName = app ? app.name : `Build #${currentRun.name}`;
+
+        if (onBuildTransition) {
+          onBuildTransition(
+            `Build ${stateText}`,
+            `Build run #${currentRun.name} for ${appName} has ${isSuccess ? 'completed successfully' : `failed with status: ${result}`}.`,
+            type
+          );
+        }
+      }
+    });
+
+    // Update ref for next render
+    prevPipelineRunsRef.current = { ...livePipelineRuns };
+  }, [livePipelineRuns, apps, onBuildTransition]);
 
   // Map appGroups to override pipelineRun statuses with live data
   const localAppGroups = React.useMemo(() => {
@@ -729,6 +788,31 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     return ENV_COLORS.prod;
   };
 
+  // Map appGroups to override pipelineRun statuses with live data and filter them
+  const filteredAppGroups = React.useMemo(() => {
+    return localAppGroups.map(group => {
+      const filteredEnvs = group.envs.filter(app => {
+        // Search filter: matches app name, repo path, group label or repo url
+        const matchesSearch = searchQuery.trim() === '' || 
+          app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (group.label && group.label.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (group.repoPath && group.repoPath.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (app.repositoryUrl && app.repositoryUrl.toLowerCase().includes(searchQuery.toLowerCase()));
+
+        // Environment filter: DEV, QA, PROD
+        const envTag = getEnvTag(app.name).label.toLowerCase();
+        const matchesEnv = selectedEnvFilter === 'all' || envTag === selectedEnvFilter;
+
+        return matchesSearch && matchesEnv;
+      });
+
+      return {
+        ...group,
+        envs: filteredEnvs
+      };
+    }).filter(group => group.envs.length > 0);
+  }, [localAppGroups, searchQuery, selectedEnvFilter]);
+
   const getCardStyles = (name: string, theme: 'dark' | 'light') => {
     const n = name.toLowerCase();
     const isLight = theme === 'light';
@@ -839,10 +923,149 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+          {/* Glassmorphic Search & Filter Bar */}
+          <div className="glass-panel" style={{
+            padding: '16px 20px',
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '16px',
+            flexWrap: 'wrap'
+          }}>
+            {/* Search Input wrapper */}
+            <div style={{ position: 'relative', flex: '1 1 300px' }}>
+              <Search size={18} style={{
+                position: 'absolute',
+                left: '14px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--text-secondary)',
+                pointerEvents: 'none'
+              }} />
+              <input
+                type="text"
+                placeholder="Search by name, repository, or key..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  paddingLeft: '44px',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-primary)',
+                  borderRadius: '10px',
+                  fontSize: '0.9rem',
+                  height: '42px',
+                  width: '100%'
+                }}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '4px',
+                    borderRadius: '4px'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+
+            {/* Env Filter Buttons */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.03)',
+              padding: '4px',
+              borderRadius: '10px',
+              border: '1px solid var(--glass-border)'
+            }}>
+              {(['all', 'dev', 'qa', 'prod'] as const).map((env) => {
+                const isActive = selectedEnvFilter === env;
+                // Env color styles for active filter
+                const activeColor = env === 'dev' ? '#60a5fa' 
+                                  : env === 'qa' ? '#f59e0b'
+                                  : env === 'prod' ? '#34d399'
+                                  : 'var(--accent-purple)';
+                const activeBg = env === 'dev' ? 'rgba(96,165,250,0.15)'
+                               : env === 'qa' ? 'rgba(245,158,11,0.15)'
+                               : env === 'prod' ? 'rgba(52,211,153,0.15)'
+                               : 'rgba(139,92,246,0.15)';
+                const activeBorder = env === 'dev' ? 'rgba(96,165,250,0.3)'
+                                  : env === 'qa' ? 'rgba(245,158,11,0.3)'
+                                  : env === 'prod' ? 'rgba(52,211,153,0.3)'
+                                  : 'rgba(139,92,246,0.3)';
+
+                return (
+                  <button
+                    key={env}
+                    type="button"
+                    onClick={() => setSelectedEnvFilter(env)}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      border: isActive ? `1px solid ${activeBorder}` : '1px solid transparent',
+                      background: isActive ? activeBg : 'transparent',
+                      color: isActive ? activeColor : 'var(--text-secondary)',
+                      fontWeight: isActive ? 600 : 500,
+                      fontSize: '0.78rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      height: '34px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.color = 'var(--text-primary)';
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.color = 'var(--text-secondary)';
+                        e.currentTarget.style.background = 'transparent';
+                      }
+                    }}
+                  >
+                    {env}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {(() => {
-            const swaGroups = localAppGroups.filter(g => g.type === 'frontend');
-            const acaGroups = localAppGroups.filter(g => g.type === 'backend');
-            const vmGroups = localAppGroups.filter(g => g.type === 'vm');
+            if (filteredAppGroups.length === 0) {
+              return (
+                <div className="glass-panel" style={{ padding: '60px', textAlign: 'center', marginTop: '10px' }}>
+                  <Search size={48} style={{ color: 'var(--text-secondary)', marginBottom: '16px' }} />
+                  <h3>No resources match your filters</h3>
+                  <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
+                    Try refining your search query or changing the environment tag filter.
+                  </p>
+                </div>
+              );
+            }
+
+            const swaGroups = filteredAppGroups.filter(g => g.type === 'frontend');
+            const acaGroups = filteredAppGroups.filter(g => g.type === 'backend');
+            const vmGroups = filteredAppGroups.filter(g => g.type === 'vm');
 
             const allCategories = [
               {
@@ -2725,29 +2948,60 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>Console Log Output</span>
                   {logs && !loadingLogs && (
-                    <button
-                      onClick={handleCopyLogs}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        background: 'none',
-                        border: 'none',
-                        color: copiedLogs ? '#34d399' : 'var(--text-secondary)',
-                        fontSize: '0.68rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        backgroundColor: 'rgba(255,255,255,0.03)',
-                        transition: 'all 0.2s ease',
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)'; }}
-                    >
-                      {copiedLogs ? <Check size={11} /> : <Copy size={11} />}
-                      <span>{copiedLogs ? 'Copied!' : 'Copy Logs'}</span>
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={handleCopyLogs}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: 'none',
+                          border: 'none',
+                          color: copiedLogs ? '#34d399' : 'var(--text-secondary)',
+                          fontSize: '0.68rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          backgroundColor: 'rgba(255,255,255,0.03)',
+                          transition: 'all 0.2s ease',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)'; }}
+                      >
+                        {copiedLogs ? <Check size={11} /> : <Copy size={11} />}
+                        <span>{copiedLogs ? 'Copied!' : 'Copy Logs'}</span>
+                      </button>
+                      <button
+                        onClick={handleDownloadLogs}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-secondary)',
+                          fontSize: '0.68rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          backgroundColor: 'rgba(255,255,255,0.03)',
+                          transition: 'all 0.2s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)';
+                          e.currentTarget.style.color = 'var(--text-primary)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
+                          e.currentTarget.style.color = 'var(--text-secondary)';
+                        }}
+                      >
+                        <Download size={11} />
+                        <span>Download Logs</span>
+                      </button>
+                    </div>
                   )}
                 </div>
                 <div style={{

@@ -68,6 +68,9 @@ interface CredentialsPageProps {
   teamsWebhookToken: string;
   logAnalyticsWorkspaceId: string;
   setLogAnalyticsWorkspaceId: (val: string) => void;
+  testingCredential: string | null;
+  validationResult: Record<string, { success: boolean; message: string }>;
+  handleValidateCredential: (provider: 'github' | 'godaddy' | 'azure_devops') => void;
 }
 
 type CredTab = 'github' | 'godaddy' | 'azure' | 'keyvault' | 'teams';
@@ -198,6 +201,7 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
   teamsWebhookUrl, setTeamsWebhookUrl,
   teamsWebhookToken,
   logAnalyticsWorkspaceId, setLogAnalyticsWorkspaceId,
+  testingCredential, validationResult, handleValidateCredential,
 }) => {
   const [activeTab, setActiveTab] = useState<CredTab>('github');
   const [discoveringWorkspace, setDiscoveringWorkspace] = useState(false);
@@ -483,6 +487,58 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                       >
                         {savingCredentials === 'github' ? 'Saving...' : 'Save'}
                       </button>
+
+                      {credentialStatus.github && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                          <button 
+                            type="button"
+                            className="btn-secondary"
+                            style={{ 
+                              width: '100%', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center', 
+                              gap: '6px',
+                              padding: '8px 12px',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                              borderRadius: '8px',
+                              border: '1px solid var(--glass-border)',
+                              background: 'rgba(255,255,255,0.02)',
+                              color: 'var(--text-primary)',
+                              cursor: testingCredential === 'github' ? 'not-allowed' : 'pointer'
+                            }}
+                            onClick={() => handleValidateCredential('github')}
+                            disabled={testingCredential === 'github'}
+                          >
+                            {testingCredential === 'github' ? (
+                              <>
+                                <Loader size={12} className="spin-anim" />
+                                <span>Testing Connection...</span>
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw size={12} />
+                                <span>Test Connection</span>
+                              </>
+                            )}
+                          </button>
+                          {validationResult.github && (
+                            <div style={{ 
+                              padding: '8px 12px', 
+                              borderRadius: '8px', 
+                              fontSize: '0.75rem',
+                              border: `1px solid ${validationResult.github.success ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                              backgroundColor: validationResult.github.success ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)',
+                              color: validationResult.github.success ? 'var(--success)' : 'var(--error)',
+                              lineHeight: '1.4'
+                            }}>
+                              {validationResult.github.success ? '🟢 ' : '🔴 '}
+                              {validationResult.github.message}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </SectionBlock>
 
@@ -556,12 +612,64 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                         show={showGodaddySecret} onToggle={() => setShowGodaddySecret(!showGodaddySecret)}
                         placeholder="GoDaddy API Secret" disabled={!canEdit} />
                     </div>
-                    <button className="btn-primary" style={{ width: '100%' }}
+                    <button className="btn-primary" style={{ width: '100%', marginBottom: '12px' }}
                       onClick={() => handleSaveCredential('godaddy', { apiKey: godaddyKey, apiSecret: godaddySecret }, 'GoDaddy Domain API Keys')}
                       disabled={!canEdit || savingCredentials === 'godaddy' || !godaddyKey || !godaddySecret || godaddyKey === '••••••••••••••••••••' || godaddySecret === '••••••••••••••••••••' || (!!decryptedGodaddyKey && godaddyKey === decryptedGodaddyKey && godaddySecret === decryptedGodaddySecret)}
                     >
                       {savingCredentials === 'godaddy' ? 'Saving GoDaddy API Keys...' : 'Save GoDaddy Keys'}
                     </button>
+
+                    {credentialStatus.godaddy && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <button 
+                          type="button"
+                          className="btn-secondary"
+                          style={{ 
+                            width: '100%', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            gap: '6px',
+                            padding: '8px 12px',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            borderRadius: '8px',
+                            border: '1px solid var(--glass-border)',
+                            background: 'rgba(255,255,255,0.02)',
+                            color: 'var(--text-primary)',
+                            cursor: testingCredential === 'godaddy' ? 'not-allowed' : 'pointer'
+                          }}
+                          onClick={() => handleValidateCredential('godaddy')}
+                          disabled={testingCredential === 'godaddy'}
+                        >
+                          {testingCredential === 'godaddy' ? (
+                            <>
+                              <Loader size={12} className="spin-anim" />
+                              <span>Testing Connection...</span>
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw size={12} />
+                              <span>Test Connection</span>
+                            </>
+                          )}
+                        </button>
+                        {validationResult.godaddy && (
+                          <div style={{ 
+                            padding: '8px 12px', 
+                            borderRadius: '8px', 
+                            fontSize: '0.75rem',
+                            border: `1px solid ${validationResult.godaddy.success ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                            backgroundColor: validationResult.godaddy.success ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)',
+                            color: validationResult.godaddy.success ? 'var(--success)' : 'var(--error)',
+                            lineHeight: '1.4'
+                          }}>
+                            {validationResult.godaddy.success ? '🟢 ' : '🔴 '}
+                            {validationResult.godaddy.message}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </SectionBlock>
 
                   <SectionBlock
@@ -634,6 +742,58 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                       >
                         {savingCredentials === 'azure_devops' ? 'Saving...' : 'Save'}
                       </button>
+
+                      {credentialStatus.azure_devops && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                          <button 
+                            type="button"
+                            className="btn-secondary"
+                            style={{ 
+                              width: '100%', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center', 
+                              gap: '6px',
+                              padding: '8px 12px',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                              borderRadius: '8px',
+                              border: '1px solid var(--glass-border)',
+                              background: 'rgba(255,255,255,0.02)',
+                              color: 'var(--text-primary)',
+                              cursor: testingCredential === 'azure_devops' ? 'not-allowed' : 'pointer'
+                            }}
+                            onClick={() => handleValidateCredential('azure_devops')}
+                            disabled={testingCredential === 'azure_devops'}
+                          >
+                            {testingCredential === 'azure_devops' ? (
+                              <>
+                                <Loader size={12} className="spin-anim" />
+                                <span>Testing Connection...</span>
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw size={12} />
+                                <span>Test Connection</span>
+                              </>
+                            )}
+                          </button>
+                          {validationResult.azure_devops && (
+                            <div style={{ 
+                              padding: '8px 12px', 
+                              borderRadius: '8px', 
+                              fontSize: '0.75rem',
+                              border: `1px solid ${validationResult.azure_devops.success ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                              backgroundColor: validationResult.azure_devops.success ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)',
+                              color: validationResult.azure_devops.success ? 'var(--success)' : 'var(--error)',
+                              lineHeight: '1.4'
+                            }}>
+                              {validationResult.azure_devops.success ? '🟢 ' : '🔴 '}
+                              {validationResult.azure_devops.message}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </SectionBlock>
                 </div>
