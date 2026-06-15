@@ -419,6 +419,14 @@ function App() {
   
   // Scanned Apps State
   const [apps, setApps] = useState<AppResource[]>([]);
+  const activeBuildsCount = useMemo(() => {
+    return apps.filter(app => {
+      if (!app.pipelineRun || !app.pipelineRun.state) return false;
+      const s = app.pipelineRun.state.toLowerCase();
+      return s === 'inprogress' || s === 'running' || s === 'canceling' || s === 'cancelling' || s === 'notstarted' || s === 'queued';
+    }).length;
+  }, [apps]);
+
   const [scanning, setScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -4165,6 +4173,9 @@ function App() {
                   <button className={`premium-tab-btn ${activeTab === 'scan' ? 'active' : ''}`} onClick={() => setActiveTab('scan')}>
                     <Server size={16} />
                     <span>Cloud Scanning</span>
+                    {activeBuildsCount > 0 && (
+                      <span className="premium-build-dot" title={`${activeBuildsCount} build(s) in progress`} />
+                    )}
                   </button>
                   <button className={`premium-tab-btn ${activeTab === 'provision' ? 'active' : ''}`} onClick={() => setActiveTab('provision')}>
                     <PlusCircle size={16} />
@@ -4191,6 +4202,11 @@ function App() {
                   <button className={`premium-tab-btn ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')} style={{ position: 'relative' }}>
                     <Activity size={16} />
                     <span>Events Feed</span>
+                    {activeBuildsCount > 0 && (
+                      <span className="premium-build-badge" title={`${activeBuildsCount} build(s) in progress`}>
+                        {activeBuildsCount}
+                      </span>
+                    )}
                   </button>
                   <button className={`premium-tab-btn ${activeTab === 'guide' ? 'active' : ''}`} onClick={() => setActiveTab('guide')}>
                     <Info size={16} />
