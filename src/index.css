@@ -650,33 +650,62 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus {
   background: transparent;
   color: var(--text-secondary);
   border: 1px solid var(--glass-border);
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 0.8rem;
+  padding: 7px 10px;
+  border-radius: 10px;
+  font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  transition: all 0.2s ease;
+  gap: 0;
+  transition: all 0.22s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
-.scope-pill:hover {
+.scope-pill .scope-pill-label {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-width 0.25s ease, opacity 0.2s ease, margin-left 0.25s ease;
+  margin-left: 0;
+  font-size: 0.78rem;
+}
+
+.scope-pill:hover,
+.scope-pill.active {
   color: var(--text-primary);
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.04);
+  gap: 6px;
+  padding: 7px 13px;
 }
 
-[data-theme="light"] .scope-pill:hover {
-  border-color: rgba(0, 0, 0, 0.15);
-  background: rgba(0, 0, 0, 0.02);
+.scope-pill:hover .scope-pill-label,
+.scope-pill.active .scope-pill-label {
+  max-width: 160px;
+  opacity: 1;
+  margin-left: 0;
+}
+
+[data-theme="light"] .scope-pill:hover,
+[data-theme="light"] .scope-pill.active {
+  border-color: rgba(0, 0, 0, 0.18);
+  background: rgba(0, 0, 0, 0.03);
 }
 
 .scope-pill.active {
-  color: var(--text-primary);
-  background: var(--badge-bg);
+  color: var(--accent-purple);
+  background: rgba(139, 92, 246, 0.08);
   border-color: var(--accent-purple);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.15);
+}
+
+[data-theme="light"] .scope-pill.active {
+  background: rgba(139, 92, 246, 0.06);
+  border-color: rgba(139, 92, 246, 0.5);
 }
 
 .scope-card {

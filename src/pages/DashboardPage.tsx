@@ -261,7 +261,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   } | null>(null);
 
   // Live pipeline build runs overridden telemetry
-  const [livePipelineRuns, setLivePipelineRuns] = React.useState<Record<number, any>>({});
+  const [livePipelineRuns, setLivePipelineRuns] = React.useState<Record<number | string, any>>({});
 
   // Search and Filter States
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -311,11 +311,21 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const localAppGroups = React.useMemo(() => {
     return appGroups.map(group => {
       const updatedEnvs = group.envs.map(app => {
+        // Primary lookup: by buildId from the last known scan pipelineRun
         const runId = app.pipelineRun?.id;
         if (runId && livePipelineRuns[runId]) {
           return {
             ...app,
             pipelineRun: livePipelineRuns[runId]
+          };
+        }
+        // Secondary lookup: by pipelineId (set by the discovery poller when scan returned null)
+        // Stored under 'pid-{pipelineId}' key to avoid collision with build IDs
+        const pidKey = app.pipelineId ? `pid-${app.pipelineId}` : null;
+        if (pidKey && livePipelineRuns[pidKey]) {
+          return {
+            ...app,
+            pipelineRun: livePipelineRuns[pidKey]
           };
         }
         return app;
@@ -443,7 +453,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           if (isActive || isNewBuild) {
             setLivePipelineRuns(prev => ({
               ...prev,
-              [latestRun.id]: latestRun
+              [latestRun.id]: latestRun,
+              // Also index by pipelineId so localAppGroups can find this even when
+              // the scan-level pipelineRun is null (no runId to match on)
+              [`pid-${app.pipelineId}`]: latestRun
             }));
           }
         } catch (err) {

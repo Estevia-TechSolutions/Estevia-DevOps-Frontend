@@ -695,8 +695,8 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                 </div>
               </div>
 
-              {/* Clean Segmented Category Pill Toggles */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {/* Clean Segmented Category Pill Toggles — icon-only, expand label on hover/active */}
+              <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
                 {[
                   { id: 'all', label: 'All Scopes', icon: Cpu },
                   { id: 'provisioning', label: 'Provisioning', icon: PlusCircle },
@@ -713,9 +713,10 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                       key={cat.id}
                       onClick={() => setActiveScopeCategory(cat.id as any)}
                       className={`scope-pill ${isActive ? 'active' : ''}`}
+                      title={cat.label}
                     >
                       <CatIcon size={13} />
-                      <span>{cat.label}</span>
+                      <span className="scope-pill-label">{cat.label}</span>
                     </button>
                   );
                 })}
