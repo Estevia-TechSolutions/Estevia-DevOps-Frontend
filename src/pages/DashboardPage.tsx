@@ -592,44 +592,67 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     return s === 'inprogress' || s === 'running' || s === 'canceling' || s === 'cancelling' || s === 'notstarted' || s === 'queued';
   };
 
-  // Auto-switch tabs and auto-expand/collapse accordions based on active builds
+  // Auto-switch tabs and auto-expand/collapse accordions based on active builds (concurrent-safe)
   const prevActiveBuildGroupsRef = React.useRef<Record<string, boolean>>({});
   React.useEffect(() => {
     const nextActiveBuildGroups: Record<string, boolean> = {};
-    let matchedTab: 'swa' | 'aca' | 'vm' | null = null;
-    let matchedGroupKey: string | null = null;
+    const newlyStartedGroups: string[] = [];
+    const newlyFinishedGroups: string[] = [];
+    const prevActive = prevActiveBuildGroupsRef.current;
 
     localAppGroups.forEach(group => {
       const hasActive = group.envs.some(app => app.pipelineRun && isBuildActive(app.pipelineRun));
       if (hasActive) {
         nextActiveBuildGroups[group.key] = true;
-        matchedGroupKey = group.key;
-        if (group.type === 'frontend') matchedTab = 'swa';
-        else if (group.type === 'backend') matchedTab = 'aca';
-        else if (group.type === 'vm') matchedTab = 'vm';
+        if (!prevActive[group.key]) {
+          newlyStartedGroups.push(group.key);
+        }
+      } else {
+        if (prevActive[group.key]) {
+          newlyFinishedGroups.push(group.key);
+        }
       }
     });
 
-    // 1. If any group just started an active build, switch active tab and expand it
-    if (matchedTab && matchedGroupKey) {
-      const groupKey = matchedGroupKey;
-      setActiveDashboardTab(matchedTab);
-      if (collapsedScanGroups[groupKey] !== false) {
-        setCollapsedScanGroups(prev => ({ ...prev, [groupKey]: false }));
+    // Save active builds status map for the next run
+    prevActiveBuildGroupsRef.current = nextActiveBuildGroups;
+
+    // 1. Handle newly started builds: auto-expand all of them and switch active tab to the first one
+    if (newlyStartedGroups.length > 0) {
+      const firstGroupKey = newlyStartedGroups[0];
+      const firstGroup = localAppGroups.find(g => g.key === firstGroupKey);
+      if (firstGroup) {
+        let matchedTab: 'swa' | 'aca' | 'vm' | null = null;
+        if (firstGroup.type === 'frontend') matchedTab = 'swa';
+        else if (firstGroup.type === 'backend') matchedTab = 'aca';
+        else if (firstGroup.type === 'vm') matchedTab = 'vm';
+        
+        if (matchedTab) {
+          setActiveDashboardTab(matchedTab);
+        }
       }
+
+      setCollapsedScanGroups(prev => {
+        const next = { ...prev };
+        newlyStartedGroups.forEach(key => {
+          next[key] = false; // Expand
+        });
+        return next;
+      });
     }
 
-    // 2. If a group previously had an active build, but no longer does, collapse it
-    const prevActive = prevActiveBuildGroupsRef.current;
-    Object.keys(prevActive).forEach(key => {
-      if (prevActive[key] && !nextActiveBuildGroups[key]) {
-        console.log(`[Dashboard Auto Collapse] Build completed for group ${key}. Collapsing accordion...`);
-        setCollapsedScanGroups(prev => ({ ...prev, [key]: true }));
-      }
-    });
-
-    prevActiveBuildGroupsRef.current = nextActiveBuildGroups;
-  }, [localAppGroups, collapsedScanGroups, setCollapsedScanGroups]);
+    // 2. Handle newly completed builds: auto-collapse them
+    if (newlyFinishedGroups.length > 0) {
+      setCollapsedScanGroups(prev => {
+        const next = { ...prev };
+        newlyFinishedGroups.forEach(key => {
+          console.log(`[Dashboard Auto Collapse] Build completed for group ${key}. Collapsing accordion...`);
+          next[key] = true; // Collapse
+        });
+        return next;
+      });
+    }
+  }, [localAppGroups, setActiveDashboardTab, setCollapsedScanGroups]);
 
   const getBadgeBgColor = (type: string) => {
     const isLight = theme === 'light';
@@ -2298,16 +2321,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               right: `${right}px`,
               zIndex: 99999,
               transform: 'translateY(-100%)',
-              background: theme === 'light' ? 'rgba(255,255,255,0.98)' : 'rgba(15,23,42,0.98)',
-              border: `1px solid ${ttAccent}40`,
+              background: '#090d16',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
               borderRadius: '12px',
               padding: '12px 16px',
               minWidth: '260px',
               maxWidth: '340px',
-              boxShadow: `0 12px 40px rgba(0,0,0,0.4), 0 0 0 1px ${ttAccent}20`,
+              boxShadow: '0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255, 255, 255, 0.05)',
               backdropFilter: 'blur(16px)',
               WebkitBackdropFilter: 'blur(16px)',
-              pointerEvents: 'none'
+              pointerEvents: 'none',
+              color: '#e2e8f0'
             }}
           >
             {/* Arrow pointing down */}
@@ -2317,8 +2341,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               right: '20px',
               width: '12px',
               height: '12px',
-              background: theme === 'light' ? '#fff' : 'rgb(15,23,42)',
-              border: `1px solid ${ttAccent}40`,
+              background: '#090d16',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
               borderTop: 'none',
               borderLeft: 'none',
               transform: 'rotate(45deg)'
@@ -2330,8 +2354,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px'
             }}>
               <span>Last Build Times</span>
-              <span style={{ opacity: 0.5 }}>·</span>
-              <span style={{ opacity: 0.7, textTransform: 'none', fontWeight: 500 }}>{envs.length} env{envs.length !== 1 ? 's' : ''}</span>
+              <span style={{ color: '#94a3b8', opacity: 0.5 }}>·</span>
+              <span style={{ color: '#94a3b8', textTransform: 'none', fontWeight: 500 }}>{envs.length} env{envs.length !== 1 ? 's' : ''}</span>
             </div>
             {/* Rows */}
             {envs.map((env: any, idx: number) => {
@@ -2341,7 +2365,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               let timeColor = 'rgba(148,163,184,0.6)';
               if (run && isBuildActive(run)) {
                 timeLabel = '🔄 Building now…';
-                timeColor = '#10b981';
+                timeColor = '#34d399';
               } else if (finishTime) {
                 try {
                   const d = new Date(finishTime);
@@ -2353,7 +2377,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   else if (diffMins < 60) timeLabel = `${diffMins}m ago`;
                   else if (diffHrs < 24) timeLabel = `${diffHrs}h ${diffMins % 60}m ago`;
                   else timeLabel = `${diffDays}d ago (${d.toLocaleDateString()})`;
-                  timeColor = 'var(--text-secondary)';
+                  timeColor = '#cbd5e1';
                 } catch { timeLabel = finishTime; }
               }
               const envTag = getEnvTag(env.name);
@@ -2361,7 +2385,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 <div key={env.name} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   gap: '10px', padding: '6px 0',
-                  borderBottom: idx < envs.length - 1 ? '1px solid var(--glass-border)' : 'none'
+                  borderBottom: idx < envs.length - 1 ? '1px solid rgba(255, 255, 255, 0.08)' : 'none'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
                     <span style={{
@@ -2372,7 +2396,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     }}>{envTag.label}</span>
                     <span style={{
                       fontSize: '0.72rem', fontWeight: 500,
-                      color: 'var(--text-primary)',
+                      color: '#f8fafc',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                     }}>{env.name}</span>
                   </div>
