@@ -263,6 +263,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   // Live pipeline build runs overridden telemetry
   const [livePipelineRuns, setLivePipelineRuns] = React.useState<Record<number | string, any>>({});
 
+  // Tracks which pipelineIds have finished their initial latest-build fetch
+  const [loadedPipelines, setLoadedPipelines] = React.useState<Record<string, boolean>>({});
+
   // Search and Filter States
   const [searchQuery, setSearchQuery] = React.useState('');
   const [selectedEnvFilter, setSelectedEnvFilter] = React.useState<'all' | 'dev' | 'qa' | 'prod'>('all');
@@ -290,7 +293,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
         // Find the app name associated with this build ID
         const app = apps.find(a => a.pipelineRun?.id === runId) || 
-                    apps.find(a => Object.values(livePipelineRunsRef.current).some((r: any) => r.id === runId));
+                    apps.find(a => a.pipelineId && livePipelineRunsRef.current[`pid-${a.pipelineId}`]?.id === runId);
         const appName = app ? app.name : `Build #${currentRun.name}`;
 
         if (onBuildTransition) {
@@ -336,6 +339,27 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       };
     });
   }, [appGroups, livePipelineRuns]);
+
+  // Memoized string of active build IDs to optimize active telemetry poller dependency
+  const activeBuildIdsString = React.useMemo(() => {
+    const ids = apps
+      .map(app => {
+        const runId = app.pipelineRun?.id;
+        const pidKey = app.pipelineId ? `pid-${app.pipelineId}` : null;
+        const liveRun =
+          (runId && livePipelineRuns[runId]) ||
+          (pidKey && livePipelineRuns[pidKey]) ||
+          app.pipelineRun;
+        return {
+          buildId: liveRun?.id,
+          isActive: isBuildActive(liveRun)
+        };
+      })
+      .filter(b => b.buildId && b.isActive)
+      .map(b => b.buildId)
+      .sort();
+    return JSON.stringify(ids);
+  }, [apps, livePipelineRuns]);
 
   // Active Telemetry Polling for active builds
   React.useEffect(() => {
@@ -419,7 +443,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       isSubscribed = false;
       clearInterval(intervalId);
     };
-  }, [apps, organizationId, selectedTaskForModal]);
+  }, [apps, activeBuildIdsString, organizationId, selectedTaskForModal]);
 
   // ── New-Build Discovery Poller ──────────────────────────────────────────────
   // Runs every 30 s and fetches the LATEST build for every app that has a
@@ -430,27 +454,39 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     const appsWithPipelines = apps.filter(a => a.pipelineId);
     if (appsWithPipelines.length === 0) return;
 
+    // Reset loadedPipelines for the new set of apps
+    setLoadedPipelines({});
+
     let isSubscribed = true;
 
     const discoverNewBuilds = async () => {
       const token = localStorage.getItem('devops_token');
       for (const app of appsWithPipelines) {
         if (!isSubscribed) break;
+        const pipelineId = app.pipelineId;
+        if (!pipelineId) continue;
+
         try {
           // Resolve the branch for this specific app environment so we only get builds for the right branch
           const resolvedBranch = `refs/heads/${resolveBranchName(app)}`;
           const res = await fetch(
-            `${API_BASE}/apps/pipeline/latest?organizationId=${organizationId}&pipelineId=${app.pipelineId}&branchName=${encodeURIComponent(resolvedBranch)}`,
+            `${API_BASE}/apps/pipeline/latest?organizationId=${organizationId}&pipelineId=${pipelineId}&branchName=${encodeURIComponent(resolvedBranch)}`,
             { headers: { 'Authorization': `Bearer ${token}` } }
           );
-          if (!res.ok) continue;
+          if (!res.ok) {
+            setLoadedPipelines(prev => ({ ...prev, [pipelineId]: true }));
+            continue;
+          }
           const data = await res.json();
+          
+          setLoadedPipelines(prev => ({ ...prev, [pipelineId]: true }));
+
           if (!data.success || !data.pipelineRun) continue;
 
           const latestRun = data.pipelineRun;
 
           // Check existing live run via primary (scan runId) or secondary (pid key) index
-          const pidKey = `pid-${app.pipelineId}`;
+          const pidKey = `pid-${pipelineId}`;
           const existingLiveId =
             app.pipelineRun?.id ||
             livePipelineRunsRef.current[pidKey]?.id;
@@ -463,10 +499,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               [latestRun.id]: latestRun,
               // Also index by pipelineId so localAppGroups can find this even when
               // the scan-level pipelineRun is null (no runId to match on)
-              [`pid-${app.pipelineId}`]: latestRun
+              [`pid-${pipelineId}`]: latestRun
             }));
           }
         } catch (err) {
+          setLoadedPipelines(prev => ({ ...prev, [pipelineId]: true }));
           // Silent - this is a background discovery, don't spam console
         }
       }
@@ -1645,6 +1682,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                     Build in progress...
                                   </span>
                                 )}
+                                {item.pipelineId && !item.pipelineRun && !loadedPipelines[item.pipelineId] && (
+                                  <span style={{ 
+                                    marginLeft: '8px', 
+                                    display: 'inline-flex', 
+                                    alignItems: 'center', 
+                                    gap: '4px', 
+                                    color: 'var(--accent-purple)', 
+                                    fontWeight: 500,
+                                    fontSize: '0.68rem'
+                                  }}>
+                                    <RefreshCw size={10} className="spin-anim" />
+                                    loading status...
+                                  </span>
+                                )}
                               </div>
 
                               {/* Pipeline Details */}
@@ -2156,9 +2207,41 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         </div>
 
                         {/* Visual Deployment Pipeline Run Progress (moved below details & actions with a collapsible divider) */}
-                        {item.pipelineRun && (() => {
-                          const isExpanded = expandedBuilds[item.name] ?? isBuildActive(item.pipelineRun);
+                        {item.pipelineId && (item.pipelineRun || !loadedPipelines[item.pipelineId]) && (() => {
                           const isLight = theme === 'light';
+                          
+                          if (!item.pipelineRun) {
+                            return (
+                              <div style={{ 
+                                borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`, 
+                                paddingTop: '12px', 
+                                marginTop: '8px',
+                                width: '100%',
+                                boxSizing: 'border-box'
+                              }}>
+                                <div style={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '8px',
+                                  padding: '12px 14px',
+                                  borderRadius: '8px', 
+                                  background: isLight 
+                                    ? 'rgba(0,0,0,0.02)' 
+                                    : 'rgba(255,255,255,0.01)', 
+                                  border: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
+                                  color: 'var(--text-secondary)',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 500
+                                }}>
+                                  <RefreshCw size={12} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
+                                  <span>Loading build information...</span>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          const isExpanded = expandedBuilds[item.name] ?? isBuildActive(item.pipelineRun);
                           const runStatus = isBuildActive(item.pipelineRun) ? 'BUILDING' : item.pipelineRun.result || item.pipelineRun.state;
                           const runStatusColor = getStageColor(item.pipelineRun.result, item.pipelineRun.state);
                           
@@ -2633,7 +2716,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               let statusLabel = '';
               let statusColor = '#94a3b8';
 
-              if (run) {
+              if (env.pipelineId && !run && !loadedPipelines[env.pipelineId]) {
+                timeLabel = 'Loading...';
+                timeColor = 'rgba(148,163,184,0.7)';
+                statusLabel = 'LOADING';
+                statusColor = 'var(--accent-purple)';
+              } else if (run) {
                 if (isBuildActive(run)) {
                   timeLabel = '🔄 Building now…';
                   timeColor = '#34d399';
@@ -2705,8 +2793,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         border: `1px solid ${statusColor}30`,
                         padding: '1px 5px',
                         borderRadius: '4px',
-                        letterSpacing: '0.03em'
-                      }}>{statusLabel}</span>
+                        letterSpacing: '0.03em',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px'
+                      }}>
+                        {statusLabel === 'LOADING' && <RefreshCw size={8} className="spin-anim" />}
+                        {statusLabel}
+                      </span>
                     )}
                     <span style={{
                       fontSize: '0.68rem', fontWeight: 600,
