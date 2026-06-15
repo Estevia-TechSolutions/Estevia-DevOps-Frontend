@@ -59,7 +59,11 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '8px', padding: '4px 12px', borderRadius: '20px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.15)', fontSize: '0.74rem', height: '36px' }}>
               <span className="site-header-org-dot" style={{ width: '6px', height: '6px', margin: 0 }} />
               <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
-                Sync in <strong style={{ color: 'var(--success)' }}>{syncCountdown}s</strong>
+                Sync in <strong style={{ color: 'var(--success)' }}>
+                  {syncCountdown >= 60
+                    ? `${Math.floor(syncCountdown / 60)}:${String(syncCountdown % 60).padStart(2, '0')} min`
+                    : `${syncCountdown}s`}
+                </strong>
               </span>
             </div>
           )}

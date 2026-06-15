@@ -498,12 +498,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   };
 
 
+  // Match -dev / -qa / -prod only when they are at end of string or followed by a hyphen
+  // This prevents 'evafusion-devhub-qa' from matching as 'dev' due to the '-devhub' substring.
+  const hasEnvSegment = (n: string, seg: string) =>
+    new RegExp(`-${seg}(-|$)`).test(n);
+
   const resolveBranchName = (app: AppResource) => {
     const n = app.name.toLowerCase();
     let targetSimpleName = 'main';
-    if (n.includes('-dev') || n.endsWith('-dev') || n.includes('-dev-')) targetSimpleName = 'dev';
-    else if (n.includes('-qa') || n.endsWith('-qa') || n.includes('-qa-')) targetSimpleName = 'qa';
-    else if (n.includes('-prod') || n.endsWith('-prod') || n.includes('-prod-')) targetSimpleName = 'main';
+    if (hasEnvSegment(n, 'dev'))  targetSimpleName = 'dev';
+    else if (hasEnvSegment(n, 'qa'))   targetSimpleName = 'qa';
+    else if (hasEnvSegment(n, 'prod')) targetSimpleName = 'main';
     
     const match = (app.branches || []).find(b => {
       const bName = b.name.toLowerCase();
@@ -618,22 +623,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   const getEnvTag = (name: string): { color: string; bg: string; border: string; label: string } => {
     const n = name.toLowerCase();
-    if (n.includes('-dev')) return ENV_COLORS.dev;
-    if (n.includes('-qa'))  return ENV_COLORS.qa;
-    if (n.includes('-prod')) return ENV_COLORS.prod;
-    const noSuffix = !n.endsWith('-dev') && !n.includes('-dev-') &&
-                     !n.endsWith('-qa')  && !n.includes('-qa-')  &&
-                     !n.endsWith('-prod') && !n.includes('-prod-') &&
-                     !n.endsWith('-staging') && !n.endsWith('-test');
-    if (noSuffix) return ENV_COLORS.prod;
-    return { color: 'var(--text-secondary)', bg: 'rgba(255,255,255,0.05)', border: 'var(--glass-border)', label: 'ENV' };
+    if (hasEnvSegment(n, 'dev'))  return ENV_COLORS.dev;
+    if (hasEnvSegment(n, 'qa'))   return ENV_COLORS.qa;
+    if (hasEnvSegment(n, 'prod')) return ENV_COLORS.prod;
+    // No recognised env suffix → treat as production
+    return ENV_COLORS.prod;
   };
 
   const getCardStyles = (name: string, theme: 'dark' | 'light') => {
     const n = name.toLowerCase();
     const isLight = theme === 'light';
     
-    if (n.includes('-dev')) {
+    if (hasEnvSegment(n, 'dev')) {
       return {
         background: isLight 
           ? 'linear-gradient(135deg, rgba(219, 234, 254, 0.95) 0%, rgba(239, 246, 255, 0.99) 100%)' 
@@ -642,7 +643,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         color: '#60a5fa'
       };
     }
-    if (n.includes('-qa')) {
+    if (hasEnvSegment(n, 'qa')) {
       return {
         background: isLight 
           ? 'linear-gradient(135deg, rgba(254, 243, 199, 0.95) 0%, rgba(255, 251, 235, 0.99) 100%)' 
@@ -651,7 +652,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         color: '#f59e0b'
       };
     }
-    if (n.includes('-prod')) {
+    if (hasEnvSegment(n, 'prod')) {
       return {
         background: isLight 
           ? 'linear-gradient(135deg, rgba(209, 250, 229, 0.95) 0%, rgba(240, 253, 250, 0.99) 100%)' 
