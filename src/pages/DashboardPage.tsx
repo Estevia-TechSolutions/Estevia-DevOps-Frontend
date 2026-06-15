@@ -1128,9 +1128,118 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     </span>
                   )}
 
-                  <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                    {group.envs.length} {group.envs.length === 1 ? 'Environment' : 'Environments'}
-                  </span>
+                  {/* Environments count with last-build hover tooltip */}
+                  <div
+                    style={{ position: 'relative', display: 'inline-flex' }}
+                    onMouseEnter={() => setHoveredEnv(`group-${group.key}`)}
+                    onMouseLeave={() => setHoveredEnv(null)}
+                  >
+                    <span style={{
+                      fontSize: '0.76rem',
+                      color: 'var(--text-secondary)',
+                      fontWeight: 500,
+                      cursor: 'default',
+                      textDecoration: 'underline dotted',
+                      textUnderlineOffset: '3px'
+                    }}>
+                      {group.envs.length} {group.envs.length === 1 ? 'Environment' : 'Environments'}
+                    </span>
+
+                    {/* Last Build Tooltip */}
+                    {hoveredEnv === `group-${group.key}` && (
+                      <div
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                          position: 'absolute',
+                          bottom: 'calc(100% + 10px)',
+                          right: 0,
+                          zIndex: 9500,
+                          background: theme === 'light' ? 'rgba(255,255,255,0.98)' : 'rgba(15,23,42,0.98)',
+                          border: `1px solid ${accentColor}30`,
+                          borderRadius: '10px',
+                          padding: '10px 14px',
+                          minWidth: '240px',
+                          boxShadow: '0 8px 30px rgba(0,0,0,0.35)',
+                          pointerEvents: 'none'
+                        }}
+                      >
+                        {/* Arrow */}
+                        <div style={{
+                          position: 'absolute',
+                          bottom: '-5px',
+                          right: '24px',
+                          width: '10px',
+                          height: '10px',
+                          background: theme === 'light' ? 'rgba(255,255,255,0.98)' : 'rgba(15,23,42,0.98)',
+                          border: `1px solid ${accentColor}30`,
+                          borderTop: 'none',
+                          borderLeft: 'none',
+                          rotate: '45deg'
+                        }} />
+                        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: accentColor, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          Last Build Times
+                        </div>
+                        {group.envs.map(env => {
+                          const run = env.pipelineRun;
+                          const finishTime = run?.finishTime;
+                          let timeLabel = 'Never built';
+                          if (run && isBuildActive(run)) {
+                            timeLabel = '🔄 Building now…';
+                          } else if (finishTime) {
+                            try {
+                              const d = new Date(finishTime);
+                              const now = new Date();
+                              const diffMs = now.getTime() - d.getTime();
+                              const diffMins = Math.floor(diffMs / 60000);
+                              const diffHrs = Math.floor(diffMins / 60);
+                              const diffDays = Math.floor(diffHrs / 24);
+                              if (diffMins < 1) timeLabel = 'Just now';
+                              else if (diffMins < 60) timeLabel = `${diffMins}m ago`;
+                              else if (diffHrs < 24) timeLabel = `${diffHrs}h ${diffMins % 60}m ago`;
+                              else timeLabel = `${diffDays}d ago  (${d.toLocaleDateString()})`;
+                            } catch {
+                              timeLabel = finishTime;
+                            }
+                          }
+                          const envTag = getEnvTag(env.name);
+                          return (
+                            <div key={env.name} style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '10px',
+                              padding: '5px 0',
+                              borderBottom: '1px solid var(--glass-border)'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                                <span style={{
+                                  fontSize: '0.58rem', fontWeight: 700,
+                                  color: envTag.color, background: envTag.bg,
+                                  border: `1px solid ${envTag.border}`,
+                                  padding: '1px 5px', borderRadius: '3px',
+                                  flexShrink: 0
+                                }}>
+                                  {envTag.label}
+                                </span>
+                                <span style={{ fontSize: '0.7rem', fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {env.name}
+                                </span>
+                              </div>
+                              <span style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 600,
+                                color: run && isBuildActive(run) ? '#10b981' : finishTime ? 'var(--text-secondary)' : 'rgba(148,163,184,0.6)',
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0
+                              }}>
+                                {timeLabel}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                   
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', opacity: 0.8, marginRight: '6px' }}>
                     {isCollapsed ? 'Click to expand group' : 'Click to Collapse group'}
