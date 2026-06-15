@@ -329,6 +329,65 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     };
   }, [apps, organizationId, selectedTaskForModal]);
 
+  // ── New-Build Discovery Poller ──────────────────────────────────────────────
+  // Runs every 30 s and fetches the LATEST build for every app that has a
+  // pipelineId (regardless of whether the last known pipelineRun was active).
+  // This detects newly triggered builds BEFORE the next full 5-min cloud scan.
+  React.useEffect(() => {
+    // Only run if there are apps with pipelines
+    const appsWithPipelines = apps.filter(a => a.pipelineId);
+    if (appsWithPipelines.length === 0) return;
+
+    let isSubscribed = true;
+
+    const discoverNewBuilds = async () => {
+      const token = localStorage.getItem('devops_token');
+      for (const app of appsWithPipelines) {
+        if (!isSubscribed) break;
+        try {
+          const res = await fetch(
+            `${API_BASE}/apps/pipeline/latest?organizationId=${organizationId}&pipelineId=${app.pipelineId}`,
+            { headers: { 'Authorization': `Bearer ${token}` } }
+          );
+          if (!res.ok) continue;
+          const data = await res.json();
+          if (!data.success || !data.pipelineRun) continue;
+
+          const latestRun = data.pipelineRun;
+
+          // Only inject into livePipelineRuns if:
+          // 1. The build is active (inProgress / notStarted / queued), OR
+          // 2. It's a brand-new build ID that isn't in livePipelineRuns yet
+          const existingLiveId = app.pipelineRun?.id;
+          const isNewBuild = latestRun.id !== existingLiveId;
+          const isActive = isBuildActive(latestRun);
+
+          if (isActive || isNewBuild) {
+            setLivePipelineRuns(prev => ({
+              ...prev,
+              [latestRun.id]: latestRun
+            }));
+          }
+        } catch (err) {
+          // Silent - this is a background discovery, don't spam console
+        }
+      }
+    };
+
+    // Stagger first call by 5 s so it doesn't collide with the initial timeline poll
+    const initialTimer = setTimeout(() => {
+      if (isSubscribed) discoverNewBuilds();
+    }, 5000);
+
+    const intervalId = setInterval(discoverNewBuilds, 30000);
+
+    return () => {
+      isSubscribed = false;
+      clearTimeout(initialTimer);
+      clearInterval(intervalId);
+    };
+  }, [apps, organizationId]);
+
   // Fetch live DevOps step logs
   React.useEffect(() => {
     if (!selectedTaskForModal || !selectedTaskForModal.buildId || !selectedTaskForModal.step.logId) {
