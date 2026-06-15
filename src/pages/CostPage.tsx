@@ -761,7 +761,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                                                      item.name.toLowerCase().includes('devops-frontend');
                                   const isControlling = controllingResource === item.name;
                                   const s = (item.status || '').toLowerCase();
-                                  const isStarted = s === 'running' || s === 'deployed';
+                                  const isStarted = s === 'running' || s === 'deployed' || s === 'active';
                                   const isStopped = s === 'stopped' || s === 'sleep' || s === 'offline';
 
                                   return (() => {
