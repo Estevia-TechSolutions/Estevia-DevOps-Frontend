@@ -41,6 +41,8 @@ import './App.css';
 // Import modular frontend components and pages
 import { ConfirmationModal } from './components/ConfirmationModal';
 import { SiteHeader, ControlBanner } from './components/DevOpsHeader';
+import { NotificationDrawer } from './components/NotificationDrawer';
+import type { AppNotification } from './components/NotificationDrawer';
 import { SettingsPage } from './pages/SettingsPage';
 import { CredentialsPage } from './pages/CredentialsPage';
 import { DatabaseCatalogPage } from './pages/DatabaseCatalogPage';
@@ -414,6 +416,69 @@ function App() {
       return updated;
     });
   }, []);
+
+  // Notifications Center Drawer State & Helpers
+  const [notifications, setNotifications] = useState<AppNotification[]>(() => {
+    const saved = localStorage.getItem('evaops_notifications');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [isNotificationOpen, setIsNotificationOpen] = useState<boolean>(false);
+
+  const addNotification = useCallback((
+    title: string,
+    message: string,
+    type: AppNotification['type']
+  ) => {
+    const newNotif: AppNotification = {
+      id: Math.random().toString(36).substring(2, 9),
+      timestamp: new Date().toISOString(),
+      title,
+      message,
+      type,
+      read: false
+    };
+    setNotifications(prev => {
+      const updated = [newNotif, ...prev].slice(0, 100);
+      localStorage.setItem('evaops_notifications', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
+  const clearNotifications = useCallback(() => {
+    setNotifications([]);
+    localStorage.removeItem('evaops_notifications');
+  }, []);
+
+  const deleteNotification = useCallback((id: string) => {
+    setNotifications(prev => {
+      const updated = prev.filter(n => n.id !== id);
+      localStorage.setItem('evaops_notifications', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
+  const markAllNotificationsAsRead = useCallback(() => {
+    setNotifications(prev => {
+      if (prev.every(n => n.read)) return prev;
+      const updated = prev.map(n => ({ ...n, read: true }));
+      localStorage.setItem('evaops_notifications', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
+  const unreadNotificationsCount = useMemo(() => {
+    return notifications.filter(n => !n.read).length;
+  }, [notifications]);
+
+  const handleToggleNotifications = useCallback(() => {
+    setIsNotificationOpen(prev => {
+      const next = !prev;
+      if (next) {
+        markAllNotificationsAsRead();
+      }
+      return next;
+    });
+  }, [markAllNotificationsAsRead]);
   
   const isGuidedProvisionRef = useRef(false);
   
@@ -2343,6 +2408,25 @@ function App() {
         setApps(data.apps || []);
         addEvent('Cloud Scan Completed', `Discovered ${appsCount} resources in resource group: ${activeRg || 'All'}.`, 'scan', 'success');
         
+        // Dispatch integrity notifications if present
+        if (data.integrity) {
+          const { github, godaddy, azure } = data.integrity;
+          const details = [
+            `GitHub: ${github.success ? '🟢 Healthy' : `🔴 ${github.message}`}`,
+            `GoDaddy: ${godaddy.success ? '🟢 Healthy' : `🔴 ${godaddy.message}`}`,
+            `Azure: ${azure.success ? '🟢 Healthy' : `🔴 ${azure.message}`}`
+          ].join(' | ');
+
+          const isOverallHealthy = github.success && godaddy.success && azure.success;
+          const notifType = isOverallHealthy ? 'success' : 'warning';
+          
+          addNotification(
+            'Environment Integrity Report',
+            details,
+            notifType
+          );
+        }
+
         // Auto-update cost management metrics as part of the scan flow
         console.log('[DevOps Scan] Triggering cost metrics refresh...');
         await fetchCostData();
@@ -2350,11 +2434,13 @@ function App() {
         console.error('[DevOps Scan] [API ERROR] Backend reported failure:', data.message || data.error);
         setScanError(data.message || 'Failed to scan Azure resources.');
         addEvent('Cloud Scan Failed', data.message || 'Failed to scan Azure resources.', 'scan', 'failed');
+        addNotification('Cloud Scan Failed', data.message || 'Failed to scan Azure resources.', 'error');
       }
     } catch (e: any) {
       console.error('[DevOps Scan] [FETCH EXCEPTION] Connection/parsing error:', e);
       setScanError(e.message || 'Error connecting to the DevOps backend server.');
       addEvent('Cloud Scan Error', e.message || 'Error connecting to the DevOps backend server.', 'scan', 'failed');
+      addNotification('Cloud Scan Error', e.message || 'Error connecting to the DevOps backend server.', 'error');
     } finally {
       console.log('[DevOps Scan] [END] Scan finished.');
       setScanning(false);
@@ -3628,6 +3714,16 @@ function App() {
         organizationId={organizationId}
         user={user}
         handleLogout={handleLogout}
+        unreadNotificationsCount={unreadNotificationsCount}
+        onToggleNotifications={handleToggleNotifications}
+      />
+      
+      <NotificationDrawer
+        isOpen={isNotificationOpen}
+        onClose={() => setIsNotificationOpen(false)}
+        notifications={notifications}
+        onClearAll={clearNotifications}
+        onDeleteNotification={deleteNotification}
       />
 
       {/* ── Page Content ── */}
@@ -4314,6 +4410,7 @@ function App() {
             onBuildTransition={(title, message, type) => {
               showToast(title, message, type);
               addEvent(title, message, 'build', type === 'success' ? 'success' : type === 'error' ? 'failed' : 'info');
+              addNotification(title, message, type === 'success' ? 'success' : type === 'error' ? 'error' : 'info');
             }}
           />
         )}

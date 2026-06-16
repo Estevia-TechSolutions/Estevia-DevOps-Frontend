@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cpu, Building2, RefreshCw, Sun, Moon, LogOut } from 'lucide-react';
+import { Cpu, Building2, RefreshCw, Sun, Moon, LogOut, Bell } from 'lucide-react';
 
 interface SiteHeaderProps {
   token: string | null;
@@ -12,6 +12,8 @@ interface SiteHeaderProps {
   organizationId: string;
   user: any;
   handleLogout: () => void;
+  unreadNotificationsCount: number;
+  onToggleNotifications: () => void;
 }
 
 export const SiteHeader: React.FC<SiteHeaderProps> = ({
@@ -24,7 +26,9 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
   orgName,
   organizationId,
   user,
-  handleLogout
+  handleLogout,
+  unreadNotificationsCount,
+  onToggleNotifications
 }) => {
   return (
     <header className="site-header">
@@ -54,30 +58,103 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
 
         {/* Right-side actions */}
         <div className="site-header-actions">
-          {/* Auto-sync countdown display */}
+          {/* Combined Sync Countdown / Scan Cloud Pill */}
           {token && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '8px', padding: '4px 12px', borderRadius: '20px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.15)', fontSize: '0.74rem', height: '36px' }}>
-              <span className="site-header-org-dot" style={{ width: '6px', height: '6px', margin: 0 }} />
-              <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
-                Sync in <strong style={{ color: 'var(--success)' }}>
-                  {syncCountdown >= 60
-                    ? `${Math.floor(syncCountdown / 60)}:${String(syncCountdown % 60).padStart(2, '0')} min`
-                    : `${syncCountdown}s`}
-                </strong>
-              </span>
-            </div>
+            <button
+              className="btn-primary"
+              onClick={() => handleScan()}
+              disabled={scanning}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 18px',
+                fontSize: '0.82rem',
+                height: '36px',
+                borderRadius: '20px',
+                background: scanning 
+                  ? 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))' 
+                  : 'rgba(34, 197, 94, 0.08)',
+                border: scanning 
+                  ? 'none' 
+                  : '1px solid rgba(34, 197, 94, 0.25)',
+                boxShadow: scanning 
+                  ? '0 0 12px var(--accent-purple-glow)' 
+                  : 'none',
+                color: scanning ? '#fff' : 'var(--text-primary)',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                cursor: scanning ? 'not-allowed' : 'pointer'
+              }}
+              onMouseEnter={(e) => {
+                if (!scanning) {
+                  e.currentTarget.style.background = 'rgba(34, 197, 94, 0.15)';
+                  e.currentTarget.style.borderColor = 'rgba(34, 197, 94, 0.45)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(34, 197, 94, 0.15)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!scanning) {
+                  e.currentTarget.style.background = 'rgba(34, 197, 94, 0.08)';
+                  e.currentTarget.style.borderColor = 'rgba(34, 197, 94, 0.25)';
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = 'none';
+                }
+              }}
+            >
+              <RefreshCw 
+                size={14} 
+                className={scanning ? 'spin-anim' : ''} 
+                style={{ color: scanning ? '#fff' : 'var(--success)' }}
+              />
+              {scanning ? (
+                <span style={{ fontWeight: 600 }}>Scanning Cloud…</span>
+              ) : (
+                <span style={{ fontWeight: 500 }}>
+                  Scan Cloud <span style={{ color: 'var(--text-secondary)', opacity: 0.6, margin: '0 4px' }}>|</span> Sync in <strong style={{ color: 'var(--success)', fontWeight: 700 }}>
+                    {syncCountdown >= 60
+                      ? `${Math.floor(syncCountdown / 60)}:${String(syncCountdown % 60).padStart(2, '0')}m`
+                      : `${syncCountdown}s`}
+                  </strong>
+                </span>
+              )}
+            </button>
           )}
 
-          {/* Scan button */}
-          <button
-            className="btn-primary"
-            onClick={() => handleScan()}
-            disabled={scanning}
-            style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '8px 16px', fontSize: '0.82rem', height: '36px' }}
-          >
-            <RefreshCw size={14} className={scanning ? 'spin-anim' : ''} />
-            {scanning ? 'Scanning…' : 'Scan Cloud'}
-          </button>
+          {/* Notification bell toggle */}
+          {token && (
+            <button 
+              className="theme-toggle" 
+              onClick={onToggleNotifications} 
+              title="Notifications Center"
+              style={{ position: 'relative' }}
+            >
+              <Bell size={16} />
+              {unreadNotificationsCount > 0 && (
+                <span 
+                  style={{
+                    position: 'absolute',
+                    top: '-2px',
+                    right: '-2px',
+                    backgroundColor: 'var(--error)',
+                    color: '#fff',
+                    fontSize: '0.62rem',
+                    fontWeight: 800,
+                    width: '16px',
+                    height: '16px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '2px solid var(--bg-header)',
+                    boxShadow: '0 0 8px rgba(239, 68, 68, 0.6)',
+                  }}
+                >
+                  {unreadNotificationsCount}
+                </span>
+              )}
+            </button>
+          )}
 
           {/* Theme toggle */}
           <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
