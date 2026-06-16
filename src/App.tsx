@@ -3464,8 +3464,8 @@ function App() {
           background: 'rgba(2, 6, 23, 0.4)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div className="site-header-logo" style={{ width: '32px', height: '32px', borderRadius: '8px' }}>
-              <Cpu size={16} color="#fff" />
+            <div className="site-header-logo" style={{ width: '32px', height: '32px', borderRadius: '8px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', padding: '4px', boxShadow: 'none' }}>
+              <img src="/evaops-logo.png" alt="EvaOps Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
             <span style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.02em' }}>EvaOps</span>
           </div>
