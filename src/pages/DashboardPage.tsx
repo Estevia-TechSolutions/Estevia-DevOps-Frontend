@@ -541,18 +541,35 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     };
   }, [apps, organizationId]);
 
+  const prevTaskRef = React.useRef<{ id: string; buildId: string; logId: number; state: string } | null>(null);
+
   // Fetch live DevOps step logs
   React.useEffect(() => {
     if (!selectedTaskForModal || !selectedTaskForModal.buildId || !selectedTaskForModal.step.logId) {
       setLogs('');
+      prevTaskRef.current = null;
       return;
     }
+
+    const { buildId, step } = selectedTaskForModal;
+    const isSameTask = prevTaskRef.current && 
+      prevTaskRef.current.id === step.id && 
+      prevTaskRef.current.buildId === buildId;
+
+    // If it's a completed task and we already successfully fetched it, don't refetch
+    if (isSameTask && prevTaskRef.current?.state === 'completed') {
+      return;
+    }
+
     const fetchLogs = async () => {
-      setLoadingLogs(true);
-      setLogs('');
+      // Only show loader and clear logs if switching to a DIFFERENT task
+      if (!isSameTask) {
+        setLoadingLogs(true);
+        setLogs('');
+      }
+
       try {
         const token = localStorage.getItem('devops_token');
-        const { buildId, step } = selectedTaskForModal;
         const res = await fetch(`${API_BASE}/apps/pipeline/logs?organizationId=${organizationId}&buildId=${buildId}&logId=${step.logId}`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -561,13 +578,21 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         const data = await res.json();
         if (res.ok && data.success) {
           setLogs(data.logs || 'No log data returned from Azure.');
+          // Update the ref only after a successful fetch
+          prevTaskRef.current = { id: step.id, buildId, logId: step.logId, state: step.state };
         } else {
-          setLogs(`Failed to fetch logs: ${data.message || 'Unknown error'}`);
+          if (!isSameTask) {
+            setLogs(`Failed to fetch logs: ${data.message || 'Unknown error'}`);
+          }
         }
       } catch (err: any) {
-        setLogs(`Error loading logs: ${err.message}`);
+        if (!isSameTask) {
+          setLogs(`Error loading logs: ${err.message}`);
+        }
       } finally {
-        setLoadingLogs(false);
+        if (!isSameTask) {
+          setLoadingLogs(false);
+        }
       }
     };
     fetchLogs();
