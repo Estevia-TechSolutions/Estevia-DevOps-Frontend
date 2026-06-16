@@ -793,18 +793,39 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       });
     }
 
-    // 2. Handle newly completed builds: auto-collapse them
+    // 2. Handle newly completed builds: do not auto-collapse on complete as per user request to keep visibility of recent builds
     if (newlyFinishedGroups.length > 0) {
-      setCollapsedScanGroups(prev => {
-        const next = { ...prev };
-        newlyFinishedGroups.forEach(key => {
-          console.log(`[Dashboard Auto Collapse] Build completed for group ${key}. Collapsing accordion...`);
-          next[key] = true; // Collapse
-        });
-        return next;
+      newlyFinishedGroups.forEach(key => {
+        console.log(`[Dashboard Auto Collapse] Build completed for group ${key}. Keeping expanded for recent build visibility.`);
       });
     }
   }, [localAppGroups, setActiveDashboardTab, setCollapsedScanGroups]);
+
+  // Auto-expand individual builds when they become active, and keep them expanded (do not close on complete)
+  React.useEffect(() => {
+    const activeBuildApps: string[] = [];
+    localAppGroups.forEach(group => {
+      group.envs.forEach(app => {
+        if (app.pipelineRun && isBuildActive(app.pipelineRun)) {
+          activeBuildApps.push(app.name);
+        }
+      });
+    });
+
+    if (activeBuildApps.length > 0) {
+      setExpandedBuilds(prev => {
+        const next = { ...prev };
+        let updated = false;
+        activeBuildApps.forEach(name => {
+          if (next[name] !== true) {
+            next[name] = true;
+            updated = true;
+          }
+        });
+        return updated ? next : prev;
+      });
+    }
+  }, [localAppGroups]);
 
   const getBadgeBgColor = (type: string) => {
     const isLight = theme === 'light';
