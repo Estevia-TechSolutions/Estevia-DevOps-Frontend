@@ -1668,15 +1668,29 @@ function App() {
   const handleApplyRemediation = async (suggestionId: string, type: string, appName: string) => {
     setRemediating(suggestionId);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      setCostSuggestions(prev => prev.filter(s => s.id !== suggestionId));
       const suggestion = costSuggestions.find(s => s.id === suggestionId);
       const savings = suggestion ? suggestion.savings : 0;
+
+      const res = await fetch(`${API_BASE}/apps/cost/apply-remediation`, {
+        method: 'POST',
+        body: JSON.stringify({
+          organizationId,
+          suggestionId,
+          type,
+          appName,
+          savings
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to apply remediation.');
+      }
+      
+      setCostSuggestions(prev => prev.filter(s => s.id !== suggestionId));
       
       setCostSummary((prev: any) => {
         if (!prev) return null;
-        const newScore = Math.min(100, prev.optimizationScore + 10);
+        const newScore = Math.min(100, prev.optimizationScore + (type === 'scale_zero' ? 15 : (type === 'tier_demote' || type === 'stop_vm' ? 10 : 5)));
         const newRunRate = Math.max(0, prev.monthlyRunRate - savings);
         const newSavings = Math.max(0, prev.potentialSavings - savings);
         return {
@@ -1708,6 +1722,14 @@ function App() {
           }
           return c;
         }));
+      } else if (type === 'stop_vm') {
+        setDetailedCosts(prev => prev.map(c => {
+          if (c.name === appName) {
+            const newCost = Math.max(0, c.resourceCost - savings);
+            return { ...c, resourceCost: newCost, totalCost: newCost + c.dnsCost, details: 'Azure Virtual Machine (Auto-Shutdown Scheduled)' };
+          }
+          return c;
+        }));
       }
     } catch (err: any) {
       console.error('[cost] Failed to apply optimization remediation:', err.message);
@@ -1715,6 +1737,7 @@ function App() {
       setRemediating(null);
     }
   };
+
 
   const fetchTeamUsers = async () => {
     setLoadingUsers(true);
