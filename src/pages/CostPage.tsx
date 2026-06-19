@@ -19,7 +19,8 @@ import {
   Sparkles,
   Brain,
   MessageSquare,
-  Send
+  Send,
+  X
 } from 'lucide-react';
 import { SleepScheduler } from '../components/cost/SleepScheduler';
 
@@ -189,6 +190,7 @@ export const CostPage: React.FC<CostPageProps> = ({
 Or type any other cost questions you have!` }
   ]);
   const [askingEva, setAskingEva] = useState<boolean>(false);
+  const [isEvaOpen, setIsEvaOpen] = useState<boolean>(false);
 
   const simulateTypewriter = (text: string) => {
     let currentText = '';
@@ -433,6 +435,56 @@ Or type any other cost questions you have!` }
           background: linear-gradient(150deg, rgba(209, 250, 229, 0.25) 0%, rgba(167, 243, 208, 0.15) 50%, rgba(110, 231, 183, 0.08) 100%) !important;
           border-color: rgba(16, 185, 129, 0.2) !important;
           box-shadow: 0 4px 20px rgba(16, 185, 129, 0.06) !important;
+        }
+
+        /* Inactive tab button styles override for clarity */
+        .cost-green .tab-btn-cost:not(.active) {
+          color: rgba(255, 255, 255, 0.5) !important;
+          border: 1px solid rgba(255, 255, 255, 0.08) !important;
+          background: rgba(255, 255, 255, 0.01) !important;
+          transition: all 0.2s ease !important;
+        }
+        .cost-green .tab-btn-cost:not(.active):hover {
+          color: #ffffff !important;
+          background: rgba(16, 185, 129, 0.08) !important;
+          border-color: rgba(16, 185, 129, 0.3) !important;
+        }
+        [data-theme="light"] .cost-green .tab-btn-cost:not(.active) {
+          color: rgba(15, 23, 42, 0.6) !important;
+          border: 1px solid rgba(15, 23, 42, 0.08) !important;
+          background: rgba(0, 0, 0, 0.02) !important;
+        }
+        [data-theme="light"] .cost-green .tab-btn-cost:not(.active):hover {
+          color: #059669 !important;
+          background: rgba(16, 185, 129, 0.06) !important;
+          border-color: rgba(16, 185, 129, 0.25) !important;
+        }
+
+        .eva-float-btn {
+          position: fixed;
+          bottom: 32px;
+          right: 32px;
+          width: 56px;
+          height: 56px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue)) !important;
+          box-shadow: 0 4px 20px rgba(139, 92, 246, 0.45), 0 0 15px rgba(139, 92, 246, 0.2) !important;
+          border: 1px solid rgba(255, 255, 255, 0.2) !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          color: #ffffff !important;
+          cursor: pointer !important;
+          z-index: 10000 !important;
+          transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+          outline: none !important;
+        }
+        .eva-float-btn:hover {
+          transform: scale(1.1) !important;
+          box-shadow: 0 6px 24px rgba(139, 92, 246, 0.6), 0 0 25px rgba(139, 92, 246, 0.4) !important;
+        }
+        .eva-float-btn:active {
+          transform: scale(0.95) !important;
         }
       `}</style>
 
@@ -752,172 +804,202 @@ Or type any other cost questions you have!` }
                             fontSize: '0.86rem'
                           }}>
                             <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                <span style={{ color: isOrphaned ? 'var(--error)' : 'inherit' }}>{item.name}</span>
-                                
-                                {activeRec && (
-                                  <div className="opt-hover-wrapper" style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-                                    <Sparkles 
-                                      size={13} 
-                                      style={{ 
-                                        color: '#fbbf24', 
-                                        cursor: 'help',
-                                        filter: 'drop-shadow(0 0 3px rgba(251, 191, 36, 0.4))'
-                                      }} 
-                                    />
-                                    <div className="opt-hover-card" style={{
-                                      visibility: 'hidden',
-                                      opacity: 0,
-                                      position: 'absolute',
-                                      bottom: '130%',
-                                      left: '50%',
-                                      transform: 'translateX(-50%) translateY(4px)',
-                                      background: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 23, 42, 0.95)',
-                                      backdropFilter: 'blur(16px)',
-                                      WebkitBackdropFilter: 'blur(16px)',
-                                      border: '1px solid var(--glass-border)',
-                                      color: 'var(--text-primary)',
-                                      padding: '12px',
-                                      borderRadius: '8px',
-                                      fontSize: '0.74rem',
-                                      width: '220px',
-                                      boxShadow: '0 10px 25px rgba(0, 0, 0, 0.25)',
-                                      pointerEvents: 'none',
-                                      zIndex: 9999,
-                                      transition: 'all 0.2s ease-in-out',
-                                      whiteSpace: 'normal',
-                                      textAlign: 'left',
-                                      lineHeight: '1.4'
-                                    }}>
-                                      <div style={{ fontWeight: 700, color: '#fbbf24', marginBottom: '4px', textTransform: 'uppercase', fontSize: '0.66rem', letterSpacing: '0.05em' }}>
-                                        Optimization Recommended
-                                      </div>
-                                      <div style={{ color: 'var(--text-primary)', fontWeight: 650, marginBottom: '6px' }}>
-                                        {activeRec.recommendation || activeRec.title}
-                                      </div>
-                                      <div style={{ color: 'var(--text-secondary)', marginBottom: '8px', fontSize: '0.7rem' }}>
-                                        {activeRec.description}
-                                      </div>
-                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 600 }}>
-                                        <span style={{ color: 'var(--text-muted)' }}>Est. Savings:</span>
-                                        <span style={{ color: 'var(--success)' }}>${activeRec.savings.toFixed(2)}/mo</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-
-                                {appliedRec && (
-                                  <div className="opt-hover-wrapper" style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-                                    <CheckCircle2 
-                                      size={13} 
-                                      style={{ 
-                                        color: 'var(--success)', 
-                                        cursor: 'help',
-                                        filter: 'drop-shadow(0 0 3px rgba(16, 185, 129, 0.4))'
-                                      }} 
-                                    />
-                                    <div className="opt-hover-card" style={{
-                                      visibility: 'hidden',
-                                      opacity: 0,
-                                      position: 'absolute',
-                                      bottom: '130%',
-                                      left: '50%',
-                                      transform: 'translateX(-50%) translateY(4px)',
-                                      background: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 23, 42, 0.95)',
-                                      backdropFilter: 'blur(16px)',
-                                      WebkitBackdropFilter: 'blur(16px)',
-                                      border: '1px solid var(--glass-border)',
-                                      color: 'var(--text-primary)',
-                                      padding: '12px',
-                                      borderRadius: '8px',
-                                      fontSize: '0.74rem',
-                                      width: '220px',
-                                      boxShadow: '0 10px 25px rgba(0, 0, 0, 0.25)',
-                                      pointerEvents: 'none',
-                                      zIndex: 9999,
-                                      transition: 'all 0.2s ease-in-out',
-                                      whiteSpace: 'normal',
-                                      textAlign: 'left',
-                                      lineHeight: '1.4'
-                                    }}>
-                                      <div style={{ fontWeight: 700, color: 'var(--success)', marginBottom: '4px', textTransform: 'uppercase', fontSize: '0.66rem', letterSpacing: '0.05em' }}>
-                                        Remediation Applied
-                                      </div>
-                                      <div style={{ color: 'var(--text-primary)', fontWeight: 650, marginBottom: '6px' }}>
-                                        {appliedRec.recommendation || appliedRec.title}
-                                      </div>
-                                      <div style={{ color: 'var(--text-secondary)', marginBottom: '8px', fontSize: '0.7rem' }}>
-                                        Optimized & active. Runtime costs are successfully reduced.
-                                      </div>
-                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 600 }}>
-                                        <span style={{ color: 'var(--text-muted)' }}>Monthly Savings:</span>
-                                        <span style={{ color: 'var(--success)' }}>${appliedRec.savings.toFixed(2)}/mo</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                                {item.isTestResource && (
-                                  <span style={{
-                                    fontSize: '0.62rem',
-                                    fontWeight: 700,
-                                    textTransform: 'uppercase',
-                                    color: isLight ? '#475569' : '#94a3b8',
-                                    background: isLight ? 'rgba(71, 85, 105, 0.08)' : 'rgba(148, 163, 184, 0.12)',
-                                    padding: '2px 6px',
-                                    borderRadius: '4px',
-                                    border: `1px solid ${isLight ? 'rgba(71, 85, 105, 0.15)' : 'rgba(148, 163, 184, 0.2)'}`
-                                  }}>
-                                    Dev / Test
-                                  </span>
-                                )}
-                                {isOrphaned && (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '12px' }}>
+                                {/* Left Side: Name and Test/Orphaned tags */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                  <span style={{ color: isOrphaned ? 'var(--error)' : 'inherit' }}>{item.name}</span>
+                                  {item.isTestResource && (
                                     <span style={{
                                       fontSize: '0.62rem',
                                       fontWeight: 700,
                                       textTransform: 'uppercase',
-                                      color: 'var(--error)',
-                                      background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)',
+                                      color: isLight ? '#475569' : '#94a3b8',
+                                      background: isLight ? 'rgba(71, 85, 105, 0.08)' : 'rgba(148, 163, 184, 0.12)',
                                       padding: '2px 6px',
                                       borderRadius: '4px',
-                                      border: '1px solid rgba(239, 68, 68, 0.2)'
+                                      border: `1px solid ${isLight ? 'rgba(71, 85, 105, 0.15)' : 'rgba(148, 163, 184, 0.2)'}`
                                     }}>
-                                      Stale / Not In Use
+                                      Dev / Test
                                     </span>
-                                    {handleDeleteApp && (item.type === 'frontend' || item.type === 'backend') && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          if (isViewer) return;
-                                          e.stopPropagation();
-                                          handleDeleteApp(item.name, item.type);
-                                        }}
-                                        disabled={isViewer || deletingAppName === item.name}
-                                        style={{
-                                          background: isViewer ? 'rgba(255,255,255,0.01)' : 'rgba(239, 68, 68, 0.15)',
-                                          border: isViewer ? '1px solid var(--glass-border)' : '1px solid rgba(239, 68, 68, 0.3)',
-                                          color: isViewer ? 'var(--text-muted)' : 'var(--error)',
-                                          borderRadius: '4px',
-                                          padding: '2px 8px',
-                                          fontSize: '0.65rem',
-                                          cursor: isViewer ? 'not-allowed' : 'pointer',
-                                          fontWeight: 600,
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          gap: '4px',
-                                          opacity: isViewer ? 0.6 : 1
-                                        }}
-                                      >
-                                        {deletingAppName === item.name ? (
-                                          <RefreshCw size={10} className="spin-anim" />
-                                        ) : (
-                                          <Trash2 size={10} />
-                                        )}
-                                        Delete
-                                      </button>
-                                    )}
-                                  </div>
-                                )}
+                                  )}
+                                  {isOrphaned && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <span style={{
+                                        fontSize: '0.62rem',
+                                        fontWeight: 700,
+                                        textTransform: 'uppercase',
+                                        color: 'var(--error)',
+                                        background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)',
+                                        padding: '2px 6px',
+                                        borderRadius: '4px',
+                                        border: '1px solid rgba(239, 68, 68, 0.2)'
+                                      }}>
+                                        Stale / Not In Use
+                                      </span>
+                                      {handleDeleteApp && (item.type === 'frontend' || item.type === 'backend') && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            if (isViewer) return;
+                                            e.stopPropagation();
+                                            handleDeleteApp(item.name, item.type);
+                                          }}
+                                          disabled={isViewer || deletingAppName === item.name}
+                                          style={{
+                                            background: isViewer ? 'rgba(255,255,255,0.01)' : 'rgba(239, 68, 68, 0.15)',
+                                            border: isViewer ? '1px solid var(--glass-border)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                            color: isViewer ? 'var(--text-muted)' : 'var(--error)',
+                                            borderRadius: '4px',
+                                            padding: '2px 8px',
+                                            fontSize: '0.65rem',
+                                            cursor: isViewer ? 'not-allowed' : 'pointer',
+                                            fontWeight: 600,
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            opacity: isViewer ? 0.6 : 1
+                                          }}
+                                        >
+                                          {deletingAppName === item.name ? (
+                                            <RefreshCw size={10} className="spin-anim" />
+                                          ) : (
+                                            <Trash2 size={10} />
+                                          )}
+                                          Delete
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Right Side: Indicators with Text Badges */}
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+                                  {activeRec && (
+                                    <div className="opt-hover-wrapper" style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                      <Sparkles 
+                                        size={11} 
+                                        style={{ 
+                                          color: '#fbbf24', 
+                                          filter: 'drop-shadow(0 0 3px rgba(251, 191, 36, 0.4))'
+                                        }} 
+                                      />
+                                      <span style={{
+                                        fontSize: '0.62rem',
+                                        fontWeight: 700,
+                                        color: '#fbbf24',
+                                        background: 'rgba(255, 191, 36, 0.08)',
+                                        padding: '2px 6px',
+                                        borderRadius: '4px',
+                                        border: '1px solid rgba(255, 191, 36, 0.18)',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.03em',
+                                        cursor: 'help'
+                                      }}>
+                                        Optimize
+                                      </span>
+                                      <div className="opt-hover-card" style={{
+                                        visibility: 'hidden',
+                                        opacity: 0,
+                                        position: 'absolute',
+                                        bottom: '130%',
+                                        right: '0',
+                                        background: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 23, 42, 0.95)',
+                                        backdropFilter: 'blur(16px)',
+                                        WebkitBackdropFilter: 'blur(16px)',
+                                        border: '1px solid var(--glass-border)',
+                                        color: 'var(--text-primary)',
+                                        padding: '12px',
+                                        borderRadius: '8px',
+                                        fontSize: '0.74rem',
+                                        width: '220px',
+                                        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.25)',
+                                        pointerEvents: 'none',
+                                        zIndex: 9999,
+                                        transition: 'all 0.2s ease-in-out',
+                                        whiteSpace: 'normal',
+                                        textAlign: 'left',
+                                        lineHeight: '1.4'
+                                      }}>
+                                        <div style={{ fontWeight: 700, color: '#fbbf24', marginBottom: '4px', textTransform: 'uppercase', fontSize: '0.66rem', letterSpacing: '0.05em' }}>
+                                          Optimization Recommended
+                                        </div>
+                                        <div style={{ color: 'var(--text-primary)', fontWeight: 650, marginBottom: '6px' }}>
+                                          {activeRec.recommendation || activeRec.title}
+                                        </div>
+                                        <div style={{ color: 'var(--text-secondary)', marginBottom: '8px', fontSize: '0.7rem' }}>
+                                          {activeRec.description}
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 600 }}>
+                                          <span style={{ color: 'var(--text-muted)' }}>Est. Savings:</span>
+                                          <span style={{ color: 'var(--success)' }}>${activeRec.savings.toFixed(2)}/mo</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {appliedRec && (
+                                    <div className="opt-hover-wrapper" style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                      <CheckCircle2 
+                                        size={11} 
+                                        style={{ 
+                                          color: 'var(--success)', 
+                                          filter: 'drop-shadow(0 0 3px rgba(16, 185, 129, 0.4))'
+                                        }} 
+                                      />
+                                      <span style={{
+                                        fontSize: '0.62rem',
+                                        fontWeight: 700,
+                                        color: 'var(--success)',
+                                        background: 'rgba(16, 185, 129, 0.08)',
+                                        padding: '2px 6px',
+                                        borderRadius: '4px',
+                                        border: '1px solid rgba(16, 185, 129, 0.18)',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.03em',
+                                        cursor: 'help'
+                                      }}>
+                                        Remedied
+                                      </span>
+                                      <div className="opt-hover-card" style={{
+                                        visibility: 'hidden',
+                                        opacity: 0,
+                                        position: 'absolute',
+                                        bottom: '130%',
+                                        right: '0',
+                                        background: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 23, 42, 0.95)',
+                                        backdropFilter: 'blur(16px)',
+                                        WebkitBackdropFilter: 'blur(16px)',
+                                        border: '1px solid var(--glass-border)',
+                                        color: 'var(--text-primary)',
+                                        padding: '12px',
+                                        borderRadius: '8px',
+                                        fontSize: '0.74rem',
+                                        width: '220px',
+                                        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.25)',
+                                        pointerEvents: 'none',
+                                        zIndex: 9999,
+                                        transition: 'all 0.2s ease-in-out',
+                                        whiteSpace: 'normal',
+                                        textAlign: 'left',
+                                        lineHeight: '1.4'
+                                      }}>
+                                        <div style={{ fontWeight: 700, color: 'var(--success)', marginBottom: '4px', textTransform: 'uppercase', fontSize: '0.66rem', letterSpacing: '0.05em' }}>
+                                          Remediation Applied
+                                        </div>
+                                        <div style={{ color: 'var(--text-primary)', fontWeight: 650, marginBottom: '6px' }}>
+                                          {appliedRec.recommendation || appliedRec.title}
+                                        </div>
+                                        <div style={{ color: 'var(--text-secondary)', marginBottom: '8px', fontSize: '0.7rem' }}>
+                                          Optimized & active. Runtime costs are successfully reduced.
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 600 }}>
+                                          <span style={{ color: 'var(--text-muted)' }}>Monthly Savings:</span>
+                                          <span style={{ color: 'var(--success)' }}>${appliedRec.savings.toFixed(2)}/mo</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                               {item.fqdn && (
                                 <div style={{ fontSize: '0.75rem', color: isLight ? '#7c3aed' : '#a78bfa', fontWeight: 400, marginTop: '2px' }}>
@@ -1874,381 +1956,450 @@ Or type any other cost questions you have!` }
             </div>
           </div>
 
-          {/* Two Column Layout */}
-          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap-reverse', width: '100%', alignItems: 'stretch' }}>
-            
-            {/* Left Column: Recommendations List */}
-            <div style={{ flex: 1.8, minWidth: '320px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {(() => {
-                let activeList = showImplemented ? appliedSuggestions : costSuggestions;
-                
-                // Apply source filter
-                if (sourceFilter === 'AZURE') {
-                  activeList = activeList.filter(s => s.source === 'Azure Advisor');
-                } else if (sourceFilter === 'EVA') {
-                  activeList = activeList.filter(s => s.source === 'Eva AI');
-                }
+          {/* Recommendations List Container (Full Width) */}
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {(() => {
+              let activeList = showImplemented ? appliedSuggestions : costSuggestions;
+              
+              // Apply source filter
+              if (sourceFilter === 'AZURE') {
+                activeList = activeList.filter(s => s.source === 'Azure Advisor');
+              } else if (sourceFilter === 'EVA') {
+                activeList = activeList.filter(s => s.source === 'Eva AI');
+              }
 
-                if (activeList.length === 0) {
-                  return (
-                    <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                      <CheckCircle2 size={36} style={{ color: 'var(--success)' }} />
-                      <h3 style={{ margin: 0 }}>
-                        {showImplemented ? 'No Implemented Remedies Yet' : 'Infrastructure Fully Optimized'}
-                      </h3>
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', margin: 0 }}>
-                        {showImplemented 
-                          ? 'Trigger optimizations by clicking the Remediate action button on active suggestions.'
-                          : 'No active cost optimization recommendations found matching the filters.'}
-                      </p>
-                    </div>
-                  );
-                }
-
+              if (activeList.length === 0) {
                 return (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(285px, 1fr))', gap: '20px' }}>
-                    {activeList.map((suggestion) => {
-                      const priorityVal = suggestion.priority || suggestion.impact || 'low';
-                      const isHigh = priorityVal === 'high';
-                      const isMedium = priorityVal === 'medium';
-                      const icon = isHigh ? <AlertCircle size={14} /> : isMedium ? <AlertTriangle size={14} /> : <Settings size={14} />;
-                      const priorityColor = isHigh ? 'var(--error)' : isMedium ? 'var(--warning)' : 'var(--text-secondary)';
-                      const priorityBg = isHigh ? 'rgba(239, 68, 68, 0.08)' : isMedium ? 'rgba(245, 158, 11, 0.08)' : 'rgba(255, 255, 255, 0.04)';
-                      const titleVal = suggestion.title || suggestion.recommendation || 'Recommendation';
-                      const resourceNameVal = suggestion.resourceName || suggestion.appName || 'General';
-                      const isSuggestionApplied = !!suggestion.applied || showImplemented;
-                      const sourceVal = suggestion.source || 'Azure Advisor';
-                      const isEvaSource = sourceVal === 'Eva AI';
-
-                      const sourceBadgeStyle = isEvaSource
-                        ? { background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.3)', color: '#c084fc' }
-                        : { background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', color: '#60a5fa' };
-
-                      return (
-                        <div 
-                          key={suggestion.id} 
-                          className="glass-panel" 
-                          style={{ 
-                            padding: '24px', 
-                            borderLeft: `4px solid ${isSuggestionApplied ? 'var(--success)' : (isHigh ? 'var(--error)' : isMedium ? 'var(--warning)' : 'var(--glass-border)')}`,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'space-between',
-                            gap: '20px',
-                            height: '100%',
-                            background: 'rgba(255, 255, 255, 0.01)',
-                            transition: 'all 0.25s ease',
-                            opacity: isSuggestionApplied ? 0.8 : 1
-                          }}
-                        >
-                          {/* Card Content Top */}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
-                            {/* Header: Icon & Title info */}
-                            <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
-                              <div style={{
-                                width: '38px',
-                                height: '38px',
-                                borderRadius: '50%',
-                                background: isSuggestionApplied ? 'rgba(34,197,94,0.08)' : priorityBg,
-                                border: `1px solid ${isSuggestionApplied ? 'var(--success)' : priorityColor}40`,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: isSuggestionApplied ? 'var(--success)' : priorityColor,
-                                flexShrink: 0
-                              }}>
-                                <TrendingDown size={16} />
-                              </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', lineHeight: '1.3' }}>{titleVal}</h4>
-                                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                                  <span style={{ 
-                                    fontSize: '0.6rem', 
-                                    fontWeight: 700, 
-                                    color: isSuggestionApplied ? 'var(--success)' : priorityColor, 
-                                    background: isSuggestionApplied ? 'rgba(34,197,94,0.08)' : priorityBg,
-                                    padding: '1px 6px',
-                                    borderRadius: '8px',
-                                    border: `1px solid ${isSuggestionApplied ? 'var(--success)' : priorityColor}30`,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px'
-                                  }}>
-                                    {isSuggestionApplied ? <CheckCircle2 size={10} /> : icon}
-                                    {isSuggestionApplied ? 'RESOLVED' : priorityVal.toUpperCase()}
-                                  </span>
-
-                                  <span style={{ 
-                                    fontSize: '0.6rem', 
-                                    fontWeight: 700,
-                                    padding: '1px 6px',
-                                    borderRadius: '8px',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '3px',
-                                    ...sourceBadgeStyle
-                                  }}>
-                                    {isEvaSource && <Sparkles size={8} />}
-                                    {sourceVal.toUpperCase()}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Description */}
-                            <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.45', flex: 1 }}>{suggestion.description}</p>
-                            
-                            {/* Target resource */}
-                            <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--success)', fontWeight: 500 }}>
-                              Resource: <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{resourceNameVal}</strong>
-                            </p>
-                          </div>
-
-                          {/* Card Footer: Savings info & Remediation Action */}
-                          <div style={{ 
-                            display: 'flex', 
-                            justifyContent: 'space-between', 
-                            alignItems: 'center', 
-                            paddingTop: '16px', 
-                            borderTop: '1px solid var(--divider)' 
-                          }}>
-                            <div>
-                              <div style={{ fontSize: '0.66rem', color: 'var(--text-secondary)' }}>Savings</div>
-                              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--success)' }}>${suggestion.savings.toFixed(2)}/mo</div>
-                            </div>
-                            
-                            <button
-                              className={isSuggestionApplied ? "btn-secondary" : "btn-primary"}
-                              onClick={() => {
-                                if (isViewer || isSuggestionApplied) return;
-                                handleApplyRemediation(suggestion.id, suggestion.type, resourceNameVal);
-                              }}
-                              disabled={isViewer || isSuggestionApplied || remediating === suggestion.id}
-                              style={{
-                                padding: '6px 14px',
-                                fontSize: '0.74rem',
-                                height: '32px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                                cursor: (isViewer || isSuggestionApplied) ? 'not-allowed' : 'pointer',
-                                opacity: (isViewer || isSuggestionApplied) ? 0.65 : 1
-                              }}
-                            >
-                              {remediating === suggestion.id ? (
-                                <>
-                                  <RefreshCw size={11} className="spin-anim" />
-                                  Optimizing...
-                                </>
-                              ) : isSuggestionApplied ? (
-                                <>
-                                  <CheckCircle2 size={11} />
-                                  Remediated
-                                </>
-                              ) : (
-                                'Remediate'
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                    <CheckCircle2 size={36} style={{ color: 'var(--success)' }} />
+                    <h3 style={{ margin: 0 }}>
+                      {showImplemented ? 'No Implemented Remedies Yet' : 'Infrastructure Fully Optimized'}
+                    </h3>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', margin: 0 }}>
+                      {showImplemented 
+                        ? 'Trigger optimizations by clicking the Remediate action button on active suggestions.'
+                        : 'No active cost optimization recommendations found matching the filters.'}
+                    </p>
                   </div>
                 );
-              })()}
-            </div>
+              }
 
-            {/* Right Column: Eva AI Analyst Chat Panel */}
-            <div style={{ flex: 0.9, minWidth: '300px', display: 'flex', flexDirection: 'column' }}>
-              <div className="glass-panel" style={{ 
-                padding: '24px', 
-                height: '100%',
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: '20px',
-                background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.03) 0%, rgba(99, 102, 241, 0.06) 100%)',
-                borderColor: 'rgba(124, 58, 237, 0.2)',
-                boxShadow: '0 0 30px rgba(124, 58, 237, 0.05)',
-                position: 'relative'
-              }}>
-                {/* Floating AI Orb Effect */}
-                <div style={{ position: 'absolute', top: '-10px', right: '-10px', width: '100px', height: '100px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(285px, 1fr))', gap: '20px' }}>
+                  {activeList.map((suggestion) => {
+                    const priorityVal = suggestion.priority || suggestion.impact || 'low';
+                    const isHigh = priorityVal === 'high';
+                    const isMedium = priorityVal === 'medium';
+                    const icon = isHigh ? <AlertCircle size={14} /> : isMedium ? <AlertTriangle size={14} /> : <Settings size={14} />;
+                    const priorityColor = isHigh ? 'var(--error)' : isMedium ? 'var(--warning)' : 'var(--text-secondary)';
+                    const priorityBg = isHigh ? 'rgba(239, 68, 68, 0.08)' : isMedium ? 'rgba(245, 158, 11, 0.08)' : 'rgba(255, 255, 255, 0.04)';
+                    const titleVal = suggestion.title || suggestion.recommendation || 'Recommendation';
+                    const resourceNameVal = suggestion.resourceName || suggestion.appName || 'General';
+                    const isSuggestionApplied = !!suggestion.applied || showImplemented;
+                    const sourceVal = suggestion.source || 'Azure Advisor';
+                    const isEvaSource = sourceVal === 'Eva AI';
 
-                {/* Header */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '10px',
-                    background: 'rgba(139, 92, 246, 0.12)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#c084fc',
-                    border: '1px solid rgba(139, 92, 246, 0.25)',
-                    boxShadow: '0 0 12px rgba(139, 92, 246, 0.2)'
-                  }}>
-                    <Brain size={22} className={askingEva ? "spin-anim" : ""} style={{ filter: 'drop-shadow(0 0 3px rgba(192, 132, 252, 0.6))' }} />
-                  </div>
-                  <div>
-                    <h4 style={{ fontSize: '0.94rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Eva AI Analyst</h4>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px' }}>
-                      <span className="premium-build-dot" style={{ width: '6px', height: '6px', background: '#22c55e', boxShadow: '0 0 6px #22c55e', margin: 0 }} />
-                      <span style={{ fontSize: '0.66rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Platform Engine Online</span>
-                    </div>
-                  </div>
-                </div>
+                    const sourceBadgeStyle = isEvaSource
+                      ? { background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.3)', color: '#c084fc' }
+                      : { background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', color: '#60a5fa' };
 
-                {/* Analytics Summary */}
-                <div style={{ 
-                  background: 'rgba(0,0,0,0.15)', 
-                  border: '1px solid var(--glass-border)', 
-                  borderRadius: '10px', 
-                  padding: '14px',
-                  fontSize: '0.78rem',
-                  color: 'var(--text-secondary)',
-                  lineHeight: '1.45'
-                }}>
-                  <div style={{ fontWeight: 700, color: '#c084fc', marginBottom: '8px', textTransform: 'uppercase', fontSize: '0.68rem', letterSpacing: '0.05em' }}>Infrastructure Report</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Efficiency Score:</span>
-                      <strong style={{ color: (costSummary?.optimizationScore || 100) > 85 ? 'var(--success)' : '#fbbf24' }}>
-                        {costSummary ? costSummary.optimizationScore : '100'}/100
-                      </strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Monthly Run-Rate:</span>
-                      <strong style={{ color: 'var(--text-primary)' }}>${costSummary ? costSummary.monthlyRunRate.toFixed(2) : '0.00'}/mo</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Savings Opportunity:</span>
-                      <strong style={{ color: 'var(--success)' }}>${costSummary ? costSummary.potentialSavings.toFixed(2) : '0.00'}/mo</strong>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Chat Log */}
-                <div style={{ 
-                  flex: 1, 
-                  maxHeight: '260px', 
-                  overflowY: 'auto', 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: '12px',
-                  padding: '4px',
-                  borderBottom: '1px solid var(--divider)'
-                }}>
-                  {evaChat.map((msg, idx) => {
-                    const isEva = msg.role === 'assistant';
                     return (
-                      <div key={idx} style={{
-                        alignSelf: isEva ? 'flex-start' : 'flex-end',
-                        maxWidth: '90%',
-                        background: isEva ? 'rgba(255,255,255,0.02)' : 'rgba(139, 92, 246, 0.08)',
-                        border: `1px solid ${isEva ? 'var(--glass-border)' : 'rgba(139, 92, 246, 0.2)'}`,
-                        padding: '10px 12px',
-                        borderRadius: isEva ? '10px 10px 10px 2px' : '10px 10px 2px 10px',
-                        fontSize: '0.78rem',
-                        color: 'var(--text-primary)',
-                        lineHeight: '1.4'
-                      }}>
-                        {msg.content.split('\n').map((line, lIdx) => (
-                          <p key={lIdx} style={{ margin: 0, marginTop: lIdx > 0 ? '6px' : 0 }}>
-                            {line.split('**').map((part, pIdx) => {
-                              if (pIdx % 2 === 1) {
-                                return <strong key={pIdx} style={{ color: '#c084fc' }}>{part}</strong>;
-                              }
-                              return part;
-                            })}
+                      <div 
+                        key={suggestion.id} 
+                        className="glass-panel" 
+                        style={{ 
+                          padding: '24px', 
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          gap: '20px',
+                          height: '100%',
+                          background: isEvaSource 
+                            ? 'linear-gradient(135deg, rgba(124, 58, 237, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%)'
+                            : 'rgba(255, 255, 255, 0.01)',
+                          border: isEvaSource
+                            ? '1px solid rgba(124, 58, 237, 0.18)'
+                            : '1px solid var(--glass-border)',
+                          borderLeft: `4px solid ${isSuggestionApplied ? 'var(--success)' : (isHigh ? 'var(--error)' : isMedium ? 'var(--warning)' : 'var(--glass-border)')}`,
+                          boxShadow: isEvaSource
+                            ? '0 4px 20px rgba(124, 58, 237, 0.04)'
+                            : 'none',
+                          transition: 'all 0.25s ease',
+                          opacity: isSuggestionApplied ? 0.8 : 1
+                        }}
+                      >
+                        {/* Card Content Top */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
+                          {/* Header: Icon & Title info */}
+                          <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+                            <div style={{
+                              width: '38px',
+                              height: '38px',
+                              borderRadius: '50%',
+                              background: isSuggestionApplied ? 'rgba(34,197,94,0.08)' : priorityBg,
+                              border: `1px solid ${isSuggestionApplied ? 'var(--success)' : priorityColor}40`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: isSuggestionApplied ? 'var(--success)' : priorityColor,
+                              flexShrink: 0
+                            }}>
+                              <TrendingDown size={16} />
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', lineHeight: '1.3' }}>{titleVal}</h4>
+                              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                <span style={{ 
+                                  fontSize: '0.6rem', 
+                                  fontWeight: 700, 
+                                  color: isSuggestionApplied ? 'var(--success)' : priorityColor, 
+                                  background: isSuggestionApplied ? 'rgba(34,197,94,0.08)' : priorityBg,
+                                  padding: '1px 6px',
+                                  borderRadius: '8px',
+                                  border: `1px solid ${isSuggestionApplied ? 'var(--success)' : priorityColor}30`,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}>
+                                  {isSuggestionApplied ? <CheckCircle2 size={10} /> : icon}
+                                  {isSuggestionApplied ? 'RESOLVED' : priorityVal.toUpperCase()}
+                                </span>
+
+                                <span style={{ 
+                                  fontSize: '0.6rem', 
+                                  fontWeight: 700,
+                                  padding: '1px 6px',
+                                  borderRadius: '8px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  ...sourceBadgeStyle
+                                }}>
+                                  {isEvaSource && <Sparkles size={8} />}
+                                  {sourceVal.toUpperCase()}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Description */}
+                          <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.45', flex: 1 }}>{suggestion.description}</p>
+                          
+                          {/* Target resource */}
+                          <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--success)', fontWeight: 500 }}>
+                            Resource: <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{resourceNameVal}</strong>
                           </p>
-                        ))}
+                        </div>
+
+                        {/* Card Footer: Savings info & Remediation Action */}
+                        <div style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center', 
+                          paddingTop: '16px', 
+                          borderTop: '1px solid var(--divider)' 
+                        }}>
+                          <div>
+                            <div style={{ fontSize: '0.66rem', color: 'var(--text-secondary)' }}>Savings</div>
+                            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--success)' }}>${suggestion.savings.toFixed(2)}/mo</div>
+                          </div>
+                          
+                          <button
+                            className={isSuggestionApplied ? "btn-secondary" : "btn-primary"}
+                            onClick={() => {
+                              if (isViewer || isSuggestionApplied) return;
+                              handleApplyRemediation(suggestion.id, suggestion.type, resourceNameVal);
+                            }}
+                            disabled={isViewer || isSuggestionApplied || remediating === suggestion.id}
+                            style={{
+                              padding: '6px 14px',
+                              fontSize: '0.74rem',
+                              height: '32px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              cursor: (isViewer || isSuggestionApplied) ? 'not-allowed' : 'pointer',
+                              opacity: (isViewer || isSuggestionApplied) ? 0.65 : 1
+                            }}
+                          >
+                            {remediating === suggestion.id ? (
+                              <>
+                                <RefreshCw size={11} className="spin-anim" />
+                                Optimizing...
+                              </>
+                            ) : isSuggestionApplied ? (
+                              <>
+                                <CheckCircle2 size={11} />
+                                Remediated
+                              </>
+                            ) : (
+                              'Remediate'
+                            )}
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
                 </div>
+              );
+            })()}
+          </div>
 
-                {/* Quick click suggestions */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ fontSize: '0.66rem', fontWeight: 600, color: 'var(--text-muted)' }}>Quick consultations:</div>
-                  {[
-                    "How can we optimize SQL Database costs?",
-                    "What is the impact of sleep scheduler rules?",
-                    "Why are dev container apps scaled to zero?"
-                  ].map((suggestionText) => (
-                    <button
-                      key={suggestionText}
-                      disabled={askingEva}
-                      onClick={() => handleAskEva(suggestionText)}
-                      style={{
-                        background: 'rgba(255,255,255,0.01)',
-                        border: '1px solid var(--glass-border)',
-                        borderRadius: '6px',
-                        padding: '6px 10px',
-                        fontSize: '0.72rem',
-                        color: 'var(--text-secondary)',
-                        textAlign: 'left',
-                        cursor: askingEva ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.2s',
-                        lineHeight: '1.3'
-                      }}
-                      onMouseEnter={(e) => { if (!askingEva) e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.4)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--glass-border)'; }}
-                    >
-                      💬 {suggestionText}
-                    </button>
-                  ))}
+          {/* Backdrop/Overlay */}
+          {isEvaOpen && (
+            <div 
+              onClick={() => setIsEvaOpen(false)}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(2, 6, 23, 0.45)',
+                backdropFilter: 'blur(4px)',
+                WebkitBackdropFilter: 'blur(4px)',
+                zIndex: 10000,
+                transition: 'opacity 0.3s ease'
+              }}
+            />
+          )}
+
+          {/* Drawer Panel Layout */}
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            right: 0,
+            height: '100vh',
+            width: '400px',
+            zIndex: 10001,
+            transform: isEvaOpen ? 'translateX(0)' : 'translateX(100%)',
+            transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
+            visibility: isEvaOpen ? 'visible' : 'hidden',
+            backgroundColor: 'var(--bg-secondary, #0f172a)',
+            borderLeft: '1px solid var(--glass-border, rgba(255, 255, 255, 0.08))',
+            boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.25)',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '24px',
+            boxSizing: 'border-box'
+          }}>
+            {/* Floating AI Orb Effect */}
+            <div style={{ position: 'absolute', top: '-10px', right: '-10px', width: '100px', height: '100px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '10px',
+                  background: 'rgba(139, 92, 246, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#c084fc',
+                  border: '1px solid rgba(139, 92, 246, 0.25)',
+                  boxShadow: '0 0 12px rgba(139, 92, 246, 0.2)'
+                }}>
+                  <Brain size={22} className={askingEva ? "spin-anim" : ""} style={{ filter: 'drop-shadow(0 0 3px rgba(192, 132, 252, 0.6))' }} />
                 </div>
+                <div>
+                  <h4 style={{ fontSize: '0.94rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>Eva AI Analyst</h4>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '2px' }}>
+                    <span className="premium-build-dot" style={{ width: '6px', height: '6px', background: '#22c55e', boxShadow: '0 0 6px #22c55e', margin: 0 }} />
+                    <span style={{ fontSize: '0.66rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Platform Engine Online</span>
+                  </div>
+                </div>
+              </div>
 
-                {/* Input Bar */}
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    placeholder={askingEva ? "Eva is thinking..." : "Consult Eva AI..."}
-                    value={askQuestion}
-                    disabled={askingEva}
-                    onChange={(e) => setAskQuestion(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleAskEva(askQuestion);
-                      }
-                    }}
-                    style={{
-                      flex: 1,
-                      fontSize: '0.78rem',
-                      height: '34px',
-                      padding: '0 12px',
-                      borderRadius: '6px',
-                      border: '1px solid var(--glass-border)',
-                      background: 'rgba(255,255,255,0.01)',
-                      color: 'var(--text-primary)',
-                      outline: 'none'
-                    }}
-                  />
-                  <button
-                    onClick={() => handleAskEva(askQuestion)}
-                    disabled={askingEva || !askQuestion.trim()}
-                    style={{
-                      width: '34px',
-                      height: '34px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      background: (askingEva || !askQuestion.trim()) ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))',
-                      color: '#ffffff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: (askingEva || !askQuestion.trim()) ? 'not-allowed' : 'pointer',
-                      opacity: (askingEva || !askQuestion.trim()) ? 0.6 : 1
-                    }}
-                  >
-                    <Send size={12} />
-                  </button>
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setIsEvaOpen(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '50%',
+                  transition: 'background-color 0.2s',
+                  outline: 'none'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Analytics Summary */}
+            <div style={{ 
+              background: 'rgba(0,0,0,0.15)', 
+              border: '1px solid var(--glass-border)', 
+              borderRadius: '10px', 
+              padding: '14px',
+              fontSize: '0.78rem',
+              color: 'var(--text-secondary)',
+              lineHeight: '1.45',
+              flexShrink: 0,
+              marginBottom: '20px'
+            }}>
+              <div style={{ fontWeight: 700, color: '#c084fc', marginBottom: '8px', textTransform: 'uppercase', fontSize: '0.68rem', letterSpacing: '0.05em' }}>Infrastructure Report</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Efficiency Score:</span>
+                  <strong style={{ color: (costSummary?.optimizationScore || 100) > 85 ? 'var(--success)' : '#fbbf24' }}>
+                    {costSummary ? costSummary.optimizationScore : '100'}/100
+                  </strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Monthly Run-Rate:</span>
+                  <strong style={{ color: 'var(--text-primary)' }}>${costSummary ? costSummary.monthlyRunRate.toFixed(2) : '0.00'}/mo</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Savings Opportunity:</span>
+                  <strong style={{ color: 'var(--success)' }}>${costSummary ? costSummary.potentialSavings.toFixed(2) : '0.00'}/mo</strong>
                 </div>
               </div>
             </div>
 
+            {/* Chat Log (Dynamic Height, Scrollable) */}
+            <div style={{ 
+              flex: 1, 
+              overflowY: 'auto', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '12px',
+              padding: '4px',
+              borderBottom: '1px solid var(--divider)',
+              marginBottom: '20px'
+            }}>
+              {evaChat.map((msg, idx) => {
+                const isEva = msg.role === 'assistant';
+                return (
+                  <div key={idx} style={{
+                    alignSelf: isEva ? 'flex-start' : 'flex-end',
+                    maxWidth: '90%',
+                    background: isEva ? 'rgba(255,255,255,0.02)' : 'rgba(139, 92, 246, 0.08)',
+                    border: `1px solid ${isEva ? 'var(--glass-border)' : 'rgba(139, 92, 246, 0.2)'}`,
+                    padding: '10px 12px',
+                    borderRadius: isEva ? '10px 10px 10px 2px' : '10px 10px 2px 10px',
+                    fontSize: '0.78rem',
+                    color: 'var(--text-primary)',
+                    lineHeight: '1.4'
+                  }}>
+                    {msg.content.split('\n').map((line, lIdx) => (
+                      <p key={lIdx} style={{ margin: 0, marginTop: lIdx > 0 ? '6px' : 0 }}>
+                        {line.split('**').map((part, pIdx) => {
+                          if (pIdx % 2 === 1) {
+                            return <strong key={pIdx} style={{ color: '#c084fc' }}>{part}</strong>;
+                          }
+                          return part;
+                        })}
+                      </p>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Quick click suggestions */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '20px', flexShrink: 0 }}>
+              <div style={{ fontSize: '0.66rem', fontWeight: 600, color: 'var(--text-muted)' }}>Quick consultations:</div>
+              {[
+                "How can we optimize SQL Database costs?",
+                "What is the impact of sleep scheduler rules?",
+                "Why are dev container apps scaled to zero?"
+              ].map((suggestionText) => (
+                <button
+                  key={suggestionText}
+                  type="button"
+                  disabled={askingEva}
+                  onClick={() => handleAskEva(suggestionText)}
+                  style={{
+                    background: 'rgba(255,255,255,0.01)',
+                    border: '1px solid var(--glass-border)',
+                    borderRadius: '6px',
+                    padding: '6px 10px',
+                    fontSize: '0.72rem',
+                    color: 'var(--text-secondary)',
+                    textAlign: 'left',
+                    cursor: askingEva ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s',
+                    lineHeight: '1.3'
+                  }}
+                  onMouseEnter={(e) => { if (!askingEva) e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.4)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--glass-border)'; }}
+                >
+                  💬 {suggestionText}
+                </button>
+              ))}
+            </div>
+
+            {/* Input Bar */}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+              <input
+                type="text"
+                placeholder={askingEva ? "Eva is thinking..." : "Consult Eva AI..."}
+                value={askQuestion}
+                disabled={askingEva}
+                onChange={(e) => setAskQuestion(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleAskEva(askQuestion);
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  fontSize: '0.78rem',
+                  height: '34px',
+                  padding: '0 12px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--glass-border)',
+                  background: 'rgba(255,255,255,0.01)',
+                  color: 'var(--text-primary)',
+                  outline: 'none'
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => handleAskEva(askQuestion)}
+                disabled={askingEva || !askQuestion.trim()}
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: (askingEva || !askQuestion.trim()) ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: (askingEva || !askQuestion.trim()) ? 'not-allowed' : 'pointer',
+                  opacity: (askingEva || !askQuestion.trim()) ? 0.6 : 1
+                }}
+              >
+                <Send size={12} />
+              </button>
+            </div>
           </div>
+
+          {/* Floating Glowing Eva Button */}
+          <button
+            type="button"
+            className="eva-float-btn"
+            onClick={() => setIsEvaOpen(true)}
+            style={{
+              visibility: isEvaOpen ? 'hidden' : 'visible',
+              opacity: isEvaOpen ? 0 : 1,
+            }}
+          >
+            <Brain size={26} style={{ filter: 'drop-shadow(0 0 6px #ffffff)' }} />
+          </button>
         </div>
       )}
       </div>
