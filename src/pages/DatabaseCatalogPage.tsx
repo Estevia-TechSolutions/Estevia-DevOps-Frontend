@@ -178,7 +178,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
     }));
   };
 
-  const handleBackupDownload = async () => {
+  const executeBackupDownload = async () => {
     if (!selectedDbServer || !selectedDatabase) return;
     setBackingUp(true);
     setBackupError(null);
@@ -209,6 +209,21 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
     } finally {
       setBackingUp(false);
     }
+  };
+
+  const handleBackupDownload = () => {
+    if (!selectedDatabase || !selectedDbServer) return;
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Database Backup Request',
+      message: `Are you sure you want to download a SQL backup (schema + data) for the database "${selectedDatabase.name}"? This operation runs table metadata and DML extraction, which might take a moment.`,
+      confirmLabel: 'Take Backup',
+      cancelLabel: 'Cancel',
+      type: 'info',
+      onConfirm: () => {
+        executeBackupDownload();
+      }
+    });
   };
 
   const getTableNameFromQuery = (sql: string) => {
