@@ -509,18 +509,24 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus {
 /* Premium Tabs Grid & Buttons */
 .premium-tabs-grid {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
+  grid-template-columns: repeat(9, 1fr);
   gap: 6px;
   width: 100%;
 }
 
-@media (max-width: 1400px) {
+@media (max-width: 1450px) {
   .premium-tabs-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
+  .premium-tabs-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
   .premium-tabs-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -530,14 +536,14 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus {
   background: rgba(255, 255, 255, 0.015);
   color: var(--text-secondary);
   border: 1px solid var(--glass-border);
-  padding: 10px 14px;
+  padding: 8px 10px;
   border-radius: 10px;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.76rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;

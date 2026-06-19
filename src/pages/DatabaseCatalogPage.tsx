@@ -526,65 +526,26 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
               {/* subtle ambient glow */}
               <div style={{ position: 'absolute', top: '-30px', right: '60px', width: '180px', height: '180px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(220,38,38,0.18) 0%, transparent 70%)', pointerEvents: 'none' }} />
               
-              {/* Row 1: DB Info */}
+              {/* Row 1: DB Info + Take Backup Action */}
               <div style={{ 
                 padding: '20px 24px 14px 24px', 
                 position: 'relative',
                 zIndex: 1,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
-                  <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff' }}>{selectedDatabase.name}</span>
-                  <span style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: '10px', background: 'rgba(220, 38, 38, 0.25)', border: '1px solid rgba(220, 38, 38, 0.45)', color: '#fca5a5', fontWeight: 600 }}>Schema Catalog</span>
-                </div>
-                <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.65)', marginTop: '4px', position: 'relative' }}>
-                  Server: <span style={{ fontFamily: 'monospace', color: 'rgba(255,255,255,0.9)' }}>{selectedDbServer?.name}</span>
-                </div>
-              </div>
-
-              {/* Row 2: Sub tabs + always-visible action buttons */}
-              <div style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'space-between', padding: '0 24px', gap: '8px' }}>
-                {/* Tab pills */}
-                <div style={{ display: 'flex', gap: '2px', overflowX: 'auto', scrollbarWidth: 'none', flex: 1 }}>
-                  {([
-                    { id: 'schema',       label: 'Tables & Schema'     },
-                    { id: 'query',        label: 'SQL Console'          },
-                    { id: 'create-table', label: '+ New Table'          },
-                    { id: 'connect',      label: 'Connection Snippets'  },
-                    { id: 'erd',          label: 'ERD Visualizer'       },
-                    { id: 'compare',      label: 'Compare & Migrate'    },
-                  ] as const).map(tab => {
-                    const active = dbDetailTab === tab.id;
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => setDbDetailTab(tab.id)}
-                        style={{
-                          padding: '10px 20px',
-                          fontSize: '0.82rem',
-                          fontWeight: active ? 700 : 500,
-                          border: 'none',
-                          background: active
-                            ? 'rgba(239, 68, 68, 0.22)'
-                            : 'rgba(255, 255, 255, 0.06)',
-                          borderTopLeftRadius: '8px',
-                          borderTopRightRadius: '8px',
-                          color: active ? '#fff' : 'rgba(255, 255, 255, 0.82)',
-                          cursor: 'pointer',
-                          borderBottom: active ? '2.5px solid #ef4444' : '2.5px solid transparent',
-                          textShadow: active ? '0 0 12px rgba(239,68,68,0.7)' : 'none',
-                          letterSpacing: active ? '0.01em' : 'normal',
-                          transition: 'all 0.15s ease',
-                          position: 'relative',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {tab.label}
-                      </button>
-                    );
-                  })}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff' }}>{selectedDatabase.name}</span>
+                    <span style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: '10px', background: 'rgba(220, 38, 38, 0.25)', border: '1px solid rgba(220, 38, 38, 0.45)', color: '#fca5a5', fontWeight: 600 }}>Schema Catalog</span>
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.65)', marginTop: '4px', position: 'relative' }}>
+                    Server: <span style={{ fontFamily: 'monospace', color: 'rgba(255,255,255,0.9)' }}>{selectedDbServer?.name}</span>
+                  </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   {backupError && (
                     <span style={{ fontSize: '0.75rem', color: '#fca5a5', background: 'rgba(220, 38, 38, 0.25)', padding: '4px 8px', borderRadius: '4px', border: '1px solid rgba(220, 38, 38, 0.45)' }}>
                       ⚠️ {backupError}
@@ -616,6 +577,50 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                     )}
                     {backingUp ? 'Backing Up...' : 'Take Backup & Download'}
                   </button>
+                </div>
+              </div>
+
+              {/* Row 2: Sub tabs */}
+              <div style={{ display: 'flex', alignItems: 'stretch', padding: '0 24px' }}>
+                {/* Tab pills */}
+                <div style={{ display: 'flex', gap: '2px', overflowX: 'auto', scrollbarWidth: 'none', flex: 1 }}>
+                  {([
+                    { id: 'schema',       label: 'Tables & Schema'     },
+                    { id: 'query',        label: 'SQL Console'          },
+                    { id: 'create-table', label: '+ New Table'          },
+                    { id: 'connect',      label: 'Connection Snippets'  },
+                    { id: 'erd',          label: 'ERD Visualizer'       },
+                    { id: 'compare',      label: 'Compare & Migrate'    },
+                  ] as const).map(tab => {
+                    const active = dbDetailTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setDbDetailTab(tab.id)}
+                        style={{
+                          padding: '10px 14px',
+                          fontSize: '0.75rem',
+                          fontWeight: active ? 700 : 500,
+                          border: 'none',
+                          background: active
+                            ? 'rgba(239, 68, 68, 0.22)'
+                            : 'rgba(255, 255, 255, 0.06)',
+                          borderTopLeftRadius: '8px',
+                          borderTopRightRadius: '8px',
+                          color: active ? '#fff' : 'rgba(255, 255, 255, 0.82)',
+                          cursor: 'pointer',
+                          borderBottom: active ? '2.5px solid #ef4444' : '2.5px solid transparent',
+                          textShadow: active ? '0 0 12px rgba(239,68,68,0.7)' : 'none',
+                          letterSpacing: active ? '0.01em' : 'normal',
+                          transition: 'all 0.15s ease',
+                          position: 'relative',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {tab.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>

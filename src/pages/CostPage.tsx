@@ -701,118 +701,225 @@ export const CostPage: React.FC<CostPageProps> = ({
       )}
       
       {/* Overview Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
-        <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
-          <div style={{
-            width: '56px',
-            height: '56px',
-            borderRadius: '12px',
-            background: 'rgba(16, 185, 129, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--success)'
-          }}>
-            <Database size={28} />
-          </div>
-          <div>
-            <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Monthly Run Rate</h3>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
-              <span style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                ${costSummary ? costSummary.monthlyRunRate.toFixed(2) : '0.00'}
-              </span>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>/ month</span>
+      {mode === 'cost' ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
+          <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '12px',
+              background: 'rgba(16, 185, 129, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--success)'
+            }}>
+              <Database size={28} />
             </div>
-          </div>
-        </div>
-
-        <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
-          <div style={{
-            width: '56px',
-            height: '56px',
-            borderRadius: '12px',
-            background: 'rgba(16, 185, 129, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--success)'
-          }}>
-            <CheckCircle2 size={28} />
-          </div>
-          <div>
-            <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Potential Savings</h3>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
-              <span style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--success)' }}>
-                ${costSummary ? costSummary.potentialSavings.toFixed(2) : '0.00'}
-              </span>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>/ month</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
-          <div style={{
-            width: '56px',
-            height: '56px',
-            borderRadius: '12px',
-            background: 'rgba(16, 185, 129, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--success)'
-          }}>
-            <span style={{ fontSize: '1.5rem', fontWeight: 700 }}>
-              {costSummary ? costSummary.optimizationScore : '100'}
-            </span>
-          </div>
-          <div>
-            <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Cost Optimization Score</h3>
-            <div style={{ height: '6px', width: '120px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', marginTop: '8px', overflow: 'hidden' }}>
-              <div style={{ 
-                height: '100%', 
-                width: `${costSummary ? costSummary.optimizationScore : 100}%`, 
-                background: (costSummary?.optimizationScore || 100) > 80 ? 'var(--success)' : (costSummary?.optimizationScore || 100) > 60 ? 'var(--warning)' : 'var(--error)',
-                transition: 'width 0.5s ease'
-              }}></div>
-            </div>
-          </div>
-        </div>
-
-        {/* Next Due Bill Card */}
-        <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
-          <div style={{
-            width: '56px',
-            height: '56px',
-            borderRadius: '12px',
-            background: 'rgba(16, 185, 129, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--success)'
-          }}>
-            <TrendingDown size={28} />
-          </div>
-          <div>
-            <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Next Bill Due</h3>
-            <div style={{ marginTop: '4px' }}>
-              {nextDueInvoice ? (
-                <>
-                  <span style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    ${Number(nextDueInvoice.amount).toFixed(2)}
-                  </span>
-                  <div style={{ fontSize: '0.74rem', color: 'var(--warning)', marginTop: '2px', fontWeight: 600 }}>
-                    Due: {nextDueInvoice.due_date}
-                  </div>
-                </>
-              ) : (
-                <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  No pending bills
+            <div>
+              <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Monthly Run Rate</h3>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
+                <span style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  ${costSummary ? costSummary.monthlyRunRate.toFixed(2) : '0.00'}
                 </span>
-              )}
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>/ month</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '12px',
+              background: 'rgba(16, 185, 129, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--success)'
+            }}>
+              <CheckCircle2 size={28} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Potential Savings</h3>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
+                <span style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--success)' }}>
+                  ${costSummary ? costSummary.potentialSavings.toFixed(2) : '0.00'}
+                </span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>/ month</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '12px',
+              background: 'rgba(16, 185, 129, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--success)'
+            }}>
+              <span style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+                {costSummary ? costSummary.optimizationScore : '100'}
+              </span>
+            </div>
+            <div>
+              <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Cost Optimization Score</h3>
+              <div style={{ height: '6px', width: '120px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', marginTop: '8px', overflow: 'hidden' }}>
+                <div style={{ 
+                  height: '100%', 
+                  width: `${costSummary ? costSummary.optimizationScore : 100}%`, 
+                  background: (costSummary?.optimizationScore || 100) > 80 ? 'var(--success)' : (costSummary?.optimizationScore || 100) > 60 ? 'var(--warning)' : 'var(--error)',
+                  transition: 'width 0.5s ease'
+                }}></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '12px',
+              background: 'rgba(16, 185, 129, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--success)'
+            }}>
+              <TrendingDown size={28} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Next Bill Due</h3>
+              <div style={{ marginTop: '4px' }}>
+                {nextDueInvoice ? (
+                  <>
+                    <span style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      ${Number(nextDueInvoice.amount).toFixed(2)}
+                    </span>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--warning)', marginTop: '2px', fontWeight: 600 }}>
+                      Due: {nextDueInvoice.due_date}
+                    </div>
+                  </>
+                ) : (
+                  <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    No pending bills
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
+          {/* Optimization Score */}
+          <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '12px',
+              background: 'rgba(16, 185, 129, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--success)'
+            }}>
+              <span style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+                {costSummary ? costSummary.optimizationScore : '100'}
+              </span>
+            </div>
+            <div>
+              <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Optimization Score</h3>
+              <div style={{ height: '6px', width: '120px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', marginTop: '8px', overflow: 'hidden' }}>
+                <div style={{ 
+                  height: '100%', 
+                  width: `${costSummary ? costSummary.optimizationScore : 100}%`, 
+                  background: (costSummary?.optimizationScore || 100) > 80 ? 'var(--success)' : (costSummary?.optimizationScore || 100) > 60 ? 'var(--warning)' : 'var(--error)',
+                  transition: 'width 0.5s ease'
+                }}></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Potential Savings */}
+          <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '12px',
+              background: 'rgba(16, 185, 129, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--success)'
+            }}>
+              <TrendingDown size={28} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Potential Savings</h3>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
+                <span style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--success)' }}>
+                  ${costSummary ? costSummary.potentialSavings.toFixed(2) : '0.00'}
+                </span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>/ month</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Active Recommendations Card */}
+          <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(245, 158, 11, 0.1)' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '12px',
+              background: 'rgba(245, 158, 11, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--warning, #f59e0b)'
+            }}>
+              <AlertCircle size={28} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Active Recommendations</h3>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
+                <span style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--warning, #f59e0b)' }}>
+                  {costSuggestions.length}
+                </span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>active</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Implemented Remedies Card */}
+          <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '12px',
+              background: 'rgba(34, 197, 94, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--success)'
+            }}>
+              <CheckCircle2 size={28} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Implemented Remedies</h3>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
+                <span style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--success)' }}>
+                  {appliedSuggestions.length}
+                </span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>resolved</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cost Sub-tabs */}
       <div className="tabs-container" style={{ 
@@ -852,7 +959,7 @@ export const CostPage: React.FC<CostPageProps> = ({
               onClick={() => setCostTab('recommendations')}
               style={{ fontSize: '0.85rem', padding: '8px 20px', borderRadius: '8px' }}
             >
-              Optimization Recommendations ({costSuggestions.length} active / {appliedSuggestions.length} resolved)
+              Optimization Recommendations
             </button>
             <button 
               type="button"
