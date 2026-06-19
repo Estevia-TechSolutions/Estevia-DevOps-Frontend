@@ -183,7 +183,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
     setBackingUp(true);
     setBackupError(null);
     try {
-      const url = `${API_BASE}/api/database-hub/backup?serverName=${encodeURIComponent(selectedDbServer.name)}&dbName=${encodeURIComponent(selectedDatabase.name)}`;
+      const url = `${API_BASE}/database-hub/backup?serverName=${encodeURIComponent(selectedDbServer.name)}&dbName=${encodeURIComponent(selectedDatabase.name)}`;
       const response = await fetch(url, {
         method: 'GET',
         headers: {
