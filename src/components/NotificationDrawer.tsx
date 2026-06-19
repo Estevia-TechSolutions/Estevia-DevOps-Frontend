@@ -16,6 +16,7 @@ interface NotificationDrawerProps {
   notifications: AppNotification[];
   onClearAll: () => void;
   onDeleteNotification: (id: string) => void;
+  onViewDetails?: (category: string, notification: AppNotification) => void;
 }
 
 export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
@@ -24,6 +25,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
   notifications,
   onClearAll,
   onDeleteNotification,
+  onViewDetails,
 }) => {
   const [expandedNotifications, setExpandedNotifications] = useState<Record<string, boolean>>({});
 
@@ -468,7 +470,11 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
                           href="#"
                           onClick={(e) => {
                             e.preventDefault();
-                            onClose();
+                            if (onViewDetails) {
+                              onViewDetails(category.label, n);
+                            } else {
+                              onClose();
+                            }
                           }}
                           className="notif-action-btn"
                           style={{

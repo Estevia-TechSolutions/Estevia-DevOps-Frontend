@@ -20,7 +20,8 @@ import {
   Brain,
   MessageSquare,
   Send,
-  X
+  X,
+  Activity
 } from 'lucide-react';
 import { SleepScheduler } from '../components/cost/SleepScheduler';
 
@@ -2058,27 +2059,21 @@ export const CostPage: React.FC<CostPageProps> = ({
                       >
                         {/* Card Content Top */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
-                          {/* Header: Icon, Title & Badges in Top-Right Corner */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', width: '100%' }}>
-                            {/* Icon & Title */}
-                            <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
-                              <div style={{
-                                width: '38px',
-                                height: '38px',
-                                borderRadius: '50%',
-                                background: isSuggestionApplied ? 'rgba(34,197,94,0.08)' : priorityBg,
-                                border: `1px solid ${isSuggestionApplied ? 'var(--success)' : priorityColor}40`,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: isSuggestionApplied ? 'var(--success)' : priorityColor,
-                                flexShrink: 0
-                              }}>
-                                <TrendingDown size={16} />
-                              </div>
-                              <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', lineHeight: '1.3', wordBreak: 'break-word' }}>
-                                {titleVal}
-                              </h4>
+                          {/* Header Row: Icon on Left, Badges on Right */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '16px' }}>
+                            <div style={{
+                              width: '38px',
+                              height: '38px',
+                              borderRadius: '50%',
+                              background: isSuggestionApplied ? 'rgba(34,197,94,0.08)' : priorityBg,
+                              border: `1px solid ${isSuggestionApplied ? 'var(--success)' : priorityColor}40`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: isSuggestionApplied ? 'var(--success)' : priorityColor,
+                              flexShrink: 0
+                            }}>
+                              <TrendingDown size={16} />
                             </div>
                             
                             {/* Badges/Pills on the Right Corner */}
@@ -2101,7 +2096,7 @@ export const CostPage: React.FC<CostPageProps> = ({
 
                               <span style={{ 
                                 fontSize: '0.6rem', 
-                                fontWeight: 700,
+                                fontWeight: 700, 
                                 padding: '1px 6px',
                                 borderRadius: '8px',
                                 display: 'inline-flex',
@@ -2114,6 +2109,11 @@ export const CostPage: React.FC<CostPageProps> = ({
                               </span>
                             </div>
                           </div>
+
+                          {/* Recommendation Title on a separate line below the badges */}
+                          <h4 style={{ fontSize: '0.94rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', lineHeight: '1.35', wordBreak: 'break-word' }}>
+                            {titleVal}
+                          </h4>
 
                           {/* Description */}
                           <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.45', flex: 1 }}>{suggestion.description}</p>
@@ -2209,8 +2209,10 @@ export const CostPage: React.FC<CostPageProps> = ({
             transform: isEvaOpen ? 'translateX(0)' : 'translateX(100%)',
             transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
             visibility: isEvaOpen ? 'visible' : 'hidden',
-            backgroundColor: 'var(--bg-secondary, #0f172a)',
-            borderLeft: '1px solid var(--glass-border, rgba(255, 255, 255, 0.08))',
+            backgroundColor: isLight ? 'rgba(255, 255, 255, 0.75)' : 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(30px) saturate(120%)',
+            WebkitBackdropFilter: 'blur(30px) saturate(120%)',
+            borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
             boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.25)',
             display: 'flex',
             flexDirection: 'column',
@@ -2218,10 +2220,21 @@ export const CostPage: React.FC<CostPageProps> = ({
             boxSizing: 'border-box'
           }}>
             {/* Floating AI Orb Effect */}
-            <div style={{ position: 'absolute', top: '-10px', right: '-10px', width: '100px', height: '100px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%)', pointerEvents: 'none' }} />
+            <div style={{ 
+              position: 'absolute', 
+              top: '-15%', 
+              right: '-15%', 
+              width: '280px', 
+              height: '280px', 
+              borderRadius: '50%', 
+              background: 'radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%)', 
+              pointerEvents: 'none',
+              filter: 'blur(40px)',
+              zIndex: 0
+            }} />
 
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexShrink: 0, zIndex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
                   width: '40px',
@@ -2272,31 +2285,53 @@ export const CostPage: React.FC<CostPageProps> = ({
 
             {/* Analytics Summary */}
             <div style={{ 
-              background: 'rgba(0,0,0,0.15)', 
+              background: isLight ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)', 
               border: '1px solid var(--glass-border)', 
-              borderRadius: '10px', 
-              padding: '14px',
-              fontSize: '0.78rem',
-              color: 'var(--text-secondary)',
-              lineHeight: '1.45',
+              borderRadius: '12px', 
+              padding: '16px',
+              borderTop: '2px solid rgba(139, 92, 246, 0.6)',
               flexShrink: 0,
-              marginBottom: '20px'
+              marginBottom: '20px',
+              position: 'relative',
+              overflow: 'hidden',
+              zIndex: 1
             }}>
-              <div style={{ fontWeight: 700, color: '#c084fc', marginBottom: '8px', textTransform: 'uppercase', fontSize: '0.68rem', letterSpacing: '0.05em' }}>Infrastructure Report</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Efficiency Score:</span>
-                  <strong style={{ color: (costSummary?.optimizationScore || 100) > 85 ? 'var(--success)' : '#fbbf24' }}>
+              <div style={{ 
+                fontWeight: 850, 
+                color: '#c084fc', 
+                marginBottom: '12px', 
+                textTransform: 'uppercase', 
+                fontSize: '0.68rem', 
+                letterSpacing: '0.08em',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <Activity size={12} />
+                Infrastructure Diagnostics
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.64rem', color: 'var(--text-muted)' }}>Score</span>
+                  <strong style={{ 
+                    fontSize: '1rem', 
+                    color: (costSummary?.optimizationScore || 100) > 85 ? 'var(--success)' : '#fbbf24',
+                    textShadow: `0 0 10px ${(costSummary?.optimizationScore || 100) > 85 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(251, 191, 36, 0.2)'}`
+                  }}>
                     {costSummary ? costSummary.optimizationScore : '100'}/100
                   </strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Monthly Run-Rate:</span>
-                  <strong style={{ color: 'var(--text-primary)' }}>${costSummary ? costSummary.monthlyRunRate.toFixed(2) : '0.00'}/mo</strong>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderLeft: '1px solid var(--glass-border)', paddingLeft: '10px' }}>
+                  <span style={{ fontSize: '0.64rem', color: 'var(--text-muted)' }}>Run-Rate</span>
+                  <strong style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>
+                    ${costSummary ? costSummary.monthlyRunRate.toFixed(0) : '0'}/mo
+                  </strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Savings Opportunity:</span>
-                  <strong style={{ color: 'var(--success)' }}>${costSummary ? costSummary.potentialSavings.toFixed(2) : '0.00'}/mo</strong>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderLeft: '1px solid var(--glass-border)', paddingLeft: '10px' }}>
+                  <span style={{ fontSize: '0.64rem', color: 'var(--text-muted)' }}>Savings</span>
+                  <strong style={{ fontSize: '1rem', color: 'var(--success)', textShadow: '0 0 10px rgba(34, 197, 94, 0.2)' }}>
+                    ${costSummary ? costSummary.potentialSavings.toFixed(0) : '0'}/mo
+                  </strong>
                 </div>
               </div>
             </div>
@@ -2307,13 +2342,14 @@ export const CostPage: React.FC<CostPageProps> = ({
               overflowY: 'auto', 
               display: 'flex', 
               flexDirection: 'column', 
-              gap: '12px',
+              gap: '16px',
               padding: '16px',
               background: isLight ? 'rgba(255, 255, 255, 0.45)' : 'rgba(0, 0, 0, 0.18)',
               border: '1px solid rgba(255, 255, 255, 0.04)',
               borderRadius: '12px',
               boxShadow: 'inset 0 2px 10px rgba(0, 0, 0, 0.2)',
-              marginBottom: '20px'
+              marginBottom: '20px',
+              zIndex: 1
             }}>
               {evaChat.map((msg, idx) => {
                 const isEva = msg.role === 'assistant';
@@ -2321,35 +2357,58 @@ export const CostPage: React.FC<CostPageProps> = ({
                   <div key={idx} style={{
                     alignSelf: isEva ? 'flex-start' : 'flex-end',
                     maxWidth: '85%',
-                    background: isEva 
-                      ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)' 
-                      : 'linear-gradient(135deg, rgba(139, 92, 246, 0.16) 0%, rgba(99, 102, 241, 0.1) 100%)',
-                    border: isEva 
-                      ? '1px solid var(--glass-border)' 
-                      : '1px solid rgba(139, 92, 246, 0.3)',
-                    padding: '10px 14px',
-                    borderRadius: isEva ? '14px 14px 14px 2px' : '14px 14px 2px 14px',
-                    fontSize: '0.78rem',
-                    color: 'var(--text-primary)',
-                    lineHeight: '1.45'
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
                   }}>
-                    {msg.content.split('\n').map((line, lIdx) => (
-                      <p key={lIdx} style={{ margin: 0, marginTop: lIdx > 0 ? '6px' : 0 }}>
-                        {line.split('**').map((part, pIdx) => {
-                          if (pIdx % 2 === 1) {
-                            return <strong key={pIdx} style={{ color: '#c084fc' }}>{part}</strong>;
-                          }
-                          return part;
-                        })}
-                      </p>
-                    ))}
+                    {isEva && (
+                      <span style={{
+                        fontSize: '0.58rem',
+                        fontWeight: 700,
+                        color: '#c084fc',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        marginLeft: '4px'
+                      }}>
+                        <Sparkles size={10} />
+                        Eva AI
+                      </span>
+                    )}
+                    <div style={{
+                      background: isEva 
+                        ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)' 
+                        : 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
+                      border: isEva 
+                        ? '1px solid var(--glass-border)' 
+                        : 'none',
+                      padding: '12px 16px',
+                      borderRadius: isEva ? '14px 14px 14px 2px' : '16px 16px 2px 16px',
+                      fontSize: '0.78rem',
+                      color: isEva ? 'var(--text-primary)' : '#ffffff',
+                      lineHeight: '1.45',
+                      boxShadow: isEva ? 'none' : '0 4px 15px rgba(124, 58, 237, 0.25)'
+                    }}>
+                      {msg.content.split('\n').map((line, lIdx) => (
+                        <p key={lIdx} style={{ margin: 0, marginTop: lIdx > 0 ? '6px' : 0 }}>
+                          {line.split('**').map((part, pIdx) => {
+                            if (pIdx % 2 === 1) {
+                              return <strong key={pIdx} style={{ color: isEva ? '#c084fc' : '#ffffff', fontWeight: 700 }}>{part}</strong>;
+                            }
+                            return part;
+                          })}
+                        </p>
+                      ))}
+                    </div>
                   </div>
                 );
               })}
             </div>
 
             {/* Quick click suggestions */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px', flexShrink: 0, zIndex: 1 }}>
               <div style={{ fontSize: '0.66rem', fontWeight: 600, color: 'var(--text-muted)' }}>Quick consultations:</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {[
@@ -2366,16 +2425,16 @@ export const CostPage: React.FC<CostPageProps> = ({
                       background: 'rgba(139, 92, 246, 0.03)',
                       border: '1px solid rgba(139, 92, 246, 0.12)',
                       borderRadius: '16px',
-                      padding: '8px 12px',
+                      padding: '8px 14px',
                       fontSize: '0.72rem',
                       color: 'var(--text-secondary)',
                       textAlign: 'left',
                       cursor: askingEva ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                       lineHeight: '1.3',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '4px'
+                      gap: '6px'
                     }}
                     onMouseEnter={(e) => {
                       if (!askingEva) {
@@ -2383,6 +2442,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                         e.currentTarget.style.background = 'rgba(139, 92, 246, 0.08)';
                         e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.45)';
                         e.currentTarget.style.color = 'var(--text-primary)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.15)';
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -2391,60 +2451,103 @@ export const CostPage: React.FC<CostPageProps> = ({
                         e.currentTarget.style.background = 'rgba(139, 92, 246, 0.03)';
                         e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.12)';
                         e.currentTarget.style.color = 'var(--text-secondary)';
+                        e.currentTarget.style.boxShadow = 'none';
                       }
                     }}
                   >
-                    💬 {suggestionText}
+                    <span style={{
+                      width: '5px',
+                      height: '5px',
+                      borderRadius: '50%',
+                      background: '#c084fc',
+                      display: 'inline-block'
+                    }} />
+                    {suggestionText}
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Input Bar */}
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
-              <input
-                type="text"
-                placeholder={askingEva ? "Eva is thinking..." : "Consult Eva AI..."}
-                value={askQuestion}
-                disabled={askingEva}
-                onChange={(e) => setAskQuestion(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleAskEva(askQuestion);
-                  }
+            <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0 }}>
+              <div style={{ 
+                display: 'flex', 
+                gap: '8px', 
+                alignItems: 'center', 
+                background: isLight ? 'rgba(0, 0, 0, 0.015)' : 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: '8px',
+                padding: '4px 6px',
+                transition: 'all 0.25s ease'
+              }}
+                onFocusCapture={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.45)';
+                  e.currentTarget.style.boxShadow = '0 0 10px rgba(139, 92, 246, 0.15)';
                 }}
-                style={{
-                  flex: 1,
-                  fontSize: '0.78rem',
-                  height: '34px',
-                  padding: '0 12px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--glass-border)',
-                  background: 'rgba(255,255,255,0.01)',
-                  color: 'var(--text-primary)',
-                  outline: 'none'
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => handleAskEva(askQuestion)}
-                disabled={askingEva || !askQuestion.trim()}
-                style={{
-                  width: '34px',
-                  height: '34px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: (askingEva || !askQuestion.trim()) ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))',
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: (askingEva || !askQuestion.trim()) ? 'not-allowed' : 'pointer',
-                  opacity: (askingEva || !askQuestion.trim()) ? 0.6 : 1
+                onBlurCapture={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--glass-border)';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
               >
-                <Send size={12} />
-              </button>
+                <input
+                  type="text"
+                  placeholder={askingEva ? "Eva is thinking..." : "Consult Eva AI..."}
+                  value={askQuestion}
+                  disabled={askingEva}
+                  onChange={(e) => setAskQuestion(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleAskEva(askQuestion);
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    fontSize: '0.78rem',
+                    height: '32px',
+                    padding: '0 8px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--text-primary)',
+                    outline: 'none'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleAskEva(askQuestion)}
+                  disabled={askingEva || !askQuestion.trim()}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: (askingEva || !askQuestion.trim()) 
+                      ? 'rgba(255,255,255,0.04)' 
+                      : 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: (askingEva || !askQuestion.trim()) ? 'not-allowed' : 'pointer',
+                    opacity: (askingEva || !askQuestion.trim()) ? 0.5 : 1,
+                    boxShadow: (askingEva || !askQuestion.trim()) ? 'none' : '0 2px 8px rgba(139, 92, 246, 0.3)',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!askingEva && askQuestion.trim()) {
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.4)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!askingEva && askQuestion.trim()) {
+                      e.currentTarget.style.transform = 'none';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(139, 92, 246, 0.3)';
+                    }
+                  }}
+                >
+                  <Send size={12} />
+                </button>
+              </div>
             </div>
           </div>
 

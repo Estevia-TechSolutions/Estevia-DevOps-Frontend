@@ -503,6 +503,25 @@ function App() {
     });
   }, []);
 
+  const handleViewDetails = useCallback((category: string, notification: AppNotification) => {
+    setIsNotificationOpen(false);
+    if (category === 'FINOPS') {
+      setActiveTab('cost');
+    } else if (category === 'SECURITY') {
+      setActiveTab('credentials');
+    } else if (category === 'PROVISION') {
+      if (notification.message.toLowerCase().includes('database') || notification.title.toLowerCase().includes('database')) {
+        setActiveTab('databases');
+      } else {
+        setActiveTab('provision');
+      }
+    } else if (category === 'MONITOR') {
+      setActiveTab('events');
+    } else {
+      setActiveTab('events');
+    }
+  }, []);
+
   const markAllNotificationsAsRead = useCallback(() => {
     setNotifications(prev => {
       if (prev.every(n => n.read)) return prev;
@@ -3809,6 +3828,7 @@ function App() {
         notifications={notifications}
         onClearAll={clearNotifications}
         onDeleteNotification={deleteNotification}
+        onViewDetails={handleViewDetails}
       />
 
       {/* ── Page Content ── */}
