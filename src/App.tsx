@@ -364,7 +364,7 @@ interface EventLog {
 }
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'scan' | 'provision' | 'credentials' | 'cost' | 'databases' | 'guide' | 'users' | 'events'>('scan');
+  const [activeTab, setActiveTab] = useState<'scan' | 'provision' | 'credentials' | 'cost' | 'optimization' | 'databases' | 'guide' | 'users' | 'events'>('scan');
   const [organizationId, setOrganizationId] = useState<string>(
     new URLSearchParams(window.location.search).get('org') || 'estevia'
   );
@@ -4426,9 +4426,13 @@ function App() {
                     <PlusCircle size={16} />
                     <span>Provision App</span>
                   </button>
-                  <button className={`premium-tab-btn ${activeTab === 'cost' ? 'active' : ''}`} onClick={() => setActiveTab('cost')}>
+                  <button className={`premium-tab-btn ${activeTab === 'cost' ? 'active' : ''}`} onClick={() => { setActiveTab('cost'); setCostTab('breakdown'); }}>
                     <Database size={16} />
-                    <span>Cost Page</span>
+                    <span>Cost & Billing</span>
+                  </button>
+                  <button className={`premium-tab-btn ${activeTab === 'optimization' ? 'active' : ''}`} onClick={() => { setActiveTab('optimization'); setCostTab('recommendations'); }}>
+                    <TrendingDown size={16} />
+                    <span>Cost Optimization</span>
                   </button>
                   <button className={`premium-tab-btn ${activeTab === 'databases' ? 'active' : ''}`} onClick={() => setActiveTab('databases')}>
                     <Database size={16} />
@@ -4704,8 +4708,8 @@ function App() {
 
 
 
-        {/* TAB 4: COST MANAGEMENT */}
-        {activeTab === 'cost' && (
+        {/* TAB 4: COST MANAGEMENT & OPTIMIZATION */}
+        {(activeTab === 'cost' || activeTab === 'optimization') && (
           <CostPage
             costSummary={costSummary}
             detailedCosts={detailedCosts}
@@ -4730,6 +4734,7 @@ function App() {
             organizationId={organizationId}
             onResourceControl={handleResourceControl}
             controllingResource={controllingResource}
+            mode={activeTab === 'cost' ? 'cost' : 'optimization'}
           />
         )}
 

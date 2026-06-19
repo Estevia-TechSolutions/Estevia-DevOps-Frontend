@@ -15,7 +15,8 @@ import {
   Minus, 
   Database,
   Maximize,
-  X
+  X,
+  Download
 } from 'lucide-react';
 import { ErdVisualizer } from '../components/database/ErdVisualizer';
 import { CompareMigrateWizard } from '../components/database/CompareMigrateWizard';
@@ -152,6 +153,8 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
   const isLight = theme === 'light';
   const [isResultsExpanded, setIsResultsExpanded] = React.useState(false);
   const [isErdExpanded, setIsErdExpanded] = React.useState(false);
+  const [backingUp, setBackingUp] = React.useState(false);
+  const [backupError, setBackupError] = React.useState<string | null>(null);
 
   // Lock body scroll when modals are open
   React.useEffect(() => {
@@ -173,6 +176,39 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
       ...prev,
       [tableName]: !prev[tableName]
     }));
+  };
+
+  const handleBackupDownload = async () => {
+    if (!selectedDbServer || !selectedDatabase) return;
+    setBackingUp(true);
+    setBackupError(null);
+    try {
+      const url = `${API_BASE}/api/database-hub/backup?serverName=${encodeURIComponent(selectedDbServer.name)}&dbName=${encodeURIComponent(selectedDatabase.name)}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || 'Failed to generate backup.');
+      }
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `${selectedDatabase.name}_backup_${new Date().toISOString().slice(0, 10)}.sql`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (err: any) {
+      console.error('Backup failed:', err);
+      setBackupError(err.message || 'Backup failed');
+    } finally {
+      setBackingUp(false);
+    }
   };
 
   const getTableNameFromQuery = (sql: string) => {
@@ -548,6 +584,39 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                   })}
                 </div>
 
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '6px' }}>
+                  {backupError && (
+                    <span style={{ fontSize: '0.75rem', color: '#fca5a5', background: 'rgba(220, 38, 38, 0.25)', padding: '4px 8px', borderRadius: '4px', border: '1px solid rgba(220, 38, 38, 0.45)' }}>
+                      ⚠️ {backupError}
+                    </span>
+                  )}
+                  <button
+                    onClick={handleBackupDownload}
+                    disabled={backingUp}
+                    className="btn-primary"
+                    style={{
+                      padding: '6px 14px',
+                      fontSize: '0.78rem',
+                      height: '32px',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      cursor: 'pointer',
+                      border: '1px solid rgba(251, 113, 133, 0.3)',
+                      transition: 'all 0.2s ease',
+                      fontWeight: 600
+                    }}
+                    title="Take database schema and data backup, and download SQL script directly to your local computer."
+                  >
+                    {backingUp ? (
+                      <RefreshCw size={14} className="spin-anim" />
+                    ) : (
+                      <Download size={14} />
+                    )}
+                    {backingUp ? 'Backing Up...' : 'Take Backup & Download'}
+                  </button>
+                </div>
               </div>
             </div>
 

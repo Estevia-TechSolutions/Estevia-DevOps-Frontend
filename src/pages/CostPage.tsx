@@ -146,6 +146,7 @@ interface CostPageProps {
   organizationId: string;
   onResourceControl?: (name: string, action: 'start' | 'stop' | 'restart') => void;
   controllingResource?: string | null;
+  mode?: 'cost' | 'optimization';
 }
 
 export const CostPage: React.FC<CostPageProps> = ({
@@ -171,8 +172,13 @@ export const CostPage: React.FC<CostPageProps> = ({
   API_BASE,
   organizationId,
   onResourceControl,
-  controllingResource
+  controllingResource,
+  mode = 'optimization'
 }) => {
+
+  const activeTabToShow = mode === 'cost' 
+    ? (costTab === 'billing' ? 'billing' : 'breakdown')
+    : (costTab === 'schedules' ? 'schedules' : 'recommendations');
 
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [activePowerDropdown, setActivePowerDropdown] = useState<string | null>(null);
@@ -277,7 +283,7 @@ export const CostPage: React.FC<CostPageProps> = ({
   const [chartViewMode, setChartViewMode] = useState<'forecast' | 'historical'>('forecast');
 
   React.useEffect(() => {
-    if (costTab === 'billing') {
+    if (activeTabToShow === 'billing') {
       const fetchForecast = async () => {
         setLoadingForecast(true);
         try {
@@ -299,7 +305,7 @@ export const CostPage: React.FC<CostPageProps> = ({
       };
       fetchForecast();
     }
-  }, [costTab, API_BASE, organizationId]);
+  }, [activeTabToShow, API_BASE, organizationId]);
 
   const isLight = theme === 'light';
   const isViewer = currentUser?.role === 'viewer';
@@ -819,42 +825,49 @@ export const CostPage: React.FC<CostPageProps> = ({
         width: 'auto',
         border: '1px solid var(--glass-border)'
       }}>
-        <button 
-          type="button"
-          className={`tab-btn tab-btn-cost ${costTab === 'breakdown' ? 'active' : ''}`} 
-          onClick={() => setCostTab('breakdown')}
-          style={{ fontSize: '0.85rem', padding: '8px 20px', borderRadius: '8px' }}
-        >
-          Resource Cost Breakdown
-        </button>
-        <button 
-          type="button"
-          className={`tab-btn tab-btn-cost ${costTab === 'recommendations' ? 'active' : ''}`} 
-          onClick={() => setCostTab('recommendations')}
-          style={{ fontSize: '0.85rem', padding: '8px 20px', borderRadius: '8px' }}
-        >
-          Optimization Recommendations ({costSuggestions.length} active / {appliedSuggestions.length} resolved)
-        </button>
-        <button 
-          type="button"
-          className={`tab-btn tab-btn-cost ${costTab === 'billing' ? 'active' : ''}`} 
-          onClick={() => setCostTab('billing')}
-          style={{ fontSize: '0.85rem', padding: '8px 20px', borderRadius: '8px' }}
-        >
-          Billing & Invoices History
-        </button>
-        <button 
-          type="button"
-          className={`tab-btn tab-btn-cost ${costTab === 'schedules' ? 'active' : ''}`} 
-          onClick={() => setCostTab('schedules')}
-          style={{ fontSize: '0.85rem', padding: '8px 20px', borderRadius: '8px' }}
-        >
-          Schedules & Budgets
-        </button>
+        {mode === 'cost' ? (
+          <>
+            <button 
+              type="button"
+              className={`tab-btn tab-btn-cost ${activeTabToShow === 'breakdown' ? 'active' : ''}`} 
+              onClick={() => setCostTab('breakdown')}
+              style={{ fontSize: '0.85rem', padding: '8px 20px', borderRadius: '8px' }}
+            >
+              Resource Cost Breakdown
+            </button>
+            <button 
+              type="button"
+              className={`tab-btn tab-btn-cost ${activeTabToShow === 'billing' ? 'active' : ''}`} 
+              onClick={() => setCostTab('billing')}
+              style={{ fontSize: '0.85rem', padding: '8px 20px', borderRadius: '8px' }}
+            >
+              Billing & Invoices History
+            </button>
+          </>
+        ) : (
+          <>
+            <button 
+              type="button"
+              className={`tab-btn tab-btn-cost ${activeTabToShow === 'recommendations' ? 'active' : ''}`} 
+              onClick={() => setCostTab('recommendations')}
+              style={{ fontSize: '0.85rem', padding: '8px 20px', borderRadius: '8px' }}
+            >
+              Optimization Recommendations ({costSuggestions.length} active / {appliedSuggestions.length} resolved)
+            </button>
+            <button 
+              type="button"
+              className={`tab-btn tab-btn-cost ${activeTabToShow === 'schedules' ? 'active' : ''}`} 
+              onClick={() => setCostTab('schedules')}
+              style={{ fontSize: '0.85rem', padding: '8px 20px', borderRadius: '8px' }}
+            >
+              Schedules & Budgets
+            </button>
+          </>
+        )}
       </div>
 
       {/* Sub-tab content */}
-      {costTab === 'breakdown' ? (
+      {activeTabToShow === 'breakdown' ? (
         /* Detailed Cost Table */
         <div className="glass-panel" style={{ padding: '32px' }}>
           <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1444,7 +1457,7 @@ export const CostPage: React.FC<CostPageProps> = ({
             </table>
           )}
         </div>
-      ) : costTab === 'billing' ? (
+      ) : activeTabToShow === 'billing' ? (
         /* Billing & Invoices Table */
         <div className="glass-panel" style={{ padding: '32px', background: 'rgba(255, 255, 255, 0.01)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
           {/* Predictive Forecast Section */}
@@ -2053,7 +2066,7 @@ export const CostPage: React.FC<CostPageProps> = ({
             </div>
           )}
         </div>
-      ) : costTab === 'schedules' ? (
+      ) : activeTabToShow === 'schedules' ? (
         <div className="glass-panel" style={{ padding: '32px' }}>
           <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             Schedules & Budgets
@@ -2344,7 +2357,11 @@ export const CostPage: React.FC<CostPageProps> = ({
               );
             })()}
           </div>
-
+        </div>
+      )}
+      {/* Eva AI Drawer & Float button (Global to Cost Optimization Page) */}
+      {mode === 'optimization' && (
+        <>
           {/* Backdrop/Overlay */}
           {isEvaOpen && (
             <div 
@@ -2745,7 +2762,7 @@ export const CostPage: React.FC<CostPageProps> = ({
           >
             <img src="/evaops-logo.png" alt="EvaOps" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
           </button>
-        </div>
+        </>
       )}
       </div>
       {/* Power Control Confirmation Modal */}
