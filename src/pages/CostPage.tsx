@@ -182,13 +182,7 @@ export const CostPage: React.FC<CostPageProps> = ({
   const [showImplemented, setShowImplemented] = useState<boolean>(false);
   const [sourceFilter, setSourceFilter] = useState<'ALL' | 'AZURE' | 'EVA'>('ALL');
   const [askQuestion, setAskQuestion] = useState<string>('');
-  const [evaChat, setEvaChat] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([
-    { role: 'assistant', content: `Hello! I am your Eva AI CloudOps Analyst. I've analyzed your cloud spending and resources. Feel free to ask me questions like:
-- **"How can I optimize SQL Database costs?"**
-- **"What is the impact of VM auto-shutdown rules?"**
-- **"Why should I scale dev container apps to zero?"**
-Or type any other cost questions you have!` }
-  ]);
+  const [evaChat, setEvaChat] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
   const [askingEva, setAskingEva] = useState<boolean>(false);
   const [isEvaOpen, setIsEvaOpen] = useState<boolean>(false);
 
@@ -460,6 +454,17 @@ Or type any other cost questions you have!` }
           border-color: rgba(16, 185, 129, 0.25) !important;
         }
 
+        @keyframes float-pulse {
+          0%, 100% {
+            transform: scale(1) translateY(0);
+            box-shadow: 0 4px 20px rgba(139, 92, 246, 0.45), 0 0 15px rgba(139, 92, 246, 0.2) !important;
+          }
+          50% {
+            transform: scale(1.05) translateY(-4px);
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.6), 0 0 25px rgba(139, 92, 246, 0.4) !important;
+          }
+        }
+
         .eva-float-btn {
           position: fixed;
           bottom: 32px;
@@ -478,13 +483,26 @@ Or type any other cost questions you have!` }
           z-index: 10000 !important;
           transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
           outline: none !important;
+          animation: float-pulse 3s infinite ease-in-out !important;
         }
         .eva-float-btn:hover {
-          transform: scale(1.1) !important;
+          transform: scale(1.1) translateY(-2px) !important;
           box-shadow: 0 6px 24px rgba(139, 92, 246, 0.6), 0 0 25px rgba(139, 92, 246, 0.4) !important;
         }
         .eva-float-btn:active {
           transform: scale(0.95) !important;
+        }
+
+        .cost-green .source-filter-btn {
+          transition: all 0.2s ease !important;
+        }
+        .cost-green .source-filter-btn:not(.active):hover {
+          color: var(--text-primary) !important;
+          background: rgba(255, 255, 255, 0.05) !important;
+        }
+        [data-theme="light"] .cost-green .source-filter-btn:not(.active):hover {
+          color: var(--text-primary) !important;
+          background: rgba(0, 0, 0, 0.04) !important;
         }
       `}</style>
 
@@ -803,11 +821,20 @@ Or type any other cost questions you have!` }
                               : 'transparent',
                             fontSize: '0.86rem'
                           }}>
-                            <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '12px' }}>
+                            <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--text-primary)', minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '12px', minWidth: 0 }}>
                                 {/* Left Side: Name and Test/Orphaned tags */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                  <span style={{ color: isOrphaned ? 'var(--error)' : 'inherit' }}>{item.name}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap', minWidth: 0, flex: 1 }}>
+                                  <span style={{ 
+                                    color: isOrphaned ? 'var(--error)' : 'inherit',
+                                    whiteSpace: 'nowrap',
+                                    textOverflow: 'ellipsis',
+                                    overflow: 'hidden',
+                                    minWidth: 0,
+                                    display: 'inline-block'
+                                  }}>
+                                    {item.name}
+                                  </span>
                                   {item.isTestResource && (
                                     <span style={{
                                       fontSize: '0.62rem',
@@ -1895,12 +1922,13 @@ Or type any other cost questions you have!` }
                   key={opt.id}
                   type="button"
                   onClick={() => setSourceFilter(opt.id as any)}
+                  className={`source-filter-btn ${sourceFilter === opt.id ? 'active' : ''}`}
                   style={{
                     border: 'none',
                     background: sourceFilter === opt.id 
                       ? 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))' 
                       : 'transparent',
-                    color: '#ffffff',
+                    color: sourceFilter === opt.id ? '#ffffff' : 'var(--text-secondary)',
                     padding: '6px 12px',
                     borderRadius: '6px',
                     fontSize: '0.76rem',
@@ -2030,55 +2058,60 @@ Or type any other cost questions you have!` }
                       >
                         {/* Card Content Top */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
-                          {/* Header: Icon & Title info */}
-                          <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
-                            <div style={{
-                              width: '38px',
-                              height: '38px',
-                              borderRadius: '50%',
-                              background: isSuggestionApplied ? 'rgba(34,197,94,0.08)' : priorityBg,
-                              border: `1px solid ${isSuggestionApplied ? 'var(--success)' : priorityColor}40`,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: isSuggestionApplied ? 'var(--success)' : priorityColor,
-                              flexShrink: 0
-                            }}>
-                              <TrendingDown size={16} />
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                              <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', lineHeight: '1.3' }}>{titleVal}</h4>
-                              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                                <span style={{ 
-                                  fontSize: '0.6rem', 
-                                  fontWeight: 700, 
-                                  color: isSuggestionApplied ? 'var(--success)' : priorityColor, 
-                                  background: isSuggestionApplied ? 'rgba(34,197,94,0.08)' : priorityBg,
-                                  padding: '1px 6px',
-                                  borderRadius: '8px',
-                                  border: `1px solid ${isSuggestionApplied ? 'var(--success)' : priorityColor}30`,
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px'
-                                }}>
-                                  {isSuggestionApplied ? <CheckCircle2 size={10} /> : icon}
-                                  {isSuggestionApplied ? 'RESOLVED' : priorityVal.toUpperCase()}
-                                </span>
-
-                                <span style={{ 
-                                  fontSize: '0.6rem', 
-                                  fontWeight: 700,
-                                  padding: '1px 6px',
-                                  borderRadius: '8px',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '3px',
-                                  ...sourceBadgeStyle
-                                }}>
-                                  {isEvaSource && <Sparkles size={8} />}
-                                  {sourceVal.toUpperCase()}
-                                </span>
+                          {/* Header: Icon, Title & Badges in Top-Right Corner */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', width: '100%' }}>
+                            {/* Icon & Title */}
+                            <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
+                              <div style={{
+                                width: '38px',
+                                height: '38px',
+                                borderRadius: '50%',
+                                background: isSuggestionApplied ? 'rgba(34,197,94,0.08)' : priorityBg,
+                                border: `1px solid ${isSuggestionApplied ? 'var(--success)' : priorityColor}40`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: isSuggestionApplied ? 'var(--success)' : priorityColor,
+                                flexShrink: 0
+                              }}>
+                                <TrendingDown size={16} />
                               </div>
+                              <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', lineHeight: '1.3', wordBreak: 'break-word' }}>
+                                {titleVal}
+                              </h4>
+                            </div>
+                            
+                            {/* Badges/Pills on the Right Corner */}
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', flexShrink: 0 }}>
+                              <span style={{ 
+                                fontSize: '0.6rem', 
+                                fontWeight: 700, 
+                                color: isSuggestionApplied ? 'var(--success)' : priorityColor, 
+                                background: isSuggestionApplied ? 'rgba(34,197,94,0.08)' : priorityBg,
+                                padding: '1px 6px',
+                                borderRadius: '8px',
+                                border: `1px solid ${isSuggestionApplied ? 'var(--success)' : priorityColor}30`,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}>
+                                {isSuggestionApplied ? <CheckCircle2 size={10} /> : icon}
+                                {isSuggestionApplied ? 'RESOLVED' : priorityVal.toUpperCase()}
+                              </span>
+
+                              <span style={{ 
+                                fontSize: '0.6rem', 
+                                fontWeight: 700,
+                                padding: '1px 6px',
+                                borderRadius: '8px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                ...sourceBadgeStyle
+                              }}>
+                                {isEvaSource && <Sparkles size={8} />}
+                                {sourceVal.toUpperCase()}
+                              </span>
                             </div>
                           </div>
 
@@ -2170,7 +2203,8 @@ Or type any other cost questions you have!` }
             top: 0,
             right: 0,
             height: '100vh',
-            width: '400px',
+            width: '480px',
+            maxWidth: '100vw',
             zIndex: 10001,
             transform: isEvaOpen ? 'translateX(0)' : 'translateX(100%)',
             transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -2274,8 +2308,11 @@ Or type any other cost questions you have!` }
               display: 'flex', 
               flexDirection: 'column', 
               gap: '12px',
-              padding: '4px',
-              borderBottom: '1px solid var(--divider)',
+              padding: '16px',
+              background: isLight ? 'rgba(255, 255, 255, 0.45)' : 'rgba(0, 0, 0, 0.18)',
+              border: '1px solid rgba(255, 255, 255, 0.04)',
+              borderRadius: '12px',
+              boxShadow: 'inset 0 2px 10px rgba(0, 0, 0, 0.2)',
               marginBottom: '20px'
             }}>
               {evaChat.map((msg, idx) => {
@@ -2283,14 +2320,18 @@ Or type any other cost questions you have!` }
                 return (
                   <div key={idx} style={{
                     alignSelf: isEva ? 'flex-start' : 'flex-end',
-                    maxWidth: '90%',
-                    background: isEva ? 'rgba(255,255,255,0.02)' : 'rgba(139, 92, 246, 0.08)',
-                    border: `1px solid ${isEva ? 'var(--glass-border)' : 'rgba(139, 92, 246, 0.2)'}`,
-                    padding: '10px 12px',
-                    borderRadius: isEva ? '10px 10px 10px 2px' : '10px 10px 2px 10px',
+                    maxWidth: '85%',
+                    background: isEva 
+                      ? 'linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%)' 
+                      : 'linear-gradient(135deg, rgba(139, 92, 246, 0.16) 0%, rgba(99, 102, 241, 0.1) 100%)',
+                    border: isEva 
+                      ? '1px solid var(--glass-border)' 
+                      : '1px solid rgba(139, 92, 246, 0.3)',
+                    padding: '10px 14px',
+                    borderRadius: isEva ? '14px 14px 14px 2px' : '14px 14px 2px 14px',
                     fontSize: '0.78rem',
                     color: 'var(--text-primary)',
-                    lineHeight: '1.4'
+                    lineHeight: '1.45'
                   }}>
                     {msg.content.split('\n').map((line, lIdx) => (
                       <p key={lIdx} style={{ margin: 0, marginTop: lIdx > 0 ? '6px' : 0 }}>
@@ -2308,36 +2349,55 @@ Or type any other cost questions you have!` }
             </div>
 
             {/* Quick click suggestions */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '20px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px', flexShrink: 0 }}>
               <div style={{ fontSize: '0.66rem', fontWeight: 600, color: 'var(--text-muted)' }}>Quick consultations:</div>
-              {[
-                "How can we optimize SQL Database costs?",
-                "What is the impact of sleep scheduler rules?",
-                "Why are dev container apps scaled to zero?"
-              ].map((suggestionText) => (
-                <button
-                  key={suggestionText}
-                  type="button"
-                  disabled={askingEva}
-                  onClick={() => handleAskEva(suggestionText)}
-                  style={{
-                    background: 'rgba(255,255,255,0.01)',
-                    border: '1px solid var(--glass-border)',
-                    borderRadius: '6px',
-                    padding: '6px 10px',
-                    fontSize: '0.72rem',
-                    color: 'var(--text-secondary)',
-                    textAlign: 'left',
-                    cursor: askingEva ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.2s',
-                    lineHeight: '1.3'
-                  }}
-                  onMouseEnter={(e) => { if (!askingEva) e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.4)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--glass-border)'; }}
-                >
-                  💬 {suggestionText}
-                </button>
-              ))}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {[
+                  "How can we optimize SQL Database costs?",
+                  "What is the impact of sleep scheduler rules?",
+                  "Why are dev container apps scaled to zero?"
+                ].map((suggestionText) => (
+                  <button
+                    key={suggestionText}
+                    type="button"
+                    disabled={askingEva}
+                    onClick={() => handleAskEva(suggestionText)}
+                    style={{
+                      background: 'rgba(139, 92, 246, 0.03)',
+                      border: '1px solid rgba(139, 92, 246, 0.12)',
+                      borderRadius: '16px',
+                      padding: '8px 12px',
+                      fontSize: '0.72rem',
+                      color: 'var(--text-secondary)',
+                      textAlign: 'left',
+                      cursor: askingEva ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      lineHeight: '1.3',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!askingEva) {
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                        e.currentTarget.style.background = 'rgba(139, 92, 246, 0.08)';
+                        e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.45)';
+                        e.currentTarget.style.color = 'var(--text-primary)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!askingEva) {
+                        e.currentTarget.style.transform = 'none';
+                        e.currentTarget.style.background = 'rgba(139, 92, 246, 0.03)';
+                        e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.12)';
+                        e.currentTarget.style.color = 'var(--text-secondary)';
+                      }
+                    }}
+                  >
+                    💬 {suggestionText}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Input Bar */}
@@ -2398,7 +2458,7 @@ Or type any other cost questions you have!` }
               opacity: isEvaOpen ? 0 : 1,
             }}
           >
-            <Brain size={26} style={{ filter: 'drop-shadow(0 0 6px #ffffff)' }} />
+            <img src="/evaops-logo.png" alt="EvaOps" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
           </button>
         </div>
       )}
