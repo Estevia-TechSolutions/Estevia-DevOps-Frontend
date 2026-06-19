@@ -130,7 +130,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
     { cap: 'Register CI/CD build pipelines', owner: true, admin: true, contributor: true, viewer: false },
     { cap: 'Run database compare & schema migrations wizard', owner: true, admin: true, contributor: true, viewer: false },
     { cap: 'Sync directory users from Azure AD', owner: true, admin: true, contributor: false, viewer: false },
-    { cap: 'Change user roles in EvaOps platform', owner: true, admin: true, contributor: false, viewer: false },
+    { cap: 'Change user roles in EvaOps (CloudOps Management & Governance) platform', owner: true, admin: true, contributor: false, viewer: false },
     { cap: 'Save/Update integration credentials', owner: true, admin: true, contributor: false, viewer: false },
     { cap: 'Manage Cost Sleep Scheduler rules', owner: true, admin: true, contributor: false, viewer: false },
     { cap: 'Map Key Vault secrets to Variable Groups', owner: true, admin: true, contributor: false, viewer: false },
@@ -329,7 +329,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Shield size={20} style={{ color: 'var(--accent-purple)' }} />
                 <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  EvaOps Role Access Matrix
+                  EvaOps — CloudOps Management & Governance Role Access Matrix
                 </h3>
               </div>
               <button
@@ -353,7 +353,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
             {/* Modal Body */}
             <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
               <p style={{ margin: '0 0 16px 0', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                Each user role inside EvaOps has restricted functional permissions mapping to backend API authorization rules:
+                Each user role inside EvaOps (CloudOps Management & Governance) has restricted functional permissions mapping to backend API authorization rules:
               </p>
 
               <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>

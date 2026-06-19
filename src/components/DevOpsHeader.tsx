@@ -40,7 +40,7 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
           </div>
           <div>
             <div className="site-header-title">EvaOps</div>
-            <div className="site-header-subtitle">Cloud Control Centre</div>
+            <div className="site-header-subtitle">CloudOps Management & Governance</div>
           </div>
         </div>
 

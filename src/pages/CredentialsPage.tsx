@@ -602,7 +602,7 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                   lineHeight: '1.45',
                 }}>
                   <strong style={{ color: '#ca8a04', display: 'block', marginBottom: '4px' }}>💡 GitHub Integration Summary &amp; Pipeline Sync</strong>
-                  The GitHub Personal Access Token (PAT) is stored securely and encrypted natively using AES-256-GCM. It authorizes the EvaOps orchestrator to discover private and public organization repositories, scan branch structures, register webhook subscription events, and configure continuous integration triggers. When a pipeline is created or modified, the repository owner or organization settings are utilized to automatically commit custom workflow configuration files directly to your target branches under signature commits, facilitating zero-touch infrastructure-as-code updates.
+                  The GitHub Personal Access Token (PAT) is stored securely and encrypted natively using AES-256-GCM. It authorizes the EvaOps (CloudOps Management & Governance) orchestrator to discover private and public organization repositories, scan branch structures, register webhook subscription events, and configure continuous integration triggers. When a pipeline is created or modified, the repository owner or organization settings are utilized to automatically commit custom workflow configuration files directly to your target branches under signature commits, facilitating zero-touch infrastructure-as-code updates.
                 </div>
               </div>
             )}
@@ -732,7 +732,7 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                   lineHeight: '1.45',
                 }}>
                   <strong style={{ color: '#ca8a04', display: 'block', marginBottom: '4px' }}>💡 GoDaddy DNS Automation &amp; Domain Lifecycle Management</strong>
-                  The GoDaddy API Key and API Secret are utilized to programmatically interface with GoDaddy's DNS REST endpoints to coordinate DNS lifecycle bindings. This enables the platform to automatically provision, modify, and delete custom DNS records (specifically targeting CNAME mappings and TXT domain validations). When new feature branches are created or environments are cloned, EvaOps handles zero-touch subdomain generation and automatically configures SSL/TLS certificates, ensuring your dynamic deployments are instantly accessible under secure custom URLs.
+                  The GoDaddy API Key and API Secret are utilized to programmatically interface with GoDaddy's DNS REST endpoints to coordinate DNS lifecycle bindings. This enables the platform to automatically provision, modify, and delete custom DNS records (specifically targeting CNAME mappings and TXT domain validations). When new feature branches are created or environments are cloned, EvaOps (CloudOps Management & Governance) handles zero-touch subdomain generation and automatically configures SSL/TLS certificates, ensuring your dynamic deployments are instantly accessible under secure custom URLs.
                 </div>
               </div>
             )}
@@ -1062,11 +1062,11 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                       <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
                         {logAnalyticsWorkspaceId ? (
                           <>
-                            ✓ EvaOps successfully scanned the Azure Container Apps environment in Resource Group <strong>{azureResourceGroup || 'Estevia-Prod-RG'}</strong> and auto-linked this workspace. Console logs are queryable via KQL in the Container Logs drawer.
+                            ✓ EvaOps (CloudOps Management & Governance) successfully scanned the Azure Container Apps environment in Resource Group <strong>{azureResourceGroup || 'Estevia-Prod-RG'}</strong> and auto-linked this workspace. Console logs are queryable via KQL in the Container Logs drawer.
                           </>
                         ) : (
                           <>
-                            ⚠️ No workspace discovered yet. Ensure your subscription credentials and Resource Group are configured under the <strong>Azure</strong> tab. Once valid, EvaOps will auto-discover the linked workspace.
+                            ⚠️ No workspace discovered yet. Ensure your subscription credentials and Resource Group are configured under the <strong>Azure</strong> tab. Once valid, EvaOps (CloudOps Management & Governance) will auto-discover the linked workspace.
                           </>
                         )}
                       </p>

@@ -902,7 +902,7 @@ function App() {
           githubRepo: repo,
           branch,
           content,
-          commitMessage: commitMsg || 'chore: update Dockerfile [via EvaOps DevOps Hub]'
+          commitMessage: commitMsg || 'chore: update Dockerfile [via EvaOps CloudOps Management & Governance Hub]'
         })
       });
       const data = await res.json();
@@ -3493,7 +3493,7 @@ function App() {
             <span style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.02em' }}>EvaOps</span>
           </div>
           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            EvaOps Neural Ecosystem
+            EvaOps — CloudOps Management & Governance
           </span>
         </nav>
 
@@ -3550,7 +3550,7 @@ function App() {
               marginBottom: '32px',
               maxWidth: '520px'
             }}>
-              EvaOps orchestrates your infrastructure. Scan your Azure subscription, provision Static Web Apps and Container Apps, map custom domains instantly via GoDaddy, and generate automated DevOps build pipelines.
+              EvaOps orchestrates your infrastructure as a unified CloudOps Management & Governance platform. Scan your Azure subscription, provision Static Web Apps and Container Apps, map custom domains instantly via GoDaddy, and generate automated DevOps build pipelines.
             </p>
 
             {/* Feature Checkmarks */}
@@ -3757,7 +3757,7 @@ function App() {
             {/* Step Wizard Header */}
             <div className="glass-panel" style={{ padding: '24px', marginBottom: '32px', border: '1px solid var(--divider)' }}>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '6px', textAlign: 'center' }}>
-                Welcome to EvaOps Onboarding
+                Welcome to EvaOps (CloudOps Management & Governance) Onboarding
               </h2>
               <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', textAlign: 'center', marginBottom: '24px' }}>
                 Complete these 5 simple setup steps to activate your organization workspace and connect cloud operations.
@@ -4007,7 +4007,7 @@ function App() {
                 <div>
                   <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '8px' }}>Step 3: Connect CI/CD & Version Control</h3>
                   <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: '24px' }}>
-                    EvaOps automates repository checkouts, pipeline generations, and build triggers by linking GitHub and Azure DevOps.
+                    EvaOps (CloudOps Management & Governance) automates repository checkouts, pipeline generations, and build triggers by linking GitHub and Azure DevOps.
                   </p>
 
                   <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px', marginBottom: '16px' }}>
@@ -4243,7 +4243,7 @@ function App() {
                       disabled={onboardSubmitting}
                       style={{ padding: '12px 32px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem' }}
                     >
-                      {onboardSubmitting ? 'Finalizing Setup...' : 'Activate EvaOps Workspace'}
+                      {onboardSubmitting ? 'Finalizing Setup...' : 'Activate EvaOps (CloudOps) Workspace'}
                       <Check size={16} />
                     </button>
                   </div>

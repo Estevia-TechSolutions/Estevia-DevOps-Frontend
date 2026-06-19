@@ -412,7 +412,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
         </div>
         <div style={{ flex: 1, minWidth: '280px', zIndex: 1 }}>
           <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-            EvaOps Platform User Guide
+            EvaOps — CloudOps Management & Governance User Guide
           </h2>
           <p style={{ margin: '6px 0 0 0', fontSize: '0.92rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
             Welcome to the operational hub. Navigate the sub-tabs below to discover operational workflows, scope boundaries, token permissions, and manual setup guides.
