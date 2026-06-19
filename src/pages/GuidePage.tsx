@@ -31,7 +31,7 @@ interface GuidePageProps {
   theme?: 'dark' | 'light';
 }
 
-type TabType = 'getting-started' | 'capabilities' | 'branch-matching' | 'security' | 'entra-manual' | 'faq' | 'roadmap';
+type TabType = 'getting-started' | 'capabilities' | 'branch-matching' | 'security' | 'entra-manual' | 'faq' | 'roadmap' | 'eva-ai';
 
 export const GuidePage: React.FC<GuidePageProps> = () => {
   const [activeSubTab, setActiveSubTab] = useState<TabType>('getting-started');
@@ -338,6 +338,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
     { id: 'branch-matching', label: 'Branch Naming Rules', icon: GitBranch, desc: 'Environment matching priorities' },
     { id: 'security', label: 'Security & Scopes', icon: Lock, desc: 'Token permission matrix' },
     { id: 'entra-manual', label: 'Manual Entra ID Setup', icon: Key, desc: 'Manual App Registration guide' },
+    { id: 'eva-ai', label: 'Eva AI & Analyst', icon: MessageSquare, desc: 'CloudOps virtual assistant guides' },
     { id: 'faq', label: 'FAQs & Troubleshooting', icon: HelpCircle, desc: 'Common queries & issues' },
     { id: 'roadmap', label: 'Platform Roadmap', icon: Compass, desc: 'AWS & Azure future features' }
   ];
@@ -1152,6 +1153,77 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                 <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
                   <strong style={{ color: 'var(--text-primary)' }}>Encountering verification issues?</strong> Double check that your API keys are not expired. GitHub PATs require <code>repo</code> write, and Azure DevOps PATs require <code>Build</code> and <code>Variable Group</code> scopes.
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeSubTab === 'eva-ai' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                  Eva AI &amp; Eva Analyst Integration Guide
+                </h3>
+                <p style={{ margin: '6px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                  Detailed operational guide on how the Eva AI and Eva Analyst engines analyze, query, and govern cloud infrastructure.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                
+                {/* How the chat works */}
+                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#c084fc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <MessageSquare size={16} />
+                    Interactive Chat Assistant (Eva Analyst)
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                    The Eva AI Analyst panel queries dynamic resource metadata (e.g. active application status, configuration parameters, and telemetry metrics) to construct high-context prompts for a central secure LLM endpoint. It evaluates this information against operational standard policies and prints optimized scaling recommendations directly.
+                  </p>
+                </div>
+
+                {/* Live Data ingestion details */}
+                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Server size={16} />
+                    Live Cloud Ingestion &amp; Diagnostics
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                    Eva AI runs cost diagnostics using Month-to-Date usage data retrieved from the <strong>Azure Cost Management APIs</strong>. Telemetry rules continuously analyze resource patterns:
+                  </p>
+                  <ul style={{ margin: '4px 0 0 0', paddingLeft: '20px', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                    <li><strong>VM Optimization:</strong> Recommends downscaling to B-series classes if standard virtual machine CPU usage averages less than 5% over 14 days (saving up to 50%).</li>
+                    <li><strong>Container Replica Schedules:</strong> Audits ingress logs and recommends scaling replica floors to zero during developer off-peak hours when request rates drop to zero.</li>
+                    <li><strong>Database Pooling:</strong> Identifies query/connection load spikes on MySQL Flexible databases and automatically recommends proxy connection pooling.</li>
+                  </ul>
+                </div>
+
+                {/* Local Classifier details */}
+                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: 'var(--accent-teal)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <ShieldCheck size={16} />
+                    Fail-Safe Local Inference Rules
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                    If connection timeouts or network disruptions disconnect the platform from the central LLM engine, a local rule-based parser handles incoming queries. This heuristic engine parses key structural terms (e.g., <em>vm</em>, <em>database</em>, <em>replica</em>) and matches them against active local database resources to immediately generate precise, high-fidelity saving recommendations.
+                  </p>
+                </div>
+
+                {/* Actionable Remedies details */}
+                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <CheckCircle2 size={16} />
+                    Remediation &amp; Audit Governance
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                    When a user clicks **Remediate** on an active suggestion:
+                  </p>
+                  <ol style={{ margin: '4px 0 0 0', paddingLeft: '20px', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                    <li>The frontend calls mutating controller actions in the backend node.js API.</li>
+                    <li>The backend triggers automated scaling updates, VM schedule rules, or tier demotions on Azure Resource Manager.</li>
+                    <li>All actions are tracked securely in the **Enterprise Audit Trail** with distinct action types (`APPLY_REMEDIATION`, `RESOURCE_POWER_CONTROL`) and user identifiers for unified compliance.</li>
+                  </ol>
+                </div>
+
               </div>
             </div>
           )}
