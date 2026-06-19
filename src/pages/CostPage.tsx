@@ -2771,7 +2771,10 @@ export const CostPage: React.FC<CostPageProps> = ({
                     {[
                       "How can we optimize SQL Database costs?",
                       "What is the impact of sleep scheduler rules?",
-                      "Why are dev container apps scaled to zero?"
+                      "Why are dev container apps scaled to zero?",
+                      "How do we prune Container Registries (ACR)?",
+                      "What are the savings for VM auto-shutdown?",
+                      "How is the Cost Optimization Score calculated?"
                     ].map((suggestionText) => (
                       <button
                         key={suggestionText}
