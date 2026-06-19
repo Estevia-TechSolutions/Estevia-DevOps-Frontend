@@ -23,14 +23,15 @@ import {
   Search,
   Database,
   Activity,
-  PlusCircle
+  PlusCircle,
+  Compass
 } from 'lucide-react';
 
 interface GuidePageProps {
   theme?: 'dark' | 'light';
 }
 
-type TabType = 'getting-started' | 'capabilities' | 'branch-matching' | 'security' | 'entra-manual' | 'faq';
+type TabType = 'getting-started' | 'capabilities' | 'branch-matching' | 'security' | 'entra-manual' | 'faq' | 'roadmap';
 
 export const GuidePage: React.FC<GuidePageProps> = () => {
   const [activeSubTab, setActiveSubTab] = useState<TabType>('getting-started');
@@ -337,7 +338,8 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
     { id: 'branch-matching', label: 'Branch Naming Rules', icon: GitBranch, desc: 'Environment matching priorities' },
     { id: 'security', label: 'Security & Scopes', icon: Lock, desc: 'Token permission matrix' },
     { id: 'entra-manual', label: 'Manual Entra ID Setup', icon: Key, desc: 'Manual App Registration guide' },
-    { id: 'faq', label: 'FAQs & Troubleshooting', icon: HelpCircle, desc: 'Common queries & issues' }
+    { id: 'faq', label: 'FAQs & Troubleshooting', icon: HelpCircle, desc: 'Common queries & issues' },
+    { id: 'roadmap', label: 'Platform Roadmap', icon: Compass, desc: 'AWS & Azure future features' }
   ];
 
   const faqData = [
@@ -1150,6 +1152,170 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                 <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
                   <strong style={{ color: 'var(--text-primary)' }}>Encountering verification issues?</strong> Double check that your API keys are not expired. GitHub PATs require <code>repo</code> write, and Azure DevOps PATs require <code>Build</code> and <code>Variable Group</code> scopes.
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeSubTab === 'roadmap' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                  EvaOps Unified Cloud Platform Roadmap
+                </h3>
+                <p style={{ margin: '6px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                  A detailed view of the upcoming AWS orchestration release cycle and Azure enterprise feature expansions.
+                </p>
+              </div>
+
+              {/* 2-Column comparison structure */}
+              <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+                
+                {/* Column 1: AWS Orchestration Ecosystem */}
+                <div style={{ flex: 1, minWidth: '320px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    background: 'rgba(234, 179, 8, 0.08)',
+                    border: '1px solid rgba(234, 179, 8, 0.15)',
+                    color: '#ca8a04',
+                    fontWeight: 600,
+                    fontSize: '0.9rem'
+                  }}>
+                    <Compass size={18} />
+                    <span>AWS Integration Releases (Q3 / Q4 2026)</span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    
+                    {/* S3 / CloudFront */}
+                    <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        S3 &amp; CloudFront Static Web Hosting
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                        Automated provisioning of private/public Amazon S3 buckets configured for static website hosting, synced with CloudFront CDN edge caching and ACM certificate generation.
+                      </p>
+                    </div>
+
+                    {/* AWS Amplify */}
+                    <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        AWS Amplify Hosting
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                        Native deployment of single-page apps (SPA) and server-side rendered (Next.js/Nuxt SSR) sites with zero-touch preview environments linked directly to GitHub commits.
+                      </p>
+                    </div>
+
+                    {/* AWS EC2 */}
+                    <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        Docker-Based EC2 &amp; Auto-Scaling VM Groups
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                        Provisioning EC2 VM instances pre-installed with Docker Compose. Supports Launch Templates, Target Groups, Application Load Balancers (ALB), and metrics-based scaling rules.
+                      </p>
+                    </div>
+
+                    {/* AWS ECS & Fargate */}
+                    <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        Amazon ECS &amp; serverless Fargate
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                        Task Definition orchestration, cluster management, and serverless container app updates. Offers parity with Azure Container Apps provisioning models.
+                      </p>
+                    </div>
+
+                    {/* Amazon RDS */}
+                    <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        Amazon RDS (MySQL / PostgreSQL)
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                        Managed database engines, Multi-AZ high-availability architectures, automated snapshot schedules, and RDS Proxy caching setup.
+                      </p>
+                    </div>
+
+                    {/* Route 53 & KMS */}
+                    <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        Route 53 DNS &amp; KMS Secrets Sync
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                        Programmatic Route 53 DNS record mapping and SSL validation. Secrets Manager and SSM Parameter Store sync to Azure DevOps variable groups.
+                      </p>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Column 2: Azure Feature Expansion */}
+                <div style={{ flex: 1, minWidth: '320px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '8px 14px',
+                    borderRadius: '8px',
+                    background: 'rgba(59, 130, 246, 0.08)',
+                    border: '1px solid rgba(59, 130, 246, 0.15)',
+                    color: 'var(--accent-blue)',
+                    fontWeight: 600,
+                    fontSize: '0.9rem'
+                  }}>
+                    <Cpu size={18} />
+                    <span>Azure Enterprise Roadmap (Q1 / Q2 2027)</span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    
+                    {/* AKS */}
+                    <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        AKS (Azure Kubernetes Service) Bootstrap
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                        Graphical wizard to provision node pools, map NGINX Ingress controllers, auto-configure Cert-Manager certificates, and register Helm release pipelines.
+                      </p>
+                    </div>
+
+                    {/* Azure APIM */}
+                    <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        Azure API Management (APIM)
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                        Publishing API endpoints, mapping custom backend domains, enforcing API policies (rate limiting, auth check), and syncing developer portal specs.
+                      </p>
+                    </div>
+
+                    {/* Cost Auto-Scale rules */}
+                    <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        Cost Auto-Scale Policy Builder
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                        Configure dynamic scaling profiles to stop VMs or scale ACA replica counts to zero during developer off-peak hours automatically.
+                      </p>
+                    </div>
+
+                    {/* Multi-Tenant AD */}
+                    <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        Multi-Tenant Entra ID support
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                        Linking and scanning subscriptions belonging to different Entra ID (Azure AD) tenants, switching directories securely inside a single workspace.
+                      </p>
+                    </div>
+
+                  </div>
+                </div>
+
               </div>
             </div>
           )}

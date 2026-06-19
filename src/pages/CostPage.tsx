@@ -120,6 +120,7 @@ interface CostPageProps {
   costSummary: any;
   detailedCosts: any[];
   costSuggestions: any[];
+  appliedSuggestions: any[];
   invoices: any[];
   loadingCosts: boolean;
   costError: string | null;
@@ -145,6 +146,7 @@ export const CostPage: React.FC<CostPageProps> = ({
   costSummary,
   detailedCosts,
   costSuggestions,
+  appliedSuggestions,
   invoices,
   loadingCosts,
   costError,
@@ -172,6 +174,7 @@ export const CostPage: React.FC<CostPageProps> = ({
 
   // Power action confirmation state
   const [pendingPowerAction, setPendingPowerAction] = useState<{ name: string; action: 'start' | 'stop' | 'restart' } | null>(null);
+  const [showImplemented, setShowImplemented] = useState<boolean>(false);
 
   // Close dropdown on window scroll to prevent drifting
   React.useEffect(() => {
@@ -513,7 +516,7 @@ export const CostPage: React.FC<CostPageProps> = ({
           onClick={() => setCostTab('recommendations')}
           style={{ fontSize: '0.85rem', padding: '8px 20px', borderRadius: '8px' }}
         >
-          Optimization Recommendations ({costSuggestions.length})
+          Optimization Recommendations ({costSuggestions.length} active / {appliedSuggestions.length} resolved)
         </button>
         <button 
           type="button"
@@ -1592,134 +1595,203 @@ export const CostPage: React.FC<CostPageProps> = ({
         </div>
       ) : (
         /* Optimization Recommendations */
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-          {costSuggestions.length === 0 ? (
-            <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', gridColumn: '1 / -1' }}>
-              <CheckCircle2 size={36} style={{ color: 'var(--success)' }} />
-              <h3 style={{ margin: 0 }}>Infrastructure Fully Optimized</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', margin: 0 }}>All Azure resources are correctly provisioned, idle components are scaled, and DNS bindings are active.</p>
-            </div>
-          ) : (
-            costSuggestions.map((suggestion) => {
-              const priorityVal = suggestion.priority || suggestion.impact || 'low';
-              const isHigh = priorityVal === 'high';
-              const isMedium = priorityVal === 'medium';
-              const icon = isHigh ? <AlertCircle size={14} /> : isMedium ? <AlertTriangle size={14} /> : <Settings size={14} />;
-              const priorityColor = isHigh ? 'var(--error)' : isMedium ? 'var(--warning)' : 'var(--text-secondary)';
-              const priorityBg = isHigh ? 'rgba(239, 68, 68, 0.08)' : isMedium ? 'rgba(245, 158, 11, 0.08)' : 'rgba(255, 255, 255, 0.04)';
-              const titleVal = suggestion.title || suggestion.recommendation || 'Recommendation';
-              const resourceNameVal = suggestion.resourceName || suggestion.appName || 'General';
-              
-              return (
-                <div 
-                  key={suggestion.id} 
-                  className="glass-panel" 
-                  style={{ 
-                    padding: '24px', 
-                    borderLeft: `4px solid ${isHigh ? 'var(--error)' : isMedium ? 'var(--warning)' : 'var(--glass-border)'}`,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    gap: '20px',
-                    height: '100%',
-                    background: 'rgba(255, 255, 255, 0.01)',
-                    transition: 'all 0.25s ease'
-                  }}
-                >
-                  {/* Card Content Top */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
-                    {/* Header: Icon & Title info */}
-                    <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
-                      <div style={{
-                        width: '38px',
-                        height: '38px',
-                        borderRadius: '50%',
-                        background: priorityBg,
-                        border: `1px solid ${priorityColor}40`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: priorityColor,
-                        flexShrink: 0
-                      }}>
-                        <TrendingDown size={16} />
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <h4 style={{ fontSize: '0.92rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', lineHeight: '1.3' }}>{titleVal}</h4>
-                        <div>
-                          <span style={{ 
-                            fontSize: '0.6rem', 
-                            fontWeight: 700, 
-                            color: priorityColor, 
-                            background: priorityBg,
-                            padding: '1px 6px',
-                            borderRadius: '8px',
-                            border: `1px solid ${priorityColor}30`,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}>
-                            {icon}
-                            {priorityVal.toUpperCase()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+          
+          {/* Implemented Toggle Switch */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '10px'
+          }}>
+            <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              Show Implemented Remedies
+            </span>
+            <label style={{
+              position: 'relative',
+              display: 'inline-block',
+              width: '46px',
+              height: '24px'
+            }}>
+              <input 
+                type="checkbox" 
+                checked={showImplemented}
+                onChange={(e) => setShowImplemented(e.target.checked)}
+                style={{ opacity: 0, width: 0, height: 0 }}
+              />
+              <span style={{
+                position: 'absolute',
+                cursor: 'pointer',
+                top: 0, left: 0, right: 0, bottom: 0,
+                backgroundColor: showImplemented ? 'var(--success)' : 'rgba(255,255,255,0.08)',
+                border: '1px solid var(--glass-border)',
+                transition: '.3s',
+                borderRadius: '24px'
+              }} />
+              <span style={{
+                position: 'absolute',
+                content: '""',
+                height: '16px',
+                width: '16px',
+                left: showImplemented ? '25px' : '4px',
+                bottom: '4px',
+                backgroundColor: '#ffffff',
+                transition: '.3s',
+                borderRadius: '50%',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+              }} />
+            </label>
+          </div>
 
-                    {/* Description */}
-                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.45', flex: 1 }}>{suggestion.description}</p>
-                    
-                    {/* Target resource */}
-                    <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--success)', fontWeight: 500 }}>
-                      Resource: <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{resourceNameVal}</strong>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+            {(() => {
+              const activeList = showImplemented ? appliedSuggestions : costSuggestions;
+              
+              if (activeList.length === 0) {
+                return (
+                  <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', gridColumn: '1 / -1' }}>
+                    <CheckCircle2 size={36} style={{ color: 'var(--success)' }} />
+                    <h3 style={{ margin: 0 }}>
+                      {showImplemented ? 'No Implemented Remedies Yet' : 'Infrastructure Fully Optimized'}
+                    </h3>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', margin: 0 }}>
+                      {showImplemented 
+                        ? 'Trigger optimizations by clicking the Remediate action button on active suggestions.'
+                        : 'All Azure resources are correctly provisioned, idle components are scaled, and DNS bindings are active.'}
                     </p>
                   </div>
+                );
+              }
 
-                  {/* Card Footer: Savings info & Remediation Action */}
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center', 
-                    paddingTop: '16px', 
-                    borderTop: '1px solid var(--divider)' 
-                  }}>
-                    <div>
-                      <div style={{ fontSize: '0.66rem', color: 'var(--text-secondary)' }}>Savings</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--success)' }}>${suggestion.savings.toFixed(2)}/mo</div>
+              return activeList.map((suggestion) => {
+                const priorityVal = suggestion.priority || suggestion.impact || 'low';
+                const isHigh = priorityVal === 'high';
+                const isMedium = priorityVal === 'medium';
+                const icon = isHigh ? <AlertCircle size={14} /> : isMedium ? <AlertTriangle size={14} /> : <Settings size={14} />;
+                const priorityColor = isHigh ? 'var(--error)' : isMedium ? 'var(--warning)' : 'var(--text-secondary)';
+                const priorityBg = isHigh ? 'rgba(239, 68, 68, 0.08)' : isMedium ? 'rgba(245, 158, 11, 0.08)' : 'rgba(255, 255, 255, 0.04)';
+                const titleVal = suggestion.title || suggestion.recommendation || 'Recommendation';
+                const resourceNameVal = suggestion.resourceName || suggestion.appName || 'General';
+                const isSuggestionApplied = !!suggestion.applied || showImplemented;
+
+                return (
+                  <div 
+                    key={suggestion.id} 
+                    className="glass-panel" 
+                    style={{ 
+                      padding: '24px', 
+                      borderLeft: `4px solid ${isSuggestionApplied ? 'var(--success)' : (isHigh ? 'var(--error)' : isMedium ? 'var(--warning)' : 'var(--glass-border)')}`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '20px',
+                      height: '100%',
+                      background: 'rgba(255, 255, 255, 0.01)',
+                      transition: 'all 0.25s ease',
+                      opacity: isSuggestionApplied ? 0.8 : 1
+                    }}
+                  >
+                    {/* Card Content Top */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
+                      {/* Header: Icon & Title info */}
+                      <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+                        <div style={{
+                          width: '38px',
+                          height: '38px',
+                          borderRadius: '50%',
+                          background: isSuggestionApplied ? 'rgba(34,197,94,0.08)' : priorityBg,
+                          border: `1px solid ${isSuggestionApplied ? 'var(--success)' : priorityColor}40`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: isSuggestionApplied ? 'var(--success)' : priorityColor,
+                          flexShrink: 0
+                        }}>
+                          <TrendingDown size={16} />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <h4 style={{ fontSize: '0.92rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', lineHeight: '1.3' }}>{titleVal}</h4>
+                          <div>
+                            <span style={{ 
+                              fontSize: '0.6rem', 
+                              fontWeight: 700, 
+                              color: isSuggestionApplied ? 'var(--success)' : priorityColor, 
+                              background: isSuggestionApplied ? 'rgba(34,197,94,0.08)' : priorityBg,
+                              padding: '1px 6px',
+                              borderRadius: '8px',
+                              border: `1px solid ${isSuggestionApplied ? 'var(--success)' : priorityColor}30`,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}>
+                              {isSuggestionApplied ? <CheckCircle2 size={10} /> : icon}
+                              {isSuggestionApplied ? 'RESOLVED' : priorityVal.toUpperCase()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.45', flex: 1 }}>{suggestion.description}</p>
+                      
+                      {/* Target resource */}
+                      <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--success)', fontWeight: 500 }}>
+                        Resource: <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{resourceNameVal}</strong>
+                      </p>
                     </div>
-                    
-                    <button
-                      className="btn-primary"
-                      onClick={() => {
-                        if (isViewer) return;
-                        handleApplyRemediation(suggestion.id, suggestion.type, resourceNameVal);
-                      }}
-                      disabled={isViewer || remediating === suggestion.id}
-                      style={{
-                        padding: '6px 14px',
-                        fontSize: '0.74rem',
-                        height: '32px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        cursor: isViewer ? 'not-allowed' : 'pointer',
-                        opacity: isViewer ? 0.6 : 1
-                      }}
-                    >
-                      {remediating === suggestion.id ? (
-                        <>
-                          <RefreshCw size={11} className="spin-anim" />
-                          Optimizing...
-                        </>
-                      ) : (
-                        'Remediate'
-                      )}
-                    </button>
+
+                    {/* Card Footer: Savings info & Remediation Action */}
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center', 
+                      paddingTop: '16px', 
+                      borderTop: '1px solid var(--divider)' 
+                    }}>
+                      <div>
+                        <div style={{ fontSize: '0.66rem', color: 'var(--text-secondary)' }}>Savings</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--success)' }}>${suggestion.savings.toFixed(2)}/mo</div>
+                      </div>
+                      
+                      <button
+                        className={isSuggestionApplied ? "btn-secondary" : "btn-primary"}
+                        onClick={() => {
+                          if (isViewer || isSuggestionApplied) return;
+                          handleApplyRemediation(suggestion.id, suggestion.type, resourceNameVal);
+                        }}
+                        disabled={isViewer || isSuggestionApplied || remediating === suggestion.id}
+                        style={{
+                          padding: '6px 14px',
+                          fontSize: '0.74rem',
+                          height: '32px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          cursor: (isViewer || isSuggestionApplied) ? 'not-allowed' : 'pointer',
+                          opacity: (isViewer || isSuggestionApplied) ? 0.65 : 1
+                        }}
+                      >
+                        {remediating === suggestion.id ? (
+                          <>
+                            <RefreshCw size={11} className="spin-anim" />
+                            Optimizing...
+                          </>
+                        ) : isSuggestionApplied ? (
+                          <>
+                            <CheckCircle2 size={11} />
+                            Remediated
+                          </>
+                        ) : (
+                          'Remediate'
+                        )}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              );
-            })
-          )}
+                );
+              });
+            })()}
+          </div>
         </div>
       )}
       </div>
