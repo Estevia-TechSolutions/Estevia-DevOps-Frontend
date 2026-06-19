@@ -1823,7 +1823,11 @@ function App() {
   const fetchTeamUsers = async () => {
     setLoadingUsers(true);
     try {
-      const res = await fetch(`${API_BASE}/auth/users`);
+      const res = await fetch(`${API_BASE}/auth/users`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (res.ok) {
         const data = await res.json();
         setTeamUsers(data);
@@ -1839,7 +1843,10 @@ function App() {
     setSyncingTeam(true);
     try {
       const res = await fetch(`${API_BASE}/auth/users/sync`, {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       if (res.ok) {
         const data = await res.json();
@@ -1863,7 +1870,8 @@ function App() {
       const res = await fetch(`${API_BASE}/auth/users/${userId}/role`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ role: newRole })
       });
