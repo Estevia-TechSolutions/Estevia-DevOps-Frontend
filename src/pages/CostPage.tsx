@@ -1,4 +1,4 @@
-import React, { useState, Fragment } from 'react';
+import React, { useState, Fragment, useRef, useEffect } from 'react';
 import { 
   Database, 
   CheckCircle2, 
@@ -186,6 +186,17 @@ export const CostPage: React.FC<CostPageProps> = ({
   const [evaChat, setEvaChat] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
   const [askingEva, setAskingEva] = useState<boolean>(false);
   const [isEvaOpen, setIsEvaOpen] = useState<boolean>(false);
+
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isEvaOpen) {
+      const timer = setTimeout(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 80);
+      return () => clearTimeout(timer);
+    }
+  }, [evaChat, isEvaOpen]);
 
   const simulateTypewriter = (text: string) => {
     let currentText = '';
@@ -504,6 +515,105 @@ export const CostPage: React.FC<CostPageProps> = ({
         [data-theme="light"] .cost-green .source-filter-btn:not(.active):hover {
           color: var(--text-primary) !important;
           background: rgba(0, 0, 0, 0.04) !important;
+        }
+
+        @keyframes thinking-drawer-glow {
+          0%, 100% {
+            box-shadow: -10px 0 30px rgba(139, 92, 246, 0.25), inset 0 0 15px rgba(139, 92, 246, 0.05);
+            border-left-color: rgba(139, 92, 246, 0.3) !important;
+          }
+          50% {
+            box-shadow: -18px 0 50px rgba(139, 92, 246, 0.6), inset 0 0 25px rgba(139, 92, 246, 0.2);
+            border-left-color: rgba(192, 132, 252, 0.7) !important;
+          }
+        }
+        .thinking-drawer-active {
+          animation: thinking-drawer-glow 2s infinite ease-in-out !important;
+        }
+
+        .quick-consult-trigger-container {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+        .quick-consult-trigger-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          border: 1px solid rgba(139, 92, 246, 0.2) !important;
+          background: rgba(139, 92, 246, 0.08) !important;
+          color: #c084fc !important;
+          display: flex !important;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          outline: none;
+        }
+        .quick-consult-trigger-btn:hover {
+          background: rgba(139, 92, 246, 0.16) !important;
+          color: #d8b4fe !important;
+          transform: translateY(-1px);
+          box-shadow: 0 0 12px rgba(139, 92, 246, 0.25);
+        }
+        .quick-consult-hover-card {
+          position: absolute;
+          bottom: 48px;
+          left: 0;
+          width: 320px;
+          background: rgba(15, 23, 42, 0.96);
+          backdrop-filter: blur(25px) saturate(120%);
+          WebkitBackdropFilter: blur(25px) saturate(120%);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+          padding: 14px;
+          box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.4), 0 0 20px rgba(139, 92, 246, 0.15);
+          display: none;
+          opacity: 0;
+          flex-direction: column;
+          gap: 10px;
+          z-index: 10002;
+          transform: translateY(8px);
+          transition: opacity 0.25s ease, transform 0.25s ease;
+          pointer-events: none;
+        }
+        [data-theme="light"] .quick-consult-hover-card {
+          background: rgba(255, 255, 255, 0.96) !important;
+          border: 1px solid rgba(0, 0, 0, 0.08) !important;
+          box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.15), 0 0 20px rgba(139, 92, 246, 0.08) !important;
+        }
+        .quick-consult-trigger-container:hover .quick-consult-hover-card {
+          display: flex !important;
+          opacity: 1 !important;
+          transform: translateY(0) !important;
+          pointer-events: auto;
+        }
+        .quick-consult-item-btn {
+          background: rgba(139, 92, 246, 0.03) !important;
+          border: 1px solid rgba(139, 92, 246, 0.12) !important;
+          border-radius: 8px !important;
+          padding: 8px 12px !important;
+          font-size: 0.74rem !important;
+          color: var(--text-secondary) !important;
+          text-align: left !important;
+          cursor: pointer !important;
+          transition: all 0.2s ease !important;
+          line-height: 1.35 !important;
+          display: inline-flex !important;
+          align-items: center;
+          gap: 8px;
+          width: 100%;
+        }
+        .quick-consult-item-btn:hover:not(:disabled) {
+          background: rgba(139, 92, 246, 0.08) !important;
+          border-color: rgba(139, 92, 246, 0.45) !important;
+          color: var(--text-primary) !important;
+          transform: translateX(2px);
+          box-shadow: 0 2px 8px rgba(139, 92, 246, 0.12) !important;
+        }
+        .quick-consult-item-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed !important;
         }
       `}</style>
 
@@ -2198,27 +2308,30 @@ export const CostPage: React.FC<CostPageProps> = ({
           )}
 
           {/* Drawer Panel Layout */}
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            right: 0,
-            height: '100vh',
-            width: '480px',
-            maxWidth: '100vw',
-            zIndex: 10001,
-            transform: isEvaOpen ? 'translateX(0)' : 'translateX(100%)',
-            transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
-            visibility: isEvaOpen ? 'visible' : 'hidden',
-            backgroundColor: isLight ? 'rgba(255, 255, 255, 0.75)' : 'rgba(15, 23, 42, 0.75)',
-            backdropFilter: 'blur(30px) saturate(120%)',
-            WebkitBackdropFilter: 'blur(30px) saturate(120%)',
-            borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
-            boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.25)',
-            display: 'flex',
-            flexDirection: 'column',
-            padding: '24px',
-            boxSizing: 'border-box'
-          }}>
+          <div 
+            className={askingEva ? 'thinking-drawer-active' : ''}
+            style={{
+              position: 'fixed',
+              top: 0,
+              right: 0,
+              height: '100vh',
+              width: '480px',
+              maxWidth: '100vw',
+              zIndex: 10001,
+              transform: isEvaOpen ? 'translateX(0)' : 'translateX(100%)',
+              transition: 'transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-left-color 0.3s ease',
+              visibility: isEvaOpen ? 'visible' : 'hidden',
+              backgroundColor: isLight ? 'rgba(255, 255, 255, 0.75)' : 'rgba(15, 23, 42, 0.75)',
+              backdropFilter: 'blur(30px) saturate(120%)',
+              WebkitBackdropFilter: 'blur(30px) saturate(120%)',
+              borderLeft: '1px solid rgba(255, 255, 255, 0.08)',
+              boxShadow: '-10px 0 30px rgba(0, 0, 0, 0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '24px',
+              boxSizing: 'border-box'
+            }}
+          >
             {/* Floating AI Orb Effect */}
             <div style={{ 
               position: 'absolute', 
@@ -2405,90 +2518,81 @@ export const CostPage: React.FC<CostPageProps> = ({
                   </div>
                 );
               })}
-            </div>
-
-            {/* Quick click suggestions */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px', flexShrink: 0, zIndex: 1 }}>
-              <div style={{ fontSize: '0.66rem', fontWeight: 600, color: 'var(--text-muted)' }}>Quick consultations:</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {[
-                  "How can we optimize SQL Database costs?",
-                  "What is the impact of sleep scheduler rules?",
-                  "Why are dev container apps scaled to zero?"
-                ].map((suggestionText) => (
-                  <button
-                    key={suggestionText}
-                    type="button"
-                    disabled={askingEva}
-                    onClick={() => handleAskEva(suggestionText)}
-                    style={{
-                      background: 'rgba(139, 92, 246, 0.03)',
-                      border: '1px solid rgba(139, 92, 246, 0.12)',
-                      borderRadius: '16px',
-                      padding: '8px 14px',
-                      fontSize: '0.72rem',
-                      color: 'var(--text-secondary)',
-                      textAlign: 'left',
-                      cursor: askingEva ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                      lineHeight: '1.3',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!askingEva) {
-                        e.currentTarget.style.transform = 'translateY(-1px)';
-                        e.currentTarget.style.background = 'rgba(139, 92, 246, 0.08)';
-                        e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.45)';
-                        e.currentTarget.style.color = 'var(--text-primary)';
-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.15)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!askingEva) {
-                        e.currentTarget.style.transform = 'none';
-                        e.currentTarget.style.background = 'rgba(139, 92, 246, 0.03)';
-                        e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.12)';
-                        e.currentTarget.style.color = 'var(--text-secondary)';
-                        e.currentTarget.style.boxShadow = 'none';
-                      }
-                    }}
-                  >
-                    <span style={{
-                      width: '5px',
-                      height: '5px',
-                      borderRadius: '50%',
-                      background: '#c084fc',
-                      display: 'inline-block'
-                    }} />
-                    {suggestionText}
-                  </button>
-                ))}
-              </div>
+              <div ref={chatEndRef} />
             </div>
 
             {/* Input Bar */}
-            <div style={{ zIndex: 1, display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0 }}>
+            <div style={{ zIndex: 10, display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0, marginTop: 'auto' }}>
               <div style={{ 
                 display: 'flex', 
-                gap: '8px', 
+                gap: '12px', 
                 alignItems: 'center', 
-                background: isLight ? 'rgba(0, 0, 0, 0.015)' : 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid var(--glass-border)',
-                borderRadius: '8px',
-                padding: '4px 6px',
-                transition: 'all 0.25s ease'
+                background: isLight ? 'rgba(0, 0, 0, 0.025)' : 'rgba(255, 255, 255, 0.035)',
+                border: '1px solid rgba(139, 92, 246, 0.25)',
+                borderRadius: '14px',
+                padding: '8px 12px',
+                transition: 'all 0.25s ease',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
               }}
                 onFocusCapture={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.45)';
-                  e.currentTarget.style.boxShadow = '0 0 10px rgba(139, 92, 246, 0.15)';
+                  e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.6)';
+                  e.currentTarget.style.boxShadow = '0 0 16px rgba(139, 92, 246, 0.3)';
                 }}
                 onBlurCapture={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--glass-border)';
-                  e.currentTarget.style.boxShadow = 'none';
+                  e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.25)';
+                  e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.15)';
                 }}
               >
+                {/* Quick Consultations Hover Card Trigger */}
+                <div className="quick-consult-trigger-container">
+                  <button
+                    type="button"
+                    className="quick-consult-trigger-btn"
+                    title="Quick consultations"
+                  >
+                    <Sparkles size={16} />
+                  </button>
+                  <div className="quick-consult-hover-card">
+                    <div style={{ 
+                      fontSize: '0.7rem', 
+                      fontWeight: 800, 
+                      color: '#c084fc', 
+                      textTransform: 'uppercase', 
+                      letterSpacing: '0.08em', 
+                      marginBottom: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}>
+                      <Brain size={12} />
+                      Quick consultations
+                    </div>
+                    {[
+                      "How can we optimize SQL Database costs?",
+                      "What is the impact of sleep scheduler rules?",
+                      "Why are dev container apps scaled to zero?"
+                    ].map((suggestionText) => (
+                      <button
+                        key={suggestionText}
+                        type="button"
+                        className="quick-consult-item-btn"
+                        disabled={askingEva}
+                        onClick={() => handleAskEva(suggestionText)}
+                      >
+                        <span style={{
+                          width: '5px',
+                          height: '5px',
+                          borderRadius: '50%',
+                          background: '#c084fc',
+                          display: 'inline-block',
+                          flexShrink: 0
+                        }} />
+                        <span style={{ flex: 1 }}>{suggestionText}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <input
                   type="text"
                   placeholder={askingEva ? "Eva is thinking..." : "Consult Eva AI..."}
@@ -2502,9 +2606,9 @@ export const CostPage: React.FC<CostPageProps> = ({
                   }}
                   style={{
                     flex: 1,
-                    fontSize: '0.78rem',
-                    height: '32px',
-                    padding: '0 8px',
+                    fontSize: '0.85rem',
+                    height: '40px',
+                    padding: '0 4px',
                     border: 'none',
                     background: 'transparent',
                     color: 'var(--text-primary)',
@@ -2516,9 +2620,9 @@ export const CostPage: React.FC<CostPageProps> = ({
                   onClick={() => handleAskEva(askQuestion)}
                   disabled={askingEva || !askQuestion.trim()}
                   style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '6px',
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '8px',
                     border: 'none',
                     background: (askingEva || !askQuestion.trim()) 
                       ? 'rgba(255,255,255,0.04)' 
@@ -2530,7 +2634,8 @@ export const CostPage: React.FC<CostPageProps> = ({
                     cursor: (askingEva || !askQuestion.trim()) ? 'not-allowed' : 'pointer',
                     opacity: (askingEva || !askQuestion.trim()) ? 0.5 : 1,
                     boxShadow: (askingEva || !askQuestion.trim()) ? 'none' : '0 2px 8px rgba(139, 92, 246, 0.3)',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.2s',
+                    flexShrink: 0
                   }}
                   onMouseEnter={(e) => {
                     if (!askingEva && askQuestion.trim()) {
@@ -2545,7 +2650,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                     }
                   }}
                 >
-                  <Send size={12} />
+                  <Send size={14} />
                 </button>
               </div>
             </div>
