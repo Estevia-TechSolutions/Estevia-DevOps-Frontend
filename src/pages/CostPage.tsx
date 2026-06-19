@@ -2774,7 +2774,9 @@ export const CostPage: React.FC<CostPageProps> = ({
                       "Why are dev container apps scaled to zero?",
                       "How do we prune Container Registries (ACR)?",
                       "What are the savings for VM auto-shutdown?",
-                      "How is the Cost Optimization Score calculated?"
+                      "How is the Cost Optimization Score calculated?",
+                      "How many Static Web Apps (SWA) do we have?",
+                      "What is our total potential savings?"
                     ].map((suggestionText) => (
                       <button
                         key={suggestionText}
