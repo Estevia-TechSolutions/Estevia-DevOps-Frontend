@@ -703,7 +703,8 @@ export const CostPage: React.FC<CostPageProps> = ({
       {/* Overview Cards */}
       {mode === 'cost' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
-          <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
+          {/* Monthly Run Rate */}
+          <div className="glass-panel opt-hover-wrapper" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)', position: 'relative', cursor: 'help' }}>
             <div style={{
               width: '56px',
               height: '56px',
@@ -725,9 +726,41 @@ export const CostPage: React.FC<CostPageProps> = ({
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>/ month</span>
               </div>
             </div>
+            <div className="opt-hover-card" style={{
+              visibility: 'hidden',
+              opacity: 0,
+              position: 'absolute',
+              bottom: '105%',
+              left: '50%',
+              transform: 'translateX(-50%) translateY(10px)',
+              background: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.98)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid var(--glass-border)',
+              color: 'var(--text-primary)',
+              padding: '16px',
+              borderRadius: '12px',
+              fontSize: '0.78rem',
+              width: '280px',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+              pointerEvents: 'none',
+              zIndex: 9999,
+              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              whiteSpace: 'normal',
+              textAlign: 'left',
+              lineHeight: '1.45',
+            }}>
+              <div style={{ fontWeight: 700, color: '#10b981', marginBottom: '4px', textTransform: 'uppercase', fontSize: '0.66rem', letterSpacing: '0.05em' }}>
+                Monthly Run Rate
+              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.74rem' }}>
+                Sum of month-to-date costs for all tracked Azure resources within the Resource Group. Calculated dynamically from live Azure Cost Management API data or fallback pricing configurations.
+              </div>
+            </div>
           </div>
 
-          <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
+          {/* Potential Savings */}
+          <div className="glass-panel opt-hover-wrapper" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)', position: 'relative', cursor: 'help' }}>
             <div style={{
               width: '56px',
               height: '56px',
@@ -749,9 +782,41 @@ export const CostPage: React.FC<CostPageProps> = ({
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>/ month</span>
               </div>
             </div>
+            <div className="opt-hover-card" style={{
+              visibility: 'hidden',
+              opacity: 0,
+              position: 'absolute',
+              bottom: '105%',
+              left: '50%',
+              transform: 'translateX(-50%) translateY(10px)',
+              background: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.98)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid var(--glass-border)',
+              color: 'var(--text-primary)',
+              padding: '16px',
+              borderRadius: '12px',
+              fontSize: '0.78rem',
+              width: '280px',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+              pointerEvents: 'none',
+              zIndex: 9999,
+              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              whiteSpace: 'normal',
+              textAlign: 'left',
+              lineHeight: '1.45',
+            }}>
+              <div style={{ fontWeight: 700, color: '#10b981', marginBottom: '4px', textTransform: 'uppercase', fontSize: '0.66rem', letterSpacing: '0.05em' }}>
+                Potential Savings
+              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.74rem' }}>
+                Estimated monthly savings achievable by applying all currently outstanding recommendations (e.g. scaling down idle resources, scheduling shutdowns, connection pooling).
+              </div>
+            </div>
           </div>
 
-          <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
+          {/* Cost Optimization Score */}
+          <div className="glass-panel opt-hover-wrapper" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)', position: 'relative', cursor: 'help' }}>
             <div style={{
               width: '56px',
               height: '56px',
@@ -777,9 +842,47 @@ export const CostPage: React.FC<CostPageProps> = ({
                 }}></div>
               </div>
             </div>
+            <div className="opt-hover-card" style={{
+              visibility: 'hidden',
+              opacity: 0,
+              position: 'absolute',
+              bottom: '105%',
+              left: '50%',
+              transform: 'translateX(-50%) translateY(10px)',
+              background: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.98)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid var(--glass-border)',
+              color: 'var(--text-primary)',
+              padding: '16px',
+              borderRadius: '12px',
+              fontSize: '0.78rem',
+              width: '280px',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+              pointerEvents: 'none',
+              zIndex: 9999,
+              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              whiteSpace: 'normal',
+              textAlign: 'left',
+              lineHeight: '1.45',
+            }}>
+              <div style={{ fontWeight: 700, color: '#c084fc', marginBottom: '6px', textTransform: 'uppercase', fontSize: '0.66rem', letterSpacing: '0.05em' }}>
+                Cost Optimization Score
+              </div>
+              <div style={{ color: 'var(--text-primary)', fontWeight: 650, marginBottom: '6px' }}>
+                Formula: Score = 100 - Penalty
+              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.72rem', marginBottom: '8px' }}>
+                Calculated by dividing potential savings by total monthly cost to get a Savings Ratio. The penalty is the rounded percentage of this ratio, capped at 50 (guaranteeing a minimum score floor of 50).
+              </div>
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '8px', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                Penalty = Min(50, Round(Savings Ratio * 100))
+              </div>
+            </div>
           </div>
 
-          <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
+          {/* Next Bill Due */}
+          <div className="glass-panel opt-hover-wrapper" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)', position: 'relative', cursor: 'help' }}>
             <div style={{
               width: '56px',
               height: '56px',
@@ -811,12 +914,43 @@ export const CostPage: React.FC<CostPageProps> = ({
                 )}
               </div>
             </div>
+            <div className="opt-hover-card" style={{
+              visibility: 'hidden',
+              opacity: 0,
+              position: 'absolute',
+              bottom: '105%',
+              left: '50%',
+              transform: 'translateX(-50%) translateY(10px)',
+              background: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.98)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid var(--glass-border)',
+              color: 'var(--text-primary)',
+              padding: '16px',
+              borderRadius: '12px',
+              fontSize: '0.78rem',
+              width: '280px',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+              pointerEvents: 'none',
+              zIndex: 9999,
+              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              whiteSpace: 'normal',
+              textAlign: 'left',
+              lineHeight: '1.45',
+            }}>
+              <div style={{ fontWeight: 700, color: '#10b981', marginBottom: '4px', textTransform: 'uppercase', fontSize: '0.66rem', letterSpacing: '0.05em' }}>
+                Next Bill Due
+              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.74rem' }}>
+                The amount and due date of the next invoice registered in the system database for active custom domain names and integrations.
+              </div>
+            </div>
           </div>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
           {/* Optimization Score */}
-          <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
+          <div className="glass-panel opt-hover-wrapper" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)', position: 'relative', cursor: 'help' }}>
             <div style={{
               width: '56px',
               height: '56px',
@@ -842,10 +976,47 @@ export const CostPage: React.FC<CostPageProps> = ({
                 }}></div>
               </div>
             </div>
+            <div className="opt-hover-card" style={{
+              visibility: 'hidden',
+              opacity: 0,
+              position: 'absolute',
+              bottom: '105%',
+              left: '50%',
+              transform: 'translateX(-50%) translateY(10px)',
+              background: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.98)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid var(--glass-border)',
+              color: 'var(--text-primary)',
+              padding: '16px',
+              borderRadius: '12px',
+              fontSize: '0.78rem',
+              width: '280px',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+              pointerEvents: 'none',
+              zIndex: 9999,
+              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              whiteSpace: 'normal',
+              textAlign: 'left',
+              lineHeight: '1.45',
+            }}>
+              <div style={{ fontWeight: 700, color: '#c084fc', marginBottom: '6px', textTransform: 'uppercase', fontSize: '0.66rem', letterSpacing: '0.05em' }}>
+                Cost Optimization Score
+              </div>
+              <div style={{ color: 'var(--text-primary)', fontWeight: 650, marginBottom: '6px' }}>
+                Formula: Score = 100 - Penalty
+              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.72rem', marginBottom: '8px' }}>
+                Calculated by dividing potential savings by total monthly cost to get a Savings Ratio. The penalty is the rounded percentage of this ratio, capped at 50 (guaranteeing a minimum score floor of 50).
+              </div>
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '8px', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                Penalty = Min(50, Round(Savings Ratio * 100))
+              </div>
+            </div>
           </div>
 
           {/* Potential Savings */}
-          <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
+          <div className="glass-panel opt-hover-wrapper" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)', position: 'relative', cursor: 'help' }}>
             <div style={{
               width: '56px',
               height: '56px',
@@ -867,10 +1038,41 @@ export const CostPage: React.FC<CostPageProps> = ({
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>/ month</span>
               </div>
             </div>
+            <div className="opt-hover-card" style={{
+              visibility: 'hidden',
+              opacity: 0,
+              position: 'absolute',
+              bottom: '105%',
+              left: '50%',
+              transform: 'translateX(-50%) translateY(10px)',
+              background: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.98)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid var(--glass-border)',
+              color: 'var(--text-primary)',
+              padding: '16px',
+              borderRadius: '12px',
+              fontSize: '0.78rem',
+              width: '280px',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+              pointerEvents: 'none',
+              zIndex: 9999,
+              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              whiteSpace: 'normal',
+              textAlign: 'left',
+              lineHeight: '1.45',
+            }}>
+              <div style={{ fontWeight: 700, color: '#10b981', marginBottom: '4px', textTransform: 'uppercase', fontSize: '0.66rem', letterSpacing: '0.05em' }}>
+                Potential Savings
+              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.74rem' }}>
+                Estimated monthly savings achievable by applying all currently outstanding recommendations (e.g. scaling down idle resources, scheduling shutdowns, connection pooling).
+              </div>
+            </div>
           </div>
 
           {/* Active Recommendations Card */}
-          <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(245, 158, 11, 0.1)' }}>
+          <div className="glass-panel opt-hover-wrapper" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(245, 158, 11, 0.1)', position: 'relative', cursor: 'help' }}>
             <div style={{
               width: '56px',
               height: '56px',
@@ -892,10 +1094,41 @@ export const CostPage: React.FC<CostPageProps> = ({
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>active</span>
               </div>
             </div>
+            <div className="opt-hover-card" style={{
+              visibility: 'hidden',
+              opacity: 0,
+              position: 'absolute',
+              bottom: '105%',
+              left: '50%',
+              transform: 'translateX(-50%) translateY(10px)',
+              background: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.98)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid var(--glass-border)',
+              color: 'var(--text-primary)',
+              padding: '16px',
+              borderRadius: '12px',
+              fontSize: '0.78rem',
+              width: '280px',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+              pointerEvents: 'none',
+              zIndex: 9999,
+              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              whiteSpace: 'normal',
+              textAlign: 'left',
+              lineHeight: '1.45',
+            }}>
+              <div style={{ fontWeight: 700, color: '#f59e0b', marginBottom: '4px', textTransform: 'uppercase', fontSize: '0.66rem', letterSpacing: '0.05em' }}>
+                Active Recommendations
+              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.74rem' }}>
+                Number of pending recommendations flagged by Azure Advisor and Eva AI telemetry that have not yet been remediated.
+              </div>
+            </div>
           </div>
 
           {/* Implemented Remedies Card */}
-          <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)' }}>
+          <div className="glass-panel opt-hover-wrapper" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)', position: 'relative', cursor: 'help' }}>
             <div style={{
               width: '56px',
               height: '56px',
@@ -915,6 +1148,37 @@ export const CostPage: React.FC<CostPageProps> = ({
                   {appliedSuggestions.length}
                 </span>
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>resolved</span>
+              </div>
+            </div>
+            <div className="opt-hover-card" style={{
+              visibility: 'hidden',
+              opacity: 0,
+              position: 'absolute',
+              bottom: '105%',
+              left: '50%',
+              transform: 'translateX(-50%) translateY(10px)',
+              background: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.98)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid var(--glass-border)',
+              color: 'var(--text-primary)',
+              padding: '16px',
+              borderRadius: '12px',
+              fontSize: '0.78rem',
+              width: '280px',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+              pointerEvents: 'none',
+              zIndex: 9999,
+              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              whiteSpace: 'normal',
+              textAlign: 'left',
+              lineHeight: '1.45',
+            }}>
+              <div style={{ fontWeight: 700, color: '#10b981', marginBottom: '4px', textTransform: 'uppercase', fontSize: '0.66rem', letterSpacing: '0.05em' }}>
+                Implemented Remedies
+              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.74rem' }}>
+                Number of recommendations that have been successfully applied to optimize the resource configuration.
               </div>
             </div>
           </div>
