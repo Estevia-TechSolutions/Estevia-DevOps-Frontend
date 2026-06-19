@@ -519,20 +519,73 @@ export const CostPage: React.FC<CostPageProps> = ({
 
         @keyframes thinking-drawer-glow {
           0%, 100% {
-            box-shadow: -15px 0 35px rgba(139, 92, 246, 0.4), -30px 0 70px rgba(139, 92, 246, 0.15), inset 0 0 20px rgba(139, 92, 246, 0.1);
-            border-left-color: rgba(139, 92, 246, 0.5) !important;
+            box-shadow: -15px 0 35px rgba(139, 92, 246, 0.45), -30px 0 70px rgba(139, 92, 246, 0.2), inset 0 0 25px rgba(139, 92, 246, 0.15);
+            border-left-color: rgba(139, 92, 246, 0.6) !important;
           }
           33% {
-            box-shadow: -22px 0 45px rgba(236, 72, 153, 0.55), -44px 0 85px rgba(236, 72, 153, 0.25), inset 0 0 30px rgba(236, 72, 153, 0.2);
-            border-left-color: rgba(236, 72, 153, 0.7) !important;
+            box-shadow: -22px 0 45px rgba(236, 72, 153, 0.65), -44px 0 85px rgba(236, 72, 153, 0.3), inset 0 0 35px rgba(236, 72, 153, 0.25);
+            border-left-color: rgba(236, 72, 153, 0.8) !important;
           }
           66% {
-            box-shadow: -28px 0 55px rgba(59, 130, 246, 0.65), -56px 0 100px rgba(59, 130, 246, 0.35), inset 0 0 40px rgba(59, 130, 246, 0.3);
-            border-left-color: rgba(59, 130, 246, 0.8) !important;
+            box-shadow: -28px 0 55px rgba(59, 130, 246, 0.75), -56px 0 100px rgba(59, 130, 246, 0.4), inset 0 0 45px rgba(59, 130, 246, 0.35);
+            border-left-color: rgba(59, 130, 246, 0.9) !important;
           }
         }
         .thinking-drawer-active {
           animation: thinking-drawer-glow 2.5s infinite ease-in-out !important;
+          border-left: 2px solid rgba(139, 92, 246, 0.6) !important;
+        }
+
+        @keyframes thinking-orb-pulse {
+          0%, 100% {
+            transform: scale(1) translate(0, 0);
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.28) 0%, rgba(59, 130, 246, 0.12) 50%, transparent 70%);
+            filter: blur(40px);
+          }
+          33% {
+            transform: scale(1.2) translate(-15px, 15px);
+            background: radial-gradient(circle, rgba(236, 72, 153, 0.35) 0%, rgba(139, 92, 246, 0.18) 50%, transparent 70%);
+            filter: blur(35px);
+          }
+          66% {
+            transform: scale(0.85) translate(15px, -10px);
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, rgba(236, 72, 153, 0.15) 50%, transparent 70%);
+            filter: blur(45px);
+          }
+        }
+        .thinking-orb-active {
+          animation: thinking-orb-pulse 5s infinite alternate ease-in-out !important;
+        }
+
+        .thinking-dots-container {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 4px;
+        }
+        .thinking-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #c084fc;
+          animation: thinking-bounce 1.4s infinite ease-in-out both;
+        }
+        .thinking-dot:nth-child(1) {
+          animation-delay: -0.32s;
+        }
+        .thinking-dot:nth-child(2) {
+          animation-delay: -0.16s;
+        }
+        @keyframes thinking-bounce {
+          0%, 80%, 100% {
+            transform: scale(0.3);
+            opacity: 0.3;
+          }
+          40% {
+            transform: scale(1.1);
+            opacity: 1;
+            box-shadow: 0 0 10px rgba(192, 132, 252, 0.9);
+          }
         }
 
         .quick-consult-trigger-container {
@@ -2337,18 +2390,21 @@ export const CostPage: React.FC<CostPageProps> = ({
             }}
           >
             {/* Floating AI Orb Effect */}
-            <div style={{ 
-              position: 'absolute', 
-              top: '-15%', 
-              right: '-15%', 
-              width: '280px', 
-              height: '280px', 
-              borderRadius: '50%', 
-              background: 'radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%)', 
-              pointerEvents: 'none',
-              filter: 'blur(40px)',
-              zIndex: 0
-            }} />
+            <div 
+              className={askingEva ? 'thinking-orb-active' : ''}
+              style={{ 
+                position: 'absolute', 
+                top: '-15%', 
+                right: '-15%', 
+                width: '280px', 
+                height: '280px', 
+                borderRadius: '50%', 
+                background: 'radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%)', 
+                pointerEvents: 'none',
+                filter: 'blur(40px)',
+                zIndex: 0
+              }} 
+            />
 
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexShrink: 0, zIndex: 1 }}>
@@ -2517,16 +2573,24 @@ export const CostPage: React.FC<CostPageProps> = ({
                       lineHeight: '1.45',
                       boxShadow: isEva ? 'none' : '0 4px 15px rgba(124, 58, 237, 0.25)'
                     }}>
-                      {msg.content.split('\n').map((line, lIdx) => (
-                        <p key={lIdx} style={{ margin: 0, marginTop: lIdx > 0 ? '6px' : 0 }}>
-                          {line.split('**').map((part, pIdx) => {
-                            if (pIdx % 2 === 1) {
-                              return <strong key={pIdx} style={{ color: isEva ? '#c084fc' : '#ffffff', fontWeight: 700 }}>{part}</strong>;
-                            }
-                            return part;
-                          })}
-                        </p>
-                      ))}
+                      {msg.content === 'Thinking...' ? (
+                        <div className="thinking-dots-container">
+                          <span className="thinking-dot" />
+                          <span className="thinking-dot" />
+                          <span className="thinking-dot" />
+                        </div>
+                      ) : (
+                        msg.content.split('\n').map((line, lIdx) => (
+                          <p key={lIdx} style={{ margin: 0, marginTop: lIdx > 0 ? '6px' : 0 }}>
+                            {line.split('**').map((part, pIdx) => {
+                              if (pIdx % 2 === 1) {
+                                return <strong key={pIdx} style={{ color: isEva ? '#c084fc' : '#ffffff', fontWeight: 700 }}>{part}</strong>;
+                              }
+                              return part;
+                            })}
+                          </p>
+                        ))
+                      )}
                     </div>
                   </div>
                 );
