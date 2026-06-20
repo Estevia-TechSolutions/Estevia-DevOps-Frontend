@@ -599,27 +599,29 @@ function App() {
   // Unified events stream (combining local state events and database audit logs)
   const unifiedEvents = useMemo(() => {
     const localEvents: EventLog[] = events;
-    const mappedAuditLogs: EventLog[] = auditLogsForEvents.map(log => {
-      let detailsObj = log.details;
-      if (typeof log.details === 'string') {
-        try {
-          detailsObj = JSON.parse(log.details);
-        } catch (e) {
-          detailsObj = log.details;
+    const mappedAuditLogs: EventLog[] = auditLogsForEvents
+      .filter(log => log.actionType !== 'VIEW_AUDIT' && log.actionType !== 'VIEW_LOGS')
+      .map(log => {
+        let detailsObj = log.details;
+        if (typeof log.details === 'string') {
+          try {
+            detailsObj = JSON.parse(log.details);
+          } catch (e) {
+            detailsObj = log.details;
+          }
         }
-      }
-      return {
-        id: `audit-${log.id}`,
-        timestamp: log.createdAt,
-        title: log.actionType,
-        message: `${log.actorEmail} targeted ${log.target}`,
-        type: 'audit',
-        status: (log.actionType.includes('FAIL') || log.actionType.includes('ERROR')) ? 'failed' : 'success',
-        details: detailsObj,
-        actorEmail: log.actorEmail,
-        target: log.target
-      };
-    });
+        return {
+          id: `audit-${log.id}`,
+          timestamp: log.createdAt,
+          title: log.actionType,
+          message: `${log.actorEmail} targeted ${log.target}`,
+          type: 'audit',
+          status: (log.actionType.includes('FAIL') || log.actionType.includes('ERROR')) ? 'failed' : 'success',
+          details: detailsObj,
+          actorEmail: log.actorEmail,
+          target: log.target
+        };
+      });
     return [...localEvents, ...mappedAuditLogs].sort((a, b) => {
       return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
     });
