@@ -409,7 +409,8 @@ function App() {
   // Event filter state for Events Feed page
   const [eventFilter, setEventFilter] = useState<'all' | 'build' | 'power' | 'scan' | 'credential' | 'audit'>('all');
   const [eventSearchQuery, setEventSearchQuery] = useState<string>('');
-  const [collapsedEventDates, setCollapsedEventDates] = useState<Record<string, boolean>>({});
+  const [eventGroupingMode, setEventGroupingMode] = useState<'date' | 'category'>('date');
+  const [expandedEventGroups, setExpandedEventGroups] = useState<Record<string, boolean>>({});
 
   // State for database audit logs integrated into system events feed
   const [auditLogsForEvents, setAuditLogsForEvents] = useState<any[]>([]);
@@ -5095,6 +5096,38 @@ function App() {
                         );
                       })}
                     </div>
+
+                    {/* Group By Segmented Control */}
+                    <div style={{ display: 'flex', gap: '4px', padding: '3px', background: 'rgba(0,0,0,0.1)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+                      {(['date', 'category'] as const).map((mode) => {
+                        const isModeActive = eventGroupingMode === mode;
+                        const modeLabel = mode === 'date' ? 'By Date' : 'By Category';
+                        return (
+                          <button
+                            key={mode}
+                            type="button"
+                            onClick={() => {
+                              setEventGroupingMode(mode);
+                              setExpandedEventGroups({});
+                            }}
+                            style={{
+                              padding: '5px 12px',
+                              borderRadius: '6px',
+                              border: 'none',
+                              background: isModeActive ? 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))' : 'transparent',
+                              color: isModeActive ? '#fff' : 'var(--text-secondary)',
+                              fontWeight: isModeActive ? 600 : 500,
+                              fontSize: '0.74rem',
+                              cursor: 'pointer',
+                              boxShadow: isModeActive ? '0 2px 6px var(--accent-blue-glow)' : 'none',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            {modeLabel}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   {loadingAuditLogsForEvents && unifiedEvents.length === 0 ? (
@@ -5145,7 +5178,7 @@ function App() {
                       );
                     }
 
-                    // Group by Date
+                    // Grouping helper functions
                     const getLocalDateString = (isoString: string) => {
                       try {
                         const date = new Date(isoString);
@@ -5160,18 +5193,36 @@ function App() {
                       }
                     };
 
+                    const getCategoryGroupName = (type: string) => {
+                      switch (type) {
+                        case 'build': return 'Build Pipelines';
+                        case 'power': return 'Power Controls';
+                        case 'scan': return 'Cloud Security Scans';
+                        case 'credential': return 'Credentials Check';
+                        case 'audit': return 'Security Audit Logs';
+                        default: return 'General Operations';
+                      }
+                    };
+
                     const groupedEvents: Record<string, EventLog[]> = {};
                     filteredEvents.forEach(e => {
-                      const dateStr = getLocalDateString(e.timestamp);
-                      if (!groupedEvents[dateStr]) groupedEvents[dateStr] = [];
-                      groupedEvents[dateStr].push(e);
+                      const groupKey = eventGroupingMode === 'date' 
+                        ? getLocalDateString(e.timestamp) 
+                        : getCategoryGroupName(e.type);
+                      if (!groupedEvents[groupKey]) groupedEvents[groupKey] = [];
+                      groupedEvents[groupKey].push(e);
                     });
 
-                    // Sort dates descending
-                    const sortedDateKeys = Object.keys(groupedEvents).sort((a, b) => {
-                      const dateA = groupedEvents[a][0] ? new Date(groupedEvents[a][0].timestamp).getTime() : 0;
-                      const dateB = groupedEvents[b][0] ? new Date(groupedEvents[b][0].timestamp).getTime() : 0;
-                      return dateB - dateA;
+                    // Sort groups
+                    const sortedGroupKeys = Object.keys(groupedEvents).sort((a, b) => {
+                      if (eventGroupingMode === 'date') {
+                        const dateA = groupedEvents[a][0] ? new Date(groupedEvents[a][0].timestamp).getTime() : 0;
+                        const dateB = groupedEvents[b][0] ? new Date(groupedEvents[b][0].timestamp).getTime() : 0;
+                        return dateB - dateA;
+                      } else {
+                        // Category sorting - sort alphabetically
+                        return a.localeCompare(b);
+                      }
                     });
 
                     return (
@@ -5188,15 +5239,15 @@ function App() {
                         }} />
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                          {sortedDateKeys.map((dateKey) => {
-                            const dateItems = groupedEvents[dateKey] || [];
-                            const isExpanded = collapsedEventDates[dateKey] === undefined ? true : !collapsedEventDates[dateKey];
+                          {sortedGroupKeys.map((groupKey) => {
+                            const groupItems = groupedEvents[groupKey] || [];
+                            const isExpanded = expandedEventGroups[groupKey] === true;
                             
                             return (
-                              <div key={dateKey} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                {/* Timeline Accordion Date Milestone Header */}
+                              <div key={groupKey} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {/* Timeline Accordion Milestone Header */}
                                 <div
-                                  onClick={() => setCollapsedEventDates(prev => ({ ...prev, [dateKey]: !prev[dateKey] }))}
+                                  onClick={() => setExpandedEventGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }))}
                                   className="event-accordion-header"
                                   style={{
                                     display: 'flex',
@@ -5230,7 +5281,7 @@ function App() {
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     {isExpanded ? <ChevronDown size={14} style={{ color: 'var(--text-secondary)' }} /> : <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />}
                                     <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.02em' }}>
-                                      {dateKey}
+                                      {groupKey}
                                     </span>
                                     <span style={{
                                       fontSize: '0.64rem',
@@ -5240,7 +5291,7 @@ function App() {
                                       borderRadius: '4px',
                                       border: '1px solid var(--glass-border)'
                                     }}>
-                                      {dateItems.length}
+                                      {groupItems.length}
                                     </span>
                                   </div>
                                 </div>
@@ -5248,7 +5299,7 @@ function App() {
                                 {/* Accordion Content Panel (Indented event cards list) */}
                                 {isExpanded && (
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginLeft: '50px' }}>
-                                    {dateItems.map(event => {
+                                    {groupItems.map(event => {
                                       const timestampText = new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                                       
                                       // Category color & icon resolves

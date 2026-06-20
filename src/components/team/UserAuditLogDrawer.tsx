@@ -127,9 +127,9 @@ export const UserAuditLogDrawer: React.FC<UserAuditLogDrawerProps> = ({
 
   const userLogs = logs.filter(
     (log) =>
-      log.actorEmail.toLowerCase() === userEmail.toLowerCase() &&
-      (log.actionType.toLowerCase().includes(search.toLowerCase()) ||
-        log.target.toLowerCase().includes(search.toLowerCase()))
+      (log.actorEmail || '').toLowerCase() === (userEmail || '').toLowerCase() &&
+      ((log.actionType || '').toLowerCase().includes(search.toLowerCase()) ||
+        (log.target || '').toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
