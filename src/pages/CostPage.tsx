@@ -404,6 +404,9 @@ export const CostPage: React.FC<CostPageProps> = ({
           opacity: 1 !important;
           transform: translateX(-50%) translateY(0) !important;
         }
+        .opt-hover-wrapper:hover {
+          z-index: 1000 !important;
+        }
 
         @keyframes play-pulse {
           0%, 100% {

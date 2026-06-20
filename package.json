@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "replace-app": "node replace_app_tsx.js",
+    "check-brackets": "node check_brackets.js"
   },
   "dependencies": {
     "lucide-react": "^1.17.0",
