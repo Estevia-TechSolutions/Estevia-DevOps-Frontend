@@ -4465,7 +4465,7 @@ function App() {
         ) : (
           <>
             {/* Unified DevOps Control Centre & Navigation Panel */}
-            <div className="glass-panel" style={{ padding: '24px', marginBottom: '30px', position: 'relative', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
+            <div className="glass-panel" style={{ padding: '24px', marginBottom: '30px', position: 'relative', overflow: 'visible', border: '1px solid var(--glass-border)' }}>
               {/* Background gradient */}
               <div style={{
                 position: 'absolute',
