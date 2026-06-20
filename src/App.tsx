@@ -5204,23 +5204,32 @@ function App() {
                       }
                     };
 
-                    const groupedEvents: Record<string, EventLog[]> = {};
+                    const groupedEvents: Record<string, Record<string, EventLog[]>> = {};
                     filteredEvents.forEach(e => {
-                      const groupKey = eventGroupingMode === 'date' 
-                        ? getLocalDateString(e.timestamp) 
-                        : getCategoryGroupName(e.type);
-                      if (!groupedEvents[groupKey]) groupedEvents[groupKey] = [];
-                      groupedEvents[groupKey].push(e);
+                      const dateKey = getLocalDateString(e.timestamp);
+                      const categoryKey = getCategoryGroupName(e.type);
+
+                      if (eventGroupingMode === 'date') {
+                        if (!groupedEvents[dateKey]) groupedEvents[dateKey] = {};
+                        if (!groupedEvents[dateKey][categoryKey]) groupedEvents[dateKey][categoryKey] = [];
+                        groupedEvents[dateKey][categoryKey].push(e);
+                      } else {
+                        if (!groupedEvents[categoryKey]) groupedEvents[categoryKey] = {};
+                        if (!groupedEvents[categoryKey][dateKey]) groupedEvents[categoryKey][dateKey] = [];
+                        groupedEvents[categoryKey][dateKey].push(e);
+                      }
                     });
 
-                    // Sort groups
-                    const sortedGroupKeys = Object.keys(groupedEvents).sort((a, b) => {
+                    // Sort Level 1 groups
+                    const sortedL1Keys = Object.keys(groupedEvents).sort((a, b) => {
                       if (eventGroupingMode === 'date') {
-                        const dateA = groupedEvents[a][0] ? new Date(groupedEvents[a][0].timestamp).getTime() : 0;
-                        const dateB = groupedEvents[b][0] ? new Date(groupedEvents[b][0].timestamp).getTime() : 0;
-                        return dateB - dateA;
+                        const getFirstTimestamp = (key: string) => {
+                          const cats = groupedEvents[key];
+                          const firstCatKey = Object.keys(cats)[0];
+                          return cats[firstCatKey]?.[0]?.timestamp ? new Date(cats[firstCatKey][0].timestamp).getTime() : 0;
+                        };
+                        return getFirstTimestamp(b) - getFirstTimestamp(a);
                       } else {
-                        // Category sorting - sort alphabetically
                         return a.localeCompare(b);
                       }
                     });
@@ -5239,15 +5248,29 @@ function App() {
                         }} />
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                          {sortedGroupKeys.map((groupKey) => {
-                            const groupItems = groupedEvents[groupKey] || [];
-                            const isExpanded = expandedEventGroups[groupKey] === true;
+                          {sortedL1Keys.map((l1Key) => {
+                            const nestedGroup = groupedEvents[l1Key] || {};
+                            const isL1Expanded = expandedEventGroups[l1Key] === true;
+
+                            // Calculate total count under L1
+                            const totalL1Count = Object.values(nestedGroup).reduce((acc, items) => acc + items.length, 0);
+
+                            // Sort Level 2 keys
+                            const sortedL2Keys = Object.keys(nestedGroup).sort((a, b) => {
+                              if (eventGroupingMode === 'date') {
+                                return a.localeCompare(b);
+                              } else {
+                                const timeA = nestedGroup[a]?.[0] ? new Date(nestedGroup[a][0].timestamp).getTime() : 0;
+                                const timeB = nestedGroup[b]?.[0] ? new Date(nestedGroup[b][0].timestamp).getTime() : 0;
+                                return timeB - timeA;
+                              }
+                            });
                             
                             return (
-                              <div key={groupKey} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                {/* Timeline Accordion Milestone Header */}
+                              <div key={l1Key} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {/* Level 1 Milestone Accordion Header */}
                                 <div
-                                  onClick={() => setExpandedEventGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }))}
+                                  onClick={() => setExpandedEventGroups(prev => ({ ...prev, [l1Key]: !prev[l1Key] }))}
                                   className="event-accordion-header"
                                   style={{
                                     display: 'flex',
@@ -5279,9 +5302,9 @@ function App() {
                                   }} />
 
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    {isExpanded ? <ChevronDown size={14} style={{ color: 'var(--text-secondary)' }} /> : <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />}
+                                    {isL1Expanded ? <ChevronDown size={14} style={{ color: 'var(--text-secondary)' }} /> : <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />}
                                     <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.02em' }}>
-                                      {groupKey}
+                                      {l1Key}
                                     </span>
                                     <span style={{
                                       fontSize: '0.64rem',
@@ -5291,266 +5314,333 @@ function App() {
                                       borderRadius: '4px',
                                       border: '1px solid var(--glass-border)'
                                     }}>
-                                      {groupItems.length}
+                                      {totalL1Count}
                                     </span>
                                   </div>
                                 </div>
 
-                                {/* Accordion Content Panel (Indented event cards list) */}
-                                {isExpanded && (
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginLeft: '50px' }}>
-                                    {groupItems.map(event => {
-                                      const timestampText = new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                                      
-                                      // Category color & icon resolves
-                                      const getCategoryConfig = (type: string, status: string) => {
-                                        const colors: Record<string, { border: string; text: string; bg: string }> = {
-                                          success: { border: '#22c55e', text: '#22c55e', bg: 'rgba(34, 197, 94, 0.08)' },
-                                          failed: { border: '#ef4444', text: '#ef4444', bg: 'rgba(239, 68, 68, 0.08)' },
-                                          warning: { border: '#f59e0b', text: '#f59e0b', bg: 'rgba(245, 158, 11, 0.08)' },
-                                          info: { border: '#3b82f6', text: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)' }
-                                        };
-                                        const state = colors[status] || colors.info;
-
-                                        let icon = <Terminal size={12} />;
-                                        if (type === 'build') icon = <GitBranch size={12} />;
-                                        if (type === 'power') icon = <Sliders size={12} />;
-                                        if (type === 'scan') icon = <Server size={12} />;
-                                        if (type === 'credential') icon = <ShieldCheck size={12} />;
-                                        if (type === 'audit') icon = <ShieldCheck size={12} />;
-
-                                        return { state, icon };
-                                      };
-
-                                      const { state, icon } = getCategoryConfig(event.type, event.status);
-
-                                      // Unread/newest event gets a pulse ring on its subnode
-                                      const isLatestEvent = unifiedEvents[0]?.id === event.id;
-                                      const isCardExpanded = expandedEventId === event.id;
+                                {/* Level 2 Accordions Content Panel */}
+                                {isL1Expanded && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    {sortedL2Keys.map((l2Key) => {
+                                      const l2Items = nestedGroup[l2Key] || [];
+                                      const l2GroupKey = l1Key + '_' + l2Key;
+                                      const isL2Expanded = expandedEventGroups[l2GroupKey] === true;
 
                                       return (
-                                        <div
-                                          key={event.id}
-                                          className="event-card"
-                                          style={{
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            gap: '14px',
-                                            padding: '14px 16px',
-                                            borderRadius: '10px',
-                                            background: theme === 'light' ? 'rgba(0,0,0,0.005)' : 'rgba(255,255,255,0.005)',
-                                            border: '1px solid var(--glass-border)',
-                                            position: 'relative',
-                                            cursor: 'pointer'
-                                          }}
-                                          onClick={() => setExpandedEventId(isCardExpanded ? null : event.id)}
-                                        >
-                                          {/* Mini timeline dot on vertical line */}
-                                          <div style={{
-                                            position: 'absolute',
-                                            left: '-32px',
-                                            top: '25px', // align with the top row icon
-                                            width: '8px',
-                                            height: '8px',
-                                            borderRadius: '50%',
-                                            background: state.border,
-                                            border: '2px solid var(--bg-primary)',
-                                            zIndex: 2,
-                                            animation: isLatestEvent ? 'pulse-node 2s infinite ease-in-out' : 'none',
-                                            boxShadow: isLatestEvent ? `0 0 8px ${state.border}` : 'none'
-                                          }} />
-
-                                          <div style={{
-                                            position: 'absolute',
-                                            left: 0,
-                                            top: 0,
-                                            bottom: 0,
-                                            width: '3px',
-                                            backgroundColor: state.border,
-                                            borderRadius: '3px 0 0 3px'
-                                          }} />
-
-                                          {/* Top row content */}
-                                          <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', width: '100%' }}>
-                                            <div style={{
-                                              width: '26px',
-                                              height: '26px',
-                                              borderRadius: '6px',
-                                              background: state.bg,
-                                              color: state.text,
+                                        <div key={l2GroupKey} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                          {/* Level 2 Accordion Header */}
+                                          <div
+                                            onClick={() => setExpandedEventGroups(prev => ({ ...prev, [l2GroupKey]: !prev[l2GroupKey] }))}
+                                            className="event-accordion-header"
+                                            style={{
                                               display: 'flex',
                                               alignItems: 'center',
-                                              justifyContent: 'center',
-                                              flexShrink: 0,
-                                              border: `1px solid rgba(${state.border === '#22c55e' ? '34,197,94' : state.border === '#ef4444' ? '239,68,68' : state.border === '#f59e0b' ? '245,158,11' : '59,130,246'}, 0.15)`
-                                            }}>
-                                              {icon}
-                                            </div>
+                                              justifyContent: 'space-between',
+                                              padding: '6px 12px',
+                                              marginLeft: '74px',
+                                              background: 'rgba(255,255,255,0.01)',
+                                              border: '1px solid var(--glass-border)',
+                                              borderRadius: '6px',
+                                              cursor: 'pointer',
+                                              position: 'relative',
+                                              userSelect: 'none',
+                                              fontSize: '0.74rem'
+                                            }}
+                                          >
+                                            {/* Level 2 Timeline Node */}
+                                            <div style={{
+                                              position: 'absolute',
+                                              left: '-57px',
+                                              top: '50%',
+                                              transform: 'translateY(-50%)',
+                                              width: '8px',
+                                              height: '8px',
+                                              borderRadius: '50%',
+                                              background: 'var(--bg-primary)',
+                                              border: '2px solid var(--accent-blue)',
+                                              zIndex: 2,
+                                              boxShadow: '0 0 4px var(--accent-blue-glow)'
+                                            }} />
 
-                                            <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
-                                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-primary)' }}>
-                                                  {event.title}
-                                                </h4>
-                                                <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                                                  {event.message}
-                                                </p>
-                                              </div>
-                                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                                                  {timestampText}
-                                                </span>
-                                                {isCardExpanded ? <ChevronUp size={14} style={{ color: 'var(--text-secondary)' }} /> : <ChevronDown size={14} style={{ color: 'var(--text-secondary)' }} />}
-                                              </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                              {isL2Expanded ? <ChevronDown size={12} style={{ color: 'var(--text-secondary)' }} /> : <ChevronRight size={12} style={{ color: 'var(--text-secondary)' }} />}
+                                              <span style={{ fontWeight: 650, color: 'var(--text-secondary)' }}>
+                                                {l2Key}
+                                              </span>
+                                              <span style={{
+                                                fontSize: '0.6rem',
+                                                backgroundColor: 'rgba(255,255,255,0.02)',
+                                                color: 'var(--text-muted)',
+                                                padding: '0.5px 4px',
+                                                borderRadius: '3px',
+                                                border: '1px solid var(--glass-border)'
+                                              }}>
+                                                {l2Items.length}
+                                              </span>
                                             </div>
                                           </div>
 
-                                          {/* Expanded Card Details UX */}
-                                          {isCardExpanded && (
-                                            <div 
-                                              onClick={(e) => e.stopPropagation()} // prevent collapsing on clicking content
-                                              style={{
-                                                borderTop: '1px solid var(--glass-border)',
-                                                paddingTop: '14px',
-                                                marginTop: '6px',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                gap: '14px',
-                                                width: '100%'
-                                              }}
-                                            >
-                                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                                                <span style={{
-                                                  fontSize: '0.64rem',
-                                                  fontWeight: 750,
-                                                  textTransform: 'uppercase',
-                                                  padding: '2px 8px',
-                                                  borderRadius: '4px',
-                                                  background: event.type === 'audit' 
-                                                    ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.15))' 
-                                                    : 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(20, 184, 166, 0.15))',
-                                                  border: event.type === 'audit'
-                                                    ? '1px solid rgba(139, 92, 246, 0.3)'
-                                                    : '1px solid rgba(16, 185, 129, 0.3)',
-                                                  color: event.type === 'audit' ? '#c084fc' : 'var(--accent-teal)'
-                                                }}>
-                                                  {event.type === 'audit' ? 'Security Audit Trail' : 'Local System Feed'}
-                                                </span>
-                                              </div>
+                                          {/* Level 2 Content Panel (Indented event cards list) */}
+                                          {isL2Expanded && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginLeft: '98px' }}>
+                                              {l2Items.map(event => {
+                                                const timestampText = new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                                
+                                                // Category color & icon resolves
+                                                const getCategoryConfig = (type: string, status: string) => {
+                                                  const colors: Record<string, { border: string; text: string; bg: string }> = {
+                                                    success: { border: '#22c55e', text: '#22c55e', bg: 'rgba(34, 197, 94, 0.08)' },
+                                                    failed: { border: '#ef4444', text: '#ef4444', bg: 'rgba(239, 68, 68, 0.08)' },
+                                                    warning: { border: '#f59e0b', text: '#f59e0b', bg: 'rgba(245, 158, 11, 0.08)' },
+                                                    info: { border: '#3b82f6', text: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)' }
+                                                  };
+                                                  const state = colors[status] || colors.info;
 
-                                              {event.type === 'audit' ? (
-                                                <>
-                                                  {/* Metadata Grid */}
-                                                  <div style={{
-                                                    display: 'grid',
-                                                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                                                    gap: '12px',
-                                                    padding: '12px 14px',
-                                                    borderRadius: '6px',
-                                                    background: 'rgba(255,255,255,0.01)',
-                                                    border: '1px solid var(--glass-border)',
-                                                    fontSize: '0.76rem'
-                                                  }}>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                      <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 650 }}>Actor Email</span>
-                                                      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{event.actorEmail}</span>
-                                                    </div>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                      <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 650 }}>Target Entity</span>
-                                                      <span style={{ color: 'var(--text-secondary)' }}>{event.target}</span>
-                                                    </div>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                      <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 650 }}>Request Endpoint</span>
-                                                      {(() => {
-                                                        const method = event.details?.method || 'POST';
-                                                        const path = event.details?.path || '/';
-                                                        const methodColor = method === 'DELETE' ? '#ef4444' : method === 'PUT' ? '#fb923c' : method === 'GET' ? '#3b82f6' : '#10b981';
-                                                        return (
-                                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem' }}>
-                                                            <span style={{
-                                                              fontSize: '0.58rem',
-                                                              fontWeight: 800,
-                                                              padding: '1px 4px',
-                                                              borderRadius: '3px',
-                                                              background: 'rgba(255,255,255,0.03)',
-                                                              border: `1px solid ${methodColor}`,
-                                                              color: methodColor
-                                                            }}>
-                                                              {method}
-                                                            </span>
-                                                            <span style={{ color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{path}</span>
-                                                          </div>
-                                                        );
-                                                      })()}
-                                                    </div>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                      <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 650 }}>Source IP Address</span>
-                                                      <span style={{ color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{event.details?.ip || 'Unknown'}</span>
-                                                    </div>
-                                                  </div>
+                                                  let icon = <Terminal size={12} />;
+                                                  if (type === 'build') icon = <GitBranch size={12} />;
+                                                  if (type === 'power') icon = <Sliders size={12} />;
+                                                  if (type === 'scan') icon = <Server size={12} />;
+                                                  if (type === 'credential') icon = <ShieldCheck size={12} />;
+                                                  if (type === 'audit') icon = <ShieldCheck size={12} />;
 
-                                                  {/* Request Payload JSON */}
-                                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                                                        <Terminal size={11} style={{ color: 'var(--accent-purple)' }} />
-                                                        <span>Request Body Payload & Parameters</span>
+                                                  return { state, icon };
+                                                };
+
+                                                const { state, icon } = getCategoryConfig(event.type, event.status);
+
+                                                // Unread/newest event gets a pulse ring on its subnode
+                                                const isLatestEvent = unifiedEvents[0]?.id === event.id;
+                                                const isCardExpanded = expandedEventId === event.id;
+
+                                                return (
+                                                  <div
+                                                    key={event.id}
+                                                    className="event-card"
+                                                    style={{
+                                                      display: 'flex',
+                                                      flexDirection: 'column',
+                                                      gap: '14px',
+                                                      padding: '14px 16px',
+                                                      borderRadius: '10px',
+                                                      background: theme === 'light' ? 'rgba(0,0,0,0.005)' : 'rgba(255,255,255,0.005)',
+                                                      border: '1px solid var(--glass-border)',
+                                                      position: 'relative',
+                                                      cursor: 'pointer'
+                                                    }}
+                                                    onClick={() => setExpandedEventId(isCardExpanded ? null : event.id)}
+                                                  >
+                                                    {/* Mini timeline dot on vertical line */}
+                                                    <div style={{
+                                                      position: 'absolute',
+                                                      left: '-79px',
+                                                      top: '25px', // align with the top row icon
+                                                      width: '8px',
+                                                      height: '8px',
+                                                      borderRadius: '50%',
+                                                      background: state.border,
+                                                      border: '2px solid var(--bg-primary)',
+                                                      zIndex: 2,
+                                                      animation: isLatestEvent ? 'pulse-node 2s infinite ease-in-out' : 'none',
+                                                      boxShadow: isLatestEvent ? `0 0 8px ${state.border}` : 'none'
+                                                    }} />
+
+                                                    <div style={{
+                                                      position: 'absolute',
+                                                      left: 0,
+                                                      top: 0,
+                                                      bottom: 0,
+                                                      width: '3px',
+                                                      backgroundColor: state.border,
+                                                      borderRadius: '3px 0 0 3px'
+                                                    }} />
+
+                                                    {/* Top row content */}
+                                                    <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', width: '100%' }}>
+                                                      <div style={{
+                                                        width: '26px',
+                                                        height: '26px',
+                                                        borderRadius: '6px',
+                                                        background: state.bg,
+                                                        color: state.text,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        flexShrink: 0,
+                                                        border: `1px solid rgba(${state.border === '#22c55e' ? '34,197,94' : state.border === '#ef4444' ? '239,68,68' : state.border === '#f59e0b' ? '245,158,11' : '59,130,246'}, 0.15)`
+                                                      }}>
+                                                        {icon}
                                                       </div>
-                                                      <CopyButton text={JSON.stringify(event.details?.payload || event.details?.query || event.details || {}, null, 2)} />
+
+                                                      <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                          <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-primary)' }}>
+                                                            {event.title}
+                                                          </h4>
+                                                          <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                                                            {event.message}
+                                                          </p>
+                                                        </div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                          <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                                                            {timestampText}
+                                                          </span>
+                                                          {isCardExpanded ? <ChevronUp size={14} style={{ color: 'var(--text-secondary)' }} /> : <ChevronDown size={14} style={{ color: 'var(--text-secondary)' }} />}
+                                                        </div>
+                                                      </div>
                                                     </div>
-                                                    
-                                                    <pre style={{
-                                                      margin: 0,
-                                                      background: '#020617',
-                                                      borderRadius: '6px',
-                                                      padding: '10px',
-                                                      fontFamily: 'monospace',
-                                                      fontSize: '0.72rem',
-                                                      color: '#cbd5e1',
-                                                      whiteSpace: 'pre-wrap',
-                                                      border: '1px solid var(--glass-border)',
-                                                      maxHeight: '180px',
-                                                      overflowY: 'auto'
-                                                    }}>
-                                                      {JSON.stringify(event.details?.payload || event.details?.query || event.details || {}, null, 2)}
-                                                    </pre>
+
+                                                    {/* Expanded Card Details UX */}
+                                                    {isCardExpanded && (
+                                                      <div 
+                                                        onClick={(e) => e.stopPropagation()} // prevent collapsing on clicking content
+                                                        style={{
+                                                          borderTop: '1px solid var(--glass-border)',
+                                                          paddingTop: '14px',
+                                                          marginTop: '6px',
+                                                          display: 'flex',
+                                                          flexDirection: 'column',
+                                                          gap: '14px',
+                                                          width: '100%'
+                                                        }}
+                                                      >
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                                                          <span style={{
+                                                            fontSize: '0.64rem',
+                                                            fontWeight: 750,
+                                                            textTransform: 'uppercase',
+                                                            padding: '2px 8px',
+                                                            borderRadius: '4px',
+                                                            background: event.type === 'audit' 
+                                                              ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.15))' 
+                                                              : 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(20, 184, 166, 0.15))',
+                                                            border: event.type === 'audit'
+                                                              ? '1px solid rgba(139, 92, 246, 0.3)'
+                                                              : '1px solid rgba(16, 185, 129, 0.3)',
+                                                            color: event.type === 'audit' ? '#c084fc' : 'var(--accent-teal)'
+                                                          }}>
+                                                            {event.type === 'audit' ? 'Security Audit Trail' : 'Local System Feed'}
+                                                          </span>
+                                                        </div>
+
+                                                        {event.type === 'audit' ? (
+                                                          <>
+                                                            {/* Metadata Grid */}
+                                                            <div style={{
+                                                              display: 'grid',
+                                                              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                                                              gap: '12px',
+                                                              padding: '12px 14px',
+                                                              borderRadius: '6px',
+                                                              background: 'rgba(255,255,255,0.01)',
+                                                              border: '1px solid var(--glass-border)',
+                                                              fontSize: '0.76rem'
+                                                            }}>
+                                                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                                <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 650 }}>Actor Email</span>
+                                                                <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{event.actorEmail}</span>
+                                                              </div>
+                                                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                                <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 650 }}>Target Entity</span>
+                                                                <span style={{ color: 'var(--text-secondary)' }}>{event.target}</span>
+                                                              </div>
+                                                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                                <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 650 }}>Request Endpoint</span>
+                                                                {(() => {
+                                                                  const method = event.details?.method || 'POST';
+                                                                  const path = event.details?.path || '/';
+                                                                  const methodColor = method === 'DELETE' ? '#ef4444' : method === 'PUT' ? '#fb923c' : method === 'GET' ? '#3b82f6' : '#10b981';
+                                                                  return (
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem' }}>
+                                                                      <span style={{
+                                                                        fontSize: '0.58rem',
+                                                                        fontWeight: 800,
+                                                                        padding: '1px 4px',
+                                                                        borderRadius: '3px',
+                                                                        background: 'rgba(255,255,255,0.03)',
+                                                                        border: `1px solid ${methodColor}`,
+                                                                        color: methodColor
+                                                                      }}>
+                                                                        {method}
+                                                                      </span>
+                                                                      <span style={{ color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{path}</span>
+                                                                    </div>
+                                                                  );
+                                                                })()}
+                                                              </div>
+                                                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                                <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 650 }}>Source IP Address</span>
+                                                                <span style={{ color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{event.details?.ip || 'Unknown'}</span>
+                                                              </div>
+                                                            </div>
+
+                                                            {/* Request Payload JSON */}
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                                                                  <Terminal size={11} style={{ color: 'var(--accent-purple)' }} />
+                                                                  <span>Request Body Payload & Parameters</span>
+                                                                </div>
+                                                                <CopyButton text={JSON.stringify(event.details?.payload || event.details?.query || event.details || {}, null, 2)} />
+                                                              </div>
+                                                              
+                                                              <pre style={{
+                                                                margin: 0,
+                                                                background: '#020617',
+                                                                borderRadius: '6px',
+                                                                padding: '10px',
+                                                                fontFamily: 'monospace',
+                                                                fontSize: '0.72rem',
+                                                                color: '#cbd5e1',
+                                                                whiteSpace: 'pre-wrap',
+                                                                border: '1px solid var(--glass-border)',
+                                                                maxHeight: '180px',
+                                                                overflowY: 'auto'
+                                                              }}>
+                                                                {JSON.stringify(event.details?.payload || event.details?.query || event.details || {}, null, 2)}
+                                                              </pre>
+                                                            </div>
+                                                          </>
+                                                        ) : (
+                                                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                            <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', display: 'flex', gap: '12px' }}>
+                                                              <span>Category: <strong style={{ color: 'var(--text-primary)', textTransform: 'uppercase' }}>{event.type}</strong></span>
+                                                              <span>Status: <strong style={{ color: event.status === 'success' ? 'var(--success)' : 'var(--error)' }}>{event.status}</strong></span>
+                                                            </div>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>System Diagnostics Context</span>
+                                                                <CopyButton text={JSON.stringify({ eventId: event.id, timestamp: event.timestamp, title: event.title, status: event.status, message: event.message }, null, 2)} />
+                                                              </div>
+                                                              <pre style={{
+                                                                margin: 0,
+                                                                background: '#020617',
+                                                                borderRadius: '6px',
+                                                                padding: '10px',
+                                                                fontFamily: 'monospace',
+                                                                fontSize: '0.72rem',
+                                                                color: '#cbd5e1',
+                                                                whiteSpace: 'pre-wrap',
+                                                                border: '1px solid var(--glass-border)',
+                                                                maxHeight: '120px',
+                                                                overflowY: 'auto'
+                                                              }}>
+                                                                {JSON.stringify({
+                                                                  eventId: event.id,
+                                                                  timestamp: event.timestamp,
+                                                                  title: event.title,
+                                                                  message: event.message,
+                                                                  status: event.status
+                                                                }, null, 2)}
+                                                              </pre>
+                                                            </div>
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    )}
                                                   </div>
-                                                </>
-                                              ) : (
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                  <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', display: 'flex', gap: '12px' }}>
-                                                    <span>Category: <strong style={{ color: 'var(--text-primary)', textTransform: 'uppercase' }}>{event.type}</strong></span>
-                                                    <span>Status: <strong style={{ color: event.status === 'success' ? 'var(--success)' : 'var(--error)' }}>{event.status}</strong></span>
-                                                  </div>
-                                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                      <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>System Diagnostics Context</span>
-                                                      <CopyButton text={JSON.stringify({ eventId: event.id, timestamp: event.timestamp, title: event.title, status: event.status, message: event.message }, null, 2)} />
-                                                    </div>
-                                                    <pre style={{
-                                                      margin: 0,
-                                                      background: '#020617',
-                                                      borderRadius: '6px',
-                                                      padding: '10px',
-                                                      fontFamily: 'monospace',
-                                                      fontSize: '0.72rem',
-                                                      color: '#cbd5e1',
-                                                      whiteSpace: 'pre-wrap',
-                                                      border: '1px solid var(--glass-border)',
-                                                      maxHeight: '120px',
-                                                      overflowY: 'auto'
-                                                    }}>
-                                                      {JSON.stringify({
-                                                        eventId: event.id,
-                                                        timestamp: event.timestamp,
-                                                        title: event.title,
-                                                        message: event.message,
-                                                        status: event.status
-                                                      }, null, 2)}
-                                                    </pre>
-                                                  </div>
-                                                </div>
-                                              )}
+                                                );
+                                              })}
                                             </div>
                                           )}
                                         </div>
