@@ -135,19 +135,37 @@ export const UserAuditLogDrawer: React.FC<UserAuditLogDrawerProps> = ({
 
   return createPortal(
     <>
+      {/* Animation Style */}
+      <style>{`
+        @keyframes slide-in-anim {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        @keyframes fade-in-anim {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes pulse-shimmer {
+          0% { opacity: 0.35; }
+          50% { opacity: 0.75; }
+          100% { opacity: 0.35; }
+        }
+      `}</style>
+
       {/* Backdrop */}
       <div 
         style={{
           position: 'fixed',
           top: 0,
           left: 0,
-          width: '100vw',
-          height: '100vh',
+          right: 0,
+          bottom: 0,
           backgroundColor: 'rgba(2, 6, 23, 0.6)',
           backdropFilter: 'blur(5px)',
           WebkitBackdropFilter: 'blur(5px)',
           zIndex: 9998,
-          animation: 'fade-in-anim 0.2s ease-out'
+          opacity: 1,
+          animation: 'fade-in-anim 0.2s ease-out forwards'
         }}
         onClick={onClose}
       />
@@ -160,33 +178,29 @@ export const UserAuditLogDrawer: React.FC<UserAuditLogDrawerProps> = ({
           bottom: 0,
           width: '580px',
           maxWidth: '100vw',
-          backgroundColor: isLight ? 'rgba(255, 255, 255, 0.85)' : 'rgba(9, 13, 22, 0.85)',
-          backdropFilter: 'blur(40px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(40px) saturate(160%)',
           borderLeft: '1px solid var(--glass-border)',
           boxShadow: '-10px 0 50px rgba(0, 0, 0, 0.45)',
           zIndex: 9999,
           display: 'flex',
           flexDirection: 'column',
-          animation: 'slide-in-anim 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+          transform: 'translateX(0)',
+          animation: 'slide-in-anim 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
         }}
       >
-        {/* Animation Style */}
-        <style>{`
-          @keyframes slide-in-anim {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
-          }
-          @keyframes fade-in-anim {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-          @keyframes pulse-shimmer {
-            0% { opacity: 0.35; }
-            50% { opacity: 0.75; }
-            100% { opacity: 0.35; }
-          }
-        `}</style>
+        {/* Frosted Glass Background layer to avoid backdrop-filter rendering bugs with transform animations */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: isLight ? 'rgba(255, 255, 255, 0.85)' : 'rgba(9, 13, 22, 0.85)',
+            backdropFilter: 'blur(40px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(40px) saturate(160%)',
+            zIndex: -1
+          }}
+        />
 
         {/* Header */}
         <div
