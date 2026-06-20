@@ -88,12 +88,18 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: var(--bg-header);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(2, 6, 23, 0.98) 60%, rgba(30, 10, 50, 0.96) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--divider);
-  box-shadow: var(--header-shadow);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.18);
+  box-shadow: 0 1px 20px rgba(0, 0, 0, 0.35), 0 0 40px rgba(139, 92, 246, 0.06);
   transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+[data-theme="light"] .site-header {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(241, 245, 249, 0.97) 60%, rgba(237, 233, 254, 0.95) 100%) !important;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.12);
+  box-shadow: 0 1px 16px rgba(0, 0, 0, 0.07), 0 0 30px rgba(139, 92, 246, 0.04);
 }
 
 .site-header-inner {
@@ -547,6 +553,112 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus {
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
+  position: relative;
+}
+
+/* ─── Menu Hover Tooltip Cards ─── */
+.menu-hover-card {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(6px);
+  min-width: 200px;
+  max-width: 240px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.97) 0%, rgba(30, 10, 60, 0.96) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(139, 92, 246, 0.15);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s;
+  z-index: 9999;
+  text-align: left;
+  white-space: normal;
+}
+
+[data-theme="light"] .menu-hover-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(237, 233, 254, 0.97) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 0 20px rgba(139, 92, 246, 0.08);
+}
+
+/* Arrow pointer at bottom of card */
+.menu-hover-card::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  background: inherit;
+  border-right: 1px solid rgba(139, 92, 246, 0.35);
+  border-bottom: 1px solid rgba(139, 92, 246, 0.35);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+/* Left-aligned override (first tab — Cloud Scanning) */
+.menu-hover-card-left {
+  left: 0;
+  transform: translateX(0) translateY(6px);
+}
+.menu-hover-card-left::after {
+  left: 20px;
+  transform: translateX(0) rotate(45deg);
+}
+
+/* Right-aligned override (last tab — User Guide) */
+.menu-hover-card-right {
+  left: auto;
+  right: 0;
+  transform: translateX(0) translateY(6px);
+}
+.menu-hover-card-right::after {
+  left: auto;
+  right: 20px;
+  transform: translateX(0) rotate(45deg);
+}
+
+/* Show card on button hover */
+.premium-tab-btn:hover .menu-hover-card {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+.premium-tab-btn:hover .menu-hover-card-left {
+  transform: translateX(0) translateY(0);
+}
+.premium-tab-btn:hover .menu-hover-card-right {
+  transform: translateX(0) translateY(0);
+}
+
+.menu-hover-card-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #a78bfa;
+  letter-spacing: 0.01em;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+[data-theme="light"] .menu-hover-card-title {
+  color: #6d28d9;
+}
+
+.menu-hover-card-desc {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+[data-theme="light"] .menu-hover-card-desc {
+  color: rgba(15, 23, 42, 0.6);
 }
 
 [data-theme="light"] .premium-tab-btn {

@@ -4549,34 +4549,62 @@ function App() {
                     {activeBuildsCount > 0 && (
                       <span className="premium-build-dot" title={`${activeBuildsCount} build(s) in progress`} />
                     )}
+                    <div className="menu-hover-card menu-hover-card-left">
+                      <div className="menu-hover-card-title"><Server size={12} /> Cloud Scanning</div>
+                      <div className="menu-hover-card-desc">Scan and monitor all your Azure Static Web Apps, backend APIs, and virtual machines across environments.</div>
+                    </div>
                   </button>
                   <button className={`premium-tab-btn ${activeTab === 'provision' ? 'active' : ''}`} onClick={() => setActiveTab('provision')}>
                     <PlusCircle size={16} />
                     <span>Provision App</span>
+                    <div className="menu-hover-card">
+                      <div className="menu-hover-card-title"><PlusCircle size={12} /> Provision App</div>
+                      <div className="menu-hover-card-desc">Launch new Azure Static Web Apps or backend containers with guided step-by-step provisioning wizard.</div>
+                    </div>
                   </button>
                   <button className={`premium-tab-btn ${activeTab === 'cost' ? 'active' : ''}`} onClick={() => { setActiveTab('cost'); setCostTab('breakdown'); }}>
                     <Database size={16} />
                     <span>Cost & Billing</span>
+                    <div className="menu-hover-card">
+                      <div className="menu-hover-card-title"><Database size={12} /> Cost & Billing</div>
+                      <div className="menu-hover-card-desc">View a detailed Azure cost breakdown by resource group, service type, and environment for the current billing cycle.</div>
+                    </div>
                   </button>
                   <button className={`premium-tab-btn ${activeTab === 'optimization' ? 'active' : ''}`} onClick={() => { setActiveTab('optimization'); setCostTab('recommendations'); }}>
                     <TrendingDown size={16} />
                     <span>Cost Optimization</span>
+                    <div className="menu-hover-card">
+                      <div className="menu-hover-card-title"><TrendingDown size={12} /> Cost Optimization</div>
+                      <div className="menu-hover-card-desc">AI-driven recommendations to right-size resources, schedule sleep timers, and reduce monthly cloud spend.</div>
+                    </div>
                   </button>
                   <button className={`premium-tab-btn ${activeTab === 'databases' ? 'active' : ''}`} onClick={() => setActiveTab('databases')}>
                     <Database size={16} />
                     <span>DB Hub</span>
+                    <div className="menu-hover-card">
+                      <div className="menu-hover-card-title"><Database size={12} /> DB Hub</div>
+                      <div className="menu-hover-card-desc">Browse and manage your connected database catalog — schemas, tables, and connection health at a glance.</div>
+                    </div>
                   </button>
                   <button className={`premium-tab-btn ${activeTab === 'credentials' ? 'active' : ''}`} onClick={() => setActiveTab('credentials')}>
                     <ShieldCheck size={16} />
                     <span>Credentials</span>
+                    <div className="menu-hover-card">
+                      <div className="menu-hover-card-title"><ShieldCheck size={12} /> Credentials</div>
+                      <div className="menu-hover-card-desc">Securely manage API keys for GitHub, GoDaddy, and Azure DevOps. All secrets are AES-256-GCM encrypted at rest.</div>
+                    </div>
                   </button>
                   {(user?.role === 'owner' || user?.role === 'admin') && (
                     <button className={`premium-tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>
                       <Users size={16} />
                       <span>Team Settings</span>
+                      <div className="menu-hover-card">
+                        <div className="menu-hover-card-title"><Users size={12} /> Team Settings</div>
+                        <div className="menu-hover-card-desc">Invite team members, assign roles (owner / admin / viewer), and review the full organisation audit trail.</div>
+                      </div>
                     </button>
                   )}
-                  <button className={`premium-tab-btn ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')} style={{ position: 'relative' }}>
+                  <button className={`premium-tab-btn ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')}>
                     <Activity size={16} />
                     <span>Events Feed</span>
                     {activeBuildsCount > 0 && (
@@ -4584,10 +4612,18 @@ function App() {
                         {activeBuildsCount}
                       </span>
                     )}
+                    <div className="menu-hover-card">
+                      <div className="menu-hover-card-title"><Activity size={12} /> Events Feed</div>
+                      <div className="menu-hover-card-desc">Real-time stream of build triggers, power actions, scans, and credential changes across the platform.</div>
+                    </div>
                   </button>
                   <button className={`premium-tab-btn ${activeTab === 'guide' ? 'active' : ''}`} onClick={() => setActiveTab('guide')}>
                     <Info size={16} />
                     <span>User Guide</span>
+                    <div className="menu-hover-card menu-hover-card-right">
+                      <div className="menu-hover-card-title"><Info size={12} /> User Guide</div>
+                      <div className="menu-hover-card-desc">Step-by-step documentation, onboarding checklists, and quick-start guides for all DevOps Control Centre features.</div>
+                    </div>
                   </button>
                 </div>
 
