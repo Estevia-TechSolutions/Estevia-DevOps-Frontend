@@ -335,7 +335,7 @@ export const UserAuditLogDrawer: React.FC<UserAuditLogDrawerProps> = ({
             </div>
           ) : (
             userLogs.map((log) => {
-              const isExpanded = expandedId === log.id;
+              const isExpanded = String(expandedId) === String(log.id);
               const badgeStyle = getActionBadgeColor(log.actionType);
 
               return (
@@ -348,7 +348,7 @@ export const UserAuditLogDrawer: React.FC<UserAuditLogDrawerProps> = ({
                       ? (isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.015)') 
                       : (isLight ? 'rgba(0,0,0,0.01)' : 'rgba(255,255,255,0.005)'),
                     overflow: 'hidden',
-                    transition: 'all 0.2s'
+                    transition: 'background-color 0.2s ease'
                   }}
                 >
                   {/* Collapsed Header Summary */}
