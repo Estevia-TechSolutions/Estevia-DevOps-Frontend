@@ -391,7 +391,7 @@ export const CostPage: React.FC<CostPageProps> = ({
       background: 'linear-gradient(150deg, rgba(16, 185, 129, 0.04) 0%, rgba(5, 150, 105, 0.08) 50%, rgba(6, 95, 70, 0.12) 100%)',
       borderColor: 'rgba(16, 185, 129, 0.18)',
       boxShadow: '0 0 40px rgba(16,185,129,0.04), inset 0 0 20px rgba(16,185,129,0.02)',
-      position: 'relative', overflow: 'hidden',
+      position: 'relative', overflow: 'visible',
     }}>
       {/* Ambient top glow */}
       <div style={{ position: 'absolute', top: '-50px', right: '-30px', width: '240px', height: '240px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(16,185,129,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
@@ -406,6 +406,10 @@ export const CostPage: React.FC<CostPageProps> = ({
         }
         .opt-hover-wrapper:hover {
           z-index: 1000 !important;
+        }
+        tr:hover {
+          position: relative;
+          z-index: 99 !important;
         }
 
         @keyframes play-pulse {
