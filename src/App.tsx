@@ -628,14 +628,8 @@ function App() {
   }, [events, auditLogsForEvents]);
 
   const handleToggleNotifications = useCallback(() => {
-    setIsNotificationOpen(prev => {
-      const next = !prev;
-      if (next) {
-        markAllNotificationsAsRead();
-      }
-      return next;
-    });
-  }, [markAllNotificationsAsRead]);
+    setIsNotificationOpen(prev => !prev);
+  }, []);
   
   const isGuidedProvisionRef = useRef(false);
   

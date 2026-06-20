@@ -166,16 +166,24 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
         }
         .notification-card {
           animation: card-slide 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-          transition: all 0.22s ease-in-out !important;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
         .notification-card:hover {
-          transform: translateY(-1.5px) scale(1.005) !important;
-          border-color: rgba(255, 255, 255, 0.16) !important;
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
+          transform: translateX(-4px) !important;
+          border-color: var(--accent-purple) !important;
+          box-shadow: 0 4px 16px rgba(139, 92, 246, 0.18) !important;
+        }
+        [data-theme="light"] .notification-card:hover {
+          border-color: var(--accent-purple) !important;
+          box-shadow: 0 4px 16px rgba(124, 58, 237, 0.15) !important;
         }
         .notif-delete-btn:hover {
           color: var(--error) !important;
           background: rgba(239, 68, 68, 0.08) !important;
+        }
+        .notif-check-btn:hover {
+          color: var(--success) !important;
+          background: rgba(34, 197, 94, 0.08) !important;
         }
         .notif-action-btn:hover {
           color: var(--accent-blue) !important;
@@ -715,18 +723,45 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
                                 </div>
                               </div>
 
-                              {/* Non-trigger operations zone: unread dot + delete trigger */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                              {/* Non-trigger operations zone: unread dot/check + delete trigger */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                                {!n.read && onMarkAsRead && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onMarkAsRead(n.id);
+                                    }}
+                                    className="notif-check-btn"
+                                    title="Mark as read"
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      color: 'var(--text-muted)',
+                                      cursor: 'pointer',
+                                      padding: '5px',
+                                      borderRadius: '50%',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      transition: 'all 0.2s',
+                                    }}
+                                  >
+                                    <Check size={12} />
+                                  </button>
+                                )}
+
                                 {!n.read && (
                                   <span 
                                     style={{
-                                      width: '5px',
-                                      height: '5px',
+                                      width: '6px',
+                                      height: '6px',
                                       borderRadius: '50%',
                                       backgroundColor: 'var(--accent-purple)',
                                       boxShadow: '0 0 6px var(--accent-purple)',
                                       display: 'inline-block',
+                                      marginLeft: '2px',
                                     }}
+                                    title="Unread"
                                   />
                                 )}
 
@@ -736,6 +771,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
                                     onDeleteNotification(n.id);
                                   }}
                                   className="notif-delete-btn"
+                                  title="Delete notification"
                                   style={{
                                     background: 'none',
                                     border: 'none',
