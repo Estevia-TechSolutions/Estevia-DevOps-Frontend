@@ -84,7 +84,25 @@ export const AuditLogsTable: React.FC<AuditLogsTableProps> = ({ API_BASE, theme 
       case 'DB_SCHEMA_MIGRATE': return { color: '#f472b6', bg: 'rgba(244, 114, 182, 0.1)', border: '1px solid rgba(244, 114, 182, 0.2)' };
       case 'DB_DATA_MIGRATE': return { color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.2)' };
       case 'EVA_AI_CONSULT': return { color: '#c084fc', bg: 'rgba(192, 132, 252, 0.1)', border: '1px solid rgba(192, 132, 252, 0.2)' };
-      default: return { color: 'var(--text-secondary)', bg: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' };
+      case 'DB_BACKUP': return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)' };
+      case 'ORG_SETTINGS_UPDATE': return { color: '#a78bfa', bg: 'rgba(167, 139, 250, 0.1)', border: '1px solid rgba(167, 139, 250, 0.2)' };
+      case 'TEAMS_WEBHOOK_TEST':
+      case 'TEAMS_HOOK_SETUP': return { color: '#818cf8', bg: 'rgba(129, 140, 248, 0.1)', border: '1px solid rgba(129, 140, 248, 0.2)' };
+      case 'DISCOVER_WORKSPACE': return { color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.2)' };
+      case 'DOCKERFILE_CREATE':
+      case 'DOCKERFILE_UPDATE': return { color: '#fb7185', bg: 'rgba(251, 113, 133, 0.1)', border: '1px solid rgba(251, 113, 133, 0.2)' };
+      case 'TRAFFIC_UPDATE': return { color: '#fb923c', bg: 'rgba(251, 146, 60, 0.1)', border: '1px solid rgba(251, 146, 60, 0.2)' };
+      case 'REVISION_MODE_UPDATE': return { color: '#c084fc', bg: 'rgba(192, 132, 252, 0.1)', border: '1px solid rgba(192, 132, 252, 0.2)' };
+      case 'DNS_SWAP': return { color: '#22c55e', bg: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)' };
+      case 'TEST_AZURE_CONN':
+      case 'TEST_GITHUB_CONN':
+      case 'TEST_DEVOPS_CONN':
+      case 'TEST_GODADDY_CONN': return { color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.1)', border: '1px solid rgba(251, 191, 36, 0.2)' };
+      default:
+        if (action.startsWith('TEST_') && action.endsWith('_CONN')) {
+          return { color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.1)', border: '1px solid rgba(251, 191, 36, 0.2)' };
+        }
+        return { color: 'var(--text-secondary)', bg: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)' };
     }
   };
 

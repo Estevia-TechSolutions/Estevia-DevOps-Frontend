@@ -371,6 +371,8 @@ function App() {
 
   // Event filter state for Events Feed page
   const [eventFilter, setEventFilter] = useState<'all' | 'build' | 'power' | 'scan' | 'credential'>('all');
+  const [eventSearchQuery, setEventSearchQuery] = useState<string>('');
+  const [collapsedEventDates, setCollapsedEventDates] = useState<Record<string, boolean>>({});
 
   // Real-time Toast Alerts States & Helpers
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -526,6 +528,15 @@ function App() {
     setNotifications(prev => {
       if (prev.every(n => n.read)) return prev;
       const updated = prev.map(n => ({ ...n, read: true }));
+      localStorage.setItem('evaops_notifications', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
+  const markNotificationAsRead = useCallback((id: string) => {
+    setNotifications(prev => {
+      if (prev.find(n => n.id === id)?.read) return prev;
+      const updated = prev.map(n => n.id === id ? { ...n, read: true } : n);
       localStorage.setItem('evaops_notifications', JSON.stringify(updated));
       return updated;
     });
@@ -3837,6 +3848,8 @@ function App() {
         onClearAll={clearNotifications}
         onDeleteNotification={deleteNotification}
         onViewDetails={handleViewDetails}
+        onMarkAsRead={markNotificationAsRead}
+        onMarkAllAsRead={markAllNotificationsAsRead}
       />
 
       {/* ── Page Content ── */}
@@ -4843,6 +4856,29 @@ function App() {
         {/* TAB 8: PERSISTENT EVENTS STREAM */}
         {activeTab === 'events' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <style>{`
+              @keyframes pulse-node {
+                0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); }
+                70% { box-shadow: 0 0 0 8px rgba(139, 92, 246, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+              }
+              .event-card {
+                transition: all 0.22s ease-in-out !important;
+              }
+              .event-card:hover {
+                transform: translateY(-1.5px) scale(1.002) !important;
+                border-color: rgba(255, 255, 255, 0.16) !important;
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
+              }
+              .event-accordion-header {
+                transition: background 0.2s ease, border-color 0.2s ease;
+              }
+              .event-accordion-header:hover {
+                background: rgba(255, 255, 255, 0.03) !important;
+                border-color: rgba(255, 255, 255, 0.12) !important;
+              }
+            `}</style>
+            
             <div className="glass-panel" style={{ padding: '24px', position: 'relative' }}>
               <div style={{
                 display: 'flex',
@@ -4898,142 +4934,288 @@ function App() {
                 )}
               </div>
 
-              {/* Event Filters */}
+              {/* Event Filters and Search Bar */}
               {events.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div style={{ display: 'flex', gap: '6px', width: '100%', marginBottom: '4px', flexWrap: 'wrap' }}>
-                    {(['all', 'build', 'power', 'scan', 'credential'] as const).map((filter) => {
-                      const isFilterActive = eventFilter === filter;
-                      const filterLabel = filter === 'all' ? 'All Events'
-                                        : filter === 'build' ? 'Pipeline Builds'
-                                        : filter === 'power' ? 'Power Actions'
-                                        : filter === 'scan' ? 'Cloud Scans'
-                                        : 'Credentials';
-                      return (
-                        <button
-                          key={filter}
-                          type="button"
-                          onClick={() => setEventFilter(filter)}
-                          style={{
-                            padding: '6px 12px',
-                            borderRadius: '6px',
-                            border: isFilterActive ? '1px solid var(--accent-purple)' : '1px solid var(--glass-border)',
-                            background: isFilterActive ? 'var(--badge-bg)' : 'transparent',
-                            color: isFilterActive ? 'var(--accent-purple)' : 'var(--text-secondary)',
-                            fontWeight: isFilterActive ? 600 : 500,
-                            fontSize: '0.78rem',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease'
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!isFilterActive) {
-                              e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-                              e.currentTarget.style.color = 'var(--text-primary)';
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!isFilterActive) {
-                              e.currentTarget.style.background = 'transparent';
-                              e.currentTarget.style.color = 'var(--text-secondary)';
-                            }
-                          }}
-                        >
-                          {filterLabel}
-                        </button>
-                      );
-                    })}
+                  <div style={{ display: 'flex', gap: '16px', marginBottom: '4px', flexWrap: 'wrap', alignItems: 'center', width: '100%' }}>
+                    {/* Search Input */}
+                    <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
+                      <Search size={14} style={{ position: 'absolute', left: '12px', top: '11px', color: 'var(--text-secondary)' }} />
+                      <input
+                        type="text"
+                        placeholder="Search events by title or message..."
+                        value={eventSearchQuery}
+                        onChange={(e) => setEventSearchQuery(e.target.value)}
+                        style={{
+                          width: '100%',
+                          fontSize: '0.82rem',
+                          height: '36px',
+                          padding: '0 12px 0 34px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--glass-border)',
+                          background: 'rgba(255,255,255,0.01)',
+                          color: 'var(--text-primary)'
+                        }}
+                      />
+                    </div>
+                    
+                    {/* Filter Segmented Control */}
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', padding: '3px', background: 'rgba(0,0,0,0.1)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+                      {(['all', 'build', 'power', 'scan', 'credential'] as const).map((filter) => {
+                        const isFilterActive = eventFilter === filter;
+                        const filterLabel = filter === 'all' ? 'All'
+                                          : filter === 'build' ? 'Builds'
+                                          : filter === 'power' ? 'Power'
+                                          : filter === 'scan' ? 'Scans'
+                                          : 'Credentials';
+                        return (
+                          <button
+                            key={filter}
+                            type="button"
+                            onClick={() => setEventFilter(filter)}
+                            style={{
+                              padding: '5px 12px',
+                              borderRadius: '6px',
+                              border: 'none',
+                              background: isFilterActive ? 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))' : 'transparent',
+                              color: isFilterActive ? '#fff' : 'var(--text-secondary)',
+                              fontWeight: isFilterActive ? 600 : 500,
+                              fontSize: '0.74rem',
+                              cursor: 'pointer',
+                              boxShadow: isFilterActive ? '0 2px 6px var(--accent-blue-glow)' : 'none',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            {filterLabel}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   {(() => {
-                    const filteredEvents = events.filter(e => eventFilter === 'all' || e.type === eventFilter);
+                    const filteredEvents = events.filter(e => {
+                      const matchesFilter = eventFilter === 'all' || e.type === eventFilter;
+                      const matchesSearch = e.title.toLowerCase().includes(eventSearchQuery.toLowerCase()) || 
+                                            e.message.toLowerCase().includes(eventSearchQuery.toLowerCase());
+                      return matchesFilter && matchesSearch;
+                    });
 
                     if (filteredEvents.length === 0) {
                       return (
                         <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)', border: '1px dashed var(--glass-border)', borderRadius: '10px' }}>
-                          <p>No events found matching the selected filter.</p>
+                          <p>No events found matching the search or selected filter.</p>
                         </div>
                       );
                     }
 
+                    // Group by Date
+                    const getLocalDateString = (isoString: string) => {
+                      try {
+                        const date = new Date(isoString);
+                        return date.toLocaleDateString(undefined, { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        });
+                      } catch (e) {
+                        return 'Earlier';
+                      }
+                    };
+
+                    const groupedEvents: Record<string, EventLog[]> = {};
+                    filteredEvents.forEach(e => {
+                      const dateStr = getLocalDateString(e.timestamp);
+                      if (!groupedEvents[dateStr]) groupedEvents[dateStr] = [];
+                      groupedEvents[dateStr].push(e);
+                    });
+
+                    // Sort dates descending
+                    const sortedDateKeys = Object.keys(groupedEvents).sort((a, b) => {
+                      const dateA = groupedEvents[a][0] ? new Date(groupedEvents[a][0].timestamp).getTime() : 0;
+                      const dateB = groupedEvents[b][0] ? new Date(groupedEvents[b][0].timestamp).getTime() : 0;
+                      return dateB - dateA;
+                    });
+
                     return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {filteredEvents.map(event => {
-                          const timestampText = new Date(event.timestamp).toLocaleString();
-                          
-                          // Category color & icon resolves
-                          const getCategoryConfig = (type: string, status: string) => {
-                            const colors: Record<string, { border: string; text: string; bg: string }> = {
-                              success: { border: '#22c55e', text: '#22c55e', bg: 'rgba(34, 197, 94, 0.08)' },
-                              failed: { border: '#ef4444', text: '#ef4444', bg: 'rgba(239, 68, 68, 0.08)' },
-                              warning: { border: '#f59e0b', text: '#f59e0b', bg: 'rgba(245, 158, 11, 0.08)' },
-                              info: { border: '#3b82f6', text: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)' }
-                            };
-                            const state = colors[status] || colors.info;
+                      <div style={{ position: 'relative', padding: '10px 0 20px 0' }}>
+                        {/* Timeline Vertical Line */}
+                        <div style={{
+                          position: 'absolute',
+                          left: '23px',
+                          top: '10px',
+                          bottom: '10px',
+                          width: '2px',
+                          background: 'linear-gradient(to bottom, var(--accent-purple), var(--accent-blue), transparent)',
+                          opacity: 0.8
+                        }} />
 
-                            let icon = <Terminal size={14} />;
-                            if (type === 'build') icon = <GitBranch size={14} />;
-                            if (type === 'power') icon = <Sliders size={14} />;
-                            if (type === 'scan') icon = <Server size={14} />;
-                            if (type === 'credential') icon = <ShieldCheck size={14} />;
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                          {sortedDateKeys.map((dateKey) => {
+                            const dateItems = groupedEvents[dateKey] || [];
+                            const isExpanded = collapsedEventDates[dateKey] === undefined ? true : !collapsedEventDates[dateKey];
+                            
+                            return (
+                              <div key={dateKey} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {/* Timeline Accordion Date Milestone Header */}
+                                <div
+                                  onClick={() => setCollapsedEventDates(prev => ({ ...prev, [dateKey]: !prev[dateKey] }))}
+                                  className="event-accordion-header"
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '8px 14px',
+                                    marginLeft: '50px',
+                                    background: 'rgba(255,255,255,0.015)',
+                                    border: '1px solid var(--glass-border)',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    position: 'relative',
+                                    userSelect: 'none'
+                                  }}
+                                >
+                                  {/* Timeline Node on the vertical line */}
+                                  <div style={{
+                                    position: 'absolute',
+                                    left: '-34px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    width: '12px',
+                                    height: '12px',
+                                    borderRadius: '50%',
+                                    background: 'var(--bg-primary)',
+                                    border: '3px solid var(--accent-purple)',
+                                    zIndex: 2,
+                                    boxShadow: '0 0 6px var(--accent-purple-glow)'
+                                  }} />
 
-                            return { state, icon };
-                          };
-
-                          const { state, icon } = getCategoryConfig(event.type, event.status);
-
-                          return (
-                            <div
-                              key={event.id}
-                              style={{
-                                display: 'flex',
-                                gap: '16px',
-                                padding: '16px',
-                                borderRadius: '10px',
-                                background: theme === 'light' ? 'rgba(0,0,0,0.01)' : 'rgba(255,255,255,0.01)',
-                                border: '1px solid var(--glass-border)',
-                                position: 'relative'
-                              }}
-                            >
-                              <div style={{
-                                position: 'absolute',
-                                left: 0,
-                                top: 0,
-                                bottom: 0,
-                                width: '3px',
-                                backgroundColor: state.border,
-                                borderRadius: '3px 0 0 3px'
-                              }} />
-
-                              <div style={{
-                                width: '30px',
-                                height: '30px',
-                                borderRadius: '8px',
-                                background: state.bg,
-                                color: state.text,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                flexShrink: 0
-                              }}>
-                                {icon}
-                              </div>
-
-                              <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                  <h4 style={{ margin: 0, fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                                    {event.title}
-                                  </h4>
-                                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                                    {event.message}
-                                  </p>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    {isExpanded ? <ChevronDown size={14} style={{ color: 'var(--text-secondary)' }} /> : <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />}
+                                    <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.02em' }}>
+                                      {dateKey}
+                                    </span>
+                                    <span style={{
+                                      fontSize: '0.64rem',
+                                      backgroundColor: 'rgba(255,255,255,0.03)',
+                                      color: 'var(--text-secondary)',
+                                      padding: '1px 5px',
+                                      borderRadius: '4px',
+                                      border: '1px solid var(--glass-border)'
+                                    }}>
+                                      {dateItems.length}
+                                    </span>
+                                  </div>
                                 </div>
-                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                                  {timestampText}
-                                </span>
+
+                                {/* Accordion Content Panel (Indented event cards list) */}
+                                {isExpanded && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginLeft: '50px' }}>
+                                    {dateItems.map(event => {
+                                      const timestampText = new Date(event.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                      
+                                      // Category color & icon resolves
+                                      const getCategoryConfig = (type: string, status: string) => {
+                                        const colors: Record<string, { border: string; text: string; bg: string }> = {
+                                          success: { border: '#22c55e', text: '#22c55e', bg: 'rgba(34, 197, 94, 0.08)' },
+                                          failed: { border: '#ef4444', text: '#ef4444', bg: 'rgba(239, 68, 68, 0.08)' },
+                                          warning: { border: '#f59e0b', text: '#f59e0b', bg: 'rgba(245, 158, 11, 0.08)' },
+                                          info: { border: '#3b82f6', text: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)' }
+                                        };
+                                        const state = colors[status] || colors.info;
+
+                                        let icon = <Terminal size={12} />;
+                                        if (type === 'build') icon = <GitBranch size={12} />;
+                                        if (type === 'power') icon = <Sliders size={12} />;
+                                        if (type === 'scan') icon = <Server size={12} />;
+                                        if (type === 'credential') icon = <ShieldCheck size={12} />;
+
+                                        return { state, icon };
+                                      };
+
+                                      const { state, icon } = getCategoryConfig(event.type, event.status);
+
+                                      // Unread/newest event (first item in the complete array) gets a pulse ring on its subnode
+                                      const isLatestEvent = events[0]?.id === event.id;
+
+                                      return (
+                                        <div
+                                          key={event.id}
+                                          className="event-card"
+                                          style={{
+                                            display: 'flex',
+                                            gap: '14px',
+                                            padding: '14px 16px',
+                                            borderRadius: '10px',
+                                            background: theme === 'light' ? 'rgba(0,0,0,0.005)' : 'rgba(255,255,255,0.005)',
+                                            border: '1px solid var(--glass-border)',
+                                            position: 'relative'
+                                          }}
+                                        >
+                                          {/* Mini timeline dot on vertical line */}
+                                          <div style={{
+                                            position: 'absolute',
+                                            left: '-32px',
+                                            top: '50%',
+                                            transform: 'translateY(-50%)',
+                                            width: '8px',
+                                            height: '8px',
+                                            borderRadius: '50%',
+                                            background: state.border,
+                                            border: '2px solid var(--bg-primary)',
+                                            zIndex: 2,
+                                            animation: isLatestEvent ? 'pulse-node 2s infinite ease-in-out' : 'none',
+                                            boxShadow: isLatestEvent ? `0 0 8px ${state.border}` : 'none'
+                                          }} />
+
+                                          <div style={{
+                                            position: 'absolute',
+                                            left: 0,
+                                            top: 0,
+                                            bottom: 0,
+                                            width: '3px',
+                                            backgroundColor: state.border,
+                                            borderRadius: '3px 0 0 3px'
+                                          }} />
+
+                                          <div style={{
+                                            width: '26px',
+                                            height: '26px',
+                                            borderRadius: '6px',
+                                            background: state.bg,
+                                            color: state.text,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            flexShrink: 0,
+                                            border: `1px solid rgba(${state.border === '#22c55e' ? '34,197,94' : state.border === '#ef4444' ? '239,68,68' : state.border === '#f59e0b' ? '245,158,11' : '59,130,246'}, 0.15)`
+                                          }}>
+                                            {icon}
+                                          </div>
+
+                                          <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                              <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-primary)' }}>
+                                                {event.title}
+                                              </h4>
+                                              <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                                                {event.message}
+                                              </p>
+                                            </div>
+                                            <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                                              {timestampText}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
                     );
                   })()}

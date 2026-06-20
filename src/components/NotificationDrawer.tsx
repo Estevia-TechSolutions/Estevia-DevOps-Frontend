@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, CheckCircle2, AlertTriangle, AlertCircle, Info, Trash2, BellOff, ChevronDown, ChevronRight, Clock, ArrowRight } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { X, CheckCircle2, AlertTriangle, AlertCircle, Info, Trash2, BellOff, ChevronDown, ChevronRight, Clock, ArrowRight, Check } from 'lucide-react';
 
 export interface AppNotification {
   id: string;
@@ -17,6 +17,8 @@ interface NotificationDrawerProps {
   onClearAll: () => void;
   onDeleteNotification: (id: string) => void;
   onViewDetails?: (category: string, notification: AppNotification) => void;
+  onMarkAsRead?: (id: string) => void;
+  onMarkAllAsRead?: () => void;
 }
 
 export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
@@ -26,7 +28,12 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
   onClearAll,
   onDeleteNotification,
   onViewDetails,
+  onMarkAsRead,
+  onMarkAllAsRead,
 }) => {
+  const [filterTab, setFilterTab] = useState<'all' | 'unread'>('all');
+  const [groupingMode, setGroupingMode] = useState<'date' | 'category'>('date');
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [expandedNotifications, setExpandedNotifications] = useState<Record<string, boolean>>({});
 
   // Calculate dynamic relative time labels
@@ -58,38 +65,113 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
     }
   };
 
+  // Dynamic relative day tag for grouping
+  const getRelativeDay = (isoString: string) => {
+    try {
+      const date = new Date(isoString);
+      const today = new Date();
+      const yesterday = new Date();
+      yesterday.setDate(today.getDate() - 1);
+      
+      if (date.toDateString() === today.toDateString()) return 'Today';
+      if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+      return 'Earlier';
+    } catch (e) {
+      return 'Earlier';
+    }
+  };
+
   // Dynamic Operations Tagging
   const getCategoryTag = (title: string, message: string) => {
     const t = (title + ' ' + message).toLowerCase();
-    if (t.includes('remediation') || t.includes('optimize') || t.includes('cost') || t.includes('savings') || t.includes('bill')) {
+    if (t.includes('remediation') || t.includes('optimize') || t.includes('cost') || t.includes('savings') || t.includes('bill') || t.includes('finops')) {
       return { label: 'FINOPS', color: '#10b981', bg: 'rgba(16, 185, 129, 0.08)', border: 'rgba(16, 185, 129, 0.2)' };
     }
-    if (t.includes('security') || t.includes('credentials') || t.includes('secrets') || t.includes('keyvault') || t.includes('token')) {
+    if (t.includes('security') || t.includes('credentials') || t.includes('secrets') || t.includes('keyvault') || t.includes('token') || t.includes('audit')) {
       return { label: 'SECURITY', color: '#ef4444', bg: 'rgba(239, 68, 68, 0.08)', border: 'rgba(239, 68, 68, 0.2)' };
     }
-    if (t.includes('provision') || t.includes('database') || t.includes('pipeline') || t.includes('deploy')) {
+    if (t.includes('provision') || t.includes('database') || t.includes('pipeline') || t.includes('deploy') || t.includes('backup') || t.includes('swap')) {
       return { label: 'PROVISION', color: '#34d399', bg: 'rgba(52, 211, 153, 0.08)', border: 'rgba(52, 211, 153, 0.2)' };
     }
-    if (t.includes('scan') || t.includes('infrastructure') || t.includes('telemetry') || t.includes('agent')) {
+    if (t.includes('scan') || t.includes('infrastructure') || t.includes('telemetry') || t.includes('agent') || t.includes('monitor') || t.includes('observability')) {
       return { label: 'MONITOR', color: '#a78bfa', bg: 'rgba(167, 139, 250, 0.08)', border: 'rgba(167, 139, 250, 0.2)' };
     }
-    return { label: 'SYSTEM', color: 'var(--text-secondary)', bg: 'rgba(255, 255, 255, 0.04)', border: 'var(--glass-border)' };
+    return { label: 'SYSTEM', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.08)', border: 'rgba(56, 189, 248, 0.2)' };
+  };
+
+  const hasUnread = useMemo(() => notifications.some(n => !n.read), [notifications]);
+
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter(n => {
+      if (filterTab === 'unread') return !n.read;
+      return true;
+    });
+  }, [notifications, filterTab]);
+
+  const groupedNotifications = useMemo(() => {
+    const groups: Record<string, AppNotification[]> = {};
+    filteredNotifications.forEach(n => {
+      const key = groupingMode === 'date' 
+        ? getRelativeDay(n.timestamp) 
+        : getCategoryTag(n.title, n.message).label;
+
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(n);
+    });
+    return groups;
+  }, [filteredNotifications, groupingMode]);
+
+  const sortedGroupKeys = useMemo(() => {
+    const keys = Object.keys(groupedNotifications);
+    if (groupingMode === 'date') {
+      const order = ['Today', 'Yesterday', 'Earlier'];
+      return keys.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    } else {
+      const order = ['SECURITY', 'FINOPS', 'PROVISION', 'MONITOR', 'SYSTEM'];
+      return keys.sort((a, b) => {
+        const valA = order.indexOf(a) !== -1 ? order.indexOf(a) : 99;
+        const valB = order.indexOf(b) !== -1 ? order.indexOf(b) : 99;
+        return valA - valB;
+      });
+    }
+  }, [groupedNotifications, groupingMode]);
+
+  const isGroupExpanded = (key: string, items: AppNotification[]) => {
+    if (expandedGroups[key] !== undefined) {
+      return expandedGroups[key];
+    }
+    return items.some(n => !n.read) || sortedGroupKeys[0] === key;
+  };
+
+  const toggleGroup = (key: string, items: AppNotification[]) => {
+    const currentlyExpanded = isGroupExpanded(key, items);
+    setExpandedGroups(prev => ({ ...prev, [key]: !currentlyExpanded }));
   };
 
   return (
     <>
       <style>{`
-        @keyframes pulse-dot {
-          0%, 100% { transform: scale(1); opacity: 0.9; box-shadow: 0 0 4px rgba(139, 92, 246, 0.4); }
-          50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 10px rgba(139, 92, 246, 0.8); }
+        @keyframes float-bell {
+          0%, 100% { transform: translateY(0) rotate(0); }
+          50% { transform: translateY(-8px) rotate(4deg); }
+        }
+        @keyframes pulse-unread {
+          0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); }
+          70% { box-shadow: 0 0 0 6px rgba(139, 92, 246, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+        }
+        @keyframes card-slide {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
         }
         .notification-card {
-          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+          animation: card-slide 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          transition: all 0.22s ease-in-out !important;
         }
         .notification-card:hover {
-          transform: translateY(-2px) !important;
-          border-color: rgba(255, 255, 255, 0.18) !important;
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+          transform: translateY(-1.5px) scale(1.005) !important;
+          border-color: rgba(255, 255, 255, 0.16) !important;
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2) !important;
         }
         .notif-delete-btn:hover {
           color: var(--error) !important;
@@ -97,7 +179,34 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
         }
         .notif-action-btn:hover {
           color: var(--accent-blue) !important;
-          transform: translateX(2px) !important;
+          transform: translateX(2.5px) !important;
+        }
+        .group-accordion-header {
+          transition: background 0.2s ease, border-color 0.2s ease;
+        }
+        .group-accordion-header:hover {
+          background: rgba(255, 255, 255, 0.04) !important;
+          border-color: rgba(255, 255, 255, 0.12) !important;
+        }
+        .segmented-btn {
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .segmented-btn:hover:not(.active) {
+          color: var(--text-primary) !important;
+          background: rgba(255, 255, 255, 0.04);
+        }
+        .glassmorphic-scroll::-webkit-scrollbar {
+          width: 6px;
+        }
+        .glassmorphic-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .glassmorphic-scroll::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.06);
+          border-radius: 10px;
+        }
+        .glassmorphic-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.15);
         }
       `}</style>
 
@@ -109,9 +218,9 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
           left: 0,
           width: '100vw',
           height: '100vh',
-          backgroundColor: 'rgba(2, 6, 23, 0.5)',
-          backdropFilter: 'blur(4px)',
-          WebkitBackdropFilter: 'blur(4px)',
+          backgroundColor: 'rgba(2, 6, 23, 0.6)',
+          backdropFilter: 'blur(5px)',
+          WebkitBackdropFilter: 'blur(5px)',
           zIndex: 999,
           opacity: isOpen ? 1 : 0,
           pointerEvents: isOpen ? 'auto' : 'none',
@@ -126,14 +235,14 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
           position: 'fixed',
           top: 0,
           right: 0,
-          width: '420px',
+          width: '430px',
           maxWidth: '100vw',
           height: '100vh',
           backgroundColor: 'var(--bg-header)',
-          backdropFilter: 'blur(35px)',
-          WebkitBackdropFilter: 'blur(35px)',
+          backdropFilter: 'blur(45px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(45px) saturate(180%)',
           borderLeft: '1px solid var(--glass-border)',
-          boxShadow: '0 0 50px rgba(0, 0, 0, 0.35)',
+          boxShadow: '0 0 50px rgba(0, 0, 0, 0.45)',
           zIndex: 1000,
           transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
           transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -149,23 +258,23 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: 'rgba(255, 255, 255, 0.01)',
+            background: 'rgba(255, 255, 255, 0.015)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <span style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
               Notification Hub
             </span>
             {notifications.length > 0 && (
               <span 
                 style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
+                  fontSize: '0.7rem',
+                  fontWeight: 800,
                   backgroundColor: 'var(--accent-purple)',
                   color: '#fff',
-                  padding: '2px 8px',
+                  padding: '1px 7px',
                   borderRadius: '10px',
-                  boxShadow: '0 0 8px var(--accent-purple-glow)',
+                  boxShadow: '0 0 10px var(--accent-purple-glow)',
                 }}
               >
                 {notifications.length}
@@ -173,7 +282,32 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
             )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {hasUnread && onMarkAllAsRead && (
+              <button 
+                onClick={onMarkAllAsRead}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 8px',
+                  borderRadius: '6px',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'none'; }}
+              >
+                <Check size={12} />
+                Mark all read
+              </button>
+            )}
+
             {notifications.length > 0 && (
               <button 
                 onClick={onClearAll}
@@ -181,13 +315,13 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
                   background: 'none',
                   border: 'none',
                   color: 'var(--text-secondary)',
-                  fontSize: '0.78rem',
+                  fontSize: '0.74rem',
                   fontWeight: 600,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '4px',
-                  padding: '4px 8px',
+                  padding: '5px 8px',
                   borderRadius: '6px',
                   transition: 'all 0.2s',
                 }}
@@ -204,8 +338,8 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
               style={{
                 background: 'rgba(255,255,255,0.03)',
                 border: '1px solid var(--glass-border)',
-                width: '32px',
-                height: '32px',
+                width: '30px',
+                height: '30px',
                 borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',
@@ -217,24 +351,128 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
               onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
             >
-              <X size={16} />
+              <X size={15} />
             </button>
           </div>
         </div>
 
-        {/* Scrollable Notifications List */}
+        {/* Filter Controls Bar */}
+        {notifications.length > 0 && (
+          <div style={{ padding: '14px 24px 0 24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* Filter Tabs */}
+            <div style={{
+              display: 'flex',
+              borderRadius: '8px',
+              backgroundColor: 'rgba(0,0,0,0.18)',
+              padding: '2.5px',
+              border: '1px solid var(--glass-border)'
+            }}>
+              <button
+                onClick={() => setFilterTab('all')}
+                className={`segmented-btn ${filterTab === 'all' ? 'active' : ''}`}
+                style={{
+                  flex: 1,
+                  textAlign: 'center',
+                  padding: '6px 10px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: filterTab === 'all' ? 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))' : 'transparent',
+                  color: filterTab === 'all' ? '#fff' : 'var(--text-secondary)',
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  boxShadow: filterTab === 'all' ? '0 2px 8px var(--accent-blue-glow)' : 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                All Notifications
+              </button>
+              <button
+                onClick={() => setFilterTab('unread')}
+                className={`segmented-btn ${filterTab === 'unread' ? 'active' : ''}`}
+                style={{
+                  flex: 1,
+                  textAlign: 'center',
+                  padding: '6px 10px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: filterTab === 'unread' ? 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))' : 'transparent',
+                  color: filterTab === 'unread' ? '#fff' : 'var(--text-secondary)',
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  boxShadow: filterTab === 'unread' ? '0 2px 8px var(--accent-blue-glow)' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '5px',
+                  cursor: 'pointer'
+                }}
+              >
+                Unread Only
+                {notifications.filter(n => !n.read).length > 0 && (
+                  <span style={{
+                    fontSize: '0.62rem',
+                    fontWeight: 700,
+                    backgroundColor: filterTab === 'unread' ? 'rgba(255,255,255,0.2)' : 'var(--accent-purple)',
+                    color: '#fff',
+                    padding: '1px 5px',
+                    borderRadius: '4px'
+                  }}>
+                    {notifications.filter(n => !n.read).length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Grouping switch */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+              <span>GROUPING OPTIONS:</span>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button
+                  onClick={() => setGroupingMode('date')}
+                  style={{
+                    background: groupingMode === 'date' ? 'rgba(255,255,255,0.06)' : 'transparent',
+                    border: '1px solid ' + (groupingMode === 'date' ? 'var(--glass-border)' : 'transparent'),
+                    borderRadius: '5px',
+                    color: groupingMode === 'date' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    padding: '3px 8px',
+                    fontSize: '0.68rem',
+                    fontWeight: 600
+                  }}
+                >
+                  By Date
+                </button>
+                <button
+                  onClick={() => setGroupingMode('category')}
+                  style={{
+                    background: groupingMode === 'category' ? 'rgba(255,255,255,0.06)' : 'transparent',
+                    border: '1px solid ' + (groupingMode === 'category' ? 'var(--glass-border)' : 'transparent'),
+                    borderRadius: '5px',
+                    color: groupingMode === 'category' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    padding: '3px 8px',
+                    fontSize: '0.68rem',
+                    fontWeight: 600
+                  }}
+                >
+                  By Category
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Scrollable Notifications Accordions List */}
         <div 
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '24px',
+            padding: '20px 24px 24px 24px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px',
+            gap: '14px',
           }}
-          className="notification-list"
+          className="glassmorphic-scroll"
         >
-          {notifications.length === 0 ? (
+          {filteredNotifications.length === 0 ? (
             <div 
               style={{
                 display: 'flex',
@@ -249,249 +487,327 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
             >
               <div 
                 style={{
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '12px',
+                  width: '52px',
+                  height: '52px',
+                  borderRadius: '14px',
                   backgroundColor: 'rgba(255,255,255,0.02)',
                   border: '1px solid var(--glass-border)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   color: 'var(--text-muted)',
+                  animation: 'float-bell 3.5s ease-in-out infinite'
                 }}
               >
-                <BellOff size={20} />
+                <BellOff size={22} />
               </div>
               <div style={{ textAlign: 'center' }}>
-                <span style={{ display: 'block', fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                <span style={{ display: 'block', fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                   All caught up!
                 </span>
-                <span style={{ display: 'block', fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                  No new system notifications at this time.
+                <span style={{ display: 'block', fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  No notifications fit the active filter criteria.
                 </span>
               </div>
             </div>
           ) : (
-            notifications.map((n) => {
-              // Icon and background color mapping by notification severity
-              let icon = <Info size={14} style={{ color: 'var(--accent-blue)' }} />;
-              let iconBg = 'rgba(59, 130, 246, 0.1)';
-              let borderCol = 'rgba(59, 130, 246, 0.2)';
-              let cardBg = 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.01) 100%)';
-              let cardBorderLeft = '3px solid var(--accent-blue, #3b82f6)';
-              let unreadShadow = 'rgba(59, 130, 246, 0.08)';
-
-              if (n.type === 'success') {
-                icon = <CheckCircle2 size={14} style={{ color: 'var(--success)' }} />;
-                iconBg = 'rgba(34, 197, 94, 0.1)';
-                borderCol = 'rgba(34, 197, 94, 0.2)';
-                cardBg = 'linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.01) 100%)';
-                cardBorderLeft = '3px solid var(--success, #10b981)';
-                unreadShadow = 'rgba(16, 185, 129, 0.08)';
-              } else if (n.type === 'warning') {
-                icon = <AlertTriangle size={14} style={{ color: 'var(--warning)' }} />;
-                iconBg = 'rgba(245, 158, 11, 0.1)';
-                borderCol = 'rgba(245, 158, 11, 0.2)';
-                cardBg = 'linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.01) 100%)';
-                cardBorderLeft = '3px solid var(--warning, #f59e0b)';
-                unreadShadow = 'rgba(245, 158, 11, 0.08)';
-              } else if (n.type === 'error') {
-                icon = <AlertCircle size={14} style={{ color: 'var(--error)' }} />;
-                iconBg = 'rgba(239, 68, 68, 0.1)';
-                borderCol = 'rgba(239, 68, 68, 0.2)';
-                cardBg = 'linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(239, 68, 68, 0.01) 100%)';
-                cardBorderLeft = '3px solid var(--error, #ef4444)';
-                unreadShadow = 'rgba(239, 68, 68, 0.08)';
-              }
-
-              const isExpanded = expandedNotifications[n.id] !== undefined
-                ? expandedNotifications[n.id]
-                : !n.read; // unread expanded by default, read collapsed by default
-
-              const category = getCategoryTag(n.title, n.message);
+            sortedGroupKeys.map((groupKey) => {
+              const groupItems = groupedNotifications[groupKey] || [];
+              if (groupItems.length === 0) return null;
+              
+              const isExpanded = isGroupExpanded(groupKey, groupItems);
+              const unreadInGroup = groupItems.filter(n => !n.read).length;
 
               return (
-                <div 
-                  key={n.id}
-                  className="notification-card"
-                  style={{
-                    padding: '16px',
-                    borderRadius: '12px',
-                    background: cardBg,
-                    border: n.read ? '1px solid var(--glass-border)' : '1px solid rgba(255, 255, 255, 0.12)',
-                    borderLeft: cardBorderLeft,
-                    position: 'relative',
-                    boxShadow: n.read ? 'none' : `0 4px 14px ${unreadShadow}`,
-                  }}
-                >
-                  {/* Header Row */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '10px' }}>
-                    {/* Collapsible toggle trigger zone */}
-                    <div 
-                      onClick={() => setExpandedNotifications(prev => ({ ...prev, [n.id]: !isExpanded }))}
-                      style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '12px', 
-                        cursor: 'pointer',
-                        flex: 1,
-                        minWidth: 0,
-                        userSelect: 'none'
-                      }}
-                    >
-                      <div 
-                        style={{
-                          width: '26px',
-                          height: '26px',
-                          borderRadius: '6px',
-                          backgroundColor: iconBg,
-                          border: `1px solid ${borderCol}`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {icon}
-                      </div>
-
-                      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                          <span 
-                            style={{ 
-                              fontSize: '0.82rem', 
-                              fontWeight: n.read ? 600 : 700, 
-                              color: 'var(--text-primary)',
-                              lineHeight: '1.2',
-                              whiteSpace: 'nowrap',
-                              textOverflow: 'ellipsis',
-                              overflow: 'hidden',
-                              maxWidth: '130px',
-                            }}
-                          >
-                            {n.title}
-                          </span>
-                          <span 
-                            style={{
-                              fontSize: '0.56rem',
-                              fontWeight: 700,
-                              color: category.color,
-                              background: category.bg,
-                              border: `1px solid ${category.border}`,
-                              padding: '1px 5px',
-                              borderRadius: '4px',
-                              letterSpacing: '0.02em',
-                              flexShrink: 0,
-                            }}
-                          >
-                            {category.label}
-                          </span>
-                        </div>
-                        
-                        {/* Time */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.66rem', color: 'var(--text-muted)' }}>
-                          <Clock size={10} style={{ opacity: 0.6 }} />
-                          <span title={formatTime(n.timestamp)} style={{ cursor: 'help' }}>
-                            {getRelativeTime(n.timestamp)}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Collapse/Expand chevron */}
-                      <div style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                      </div>
-                    </div>
-
-                    {/* Non-trigger operations zone: unread dot + delete trigger */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                      {!n.read && (
-                        <span 
-                          style={{
-                            width: '6px',
-                            height: '6px',
-                            borderRadius: '50%',
-                            backgroundColor: 'var(--accent-purple)',
-                            boxShadow: '0 0 6px var(--accent-purple)',
-                            animation: 'pulse-dot 2s infinite ease-in-out',
-                            display: 'inline-block',
-                          }}
-                        />
+                <div key={groupKey} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {/* Accordion Group Header */}
+                  <div
+                    onClick={() => toggleGroup(groupKey, groupItems)}
+                    className="group-accordion-header"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.015)',
+                      border: '1px solid var(--glass-border)',
+                      cursor: 'pointer',
+                      userSelect: 'none'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {isExpanded ? (
+                        <ChevronDown size={14} style={{ color: 'var(--text-secondary)' }} />
+                      ) : (
+                        <ChevronRight size={14} style={{ color: 'var(--text-secondary)' }} />
                       )}
-
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteNotification(n.id);
-                        }}
-                        className="notif-delete-btn"
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--text-muted)',
-                          cursor: 'pointer',
-                          padding: '6px',
-                          borderRadius: '50%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'all 0.2s',
-                        }}
-                      >
-                        <X size={13} />
-                      </button>
+                      <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.04em' }}>
+                        {groupKey}
+                      </span>
+                      <span style={{
+                        fontSize: '0.64rem',
+                        fontWeight: 600,
+                        backgroundColor: 'rgba(255,255,255,0.04)',
+                        color: 'var(--text-secondary)',
+                        padding: '1px 5px',
+                        borderRadius: '4px',
+                        border: '1px solid var(--glass-border)'
+                      }}>
+                        {groupItems.length}
+                      </span>
+                      {unreadInGroup > 0 && (
+                        <span style={{
+                          fontSize: '0.62rem',
+                          fontWeight: 700,
+                          backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                          color: 'var(--accent-purple)',
+                          padding: '1px 5px',
+                          borderRadius: '4px',
+                          border: '1px solid rgba(139, 92, 246, 0.2)'
+                        }}>
+                          {unreadInGroup} new
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {/* Expanded Detail view */}
+                  {/* Accordion Group Body */}
                   {isExpanded && (
-                    <div 
-                      style={{
-                        marginTop: '12px',
-                        paddingTop: '12px',
-                        borderTop: '1px dashed var(--glass-border)',
-                        animation: 'fade-in-anim 0.2s ease-out'
-                      }}
-                    >
-                      <p 
-                        style={{ 
-                          margin: 0, 
-                          fontSize: '0.78rem', 
-                          color: 'var(--text-secondary)',
-                          lineHeight: '1.45',
-                          wordBreak: 'break-word',
-                        }}
-                      >
-                        {n.message}
-                      </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: '4px' }}>
+                      {groupItems.map((n) => {
+                        let icon = <Info size={13} style={{ color: 'var(--accent-blue)' }} />;
+                        let iconBg = 'rgba(59, 130, 246, 0.08)';
+                        let borderCol = 'rgba(59, 130, 246, 0.15)';
+                        let cardBg = 'linear-gradient(135deg, rgba(59, 130, 246, 0.04) 0%, rgba(59, 130, 246, 0.005) 100%)';
+                        let cardBorderLeft = '3px solid var(--accent-blue, #3b82f6)';
+                        let unreadShadow = 'rgba(59, 130, 246, 0.06)';
 
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-                        <a 
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            if (onViewDetails) {
-                              onViewDetails(category.label, n);
-                            } else {
-                              onClose();
-                            }
-                          }}
-                          className="notif-action-btn"
-                          style={{
-                            fontSize: '0.72rem',
-                            color: 'var(--accent-purple)',
-                            fontWeight: 700,
-                            textDecoration: 'none',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            transition: 'all 0.2s'
-                          }}
-                        >
-                          <span>View Details</span>
-                          <ArrowRight size={10} />
-                        </a>
-                      </div>
+                        if (n.type === 'success') {
+                          icon = <CheckCircle2 size={13} style={{ color: 'var(--success)' }} />;
+                          iconBg = 'rgba(34, 197, 94, 0.08)';
+                          borderCol = 'rgba(34, 197, 94, 0.15)';
+                          cardBg = 'linear-gradient(135deg, rgba(16, 185, 129, 0.04) 0%, rgba(16, 185, 129, 0.005) 100%)';
+                          cardBorderLeft = '3px solid var(--success, #10b981)';
+                          unreadShadow = 'rgba(16, 185, 129, 0.06)';
+                        } else if (n.type === 'warning') {
+                          icon = <AlertTriangle size={13} style={{ color: 'var(--warning)' }} />;
+                          iconBg = 'rgba(245, 158, 11, 0.08)';
+                          borderCol = 'rgba(245, 158, 11, 0.15)';
+                          cardBg = 'linear-gradient(135deg, rgba(245, 158, 11, 0.04) 0%, rgba(245, 158, 11, 0.005) 100%)';
+                          cardBorderLeft = '3px solid var(--warning, #f59e0b)';
+                          unreadShadow = 'rgba(245, 158, 11, 0.06)';
+                        } else if (n.type === 'error') {
+                          icon = <AlertCircle size={13} style={{ color: 'var(--error)' }} />;
+                          iconBg = 'rgba(239, 68, 68, 0.08)';
+                          borderCol = 'rgba(239, 68, 68, 0.15)';
+                          cardBg = 'linear-gradient(135deg, rgba(239, 68, 68, 0.04) 0%, rgba(239, 68, 68, 0.005) 100%)';
+                          cardBorderLeft = '3px solid var(--error, #ef4444)';
+                          unreadShadow = 'rgba(239, 68, 68, 0.06)';
+                        }
+
+                        const isCardExpanded = expandedNotifications[n.id] !== undefined
+                          ? expandedNotifications[n.id]
+                          : !n.read;
+
+                        const category = getCategoryTag(n.title, n.message);
+
+                        // Card wrapper clicks automatically mark unread card as read
+                        const handleCardClick = () => {
+                          if (!n.read && onMarkAsRead) {
+                            onMarkAsRead(n.id);
+                          }
+                          setExpandedNotifications(prev => ({ ...prev, [n.id]: !isCardExpanded }));
+                        };
+
+                        return (
+                          <div 
+                            key={n.id}
+                            className="notification-card"
+                            style={{
+                              padding: '14px 16px',
+                              borderRadius: '10px',
+                              background: n.read ? 'linear-gradient(135deg, rgba(255,255,255,0.015) 0%, rgba(255,255,255,0.005) 100%)' : cardBg,
+                              border: n.read ? '1px solid var(--glass-border)' : '1px solid rgba(255, 255, 255, 0.12)',
+                              borderLeft: cardBorderLeft,
+                              position: 'relative',
+                              boxShadow: n.read ? 'none' : `0 4px 14px ${unreadShadow}`,
+                            }}
+                          >
+                            {/* Header Row */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '10px' }}>
+                              {/* Collapsible toggle trigger zone */}
+                              <div 
+                                onClick={handleCardClick}
+                                style={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  gap: '10px', 
+                                  cursor: 'pointer',
+                                  flex: 1,
+                                  minWidth: 0,
+                                  userSelect: 'none'
+                                }}
+                              >
+                                <div 
+                                  style={{
+                                    width: '24px',
+                                    height: '24px',
+                                    borderRadius: '6px',
+                                    backgroundColor: iconBg,
+                                    border: `1px solid ${borderCol}`,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    flexShrink: 0,
+                                    animation: !n.read ? 'pulse-unread 2s infinite ease-in-out' : 'none'
+                                  }}
+                                >
+                                  {icon}
+                                </div>
+
+                                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                    <span 
+                                      style={{ 
+                                        fontSize: '0.78rem', 
+                                        fontWeight: n.read ? 600 : 700, 
+                                        color: 'var(--text-primary)',
+                                        lineHeight: '1.25',
+                                        whiteSpace: 'nowrap',
+                                        textOverflow: 'ellipsis',
+                                        overflow: 'hidden',
+                                        maxWidth: '150px',
+                                      }}
+                                    >
+                                      {n.title}
+                                    </span>
+                                    <span 
+                                      style={{
+                                        fontSize: '0.52rem',
+                                        fontWeight: 800,
+                                        color: category.color,
+                                        background: category.bg,
+                                        border: `1px solid ${category.border}`,
+                                        padding: '0.5px 4.5px',
+                                        borderRadius: '3px',
+                                        letterSpacing: '0.03em',
+                                        boxShadow: `0 0 6px ${category.bg}`,
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      {category.label}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Time */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.62rem', color: 'var(--text-muted)' }}>
+                                    <Clock size={9} style={{ opacity: 0.6 }} />
+                                    <span title={formatTime(n.timestamp)} style={{ cursor: 'help' }}>
+                                      {getRelativeTime(n.timestamp)}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Collapse/Expand chevron */}
+                                <div style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                  {isCardExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                                </div>
+                              </div>
+
+                              {/* Non-trigger operations zone: unread dot + delete trigger */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                                {!n.read && (
+                                  <span 
+                                    style={{
+                                      width: '5px',
+                                      height: '5px',
+                                      borderRadius: '50%',
+                                      backgroundColor: 'var(--accent-purple)',
+                                      boxShadow: '0 0 6px var(--accent-purple)',
+                                      display: 'inline-block',
+                                    }}
+                                  />
+                                )}
+
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDeleteNotification(n.id);
+                                  }}
+                                  className="notif-delete-btn"
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                    padding: '5px',
+                                    borderRadius: '50%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'all 0.2s',
+                                  }}
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Expanded Detail view */}
+                            {isCardExpanded && (
+                              <div 
+                                style={{
+                                  marginTop: '10px',
+                                  paddingTop: '10px',
+                                  borderTop: '1px dashed var(--glass-border)',
+                                }}
+                              >
+                                <p 
+                                  style={{ 
+                                    margin: 0, 
+                                    fontSize: '0.74rem', 
+                                    color: 'var(--text-secondary)',
+                                    lineHeight: '1.45',
+                                    wordBreak: 'break-word',
+                                  }}
+                                >
+                                  {n.message}
+                                </p>
+
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                                  <a 
+                                    href="#"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      if (onViewDetails) {
+                                        onViewDetails(category.label, n);
+                                      } else {
+                                        onClose();
+                                      }
+                                    }}
+                                    className="notif-action-btn"
+                                    style={{
+                                      fontSize: '0.68rem',
+                                      color: 'var(--accent-purple)',
+                                      fontWeight: 700,
+                                      textDecoration: 'none',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '3px',
+                                      transition: 'all 0.2s'
+                                    }}
+                                  >
+                                    <span>View Details</span>
+                                    <ArrowRight size={9} />
+                                  </a>
+                                  </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
