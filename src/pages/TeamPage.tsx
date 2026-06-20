@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Users, RefreshCw, UserCheck, Shield, Award, Eye, X, Check } from 'lucide-react';
+import { Users, RefreshCw, UserCheck, Shield, Award, Eye, X, Check, Terminal } from 'lucide-react';
+import { UserAuditLogDrawer } from '../components/team/UserAuditLogDrawer';
 
 export interface UserRecord {
   id: string;
@@ -17,6 +18,7 @@ interface TeamPageProps {
   handleSyncTeam: () => Promise<any>;
   handleUpdateRole: (userId: string, newRole: string) => Promise<boolean>;
   theme: 'dark' | 'light';
+  API_BASE: string;
 }
 
 export const TeamPage: React.FC<TeamPageProps> = ({
@@ -26,11 +28,13 @@ export const TeamPage: React.FC<TeamPageProps> = ({
   syncingTeam,
   handleSyncTeam,
   handleUpdateRole,
-  theme
+  theme,
+  API_BASE
 }) => {
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [updateMsg, setUpdateMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showMatrixModal, setShowMatrixModal] = useState<boolean>(false);
+  const [activeLogUser, setActiveLogUser] = useState<{ email: string; name: string } | null>(null);
 
   const isLight = theme === 'light';
   const canManageRoles = currentUser?.role === 'owner' || currentUser?.role === 'admin';
@@ -215,6 +219,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                 <th style={{ padding: '12px 16px', fontWeight: 600 }}>Email</th>
                 <th style={{ padding: '12px 16px', fontWeight: 600 }}>Current Role</th>
                 <th style={{ padding: '12px 16px', fontWeight: 600 }}>Role Assignment</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600, width: '120px' }}>Audit Logs</th>
               </tr>
             </thead>
             <tbody>
@@ -281,6 +286,25 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                           <RefreshCw size={12} className="spin-anim" style={{ color: 'var(--text-secondary)' }} />
                         )}
                       </div>
+                    </td>
+                    <td style={{ padding: '14px 16px' }}>
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => setActiveLogUser({ email: u.email, name: u.name })}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          height: '32px',
+                          padding: '0 12px',
+                          fontSize: '0.76rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <Terminal size={12} style={{ color: 'var(--accent-purple)' }} />
+                        View Logs
+                      </button>
                     </td>
                   </tr>
                 );
@@ -401,6 +425,16 @@ export const TeamPage: React.FC<TeamPageProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {activeLogUser && (
+        <UserAuditLogDrawer
+          userEmail={activeLogUser.email}
+          userName={activeLogUser.name}
+          onClose={() => setActiveLogUser(null)}
+          API_BASE={API_BASE}
+          theme={theme}
+        />
       )}
     </div>
   );

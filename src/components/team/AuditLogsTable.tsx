@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Calendar, ChevronDown, ChevronUp, RefreshCw, Terminal, Eye } from 'lucide-react';
+import { Search, Calendar, ChevronDown, ChevronUp, RefreshCw, Terminal, Copy, Check } from 'lucide-react';
 
 interface AuditLog {
   id: number;
@@ -11,6 +11,7 @@ interface AuditLog {
     path: string;
     ip: string;
     payload: any;
+    query?: any;
   };
   createdAt: string;
 }
@@ -20,11 +21,45 @@ interface AuditLogsTableProps {
   theme: 'dark' | 'light';
 }
 
+const CopyButton: React.FC<{ text: string }> = ({ text }) => {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      style={{
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid var(--glass-border)',
+        color: copied ? 'var(--success)' : 'var(--text-muted)',
+        cursor: 'pointer',
+        fontSize: '0.72rem',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '2px 8px',
+        borderRadius: '4px',
+        transition: 'all 0.2s'
+      }}
+    >
+      {copied ? <Check size={11} /> : <Copy size={11} />}
+      <span>{copied ? 'Copied' : 'Copy'}</span>
+    </button>
+  );
+};
+
 export const AuditLogsTable: React.FC<AuditLogsTableProps> = ({ API_BASE, theme }) => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  
+  // Interactive Category Filter State
+  const [activeCategory, setActiveCategory] = useState<string>('all');
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -55,10 +90,10 @@ export const AuditLogsTable: React.FC<AuditLogsTableProps> = ({ API_BASE, theme 
     fetchLogs();
   }, [API_BASE]);
 
-  // Reset to page 1 when search or items per page change
+  // Reset to page 1 when search, items per page, or category changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, itemsPerPage]);
+  }, [search, itemsPerPage, activeCategory]);
 
   const toggleRow = (id: number) => {
     setExpandedId(expandedId === id ? null : id);
@@ -108,10 +143,26 @@ export const AuditLogsTable: React.FC<AuditLogsTableProps> = ({ API_BASE, theme 
     }
   };
 
+  // Category Matching Rule
+  const matchesCategory = (log: AuditLog) => {
+    const act = log.actionType;
+    if (activeCategory === 'all') return true;
+    if (activeCategory === 'logins') return act === 'USER_LOGIN_MS' || act === 'USER_LOGIN_BYPASS';
+    if (activeCategory === 'databases') return ['SQL_RUN', 'PROVISION_DB', 'DB_SCHEMA_COMPARE', 'DB_SCHEMA_MIGRATE', 'DB_DATA_MIGRATE', 'DB_BACKUP'].includes(act);
+    if (activeCategory === 'credentials') return ['CRED_UPDATE', 'CRED_VALIDATE', 'KEYVAULT_SECRET_MAP', 'KEYVAULT_SECRET_UNMAP'].includes(act);
+    if (activeCategory === 'remediations') return act === 'APPLY_REMEDIATION';
+    if (activeCategory === 'general') {
+      return !['USER_LOGIN_MS', 'USER_LOGIN_BYPASS', 'SQL_RUN', 'PROVISION_DB', 'DB_SCHEMA_COMPARE', 'DB_SCHEMA_MIGRATE', 'DB_DATA_MIGRATE', 'DB_BACKUP', 'CRED_UPDATE', 'CRED_VALIDATE', 'KEYVAULT_SECRET_MAP', 'KEYVAULT_SECRET_UNMAP', 'APPLY_REMEDIATION'].includes(act);
+    }
+    return true;
+  };
+
   const filteredLogs = logs.filter(l => 
-    l.actorEmail.toLowerCase().includes(search.toLowerCase()) ||
-    l.actionType.toLowerCase().includes(search.toLowerCase()) ||
-    l.target.toLowerCase().includes(search.toLowerCase())
+    matchesCategory(l) && (
+      l.actorEmail.toLowerCase().includes(search.toLowerCase()) ||
+      l.actionType.toLowerCase().includes(search.toLowerCase()) ||
+      l.target.toLowerCase().includes(search.toLowerCase())
+    )
   );
 
   const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
@@ -123,6 +174,50 @@ export const AuditLogsTable: React.FC<AuditLogsTableProps> = ({ API_BASE, theme 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
+      {/* Animation Style */}
+      <style>{`
+        @keyframes pulse-shimmer {
+          0% { opacity: 0.35; }
+          50% { opacity: 0.75; }
+          100% { opacity: 0.35; }
+        }
+      `}</style>
+
+      {/* Category Filter Tabs */}
+      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', padding: '3px', background: 'rgba(0,0,0,0.15)', borderRadius: '8px', border: '1px solid var(--glass-border)', width: 'fit-content' }}>
+        {[
+          { key: 'all', label: 'All Audits' },
+          { key: 'logins', label: 'Logins' },
+          { key: 'databases', label: 'Database Ops' },
+          { key: 'credentials', label: 'Credentials' },
+          { key: 'remediations', label: 'Remediations' },
+          { key: 'general', label: 'General' }
+        ].map((cat) => {
+          const isCatActive = activeCategory === cat.key;
+          return (
+            <button
+              key={cat.key}
+              type="button"
+              onClick={() => setActiveCategory(cat.key)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '6px',
+                border: 'none',
+                background: isCatActive ? 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))' : 'transparent',
+                color: isCatActive ? '#fff' : 'var(--text-secondary)',
+                fontWeight: isCatActive ? 600 : 500,
+                fontSize: '0.74rem',
+                cursor: 'pointer',
+                boxShadow: isCatActive ? '0 2px 6px var(--accent-blue-glow)' : 'none',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {cat.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Search and Refresh bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
@@ -156,14 +251,44 @@ export const AuditLogsTable: React.FC<AuditLogsTableProps> = ({ API_BASE, theme 
         </button>
       </div>
 
-      {/* Grid Table */}
+      {/* Grid Table / Loading Shimmers */}
       {loading && logs.length === 0 ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-secondary)', padding: '20px 0' }}>
-          <RefreshCw size={20} className="spin-anim" />
-          <span>Loading activity logs...</span>
+        <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--divider)', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.02)' }}>
+                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Actor</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Action</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Target</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Timestamp</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600, width: '80px', textAlign: 'center' }}>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 5 }).map((_, idx) => (
+                <tr key={`shimmer-${idx}`} style={{ borderBottom: '1px solid var(--divider)' }}>
+                  <td style={{ padding: '14px 16px' }}>
+                    <div className="shimmer" style={{ width: '135px', height: '14px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', animation: 'pulse-shimmer 1.5s infinite ease-in-out' }} />
+                  </td>
+                  <td style={{ padding: '14px 16px' }}>
+                    <div className="shimmer" style={{ width: '95px', height: '18px', borderRadius: '6px', background: 'rgba(255,255,255,0.04)', animation: 'pulse-shimmer 1.5s infinite ease-in-out' }} />
+                  </td>
+                  <td style={{ padding: '14px 16px' }}>
+                    <div className="shimmer" style={{ width: '150px', height: '14px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', animation: 'pulse-shimmer 1.5s infinite ease-in-out' }} />
+                  </td>
+                  <td style={{ padding: '14px 16px' }}>
+                    <div className="shimmer" style={{ width: '110px', height: '14px', borderRadius: '4px', background: 'rgba(255,255,255,0.04)', animation: 'pulse-shimmer 1.5s infinite ease-in-out' }} />
+                  </td>
+                  <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                    <div className="shimmer" style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'rgba(255,255,255,0.04)', margin: '0 auto', animation: 'pulse-shimmer 1.5s infinite ease-in-out' }} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : filteredLogs.length === 0 ? (
-        <div style={{ color: 'var(--text-secondary)', padding: '20px 0', textAlign: 'center', fontStyle: 'italic' }}>
+        <div style={{ color: 'var(--text-secondary)', padding: '20px 0', textAlign: 'center', fontStyle: 'italic', border: '1px dashed var(--glass-border)', borderRadius: '12px' }}>
           No audited actions recorded.
         </div>
       ) : (
@@ -187,7 +312,8 @@ export const AuditLogsTable: React.FC<AuditLogsTableProps> = ({ API_BASE, theme 
                     <React.Fragment key={log.id}>
                       <tr style={{ 
                         borderBottom: isExpanded ? 'none' : '1px solid var(--divider)',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        background: isExpanded ? 'rgba(255,255,255,0.015)' : 'transparent'
                       }} onClick={() => toggleRow(log.id)}>
                         <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--text-primary)' }}>{log.actorEmail}</td>
                         <td style={{ padding: '14px 16px' }}>
@@ -220,31 +346,113 @@ export const AuditLogsTable: React.FC<AuditLogsTableProps> = ({ API_BASE, theme 
                         </td>
                       </tr>
 
-                      {/* Expanded Metadata Block */}
+                      {/* Overhauled Details Panel */}
                       {isExpanded && (
-                        <tr style={{ borderBottom: '1px solid var(--divider)', background: 'rgba(0,0,0,0.1)' }}>
-                          <td colSpan={5} style={{ padding: '16px 24px' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
-                                <Terminal size={12} style={{ color: 'var(--accent-purple)' }} />
-                                <span>Request Metadata Payload:</span>
-                              </div>
+                        <tr style={{ borderBottom: '1px solid var(--divider)', background: 'rgba(0,0,0,0.15)' }}>
+                          <td colSpan={5} style={{ padding: '20px 24px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                               
-                              <pre style={{
-                                margin: 0,
-                                background: '#020617',
-                                borderRadius: '6px',
-                                padding: '14px',
-                                fontFamily: 'monospace',
-                                fontSize: '0.74rem',
-                                color: '#cbd5e1',
-                                whiteSpace: 'pre-wrap',
-                                border: '1px solid var(--glass-border)',
-                                maxHeight: '180px',
-                                overflowY: 'auto'
+                              {/* Metadata Grid */}
+                              <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                                gap: '16px',
+                                padding: '14px 18px',
+                                borderRadius: '8px',
+                                background: 'rgba(255,255,255,0.01)',
+                                border: '1px solid var(--glass-border)'
                               }}>
-                                {JSON.stringify(log.details, null, 2)}
-                              </pre>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 650 }}>Actor Email</span>
+                                  <span style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontWeight: 600 }}>{log.actorEmail}</span>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 650 }}>Target Entity</span>
+                                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{log.target}</span>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 650 }}>Request Endpoint</span>
+                                  {(() => {
+                                    try {
+                                      const detailsObj = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
+                                      const method = detailsObj?.method || 'POST';
+                                      const path = detailsObj?.path || '/';
+                                      const methodColor = method === 'DELETE' ? '#ef4444' : method === 'PUT' ? '#fb923c' : method === 'GET' ? '#3b82f6' : '#10b981';
+                                      return (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem' }}>
+                                          <span style={{
+                                            fontSize: '0.62rem',
+                                            fontWeight: 800,
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            background: 'rgba(255,255,255,0.03)',
+                                            border: `1px solid ${methodColor}`,
+                                            color: methodColor
+                                          }}>
+                                            {method}
+                                          </span>
+                                          <span style={{ color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{path}</span>
+                                        </div>
+                                      );
+                                    } catch (err) {
+                                      return <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>-</span>;
+                                    }
+                                  })()}
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 650 }}>Source IP Address</span>
+                                  {(() => {
+                                    try {
+                                      const detailsObj = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
+                                      return <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{detailsObj?.ip || 'Unknown'}</span>;
+                                    } catch (err) {
+                                      return <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>-</span>;
+                                    }
+                                  })()}
+                                </div>
+                              </div>
+
+                              {/* Request Payload JSON */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                                    <Terminal size={12} style={{ color: 'var(--accent-purple)' }} />
+                                    <span>Request Body Payload & Parameters</span>
+                                  </div>
+                                  <CopyButton text={(() => {
+                                    try {
+                                      const detailsObj = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
+                                      return JSON.stringify(detailsObj?.payload || detailsObj?.query || {}, null, 2);
+                                    } catch (err) {
+                                      return String(log.details);
+                                    }
+                                  })()} />
+                                </div>
+                                
+                                <pre style={{
+                                  margin: 0,
+                                  background: '#020617',
+                                  borderRadius: '8px',
+                                  padding: '14px',
+                                  fontFamily: 'monospace',
+                                  fontSize: '0.74rem',
+                                  color: '#cbd5e1',
+                                  whiteSpace: 'pre-wrap',
+                                  border: '1px solid var(--glass-border)',
+                                  maxHeight: '220px',
+                                  overflowY: 'auto'
+                                }}>
+                                  {(() => {
+                                    try {
+                                      const detailsObj = typeof log.details === 'string' ? JSON.parse(log.details) : log.details;
+                                      return JSON.stringify(detailsObj?.payload || detailsObj?.query || {}, null, 2);
+                                    } catch (err) {
+                                      return String(log.details);
+                                    }
+                                  })()}
+                                </pre>
+                              </div>
+
                             </div>
                           </td>
                         </tr>

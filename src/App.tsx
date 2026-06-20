@@ -24,7 +24,9 @@ import {
   LogOut,
   Building2,
   Check,
+  Copy,
   ChevronDown,
+  ChevronUp,
   ChevronRight,
   X,
   Minus,
@@ -74,6 +76,37 @@ const Github = ({ size = 24, ...props }: { size?: number; [key: string]: any }) 
     <path d="M9 18c-4.51 2-5-2-7-2" />
   </svg>
 );
+
+const CopyButton: React.FC<{ text: string }> = ({ text }) => {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      style={{
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid var(--glass-border)',
+        color: copied ? 'var(--success)' : 'var(--text-muted)',
+        cursor: 'pointer',
+        fontSize: '0.72rem',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '2px 8px',
+        borderRadius: '4px',
+        transition: 'all 0.2s'
+      }}
+    >
+      {copied ? <Check size={11} /> : <Copy size={11} />}
+      <span>{copied ? 'Copied' : 'Copy'}</span>
+    </button>
+  );
+};
 
 const API_BASE = (import.meta.env.VITE_API_BASE as string) || `http://${window.location.hostname}:5005/api`;
 
@@ -360,8 +393,11 @@ interface EventLog {
   timestamp: string;
   title: string;
   message: string;
-  type: 'build' | 'power' | 'scan' | 'credential' | 'general';
+  type: 'build' | 'power' | 'scan' | 'credential' | 'general' | 'audit';
   status: 'success' | 'failed' | 'info' | 'warning';
+  details?: any;
+  actorEmail?: string;
+  target?: string;
 }
 
 function App() {
@@ -371,9 +407,14 @@ function App() {
   );
 
   // Event filter state for Events Feed page
-  const [eventFilter, setEventFilter] = useState<'all' | 'build' | 'power' | 'scan' | 'credential'>('all');
+  const [eventFilter, setEventFilter] = useState<'all' | 'build' | 'power' | 'scan' | 'credential' | 'audit'>('all');
   const [eventSearchQuery, setEventSearchQuery] = useState<string>('');
   const [collapsedEventDates, setCollapsedEventDates] = useState<Record<string, boolean>>({});
+
+  // State for database audit logs integrated into system events feed
+  const [auditLogsForEvents, setAuditLogsForEvents] = useState<any[]>([]);
+  const [loadingAuditLogsForEvents, setLoadingAuditLogsForEvents] = useState<boolean>(false);
+  const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
 
   // Real-time Toast Alerts States & Helpers
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -553,6 +594,35 @@ function App() {
   const unreadNotificationsCount = useMemo(() => {
     return notifications.filter(n => !n.read).length;
   }, [notifications]);
+
+  // Unified events stream (combining local state events and database audit logs)
+  const unifiedEvents = useMemo(() => {
+    const localEvents: EventLog[] = events;
+    const mappedAuditLogs: EventLog[] = auditLogsForEvents.map(log => {
+      let detailsObj = log.details;
+      if (typeof log.details === 'string') {
+        try {
+          detailsObj = JSON.parse(log.details);
+        } catch (e) {
+          detailsObj = log.details;
+        }
+      }
+      return {
+        id: `audit-${log.id}`,
+        timestamp: log.createdAt,
+        title: log.actionType,
+        message: `${log.actorEmail} targeted ${log.target}`,
+        type: 'audit',
+        status: (log.actionType.includes('FAIL') || log.actionType.includes('ERROR')) ? 'failed' : 'success',
+        details: detailsObj,
+        actorEmail: log.actorEmail,
+        target: log.target
+      };
+    });
+    return [...localEvents, ...mappedAuditLogs].sort((a, b) => {
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
+  }, [events, auditLogsForEvents]);
 
   const handleToggleNotifications = useCallback(() => {
     setIsNotificationOpen(prev => {
@@ -1048,6 +1118,32 @@ function App() {
       }
     }
   }, [activeTab]);
+
+  const fetchAuditLogsForEvents = useCallback(async () => {
+    setLoadingAuditLogsForEvents(true);
+    try {
+      const token = localStorage.getItem('devops_token');
+      const res = await fetch(`${API_BASE}/audit-logs`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAuditLogsForEvents(data.logs || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch audit logs for events:', err);
+    } finally {
+      setLoadingAuditLogsForEvents(false);
+    }
+  }, [API_BASE]);
+
+  useEffect(() => {
+    if (activeTab === 'events') {
+      fetchAuditLogsForEvents();
+    }
+  }, [activeTab, fetchAuditLogsForEvents]);
 
   // Confirmation Modal and sync timer states
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -4845,14 +4941,8 @@ function App() {
               handleSyncTeam={handleSyncTeam}
               handleUpdateRole={handleUpdateRole}
               theme={theme}
+              API_BASE={API_BASE}
             />
-            <div className="glass-panel" style={{ padding: '32px' }}>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '0 0 20px 0', fontSize: '1.25rem', fontWeight: 600 }}>
-                <Terminal style={{ color: 'var(--accent-purple)' }} />
-                Enterprise Security Audit Trail
-              </h3>
-              <AuditLogsTable API_BASE={API_BASE} theme={theme} />
-            </div>
           </div>
         )}
 
@@ -4869,6 +4959,11 @@ function App() {
                 0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); }
                 70% { box-shadow: 0 0 0 8px rgba(139, 92, 246, 0); }
                 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+              }
+              @keyframes pulse-shimmer {
+                0% { opacity: 0.35; }
+                50% { opacity: 0.75; }
+                100% { opacity: 0.35; }
               }
               .event-card {
                 transition: all 0.22s ease-in-out !important;
@@ -4904,17 +4999,17 @@ function App() {
                     System Events Feed
                   </h2>
                   <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                    Audit trail of pipeline builds, power controls, credentials connection checks, and cloud scanning.
+                    Audit trail of pipeline builds, power controls, credentials connection checks, cloud scanning, and database transactions.
                   </p>
                 </div>
-                {events.length > 0 && (
+                {unifiedEvents.length > 0 && (
                   <button
                     type="button"
                     onClick={() => {
-                      if (window.confirm('Are you sure you want to clear the entire events history?')) {
+                      if (window.confirm('Are you sure you want to clear the entire local events history? Note: Database audit trails will not be cleared.')) {
                         setEvents([]);
                         localStorage.removeItem('evaops_events');
-                        showToast('Events Feed Cleared', 'All system event logs were successfully removed.', 'info');
+                        showToast('Events Feed Cleared', 'All local system event logs were successfully removed.', 'info');
                       }
                     }}
                     style={{
@@ -4937,13 +5032,13 @@ function App() {
                       e.currentTarget.style.color = '#f87171';
                     }}
                   >
-                    Clear History
+                    Clear Local History
                   </button>
                 )}
               </div>
 
               {/* Event Filters and Search Bar */}
-              {events.length > 0 && (
+              {(unifiedEvents.length > 0 || loadingAuditLogsForEvents) && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div style={{ display: 'flex', gap: '16px', marginBottom: '4px', flexWrap: 'wrap', alignItems: 'center', width: '100%' }}>
                     {/* Search Input */}
@@ -4951,7 +5046,7 @@ function App() {
                       <Search size={14} style={{ position: 'absolute', left: '12px', top: '11px', color: 'var(--text-secondary)' }} />
                       <input
                         type="text"
-                        placeholder="Search events by title or message..."
+                        placeholder="Search events by title, message, actor, or target..."
                         value={eventSearchQuery}
                         onChange={(e) => setEventSearchQuery(e.target.value)}
                         style={{
@@ -4969,13 +5064,14 @@ function App() {
                     
                     {/* Filter Segmented Control */}
                     <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', padding: '3px', background: 'rgba(0,0,0,0.1)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
-                      {(['all', 'build', 'power', 'scan', 'credential'] as const).map((filter) => {
+                      {(['all', 'build', 'power', 'scan', 'credential', 'audit'] as const).map((filter) => {
                         const isFilterActive = eventFilter === filter;
                         const filterLabel = filter === 'all' ? 'All'
                                           : filter === 'build' ? 'Builds'
                                           : filter === 'power' ? 'Power'
                                           : filter === 'scan' ? 'Scans'
-                                          : 'Credentials';
+                                          : filter === 'credential' ? 'Credentials'
+                                          : 'Audit Logs';
                         return (
                           <button
                             key={filter}
@@ -5001,11 +5097,43 @@ function App() {
                     </div>
                   </div>
 
-                  {(() => {
-                    const filteredEvents = events.filter(e => {
+                  {loadingAuditLogsForEvents && unifiedEvents.length === 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {Array.from({ length: 4 }).map((_, idx) => (
+                        <div 
+                          key={`event-shimmer-${idx}`}
+                          style={{
+                            height: '66px',
+                            padding: '14px 16px',
+                            borderRadius: '10px',
+                            background: 'rgba(255,255,255,0.01)',
+                            border: '1px solid var(--glass-border)',
+                            display: 'flex',
+                            gap: '14px',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <div style={{
+                            width: '26px',
+                            height: '26px',
+                            borderRadius: '6px',
+                            background: 'rgba(255,255,255,0.04)',
+                            animation: 'pulse-shimmer 1.5s infinite ease-in-out'
+                          }} />
+                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <div style={{ width: '150px', height: '12px', borderRadius: '3px', background: 'rgba(255,255,255,0.04)', animation: 'pulse-shimmer 1.5s infinite ease-in-out' }} />
+                            <div style={{ width: '320px', height: '10px', borderRadius: '3px', background: 'rgba(255,255,255,0.02)', animation: 'pulse-shimmer 1.5s infinite ease-in-out' }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (() => {
+                    const filteredEvents = unifiedEvents.filter(e => {
                       const matchesFilter = eventFilter === 'all' || e.type === eventFilter;
                       const matchesSearch = e.title.toLowerCase().includes(eventSearchQuery.toLowerCase()) || 
-                                            e.message.toLowerCase().includes(eventSearchQuery.toLowerCase());
+                                            e.message.toLowerCase().includes(eventSearchQuery.toLowerCase()) ||
+                                            (e.actorEmail && e.actorEmail.toLowerCase().includes(eventSearchQuery.toLowerCase())) ||
+                                            (e.target && e.target.toLowerCase().includes(eventSearchQuery.toLowerCase()));
                       return matchesFilter && matchesSearch;
                     });
 
@@ -5138,14 +5266,16 @@ function App() {
                                         if (type === 'power') icon = <Sliders size={12} />;
                                         if (type === 'scan') icon = <Server size={12} />;
                                         if (type === 'credential') icon = <ShieldCheck size={12} />;
+                                        if (type === 'audit') icon = <ShieldCheck size={12} />;
 
                                         return { state, icon };
                                       };
 
                                       const { state, icon } = getCategoryConfig(event.type, event.status);
 
-                                      // Unread/newest event (first item in the complete array) gets a pulse ring on its subnode
-                                      const isLatestEvent = events[0]?.id === event.id;
+                                      // Unread/newest event gets a pulse ring on its subnode
+                                      const isLatestEvent = unifiedEvents[0]?.id === event.id;
+                                      const isCardExpanded = expandedEventId === event.id;
 
                                       return (
                                         <div
@@ -5153,20 +5283,22 @@ function App() {
                                           className="event-card"
                                           style={{
                                             display: 'flex',
+                                            flexDirection: 'column',
                                             gap: '14px',
                                             padding: '14px 16px',
                                             borderRadius: '10px',
                                             background: theme === 'light' ? 'rgba(0,0,0,0.005)' : 'rgba(255,255,255,0.005)',
                                             border: '1px solid var(--glass-border)',
-                                            position: 'relative'
+                                            position: 'relative',
+                                            cursor: 'pointer'
                                           }}
+                                          onClick={() => setExpandedEventId(isCardExpanded ? null : event.id)}
                                         >
                                           {/* Mini timeline dot on vertical line */}
                                           <div style={{
                                             position: 'absolute',
                                             left: '-32px',
-                                            top: '50%',
-                                            transform: 'translateY(-50%)',
+                                            top: '25px', // align with the top row icon
                                             width: '8px',
                                             height: '8px',
                                             borderRadius: '50%',
@@ -5187,34 +5319,189 @@ function App() {
                                             borderRadius: '3px 0 0 3px'
                                           }} />
 
-                                          <div style={{
-                                            width: '26px',
-                                            height: '26px',
-                                            borderRadius: '6px',
-                                            background: state.bg,
-                                            color: state.text,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            flexShrink: 0,
-                                            border: `1px solid rgba(${state.border === '#22c55e' ? '34,197,94' : state.border === '#ef4444' ? '239,68,68' : state.border === '#f59e0b' ? '245,158,11' : '59,130,246'}, 0.15)`
-                                          }}>
-                                            {icon}
+                                          {/* Top row content */}
+                                          <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', width: '100%' }}>
+                                            <div style={{
+                                              width: '26px',
+                                              height: '26px',
+                                              borderRadius: '6px',
+                                              background: state.bg,
+                                              color: state.text,
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              flexShrink: 0,
+                                              border: `1px solid rgba(${state.border === '#22c55e' ? '34,197,94' : state.border === '#ef4444' ? '239,68,68' : state.border === '#f59e0b' ? '245,158,11' : '59,130,246'}, 0.15)`
+                                            }}>
+                                              {icon}
+                                            </div>
+
+                                            <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-primary)' }}>
+                                                  {event.title}
+                                                </h4>
+                                                <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                                                  {event.message}
+                                                </p>
+                                              </div>
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                                                  {timestampText}
+                                                </span>
+                                                {isCardExpanded ? <ChevronUp size={14} style={{ color: 'var(--text-secondary)' }} /> : <ChevronDown size={14} style={{ color: 'var(--text-secondary)' }} />}
+                                              </div>
+                                            </div>
                                           </div>
 
-                                          <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                              <h4 style={{ margin: 0, fontSize: '0.8rem', fontWeight: 650, color: 'var(--text-primary)' }}>
-                                                {event.title}
-                                              </h4>
-                                              <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                                                {event.message}
-                                              </p>
+                                          {/* Expanded Card Details UX */}
+                                          {isCardExpanded && (
+                                            <div 
+                                              onClick={(e) => e.stopPropagation()} // prevent collapsing on clicking content
+                                              style={{
+                                                borderTop: '1px solid var(--glass-border)',
+                                                paddingTop: '14px',
+                                                marginTop: '6px',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '14px',
+                                                width: '100%'
+                                              }}
+                                            >
+                                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                                                <span style={{
+                                                  fontSize: '0.64rem',
+                                                  fontWeight: 750,
+                                                  textTransform: 'uppercase',
+                                                  padding: '2px 8px',
+                                                  borderRadius: '4px',
+                                                  background: event.type === 'audit' 
+                                                    ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.15))' 
+                                                    : 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(20, 184, 166, 0.15))',
+                                                  border: event.type === 'audit'
+                                                    ? '1px solid rgba(139, 92, 246, 0.3)'
+                                                    : '1px solid rgba(16, 185, 129, 0.3)',
+                                                  color: event.type === 'audit' ? '#c084fc' : 'var(--accent-teal)'
+                                                }}>
+                                                  {event.type === 'audit' ? 'Security Audit Trail' : 'Local System Feed'}
+                                                </span>
+                                              </div>
+
+                                              {event.type === 'audit' ? (
+                                                <>
+                                                  {/* Metadata Grid */}
+                                                  <div style={{
+                                                    display: 'grid',
+                                                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                                                    gap: '12px',
+                                                    padding: '12px 14px',
+                                                    borderRadius: '6px',
+                                                    background: 'rgba(255,255,255,0.01)',
+                                                    border: '1px solid var(--glass-border)',
+                                                    fontSize: '0.76rem'
+                                                  }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                      <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 650 }}>Actor Email</span>
+                                                      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{event.actorEmail}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                      <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 650 }}>Target Entity</span>
+                                                      <span style={{ color: 'var(--text-secondary)' }}>{event.target}</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                      <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 650 }}>Request Endpoint</span>
+                                                      {(() => {
+                                                        const method = event.details?.method || 'POST';
+                                                        const path = event.details?.path || '/';
+                                                        const methodColor = method === 'DELETE' ? '#ef4444' : method === 'PUT' ? '#fb923c' : method === 'GET' ? '#3b82f6' : '#10b981';
+                                                        return (
+                                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem' }}>
+                                                            <span style={{
+                                                              fontSize: '0.58rem',
+                                                              fontWeight: 800,
+                                                              padding: '1px 4px',
+                                                              borderRadius: '3px',
+                                                              background: 'rgba(255,255,255,0.03)',
+                                                              border: `1px solid ${methodColor}`,
+                                                              color: methodColor
+                                                            }}>
+                                                              {method}
+                                                            </span>
+                                                            <span style={{ color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{path}</span>
+                                                          </div>
+                                                        );
+                                                      })()}
+                                                    </div>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                      <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 650 }}>Source IP Address</span>
+                                                      <span style={{ color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{event.details?.ip || 'Unknown'}</span>
+                                                    </div>
+                                                  </div>
+
+                                                  {/* Request Payload JSON */}
+                                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                                                        <Terminal size={11} style={{ color: 'var(--accent-purple)' }} />
+                                                        <span>Request Body Payload & Parameters</span>
+                                                      </div>
+                                                      <CopyButton text={JSON.stringify(event.details?.payload || event.details?.query || event.details || {}, null, 2)} />
+                                                    </div>
+                                                    
+                                                    <pre style={{
+                                                      margin: 0,
+                                                      background: '#020617',
+                                                      borderRadius: '6px',
+                                                      padding: '10px',
+                                                      fontFamily: 'monospace',
+                                                      fontSize: '0.72rem',
+                                                      color: '#cbd5e1',
+                                                      whiteSpace: 'pre-wrap',
+                                                      border: '1px solid var(--glass-border)',
+                                                      maxHeight: '180px',
+                                                      overflowY: 'auto'
+                                                    }}>
+                                                      {JSON.stringify(event.details?.payload || event.details?.query || event.details || {}, null, 2)}
+                                                    </pre>
+                                                  </div>
+                                                </>
+                                              ) : (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                  <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', display: 'flex', gap: '12px' }}>
+                                                    <span>Category: <strong style={{ color: 'var(--text-primary)', textTransform: 'uppercase' }}>{event.type}</strong></span>
+                                                    <span>Status: <strong style={{ color: event.status === 'success' ? 'var(--success)' : 'var(--error)' }}>{event.status}</strong></span>
+                                                  </div>
+                                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                      <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>System Diagnostics Context</span>
+                                                      <CopyButton text={JSON.stringify({ eventId: event.id, timestamp: event.timestamp, title: event.title, status: event.status, message: event.message }, null, 2)} />
+                                                    </div>
+                                                    <pre style={{
+                                                      margin: 0,
+                                                      background: '#020617',
+                                                      borderRadius: '6px',
+                                                      padding: '10px',
+                                                      fontFamily: 'monospace',
+                                                      fontSize: '0.72rem',
+                                                      color: '#cbd5e1',
+                                                      whiteSpace: 'pre-wrap',
+                                                      border: '1px solid var(--glass-border)',
+                                                      maxHeight: '120px',
+                                                      overflowY: 'auto'
+                                                    }}>
+                                                      {JSON.stringify({
+                                                        eventId: event.id,
+                                                        timestamp: event.timestamp,
+                                                        title: event.title,
+                                                        message: event.message,
+                                                        status: event.status
+                                                      }, null, 2)}
+                                                    </pre>
+                                                  </div>
+                                                </div>
+                                              )}
                                             </div>
-                                            <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                                              {timestampText}
-                                            </span>
-                                          </div>
+                                          )}
                                         </div>
                                       );
                                     })}
@@ -5231,7 +5518,7 @@ function App() {
               )}
 
               {/* General Empty State if absolutely no logs */}
-              {events.length === 0 && (
+              {unifiedEvents.length === 0 && !loadingAuditLogsForEvents && (
                 <div style={{ padding: '60px 20px', textAlign: 'center' }}>
                   <Activity size={48} style={{ color: 'var(--text-secondary)', marginBottom: '16px' }} />
                   <h3>No system events recorded yet</h3>
