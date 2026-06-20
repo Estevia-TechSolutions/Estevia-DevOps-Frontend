@@ -85,6 +85,8 @@ export const AuditLogsTable: React.FC<AuditLogsTableProps> = ({ API_BASE, theme 
       case 'DB_DATA_MIGRATE': return { color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.2)' };
       case 'EVA_AI_CONSULT': return { color: '#c084fc', bg: 'rgba(192, 132, 252, 0.1)', border: '1px solid rgba(192, 132, 252, 0.2)' };
       case 'DB_BACKUP': return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)' };
+      case 'USER_LOGIN_MS':
+      case 'USER_LOGIN_BYPASS': return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)' };
       case 'ORG_SETTINGS_UPDATE': return { color: '#a78bfa', bg: 'rgba(167, 139, 250, 0.1)', border: '1px solid rgba(167, 139, 250, 0.2)' };
       case 'TEAMS_WEBHOOK_TEST':
       case 'TEAMS_HOOK_SETUP': return { color: '#818cf8', bg: 'rgba(129, 140, 248, 0.1)', border: '1px solid rgba(129, 140, 248, 0.2)' };

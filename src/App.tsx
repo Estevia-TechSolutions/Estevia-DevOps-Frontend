@@ -43,6 +43,7 @@ import { ConfirmationModal } from './components/ConfirmationModal';
 import { SiteHeader, ControlBanner } from './components/DevOpsHeader';
 import { NotificationDrawer } from './components/NotificationDrawer';
 import type { AppNotification } from './components/NotificationDrawer';
+import { NotificationDetailModal } from './components/NotificationDetailModal';
 import { SettingsPage } from './pages/SettingsPage';
 import { CredentialsPage } from './pages/CredentialsPage';
 import { DatabaseCatalogPage } from './pages/DatabaseCatalogPage';
@@ -471,6 +472,7 @@ function App() {
     return saved ? JSON.parse(saved) : [];
   });
   const [isNotificationOpen, setIsNotificationOpen] = useState<boolean>(false);
+  const [selectedDetailNotification, setSelectedDetailNotification] = useState<AppNotification | null>(null);
 
   const addNotification = useCallback((
     title: string,
@@ -505,25 +507,6 @@ function App() {
     });
   }, []);
 
-  const handleViewDetails = useCallback((category: string, notification: AppNotification) => {
-    setIsNotificationOpen(false);
-    if (category === 'FINOPS') {
-      setActiveTab('cost');
-    } else if (category === 'SECURITY') {
-      setActiveTab('credentials');
-    } else if (category === 'PROVISION') {
-      if (notification.message.toLowerCase().includes('database') || notification.title.toLowerCase().includes('database')) {
-        setActiveTab('databases');
-      } else {
-        setActiveTab('provision');
-      }
-    } else if (category === 'MONITOR') {
-      setActiveTab('events');
-    } else {
-      setActiveTab('events');
-    }
-  }, []);
-
   const markAllNotificationsAsRead = useCallback(() => {
     setNotifications(prev => {
       if (prev.every(n => n.read)) return prev;
@@ -540,6 +523,31 @@ function App() {
       localStorage.setItem('evaops_notifications', JSON.stringify(updated));
       return updated;
     });
+  }, []);
+
+  const handleViewDetails = useCallback((category: string, notification: AppNotification) => {
+    setIsNotificationOpen(false);
+    setSelectedDetailNotification(notification);
+    markNotificationAsRead(notification.id);
+  }, [markNotificationAsRead]);
+
+  const handleNavigateFromModal = useCallback((category: string, notification: AppNotification) => {
+    setSelectedDetailNotification(null);
+    if (category === 'FINOPS') {
+      setActiveTab('cost');
+    } else if (category === 'SECURITY') {
+      setActiveTab('credentials');
+    } else if (category === 'PROVISION') {
+      if (notification.message.toLowerCase().includes('database') || notification.title.toLowerCase().includes('database')) {
+        setActiveTab('databases');
+      } else {
+        setActiveTab('provision');
+      }
+    } else if (category === 'MONITOR') {
+      setActiveTab('events');
+    } else {
+      setActiveTab('events');
+    }
   }, []);
 
   const unreadNotificationsCount = useMemo(() => {
@@ -5276,6 +5284,14 @@ function App() {
         type={confirmDialog?.type || 'info'}
         onConfirm={confirmDialog?.onConfirm || (() => {})}
         onClose={() => setConfirmDialog(null)}
+      />
+
+      {/* Notification Details Modal Overlay */}
+      <NotificationDetailModal
+        isOpen={selectedDetailNotification !== null}
+        notification={selectedDetailNotification}
+        onClose={() => setSelectedDetailNotification(null)}
+        onNavigate={handleNavigateFromModal}
       />
 
       {/* Clone Environment Modal Overlay */}
