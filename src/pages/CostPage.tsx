@@ -405,11 +405,16 @@ export const CostPage: React.FC<CostPageProps> = ({
           transform: translateX(-50%) translateY(0) !important;
         }
         .opt-hover-wrapper:hover {
-          z-index: 1000 !important;
+          z-index: 10005 !important;
         }
         tr:hover {
           position: relative;
-          z-index: 99 !important;
+          z-index: 200 !important;
+        }
+        .opt-hover-wrapper:hover .table-opt-hover-card {
+          visibility: visible !important;
+          opacity: 1 !important;
+          transform: translateY(0) !important;
         }
 
         @keyframes play-pulse {
@@ -709,7 +714,7 @@ export const CostPage: React.FC<CostPageProps> = ({
       
       {/* Overview Cards */}
       {mode === 'cost' ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', position: 'relative', zIndex: 10 }}>
           {/* Monthly Run Rate */}
           <div className="glass-panel opt-hover-wrapper" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(16, 185, 129, 0.1)', position: 'relative', cursor: 'help' }}>
             <div style={{
@@ -1247,7 +1252,7 @@ export const CostPage: React.FC<CostPageProps> = ({
       {/* Sub-tab content */}
       {activeTabToShow === 'breakdown' ? (
         /* Detailed Cost Table */
-        <div className="glass-panel" style={{ padding: '32px' }}>
+        <div className="glass-panel" style={{ padding: '32px', position: 'relative', zIndex: 1 }}>
           <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             Resource Cost Breakdown
           </h3>
@@ -1483,7 +1488,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                                          }}>
                                            Optimize
                                          </span>
-                                         <div className="opt-hover-card" style={{
+                                         <div className="table-opt-hover-card" style={{
                                            visibility: 'hidden',
                                            opacity: 0,
                                            position: 'absolute',
@@ -1501,6 +1506,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                                            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.25)',
                                            pointerEvents: 'none',
                                            zIndex: 9999,
+                                           transform: 'translateY(8px)',
                                            transition: 'all 0.2s ease-in-out',
                                            whiteSpace: 'normal',
                                            textAlign: 'left',
@@ -1545,7 +1551,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                                          }}>
                                            Remedied
                                          </span>
-                                         <div className="opt-hover-card" style={{
+                                         <div className="table-opt-hover-card" style={{
                                            visibility: 'hidden',
                                            opacity: 0,
                                            position: 'absolute',
@@ -1563,6 +1569,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                                            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.25)',
                                            pointerEvents: 'none',
                                            zIndex: 9999,
+                                           transform: 'translateY(8px)',
                                            transition: 'all 0.2s ease-in-out',
                                            whiteSpace: 'normal',
                                            textAlign: 'left',
