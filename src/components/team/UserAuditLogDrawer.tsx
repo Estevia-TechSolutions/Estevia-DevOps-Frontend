@@ -297,7 +297,8 @@ export const UserAuditLogDrawer: React.FC<UserAuditLogDrawerProps> = ({
                   background: 'rgba(255,255,255,0.01)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '8px'
+                  gap: '8px',
+                  flexShrink: 0
                 }}
               >
                 <div
@@ -348,7 +349,8 @@ export const UserAuditLogDrawer: React.FC<UserAuditLogDrawerProps> = ({
                       ? (isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.015)') 
                       : (isLight ? 'rgba(0,0,0,0.01)' : 'rgba(255,255,255,0.005)'),
                     overflow: 'hidden',
-                    transition: 'background-color 0.2s ease'
+                    transition: 'background-color 0.2s ease',
+                    flexShrink: 0
                   }}
                 >
                   {/* Collapsed Header Summary */}
