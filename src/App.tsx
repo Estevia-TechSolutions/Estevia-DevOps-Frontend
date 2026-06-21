@@ -4047,9 +4047,9 @@ function App() {
                   onClick={() => { setShowAdminOverrideForm(v => !v); setAdminOverrideError(null); }}
                   disabled={authLoading}
                   style={{
-                    background: showAdminOverrideForm ? 'rgba(245,158,11,0.08)' : 'transparent',
-                    border: `1px dashed ${showAdminOverrideForm ? 'rgba(245,158,11,0.4)' : 'var(--glass-border)'}`,
-                    color: showAdminOverrideForm ? '#f59e0b' : 'var(--text-secondary)',
+                    background: showAdminOverrideForm ? 'rgba(234,88,12,0.08)' : 'transparent',
+                    border: `1px dashed ${showAdminOverrideForm ? 'rgba(234,88,12,0.4)' : 'var(--glass-border)'}`,
+                    color: showAdminOverrideForm ? '#ea580c' : 'var(--text-secondary)',
                     padding: '10px 20px',
                     borderRadius: '8px',
                     fontSize: '0.82rem',
@@ -4063,8 +4063,8 @@ function App() {
                   }}
                   onMouseEnter={(e) => {
                     if (!showAdminOverrideForm) {
-                      e.currentTarget.style.borderColor = 'rgba(245,158,11,0.35)';
-                      e.currentTarget.style.color = '#f59e0b';
+                      e.currentTarget.style.borderColor = 'rgba(234,88,12,0.35)';
+                      e.currentTarget.style.color = '#ea580c';
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -4081,8 +4081,8 @@ function App() {
                 {/* Admin Override inline form */}
                 {showAdminOverrideForm && (
                   <div style={{
-                    background: 'rgba(245,158,11,0.04)',
-                    border: '1px solid rgba(245,158,11,0.2)',
+                    background: 'rgba(234,88,12,0.04)',
+                    border: '1px solid rgba(234,88,12,0.2)',
                     borderRadius: '10px',
                     padding: '16px',
                     display: 'flex',
@@ -4091,7 +4091,7 @@ function App() {
                     animation: 'fade-in-anim 0.2s ease-out'
                   }}>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <ShieldCheck size={12} style={{ color: '#f59e0b' }} />
+                      <ShieldCheck size={12} style={{ color: '#ea580c' }} />
                       Enter your Organisation ID and admin override password
                     </div>
                     <input
@@ -4110,7 +4110,7 @@ function App() {
                         outline: 'none',
                         transition: 'border-color 0.2s'
                       }}
-                      onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(245,158,11,0.5)'}
+                      onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(234,88,12,0.5)'}
                       onBlur={(e) => e.currentTarget.style.borderColor = 'var(--glass-border)'}
                     />
                     <input
@@ -4130,7 +4130,7 @@ function App() {
                         outline: 'none',
                         transition: 'border-color 0.2s'
                       }}
-                      onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(245,158,11,0.5)'}
+                      onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(234,88,12,0.5)'}
                       onBlur={(e) => e.currentTarget.style.borderColor = 'var(--glass-border)'}
                     />
                     {adminOverrideError && (
@@ -4143,9 +4143,9 @@ function App() {
                       onClick={handleAdminOverride}
                       disabled={adminOverrideLoading}
                       style={{
-                        background: 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(245,158,11,0.1))',
-                        border: '1px solid rgba(245,158,11,0.4)',
-                        color: '#f59e0b',
+                        background: 'linear-gradient(135deg, rgba(234,88,12,0.2), rgba(234,88,12,0.1))',
+                        border: '1px solid rgba(234,88,12,0.4)',
+                        color: '#ea580c',
                         borderRadius: '8px',
                         padding: '10px 16px',
                         fontSize: '0.86rem',

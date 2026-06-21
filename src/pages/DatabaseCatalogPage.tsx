@@ -888,7 +888,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                       <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>SQL Query Console</span>
                       {isViewer && (
                         <span style={{ fontSize: '0.7rem', color: '#f59e0b', background: 'rgba(245,158,11,0.12)', padding: '2px 8px', borderRadius: '4px', fontWeight: 600, border: '1px solid rgba(245,158,11,0.2)' }}>
-                          ⚠️ Read-only console
+                          ⚠️ Query console (DELETE restricted)
                         </span>
                       )}
                     </div>
@@ -898,7 +898,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                       <button
                         onClick={() => handleExecuteQuery(querySql)}
                         className="btn-primary"
-                        disabled={isViewer || queryExecuting || !querySql.trim()}
+                        disabled={queryExecuting || !querySql.trim()}
                         style={{ padding: '4px 14px', fontSize: '0.78rem', height: '30px', display: 'flex', alignItems: 'center', gap: '5px' }}
                       >
                         {queryExecuting ? <RefreshCw size={13} className="spin-anim" /> : <Play size={13} />}
@@ -1233,6 +1233,22 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
               {dbDetailTab === 'create-table' && (
                 <div style={{ maxWidth: '640px' }}>
                   <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '14px' }}>Create Database Table visually</h3>
+                  
+                  {isViewer && (
+                    <div style={{
+                      backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                      border: '1px solid rgba(239, 68, 68, 0.2)',
+                      borderRadius: '8px',
+                      padding: '16px',
+                      color: 'var(--error)',
+                      fontSize: '0.85rem',
+                      fontWeight: 500,
+                      marginBottom: '20px',
+                      lineHeight: '1.5'
+                    }}>
+                      ⚠️ You do not have permission to create tables. Viewer role is restricted to read-only schema inspection and querying.
+                    </div>
+                  )}
                   {createTableError && <div style={{ color: 'var(--error)', background: 'rgba(239, 68, 68, 0.08)', padding: '12px', borderRadius: '6px', fontSize: '0.8rem', marginBottom: '12px' }}>❌ {createTableError}</div>}
                   
                   <form onSubmit={handleCreateTable}>
