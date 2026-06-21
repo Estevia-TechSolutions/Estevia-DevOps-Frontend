@@ -3975,13 +3975,14 @@ function App() {
                 {/* Developer Override inline form */}
                 {showDevOverrideForm && (
                   <div style={{
-                    background: 'rgba(100,116,139,0.04)',
-                    border: '1px solid rgba(100,116,139,0.25)',
+                    background: 'var(--bg-primary)',
+                    border: '1px solid rgba(148, 163, 184, 0.2)',
                     borderRadius: '10px',
                     padding: '16px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '10px',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
                     animation: 'fade-in-anim 0.2s ease-out'
                   }}>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -4018,8 +4019,8 @@ function App() {
                       onClick={handleBypassLogin}
                       disabled={authLoading}
                       style={{
-                        background: 'linear-gradient(135deg, rgba(100,116,139,0.2), rgba(100,116,139,0.1))',
-                        border: '1px solid rgba(100,116,139,0.4)',
+                        background: 'linear-gradient(135deg, rgba(148, 163, 184, 0.25), rgba(148, 163, 184, 0.15))',
+                        border: '1px solid rgba(148, 163, 184, 0.5)',
                         color: 'var(--text-primary)',
                         borderRadius: '8px',
                         padding: '10px 16px',
@@ -4081,13 +4082,14 @@ function App() {
                 {/* Admin Override inline form */}
                 {showAdminOverrideForm && (
                   <div style={{
-                    background: 'rgba(234,88,12,0.04)',
-                    border: '1px solid rgba(234,88,12,0.2)',
+                    background: 'var(--bg-primary)',
+                    border: '1px solid rgba(234,88,12,0.25)',
                     borderRadius: '10px',
                     padding: '16px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '10px',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
                     animation: 'fade-in-anim 0.2s ease-out'
                   }}>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -4143,8 +4145,8 @@ function App() {
                       onClick={handleAdminOverride}
                       disabled={adminOverrideLoading}
                       style={{
-                        background: 'linear-gradient(135deg, rgba(234,88,12,0.2), rgba(234,88,12,0.1))',
-                        border: '1px solid rgba(234,88,12,0.4)',
+                        background: 'linear-gradient(135deg, rgba(234,88,12,0.25), rgba(234,88,12,0.15))',
+                        border: '1px solid rgba(234,88,12,0.5)',
                         color: '#ea580c',
                         borderRadius: '8px',
                         padding: '10px 16px',
