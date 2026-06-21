@@ -1174,6 +1174,13 @@ function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
+  // Admin Override login state
+  const [showAdminOverrideForm, setShowAdminOverrideForm] = useState(false);
+  const [adminOverrideOrgId, setAdminOverrideOrgId] = useState('');
+  const [adminOverridePassword, setAdminOverridePassword] = useState('');
+  const [adminOverrideError, setAdminOverrideError] = useState<string | null>(null);
+  const [adminOverrideLoading, setAdminOverrideLoading] = useState(false);
+
   const [requiresOnboarding, setRequiresOnboarding] = useState<boolean>(() => {
     return localStorage.getItem('devops_requires_onboarding') === 'true';
   });
@@ -1519,13 +1526,50 @@ function App() {
         setUser(data.user);
         setRequiresOnboarding(data.requiresOnboarding);
       } else {
-        throw new Error(data.error || 'Developer Bypass login failed.');
+        throw new Error(data.error || 'Developer Override login failed.');
       }
     } catch (err: any) {
-      console.error('[auth] Developer Bypass failed:', err);
-      setAuthError(err.message || 'Developer Bypass failed.');
+      console.error('[auth] Developer Override failed:', err);
+      setAuthError(err.message || 'Developer Override failed.');
     } finally {
       setAuthLoading(false);
+    }
+  };
+
+  const handleAdminOverride = async () => {
+    if (!adminOverrideOrgId.trim() || !adminOverridePassword.trim()) {
+      setAdminOverrideError('Please enter both Organisation ID and password.');
+      return;
+    }
+    setAdminOverrideLoading(true);
+    setAdminOverrideError(null);
+    try {
+      const res = await window.fetch(`${API_BASE}/auth/admin-override`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organizationId: adminOverrideOrgId.trim().toLowerCase(), password: adminOverridePassword })
+      });
+      const data = await res.json();
+      if (res.ok && data.token) {
+        localStorage.setItem('devops_token', data.token);
+        localStorage.setItem('devops_user', JSON.stringify(data.user));
+        localStorage.setItem('devops_requires_onboarding', String(data.requiresOnboarding));
+        if (data.organization && data.organization.id) {
+          setOrganizationId(data.organization.id);
+          setOrgName(data.organization.name || data.organization.id);
+        }
+        setToken(data.token);
+        setUser(data.user);
+        setRequiresOnboarding(data.requiresOnboarding);
+        setShowAdminOverrideForm(false);
+      } else {
+        throw new Error(data.error || 'Admin Override authentication failed.');
+      }
+    } catch (err: any) {
+      console.error('[auth] Admin Override failed:', err);
+      setAdminOverrideError(err.message || 'Admin Override failed. Check org ID and password.');
+    } finally {
+      setAdminOverrideLoading(false);
     }
   };
 
@@ -3874,6 +3918,7 @@ function App() {
                   <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }}></div>
                 </div>
 
+                {/* Developer Override — viewer only */}
                 <button 
                   onClick={handleBypassLogin}
                   disabled={authLoading}
@@ -3881,15 +3926,19 @@ function App() {
                     background: 'transparent',
                     border: '1px dashed var(--glass-border)',
                     color: 'var(--text-secondary)',
-                    padding: '12px 20px',
+                    padding: '10px 20px',
                     borderRadius: '8px',
-                    fontSize: '0.88rem',
+                    fontSize: '0.82rem',
                     cursor: 'pointer',
                     fontWeight: 500,
-                    transition: 'all 0.2s ease'
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--accent-purple)';
+                    e.currentTarget.style.borderColor = 'rgba(100,116,139,0.5)';
                     e.currentTarget.style.color = 'var(--text-primary)';
                   }}
                   onMouseLeave={(e) => {
@@ -3897,8 +3946,135 @@ function App() {
                     e.currentTarget.style.color = 'var(--text-secondary)';
                   }}
                 >
-                  Developer Bypass (Local Testing)
+                  <Eye size={14} />
+                  Developer Override <span style={{ fontSize: '0.72rem', opacity: 0.6 }}>(Viewer only)</span>
                 </button>
+
+                {/* Admin Override — password protected */}
+                <button 
+                  onClick={() => { setShowAdminOverrideForm(v => !v); setAdminOverrideError(null); }}
+                  disabled={authLoading}
+                  style={{
+                    background: showAdminOverrideForm ? 'rgba(245,158,11,0.08)' : 'transparent',
+                    border: `1px dashed ${showAdminOverrideForm ? 'rgba(245,158,11,0.4)' : 'var(--glass-border)'}`,
+                    color: showAdminOverrideForm ? '#f59e0b' : 'var(--text-secondary)',
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    fontWeight: 500,
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!showAdminOverrideForm) {
+                      e.currentTarget.style.borderColor = 'rgba(245,158,11,0.35)';
+                      e.currentTarget.style.color = '#f59e0b';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!showAdminOverrideForm) {
+                      e.currentTarget.style.borderColor = 'var(--glass-border)';
+                      e.currentTarget.style.color = 'var(--text-secondary)';
+                    }
+                  }}
+                >
+                  <ShieldCheck size={14} />
+                  Admin Override <span style={{ fontSize: '0.72rem', opacity: 0.6 }}>(Password required)</span>
+                </button>
+
+                {/* Admin Override inline form */}
+                {showAdminOverrideForm && (
+                  <div style={{
+                    background: 'rgba(245,158,11,0.04)',
+                    border: '1px solid rgba(245,158,11,0.2)',
+                    borderRadius: '10px',
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    animation: 'fade-in-anim 0.2s ease-out'
+                  }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <ShieldCheck size={12} style={{ color: '#f59e0b' }} />
+                      Enter your Organisation ID and admin override password
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Organisation ID (e.g. estevia)"
+                      value={adminOverrideOrgId}
+                      onChange={(e) => setAdminOverrideOrgId(e.target.value)}
+                      autoComplete="off"
+                      style={{
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--glass-border)',
+                        borderRadius: '8px',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.86rem',
+                        padding: '10px 14px',
+                        outline: 'none',
+                        transition: 'border-color 0.2s'
+                      }}
+                      onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(245,158,11,0.5)'}
+                      onBlur={(e) => e.currentTarget.style.borderColor = 'var(--glass-border)'}
+                    />
+                    <input
+                      type="password"
+                      placeholder="Admin override password"
+                      value={adminOverridePassword}
+                      onChange={(e) => setAdminOverridePassword(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleAdminOverride(); }}
+                      autoComplete="new-password"
+                      style={{
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--glass-border)',
+                        borderRadius: '8px',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.86rem',
+                        padding: '10px 14px',
+                        outline: 'none',
+                        transition: 'border-color 0.2s'
+                      }}
+                      onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(245,158,11,0.5)'}
+                      onBlur={(e) => e.currentTarget.style.borderColor = 'var(--glass-border)'}
+                    />
+                    {adminOverrideError && (
+                      <div style={{ fontSize: '0.8rem', color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <AlertCircle size={13} />
+                        {adminOverrideError}
+                      </div>
+                    )}
+                    <button
+                      onClick={handleAdminOverride}
+                      disabled={adminOverrideLoading}
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(245,158,11,0.1))',
+                        border: '1px solid rgba(245,158,11,0.4)',
+                        color: '#f59e0b',
+                        borderRadius: '8px',
+                        padding: '10px 16px',
+                        fontSize: '0.86rem',
+                        fontWeight: 600,
+                        cursor: adminOverrideLoading ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {adminOverrideLoading ? (
+                        <><RefreshCw size={14} className="spin-anim" /> Authenticating...</>
+                      ) : (
+                        <><ShieldCheck size={14} /> Authenticate as Admin</>
+                      )}
+                    </button>
+                  </div>
+                )}
+
               </div>
             </div>
           </div>
