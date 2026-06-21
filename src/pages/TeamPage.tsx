@@ -124,22 +124,37 @@ export const TeamPage: React.FC<TeamPageProps> = ({
     };
   };
 
-  const matrixRows = [
-    { cap: 'View dashboard, logs, costing & bill metrics', owner: true, admin: true, contributor: true, viewer: true },
-    { cap: 'Scan active cloud resources', owner: true, admin: true, contributor: true, viewer: true },
-    { cap: 'Live tail Container App logs & sparkline metrics', owner: true, admin: true, contributor: true, viewer: true },
-    { cap: 'Provision apps & microservice resources', owner: true, admin: true, contributor: true, viewer: false },
-    { cap: 'Execute raw SQL & manage DB schemas', owner: true, admin: true, contributor: true, viewer: false },
-    { cap: 'Link custom domain DNS mappings', owner: true, admin: true, contributor: true, viewer: false },
-    { cap: 'Register CI/CD build pipelines', owner: true, admin: true, contributor: true, viewer: false },
-    { cap: 'Run database compare & schema migrations wizard', owner: true, admin: true, contributor: true, viewer: false },
-    { cap: 'Sync directory users from Azure AD', owner: true, admin: true, contributor: false, viewer: false },
-    { cap: 'Change user roles in EvaOps (CloudOps Management & Governance) platform', owner: true, admin: true, contributor: false, viewer: false },
-    { cap: 'Save/Update integration credentials', owner: true, admin: true, contributor: false, viewer: false },
-    { cap: 'Manage Cost Sleep Scheduler rules', owner: true, admin: true, contributor: false, viewer: false },
-    { cap: 'Map Key Vault secrets to Variable Groups', owner: true, admin: true, contributor: false, viewer: false },
-    { cap: 'View enterprise security audit trails', owner: true, admin: true, contributor: false, viewer: false },
-    { cap: 'View decrypted secrets & configure org settings', owner: true, admin: false, contributor: false, viewer: false }
+  const groupedMatrix = [
+    {
+      category: 'Monitoring & Analytics',
+      rows: [
+        { cap: 'View dashboard, logs, costing & bill metrics', owner: true, admin: true, contributor: true, viewer: true },
+        { cap: 'Scan active cloud resources', owner: true, admin: true, contributor: true, viewer: true },
+        { cap: 'Live tail Container App logs & sparkline metrics', owner: true, admin: true, contributor: true, viewer: true }
+      ]
+    },
+    {
+      category: 'Resource Management & Provisioning',
+      rows: [
+        { cap: 'Provision apps & microservice resources', owner: true, admin: true, contributor: true, viewer: false },
+        { cap: 'Link custom domain DNS mappings', owner: true, admin: true, contributor: true, viewer: false },
+        { cap: 'Register CI/CD build pipelines', owner: true, admin: true, contributor: true, viewer: false },
+        { cap: 'Execute raw SQL & manage DB schemas', owner: true, admin: true, contributor: true, viewer: false },
+        { cap: 'Run database compare & schema migrations wizard', owner: true, admin: true, contributor: true, viewer: false }
+      ]
+    },
+    {
+      category: 'Governance & Security Administration',
+      rows: [
+        { cap: 'Sync directory users from Azure AD', owner: true, admin: true, contributor: false, viewer: false },
+        { cap: 'Change user roles in EvaOps (CloudOps Management & Governance) platform', owner: true, admin: true, contributor: false, viewer: false },
+        { cap: 'Save/Update integration credentials', owner: true, admin: true, contributor: false, viewer: false },
+        { cap: 'Manage Cost Sleep Scheduler rules', owner: true, admin: true, contributor: false, viewer: false },
+        { cap: 'Map Key Vault secrets to Variable Groups', owner: true, admin: true, contributor: false, viewer: false },
+        { cap: 'View enterprise security audit trails', owner: true, admin: true, contributor: false, viewer: false },
+        { cap: 'View decrypted secrets & configure org settings', owner: true, admin: false, contributor: false, viewer: false }
+      ]
+    }
   ];
 
   const renderCheckCell = (allowed: boolean) => {
@@ -392,14 +407,23 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {matrixRows.map((row, idx) => (
-                      <tr key={idx} style={{ borderBottom: idx === matrixRows.length - 1 ? 'none' : '1px solid var(--divider)' }}>
-                        <td style={{ padding: '10px 12px', color: 'var(--text-primary)', fontWeight: 500 }}>{row.cap}</td>
-                        <td style={{ padding: '10px 12px' }}>{renderCheckCell(row.owner)}</td>
-                        <td style={{ padding: '10px 12px' }}>{renderCheckCell(row.admin)}</td>
-                        <td style={{ padding: '10px 12px' }}>{renderCheckCell(row.contributor)}</td>
-                        <td style={{ padding: '10px 12px' }}>{renderCheckCell(row.viewer)}</td>
-                      </tr>
+                    {groupedMatrix.map((group, gIdx) => (
+                      <React.Fragment key={gIdx}>
+                        <tr style={{ background: isLight ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)', borderBottom: '1px solid var(--divider)' }}>
+                          <td colSpan={5} style={{ padding: '8px 12px', color: 'var(--accent-purple)', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>
+                            {group.category}
+                          </td>
+                        </tr>
+                        {group.rows.map((row, rIdx) => (
+                          <tr key={rIdx} style={{ borderBottom: '1px solid var(--divider)' }}>
+                            <td style={{ padding: '10px 12px', color: 'var(--text-primary)', fontWeight: 500, paddingLeft: '20px' }}>{row.cap}</td>
+                            <td style={{ padding: '10px 12px' }}>{renderCheckCell(row.owner)}</td>
+                            <td style={{ padding: '10px 12px' }}>{renderCheckCell(row.admin)}</td>
+                            <td style={{ padding: '10px 12px' }}>{renderCheckCell(row.contributor)}</td>
+                            <td style={{ padding: '10px 12px' }}>{renderCheckCell(row.viewer)}</td>
+                          </tr>
+                        ))}
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>

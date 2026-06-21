@@ -52,6 +52,7 @@ interface ProvisionWizardProps {
   branches: any[];
   setBranches: (val: any[]) => void;
   loadingBranches: boolean;
+  fetchBranches?: (repoFullName: string, targetBranch?: string) => Promise<void>;
   apps: AppResource[];
   ymlLoading: boolean;
   ymlError: string | null;
@@ -333,6 +334,7 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
   branches,
   setBranches,
   loadingBranches,
+  fetchBranches,
   apps,
   ymlLoading,
   ymlError,
@@ -682,7 +684,27 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
 
             {selectedRepo && (
               <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Select Target Branches (triggers in YML)</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>Select Target Branches (triggers in YML)</label>
+                  <button
+                    type="button"
+                    onClick={() => fetchBranches && fetchBranches(selectedRepo)}
+                    disabled={loadingBranches}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      fontSize: '0.74rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <RefreshCw size={12} className={loadingBranches ? 'spin-anim' : ''} />
+                    Refresh Branches
+                  </button>
+                </div>
                 {loadingBranches ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', background: 'rgba(15,23,42,0.4)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                     <RefreshCw size={14} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />

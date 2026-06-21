@@ -4960,6 +4960,7 @@ function App() {
         {/* TAB 2: PROVISION WEB APP WIZARD */}
         {activeTab === 'provision' && (
           <ProvisionWizard
+            fetchBranches={fetchBranches}
             provisionStep={provisionStep}
             setProvisionStep={setProvisionStep}
             appType={appType}
