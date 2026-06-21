@@ -32,11 +32,12 @@ The user's role is determined by their DB record and is **never overwritten** by
 
 ### 2. Developer Override *(Viewer only)*
 A quick-access login for local development and testing.
-- **No password required** — one click
+- **No password required** — requires entering the target **Organisation ID** (e.g. `estevia`)
 - **Always logs in as `viewer` role** — read-only access, no mutations
+- **Role preservation** — is reset to `viewer` on every login and during directory sync bypass.
 - Session expires in 30 days
 
-Use this to browse the dashboard and UI without needing Azure AD credentials.
+Use this to browse the dashboard and UI for any registered organisation without needing Azure AD credentials.
 
 ### 3. Admin Override *(Password protected)*
 A password-protected backdoor that grants `admin`-level access to any registered organisation.

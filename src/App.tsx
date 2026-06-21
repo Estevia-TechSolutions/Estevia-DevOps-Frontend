@@ -43,6 +43,7 @@ import './App.css';
 // Import modular frontend components and pages
 import { ConfirmationModal } from './components/ConfirmationModal';
 import { SiteHeader, ControlBanner } from './components/DevOpsHeader';
+import { BuildHistoryDrawer } from './components/BuildHistoryDrawer';
 import { NotificationDrawer } from './components/NotificationDrawer';
 import type { AppNotification } from './components/NotificationDrawer';
 import { NotificationDetailModal } from './components/NotificationDetailModal';
@@ -131,6 +132,7 @@ interface AppResource {
   resourceId: string;
   status: string;
   repositoryUrl: string;
+  branch?: string;
   dnsDetails?: {
     subdomain?: string;
     domain?: string;
@@ -1181,6 +1183,14 @@ function App() {
   const [adminOverrideError, setAdminOverrideError] = useState<string | null>(null);
   const [adminOverrideLoading, setAdminOverrideLoading] = useState(false);
 
+  // Developer Override login state
+  const [showDevOverrideForm, setShowDevOverrideForm] = useState(false);
+  const [devOverrideOrgId, setDevOverrideOrgId] = useState('estevia');
+  const [devOverrideError, setDevOverrideError] = useState<string | null>(null);
+
+  // Build History Drawer state
+  const [buildHistoryDrawerApp, setBuildHistoryDrawerApp] = useState<AppResource | null>(null);
+
   const [requiresOnboarding, setRequiresOnboarding] = useState<boolean>(() => {
     return localStorage.getItem('devops_requires_onboarding') === 'true';
   });
@@ -1506,12 +1516,17 @@ function App() {
   };
 
   const handleBypassLogin = async () => {
+    if (!devOverrideOrgId.trim()) {
+      setDevOverrideError('Please enter an Organisation ID.');
+      return;
+    }
     setAuthLoading(true);
-    setAuthError(null);
+    setDevOverrideError(null);
     try {
       const res = await window.fetch(`${API_BASE}/auth/bypass`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organizationId: devOverrideOrgId.trim().toLowerCase() })
       });
       const data = await res.json();
       if (res.ok && data.token) {
@@ -1525,12 +1540,13 @@ function App() {
         setToken(data.token);
         setUser(data.user);
         setRequiresOnboarding(data.requiresOnboarding);
+        setShowDevOverrideForm(false);
       } else {
         throw new Error(data.error || 'Developer Override login failed.');
       }
     } catch (err: any) {
       console.error('[auth] Developer Override failed:', err);
-      setAuthError(err.message || 'Developer Override failed.');
+      setDevOverrideError(err.message || 'Developer Override failed.');
     } finally {
       setAuthLoading(false);
     }
@@ -3684,13 +3700,15 @@ function App() {
     setDevopsOrgUrl(azureDevopsOrgUrl || 'https://dev.azure.com/esteviatech');
     setDevopsProject(azureDevopsProject || 'Estevia-Platform');
 
-    // Resolve target branch based on app name suffix
-    const nameSegments = app.name.split('-');
-    let defaultBranch = 'main';
-    if (nameSegments.length > 1) {
-      const last = nameSegments[nameSegments.length - 1];
-      if (['dev', 'qa', 'prod', 'main', 'master'].includes(last.toLowerCase())) {
-        defaultBranch = last;
+    // Resolve target branch based on app's actual branch, or fallback to app name suffix
+    let defaultBranch = app.branch || 'main';
+    if (!app.branch) {
+      const nameSegments = app.name.split('-');
+      if (nameSegments.length > 1) {
+        const last = nameSegments[nameSegments.length - 1];
+        if (['dev', 'qa', 'prod', 'main', 'master'].includes(last.toLowerCase())) {
+          defaultBranch = last;
+        }
       }
     }
     setPipelineBranch(defaultBranch);
@@ -3920,12 +3938,12 @@ function App() {
 
                 {/* Developer Override — viewer only */}
                 <button 
-                  onClick={handleBypassLogin}
+                  onClick={() => { setShowDevOverrideForm(v => !v); setDevOverrideError(null); }}
                   disabled={authLoading}
                   style={{
-                    background: 'transparent',
-                    border: '1px dashed var(--glass-border)',
-                    color: 'var(--text-secondary)',
+                    background: showDevOverrideForm ? 'rgba(100,116,139,0.08)' : 'transparent',
+                    border: `1px dashed ${showDevOverrideForm ? 'rgba(100,116,139,0.4)' : 'var(--glass-border)'}`,
+                    color: showDevOverrideForm ? 'var(--text-primary)' : 'var(--text-secondary)',
                     padding: '10px 20px',
                     borderRadius: '8px',
                     fontSize: '0.82rem',
@@ -3938,17 +3956,91 @@ function App() {
                     gap: '8px'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(100,116,139,0.5)';
-                    e.currentTarget.style.color = 'var(--text-primary)';
+                    if (!showDevOverrideForm) {
+                      e.currentTarget.style.borderColor = 'rgba(100,116,139,0.5)';
+                      e.currentTarget.style.color = 'var(--text-primary)';
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--glass-border)';
-                    e.currentTarget.style.color = 'var(--text-secondary)';
+                    if (!showDevOverrideForm) {
+                      e.currentTarget.style.borderColor = 'var(--glass-border)';
+                      e.currentTarget.style.color = 'var(--text-secondary)';
+                    }
                   }}
                 >
                   <Eye size={14} />
                   Developer Override <span style={{ fontSize: '0.72rem', opacity: 0.6 }}>(Viewer only)</span>
                 </button>
+
+                {/* Developer Override inline form */}
+                {showDevOverrideForm && (
+                  <div style={{
+                    background: 'rgba(100,116,139,0.04)',
+                    border: '1px solid rgba(100,116,139,0.25)',
+                    borderRadius: '10px',
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    animation: 'fade-in-anim 0.2s ease-out'
+                  }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Building2 size={12} style={{ color: 'var(--text-secondary)' }} />
+                      Enter your Organisation ID for Developer Override
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Organisation ID (e.g. estevia)"
+                      value={devOverrideOrgId}
+                      onChange={(e) => setDevOverrideOrgId(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleBypassLogin(); }}
+                      autoComplete="off"
+                      style={{
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--glass-border)',
+                        borderRadius: '8px',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.86rem',
+                        padding: '10px 14px',
+                        outline: 'none',
+                        transition: 'border-color 0.2s'
+                      }}
+                      onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(100,116,139,0.5)'}
+                      onBlur={(e) => e.currentTarget.style.borderColor = 'var(--glass-border)'}
+                    />
+                    {devOverrideError && (
+                      <div style={{ fontSize: '0.8rem', color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <AlertCircle size={13} />
+                        {devOverrideError}
+                      </div>
+                    )}
+                    <button
+                      onClick={handleBypassLogin}
+                      disabled={authLoading}
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(100,116,139,0.2), rgba(100,116,139,0.1))',
+                        border: '1px solid rgba(100,116,139,0.4)',
+                        color: 'var(--text-primary)',
+                        borderRadius: '8px',
+                        padding: '10px 16px',
+                        fontSize: '0.86rem',
+                        fontWeight: 600,
+                        cursor: authLoading ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {authLoading ? (
+                        <><RefreshCw size={14} className="spin-anim" /> Authenticating...</>
+                      ) : (
+                        <><Eye size={14} /> Authenticate as Viewer</>
+                      )}
+                    </button>
+                  </div>
+                )}
 
                 {/* Admin Override — password protected */}
                 <button 
@@ -4853,6 +4945,7 @@ function App() {
             onDeployBranch={handleDeployBranchFromDashboard}
             currentUser={user}
             onShowLogs={setActiveLogsAppName}
+            onShowBuildHistory={(app) => setBuildHistoryDrawerApp(app)}
             onCloneApp={setCloningApp}
             onResourceControl={handleResourceControl}
             controllingResource={controllingResource}
@@ -6308,6 +6401,24 @@ function App() {
           onClose={() => setActiveLogsAppName(null)}
           API_BASE={API_BASE}
           theme={theme}
+        />
+      )}
+
+      {buildHistoryDrawerApp && (
+        <BuildHistoryDrawer
+          isOpen={!!buildHistoryDrawerApp}
+          appName={buildHistoryDrawerApp.name}
+          pipelineId={buildHistoryDrawerApp.pipelineId || null}
+          appType={buildHistoryDrawerApp.type}
+          organizationId={organizationId}
+          currentUser={user}
+          theme={theme}
+          API_BASE={API_BASE}
+          onClose={() => setBuildHistoryDrawerApp(null)}
+          onReDeployQueued={(newBuildId) => {
+            showToast('Deployment Queued', `Successfully queued new build run #${newBuildId}`, 'success');
+            handleScan();
+          }}
         />
       )}
     </>

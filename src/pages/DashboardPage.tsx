@@ -26,7 +26,8 @@ import {
   Lock,
   Copy,
   Check,
-  Download
+  Download,
+  Clock
 } from 'lucide-react';
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE || `http://${window.location.hostname}:5005/api`;
@@ -143,6 +144,7 @@ interface DashboardPageProps {
   onResourceControl?: (name: string, action: 'start' | 'stop' | 'restart') => void;
   controllingResource?: string | null;
   onBuildTransition?: (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
+  onShowBuildHistory?: (app: AppResource) => void;
 }
 
 const isBuildActive = (run: any) => {
@@ -175,7 +177,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   onCloneApp,
   onResourceControl,
   controllingResource,
-  onBuildTransition
+  onBuildTransition,
+  onShowBuildHistory
 }) => {
   const isViewer = currentUser?.role === 'viewer';
 
@@ -1761,6 +1764,32 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
                                 <Server size={12} style={{ opacity: 0.7, color: 'var(--accent-teal)', flexShrink: 0 }} />
                                 <span>Pipeline: <strong style={{ color: item.pipelineName ? 'var(--success)' : '#ef4444' }}>{item.pipelineName || 'Not Set'}</strong></span>
+                                {item.pipelineId && onShowBuildHistory && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); onShowBuildHistory(item); }}
+                                    style={{
+                                      background: 'none',
+                                      color: 'var(--text-secondary)',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      padding: '2px 6px',
+                                      borderRadius: '4px',
+                                      fontSize: '0.66rem',
+                                      border: '1px solid var(--glass-border)',
+                                      marginLeft: '8px',
+                                      transition: 'all 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'none'; }}
+                                    title="View build history & revisions"
+                                  >
+                                    <Clock size={10} />
+                                    <span>History</span>
+                                  </button>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -2356,6 +2385,43 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                     <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
                                       BUILD RUN: #{item.pipelineRun.name || item.pipelineRun.id}
                                     </span>
+                                    {onShowBuildHistory && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onShowBuildHistory(item);
+                                        }}
+                                        style={{
+                                          background: 'rgba(255,255,255,0.03)',
+                                          border: '1px solid var(--glass-border)',
+                                          borderRadius: '4px',
+                                          color: 'var(--text-secondary)',
+                                          fontSize: '0.64rem',
+                                          padding: '2px 6px',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '4px',
+                                          cursor: 'pointer',
+                                          transition: 'all 0.2s',
+                                          marginLeft: '6px'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          e.currentTarget.style.color = 'var(--text-primary)';
+                                          e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)';
+                                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.currentTarget.style.color = 'var(--text-secondary)';
+                                          e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
+                                          e.currentTarget.style.borderColor = 'var(--glass-border)';
+                                        }}
+                                        title="View build history & revisions"
+                                      >
+                                        <Clock size={11} />
+                                        <span>History</span>
+                                      </button>
+                                    )}
                                     <span style={{
                                       fontSize: '0.64rem',
                                       fontWeight: 800,
