@@ -161,7 +161,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
     return allowed ? (
       <span style={{ color: 'var(--success)', fontWeight: 'bold', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Check size={16} /></span>
     ) : (
-      <span style={{ color: 'var(--text-muted)', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>—</span>
+      <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={16} style={{ opacity: 0.7 }} /></span>
     );
   };
 
