@@ -103,6 +103,7 @@ interface AppResource {
       }[];
     }[];
   } | null;
+  branch?: string;
   branches?: { name: string; protected: boolean }[];
   isTestResource?: boolean;
 }
@@ -743,7 +744,35 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const hasEnvSegment = (n: string, seg: string) =>
     new RegExp(`-${seg}(-|$)`).test(n);
 
+  // Branch name → env key. Branch always takes priority over ACA resource name.
+  const branchToEnv = (branch: string): 'dev' | 'qa' | 'prod' | null => {
+    const b = branch.toLowerCase().trim();
+    if (b === 'main' || b === 'master' || b === 'prod' || b === 'production' || b === 'release') return 'prod';
+    if (b === 'dev' || b === 'develop' || b === 'development') return 'dev';
+    if (b === 'qa' || b === 'staging' || b === 'test' || b === 'testing') return 'qa';
+    // Branch names like "feature/dev-something" still get ignored — only exact/known names win
+    return null;
+  };
+
   const resolveBranchName = (app: AppResource) => {
+    // If the app already has an explicit branch, use it to determine env
+    if (app.branch) {
+      const fromBranch = branchToEnv(app.branch);
+      if (fromBranch) {
+        const n = app.name.toLowerCase();
+        let envType: 'dev' | 'qa' | 'prod' = fromBranch;
+        const candidates = {
+          dev: ['dev', 'development', 'dev-main', 'dev-master'],
+          qa: ['qa', 'test', 'testing', 'staging'],
+          prod: ['main', 'master', 'prod', 'production', 'release']
+        };
+        const candidateList = candidates[envType];
+        const availableBranches = app.branches || [];
+        const matched = availableBranches.find(b => candidateList.includes(b.name.toLowerCase()));
+        return matched?.name || app.branch;
+      }
+    }
+
     const n = app.name.toLowerCase();
     
     let envType: 'dev' | 'qa' | 'prod' = 'prod';
@@ -912,8 +941,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     prod: { color: '#34d399', bg: 'rgba(52,211,153,0.08)',  border: 'rgba(52,211,153,0.3)',  label: 'PROD' },
   };
 
-  const getEnvTag = (name: string): { color: string; bg: string; border: string; label: string } => {
-    const n = name.toLowerCase();
+  const getEnvTag = (app: AppResource): { color: string; bg: string; border: string; label: string } => {
+    // Branch takes priority — if an app has a known branch, use it instead of the ACA name
+    if (app.branch) {
+      const fromBranch = branchToEnv(app.branch);
+      if (fromBranch) return ENV_COLORS[fromBranch];
+    }
+    // Fallback: derive env from ACA resource name suffix
+    const n = app.name.toLowerCase();
     if (hasEnvSegment(n, 'dev'))  return ENV_COLORS.dev;
     if (hasEnvSegment(n, 'qa'))   return ENV_COLORS.qa;
     if (hasEnvSegment(n, 'prod')) return ENV_COLORS.prod;
@@ -933,7 +968,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           (app.repositoryUrl && app.repositoryUrl.toLowerCase().includes(searchQuery.toLowerCase()));
 
         // Environment filter: DEV, QA, PROD
-        const envTag = getEnvTag(app.name).label.toLowerCase();
+        const envTag = getEnvTag(app).label.toLowerCase();
         const matchesEnv = selectedEnvFilter === 'all' || envTag === selectedEnvFilter;
 
         return matchesSearch && matchesEnv;
@@ -946,11 +981,21 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     }).filter(group => group.envs.length > 0);
   }, [localAppGroups, searchQuery, selectedEnvFilter]);
 
-  const getCardStyles = (name: string, theme: 'dark' | 'light') => {
-    const n = name.toLowerCase();
+  const getCardStyles = (app: AppResource, theme: 'dark' | 'light') => {
     const isLight = theme === 'light';
-    
-    if (hasEnvSegment(n, 'dev')) {
+
+    // Resolve effective env — branch wins over ACA name
+    let effectiveEnv: 'dev' | 'qa' | 'prod' | null = null;
+    if (app.branch) effectiveEnv = branchToEnv(app.branch);
+    if (!effectiveEnv) {
+      const n = app.name.toLowerCase();
+      if (hasEnvSegment(n, 'dev')) effectiveEnv = 'dev';
+      else if (hasEnvSegment(n, 'qa')) effectiveEnv = 'qa';
+      else if (hasEnvSegment(n, 'prod')) effectiveEnv = 'prod';
+      else effectiveEnv = 'prod'; // bare name → treat as prod
+    }
+
+    if (effectiveEnv === 'dev') {
       return {
         background: isLight 
           ? 'linear-gradient(135deg, rgba(219, 234, 254, 0.95) 0%, rgba(239, 246, 255, 0.99) 100%)' 
@@ -959,7 +1004,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         color: '#60a5fa'
       };
     }
-    if (hasEnvSegment(n, 'qa')) {
+    if (effectiveEnv === 'qa') {
       return {
         background: isLight 
           ? 'linear-gradient(135deg, rgba(254, 243, 199, 0.95) 0%, rgba(255, 251, 235, 0.99) 100%)' 
@@ -968,35 +1013,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         color: '#f59e0b'
       };
     }
-    if (hasEnvSegment(n, 'prod')) {
-      return {
-        background: isLight 
-          ? 'linear-gradient(135deg, rgba(209, 250, 229, 0.95) 0%, rgba(240, 253, 250, 0.99) 100%)' 
-          : 'linear-gradient(135deg, rgba(52, 211, 153, 0.2) 0%, rgba(16, 185, 129, 0.05) 100%)',
-        border: isLight ? 'rgba(52, 211, 153, 0.45)' : 'rgba(52, 211, 153, 0.35)',
-        color: '#34d399'
-      };
-    }
-    const noSuffix = !n.endsWith('-dev') && !n.includes('-dev-') &&
-                     !n.endsWith('-qa')  && !n.includes('-qa-')  &&
-                     !n.endsWith('-prod') && !n.includes('-prod-') &&
-                     !n.endsWith('-staging') && !n.endsWith('-test');
-    if (noSuffix) {
-      return {
-        background: isLight 
-          ? 'linear-gradient(135deg, rgba(209, 250, 229, 0.95) 0%, rgba(240, 253, 250, 0.99) 100%)' 
-          : 'linear-gradient(135deg, rgba(52, 211, 153, 0.2) 0%, rgba(16, 185, 129, 0.05) 100%)',
-        border: isLight ? 'rgba(52, 211, 153, 0.45)' : 'rgba(52, 211, 153, 0.35)',
-        color: '#34d399'
-      };
-    }
-    
+    // prod (default)
     return {
       background: isLight 
-        ? 'linear-gradient(135deg, rgba(248, 250, 252, 0.95) 0%, rgba(255, 255, 255, 0.99) 100%)' 
-        : 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%)',
-      border: isLight ? '#e2e8f0' : 'var(--glass-border)',
-      color: 'var(--text-secondary)'
+        ? 'linear-gradient(135deg, rgba(209, 250, 229, 0.95) 0%, rgba(240, 253, 250, 0.99) 100%)' 
+        : 'linear-gradient(135deg, rgba(52, 211, 153, 0.2) 0%, rgba(16, 185, 129, 0.05) 100%)',
+      border: isLight ? 'rgba(52, 211, 153, 0.45)' : 'rgba(52, 211, 153, 0.35)',
+      color: '#34d399'
     };
   };
 
@@ -1579,8 +1602,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               {!isCollapsed && (
                 <div style={{ padding: '8px 16px 20px 28px', display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(0,0,0,0.03)' }}>
                     {group.envs.map((item) => {
-                      const tag = getEnvTag(item.name);
-                      const cardStyle = getCardStyles(item.name, theme);
+                      const tag = getEnvTag(item);
+                      const cardStyle = getCardStyles(item, theme);
                       const isOrphaned = item.status?.toLowerCase() === 'stale' || item.status?.toLowerCase() === 'orphaned';
                       
                       return (
@@ -2915,7 +2938,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 }
               }
 
-              const envTag = getEnvTag(env.name);
+              const envTag = getEnvTag(env);
               return (
                 <div key={env.name} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
