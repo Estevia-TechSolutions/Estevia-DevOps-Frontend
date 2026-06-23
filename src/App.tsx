@@ -126,7 +126,7 @@ const PREDEFINED_REPOS = [
 
 interface AppResource {
   name: string;
-  type: 'frontend' | 'backend' | 'vm';
+  type: 'frontend' | 'backend' | 'vm' | 'cluster';
   location: string;
   hostname: string;
   resourceId: string;
@@ -179,6 +179,7 @@ interface AppResource {
   } | null;
   branches?: { name: string; protected: boolean }[];
   isTestResource?: boolean;
+  azureResourceDetails?: any;
 }
 
 interface AppGroup {
@@ -186,7 +187,7 @@ interface AppGroup {
   label: string;          // prettified display name (e.g. "ProTrack Frontend")
   repoPath: string;       // e.g. "Estevia-TechSolutions/protrack-frontend"
   repoUrl: string;        // full github url
-  type: 'frontend' | 'backend' | 'vm';
+  type: 'frontend' | 'backend' | 'vm' | 'cluster';
   envs: AppResource[];    // sorted dev → qa → prod
   pipelineId?: string;    // from any member that has one
   pipelineName?: string;

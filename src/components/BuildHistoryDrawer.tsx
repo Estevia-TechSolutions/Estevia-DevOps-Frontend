@@ -26,7 +26,7 @@ interface BuildHistoryDrawerProps {
   isOpen: boolean;
   appName: string;
   pipelineId: string | number | null;
-  appType: 'frontend' | 'backend' | 'vm';
+  appType: 'frontend' | 'backend' | 'vm' | 'cluster';
   organizationId: string;
   currentUser: { role: string } | null;
   theme: 'dark' | 'light';

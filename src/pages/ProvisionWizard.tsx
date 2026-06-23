@@ -23,7 +23,7 @@ import {
 
 interface AppResource {
   name: string;
-  type: 'frontend' | 'backend' | 'vm';
+  type: 'frontend' | 'backend' | 'vm' | 'cluster';
   location: string;
   hostname: string;
   resourceId: string;

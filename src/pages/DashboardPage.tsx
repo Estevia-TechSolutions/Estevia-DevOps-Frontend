@@ -53,7 +53,7 @@ const Github = ({ size = 12, ...props }: { size?: number; [key: string]: any }) 
 
 interface AppResource {
   name: string;
-  type: 'frontend' | 'backend' | 'vm';
+  type: 'frontend' | 'backend' | 'vm' | 'cluster';
   location: string;
   hostname: string;
   resourceId: string;
@@ -106,6 +106,7 @@ interface AppResource {
   branch?: string;
   branches?: { name: string; protected: boolean }[];
   isTestResource?: boolean;
+  azureResourceDetails?: any;
 }
 
 interface AppGroup {
@@ -113,7 +114,7 @@ interface AppGroup {
   label: string;
   repoPath: string;
   repoUrl: string;
-  type: 'frontend' | 'backend' | 'vm';
+  type: 'frontend' | 'backend' | 'vm' | 'cluster';
   envs: AppResource[];
   pipelineId?: string;
   pipelineName?: string;
@@ -182,6 +183,77 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   onShowBuildHistory
 }) => {
   const isViewer = currentUser?.role === 'viewer';
+  const organizationId = currentUser?.organization_id || 'estevia';
+
+  // Compliance state
+  const [activeSubTab, setActiveSubTab] = React.useState<'resources' | 'compliance'>('resources');
+  const [complianceData, setComplianceData] = React.useState<any | null>(null);
+  const [loadingCompliance, setLoadingCompliance] = React.useState<boolean>(false);
+  const [remediatingId, setRemediatingId] = React.useState<string | null>(null);
+
+  const fetchCompliance = async () => {
+    setLoadingCompliance(true);
+    try {
+      const token = localStorage.getItem('devops_token');
+      const res = await fetch(`${API_BASE}/apps/compliance?organizationId=${organizationId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setComplianceData(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch compliance status:', err);
+    } finally {
+      setLoadingCompliance(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (activeSubTab === 'compliance') {
+      fetchCompliance();
+    }
+  }, [activeSubTab]);
+
+  const handleRemediate = async (violation: any) => {
+    setRemediatingId(violation.suggestionId);
+    try {
+      const token = localStorage.getItem('devops_token');
+      const res = await fetch(`${API_BASE}/apps/compliance/remediate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          organizationId,
+          resourceName: violation.resourceName,
+          ruleId: violation.ruleId,
+          remediationType: violation.remediationType,
+          suggestionId: violation.suggestionId
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (onBuildTransition) {
+          onBuildTransition(
+            'Remediation Applied',
+            `Successfully remediated ${violation.ruleName} for resource ${violation.resourceName}.`,
+            'success'
+          );
+        }
+        fetchCompliance();
+        handleScan();
+      } else {
+        alert(data.message || 'Remediation failed.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error applying compliance remediation.');
+    } finally {
+      setRemediatingId(null);
+    }
+  };
 
   const [activeStageInfo, setActiveStageInfo] = React.useState<{appName: string, stageId: string} | null>(null);
   const [selectedJobForModal, setSelectedJobForModal] = React.useState<any | null>(null);
@@ -208,8 +280,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   // Local BG mode cache to avoid blank toggle state
   const [bgModeState, setBgModeState] = React.useState<Record<string, 'Single' | 'Multiple'>>({});
-
-  const organizationId = currentUser?.organization_id || 'estevia';
 
   // Power control confirmation state
   const [pendingPowerAction, setPendingPowerAction] = React.useState<{ name: string; action: 'start' | 'stop' | 'restart' } | null>(null);
@@ -257,9 +327,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     };
   }, []);
 
-  // Active dashboard tab state ('swa' | 'aca' | 'vm')
-  const [activeDashboardTab, setActiveDashboardTab] = React.useState<'swa' | 'aca' | 'vm'>('swa');
-  const [hoveredTab, setHoveredTab] = React.useState<'swa' | 'aca' | 'vm' | null>(null);
+  // Active dashboard tab state ('swa' | 'aca' | 'vm' | 'cluster')
+  const [activeDashboardTab, setActiveDashboardTab] = React.useState<'swa' | 'aca' | 'vm' | 'cluster'>('swa');
+  const [hoveredTab, setHoveredTab] = React.useState<'swa' | 'aca' | 'vm' | 'cluster' | null>(null);
   const [hoveredEnv, setHoveredEnv] = React.useState<string | null>(null);
   // Fixed-position tooltip data for the group header "X Environments" hover
   const [groupTooltipData, setGroupTooltipData] = React.useState<{
@@ -831,10 +901,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       const firstGroupKey = newlyStartedGroups[0];
       const firstGroup = localAppGroups.find(g => g.key === firstGroupKey);
       if (firstGroup) {
-        let matchedTab: 'swa' | 'aca' | 'vm' | null = null;
+        let matchedTab: 'swa' | 'aca' | 'vm' | 'cluster' | null = null;
         if (firstGroup.type === 'frontend') matchedTab = 'swa';
         else if (firstGroup.type === 'backend') matchedTab = 'aca';
         else if (firstGroup.type === 'vm') matchedTab = 'vm';
+        else if (firstGroup.type === 'cluster') matchedTab = 'cluster';
         
         if (matchedTab) {
           setActiveDashboardTab(matchedTab);
@@ -893,6 +964,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         return isLight ? 'rgba(13, 148, 136, 0.1)' : 'rgba(16, 185, 129, 0.15)';
       case 'vm':
         return isLight ? 'rgba(217, 119, 6, 0.1)' : 'rgba(245, 158, 11, 0.15)';
+      case 'cluster':
+        return isLight ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.15)';
       default:
         return isLight ? 'rgba(75, 85, 99, 0.08)' : 'rgba(156, 163, 175, 0.1)';
     }
@@ -907,6 +980,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         return isLight ? '#0d9488' : '#a7f3d0';
       case 'vm':
         return isLight ? '#d97706' : '#fde047';
+      case 'cluster':
+        return isLight ? '#2563eb' : '#93c5fd';
       default:
         return isLight ? '#475569' : '#94a3b8';
     }
@@ -1079,7 +1154,63 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-          {/* Glassmorphic Search & Filter Bar */}
+          {/* Cloud Scanning Sub-Tabs */}
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            marginBottom: '20px',
+            borderBottom: '1px solid var(--glass-border)',
+            paddingBottom: '10px'
+          }}>
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('resources')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: activeSubTab === 'resources' ? 'var(--accent-purple)' : 'var(--text-secondary)',
+                borderBottom: activeSubTab === 'resources' ? '2px solid var(--accent-purple)' : '2px solid transparent',
+                padding: '8px 16px 12px 16px',
+                fontSize: '0.92rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease',
+                marginBottom: '-11px'
+              }}
+            >
+              <Server size={16} />
+              <span>Resource Discovery</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('compliance')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: activeSubTab === 'compliance' ? 'var(--accent-purple)' : 'var(--text-secondary)',
+                borderBottom: activeSubTab === 'compliance' ? '2px solid var(--accent-purple)' : '2px solid transparent',
+                padding: '8px 16px 12px 16px',
+                fontSize: '0.92rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease',
+                marginBottom: '-11px'
+              }}
+            >
+              <Shield size={16} />
+              <span>Governance & Compliance</span>
+            </button>
+          </div>
+
+          {activeSubTab === 'resources' ? (
+            <>
+              {/* Glassmorphic Search & Filter Bar */}
           <div className="glass-panel" style={{
             padding: '16px 20px',
             marginBottom: '20px',
@@ -2833,6 +2964,215 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             </>
             );
           })()}
+          </>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {loadingCompliance && !complianceData ? (
+                <div className="glass-panel" style={{ padding: '60px', textAlign: 'center' }}>
+                  <RefreshCw size={36} className="spin-anim" style={{ color: 'var(--accent-purple)', marginBottom: '12px' }} />
+                  <h3>Evaluating compliance rules...</h3>
+                  <p style={{ color: 'var(--text-secondary)' }}>Scanning resource tags, region residency, and secure transport layers.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Compliance Overview Dashboard */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+                    
+                    {/* Score Widget */}
+                    <div className="glass-panel" style={{
+                      padding: '24px',
+                      background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(99, 102, 241, 0.08) 100%)',
+                      borderColor: 'rgba(139, 92, 246, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '24px'
+                    }}>
+                      <div style={{
+                        width: '100px',
+                        height: '100px',
+                        borderRadius: '50%',
+                        background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, rgba(139,92,246,0.03) 70%)',
+                        border: '4px solid var(--glass-border)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        position: 'relative',
+                        boxShadow: '0 0 20px rgba(139,92,246,0.1)'
+                      }}>
+                        <div style={{
+                          position: 'absolute',
+                          inset: '-4px',
+                          borderRadius: '50%',
+                          border: '4px solid transparent',
+                          borderTopColor: 'var(--accent-purple)',
+                          borderRightColor: complianceData && complianceData.complianceScore >= 50 ? 'var(--accent-purple)' : 'transparent',
+                          borderBottomColor: complianceData && complianceData.complianceScore >= 75 ? 'var(--accent-purple)' : 'transparent',
+                          transform: 'rotate(-45deg)',
+                          zIndex: 1
+                        }} />
+                        <span style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', zIndex: 2 }}>
+                          {complianceData ? `${complianceData.complianceScore}%` : '--'}
+                        </span>
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>Azure Governance Score</h3>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '6px', marginBottom: 0 }}>
+                          Your corporate environment is {complianceData ? complianceData.complianceScore : 0}% compliant with Azure resource governance controls.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Violations Summary */}
+                    <div className="glass-panel" style={{
+                      padding: '24px',
+                      background: 'linear-gradient(135deg, rgba(244, 63, 94, 0.05) 0%, rgba(225, 29, 72, 0.08) 100%)',
+                      borderColor: 'rgba(244, 63, 94, 0.15)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '24px'
+                    }}>
+                      <div style={{
+                        width: '64px',
+                        height: '64px',
+                        borderRadius: '16px',
+                        backgroundColor: 'rgba(244, 63, 94, 0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--error)',
+                        fontSize: '1.5rem',
+                        fontWeight: 800
+                      }}>
+                        {complianceData ? complianceData.violations.length : 0}
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>Active Rule Violations</h3>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '6px', marginBottom: 0 }}>
+                          Non-compliant issues identified requiring immediate tag updates, SSL setting switches, or regional relocation.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Evaluated Rules Listing */}
+                  <div className="glass-panel" style={{ padding: '24px' }}>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', fontWeight: 700 }}>Evaluated Governance Rules</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {complianceData && complianceData.rules.map((rule: any) => (
+                        <div key={rule.id} style={{
+                          padding: '14px 18px',
+                          borderRadius: '10px',
+                          border: '1px solid var(--glass-border)',
+                          backgroundColor: 'rgba(255,255,255,0.01)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '16px'
+                        }}>
+                          <div>
+                            <div style={{ fontWeight: 650, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                backgroundColor: rule.status === 'passed' ? 'var(--success)' : 'var(--error)'
+                              }} />
+                              {rule.name}
+                            </div>
+                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '4px' }}>{rule.description}</div>
+                          </div>
+                          <span style={{
+                            fontSize: '0.68rem',
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            color: rule.status === 'passed' ? '#10b981' : '#ef4444',
+                            backgroundColor: rule.status === 'passed' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            border: rule.status === 'passed' ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(239,68,68,0.2)'
+                          }}>
+                            {rule.status === 'passed' ? 'Compliant' : 'Non-Compliant'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Violations Details & Remediation */}
+                  <div className="glass-panel" style={{ padding: '24px' }}>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', fontWeight: 700 }}>Identified Governance Violations</h3>
+                    {complianceData && complianceData.violations.length === 0 ? (
+                      <div style={{ padding: '30px', textAlign: 'center', color: 'var(--success)' }}>
+                        <CheckCircle2 size={36} style={{ marginBottom: '8px' }} />
+                        <h4 style={{ margin: 0 }}>All assets compliant!</h4>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '4px', marginBottom: 0 }}>No active violations found against rules policy.</p>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {complianceData && complianceData.violations.map((v: any, index: number) => (
+                          <div key={index} style={{
+                            padding: '16px',
+                            borderRadius: '10px',
+                            border: '1px solid rgba(239,68,68,0.15)',
+                            backgroundColor: 'rgba(239,68,68,0.02)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '12px'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                  <span style={{
+                                    fontSize: '0.62rem',
+                                    fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                    color: '#ef4444',
+                                    backgroundColor: 'rgba(239,68,68,0.1)',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    border: '1px solid rgba(239,68,68,0.2)'
+                                  }}>
+                                    {v.ruleName}
+                                  </span>
+                                  <strong style={{ color: 'var(--text-primary)', fontSize: '0.88rem' }}>{v.resourceName}</strong>
+                                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.74rem' }}>({v.resourceType})</span>
+                                </div>
+                                <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '6px' }}>{v.message}</div>
+                              </div>
+
+                              {v.remediable && (
+                                <button
+                                  type="button"
+                                  className="btn-primary"
+                                  disabled={isViewer || remediatingId === v.suggestionId}
+                                  onClick={() => handleRemediate(v)}
+                                  style={{
+                                    padding: '6px 12px',
+                                    fontSize: '0.72rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    alignSelf: 'flex-start'
+                                  }}
+                                >
+                                  {remediatingId === v.suggestionId ? (
+                                    <RefreshCw size={10} className="spin-anim" />
+                                  ) : (
+                                    <Shield size={10} />
+                                  )}
+                                  <span>1-Click Remediate</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
       {/* ── Group Header "X Environments" Fixed-Position Tooltip Portal ── */}
