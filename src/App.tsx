@@ -1113,6 +1113,13 @@ function App() {
       </div>
     );
     if (!result) return null;
+    if (result.error || result.message === 'Validation failed.' || result.success === false) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', fontSize: '0.76rem', color: '#ef4444', fontWeight: 600 }}>
+          <span>❌</span> Error: {result.error || result.message || 'Validation service error'}
+        </div>
+      );
+    }
     const hasErrors = result.errors && result.errors.length > 0;
     const hasWarnings = result.warnings && result.warnings.length > 0;
     if (!hasErrors && !hasWarnings) return (
@@ -1447,6 +1454,37 @@ function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
+  // Custom authenticated fetch wrapper (shadows standard fetch)
+  const authFetch = async (url: RequestInfo | URL, options: RequestInit = {}) => {
+    const activeToken = localStorage.getItem('devops_token');
+    const headers = new Headers(options.headers || {});
+    
+    if (activeToken) {
+      headers.set('Authorization', `Bearer ${activeToken}`);
+    }
+    
+    if (options.body && typeof options.body === 'string' && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+    
+    const res = await window.fetch(url, {
+      ...options,
+      headers
+    });
+    
+    if (res.status === 401) {
+      console.warn('[authFetch] Unauthorized session. Logging out.');
+      setToken(null);
+      setUser(null);
+      localStorage.removeItem('devops_token');
+      localStorage.removeItem('devops_user');
+    }
+    
+    return res;
+  };
+
+  const fetch = authFetch;
+
   // Admin Override login state
   const [showAdminOverrideForm, setShowAdminOverrideForm] = useState(false);
   const [adminOverrideOrgId, setAdminOverrideOrgId] = useState('');
@@ -1701,36 +1739,7 @@ function App() {
     }
   };
 
-  // Custom authenticated fetch wrapper (shadows standard fetch)
-  const authFetch = async (url: RequestInfo | URL, options: RequestInit = {}) => {
-    const activeToken = localStorage.getItem('devops_token');
-    const headers = new Headers(options.headers || {});
-    
-    if (activeToken) {
-      headers.set('Authorization', `Bearer ${activeToken}`);
-    }
-    
-    if (options.body && typeof options.body === 'string' && !headers.has('Content-Type')) {
-      headers.set('Content-Type', 'application/json');
-    }
-    
-    const res = await window.fetch(url, {
-      ...options,
-      headers
-    });
-    
-    if (res.status === 401) {
-      console.warn('[authFetch] Unauthorized session. Logging out.');
-      setToken(null);
-      setUser(null);
-      localStorage.removeItem('devops_token');
-      localStorage.removeItem('devops_user');
-    }
-    
-    return res;
-  };
 
-  const fetch = authFetch;
 
   // Authentication Handlers
   const handleMicrosoftLoginRedirect = async () => {
