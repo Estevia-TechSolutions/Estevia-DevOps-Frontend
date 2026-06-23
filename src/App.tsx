@@ -747,6 +747,10 @@ function App() {
   const [selectedBranch, setSelectedBranch] = useState('');
   const [branches, setBranches] = useState<{name: string; protected: boolean}[]>([]);
   const [loadingBranches, setLoadingBranches] = useState(false);
+
+  // Repo Integrity Check state
+  const [repoIntegrity, setRepoIntegrity] = useState<any | null>(null);
+  const [repoIntegrityLoading, setRepoIntegrityLoading] = useState(false);
   const [pipelineRegistering, setPipelineRegistering] = useState(false);
   const [pipelineRegSuccess, setPipelineRegSuccess] = useState(false);
   const [pipelineRegError, setPipelineRegError] = useState<string | null>(null);
@@ -2867,11 +2871,27 @@ function App() {
     }
   };
 
+  const fetchRepoIntegrity = async (repoFullName: string) => {
+    setRepoIntegrityLoading(true);
+    setRepoIntegrity(null);
+    try {
+      const res = await fetch(`${API_BASE}/apps/repo-integrity?organizationId=${organizationId}&repoFullName=${encodeURIComponent(repoFullName)}`);
+      const data = await res.json();
+      if (data.success) setRepoIntegrity(data);
+    } catch (e) {
+      console.error('[RepoIntegrity] Failed to fetch repo integrity:', e);
+    } finally {
+      setRepoIntegrityLoading(false);
+    }
+  };
+
   const handleRepoChange = (repoName: string) => {
     setSelectedRepo(repoName);
     setSelectedBranches([]);
+    setRepoIntegrity(null);
     if (repoName) {
       fetchBranches(repoName);
+      fetchRepoIntegrity(repoName);
       const shortName = repoName.split('/').pop() || '';
       if (appType === 'frontend') {
         setNewName(shortName ? `${shortName}-swa` : '');
@@ -5057,6 +5077,8 @@ function App() {
             provisionErrorDetail={provisionErrorDetail}
             setConfirmDialog={setConfirmDialog}
             currentUser={user}
+            repoIntegrity={repoIntegrity}
+            repoIntegrityLoading={repoIntegrityLoading}
           />
         )}
 

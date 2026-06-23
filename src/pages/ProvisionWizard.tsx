@@ -13,7 +13,12 @@ import {
   Pencil,
   Check,
   GitCommit,
-  X
+  X,
+  AlertOctagon,
+  CheckCircle,
+  HelpCircle,
+  GitMerge,
+  Rocket
 } from 'lucide-react';
 
 interface AppResource {
@@ -136,6 +141,8 @@ interface ProvisionWizardProps {
   provisionErrorDetail: string | null;
   setConfirmDialog: (val: any) => void;
   currentUser?: any;
+  repoIntegrity: any | null;
+  repoIntegrityLoading: boolean;
 }
 
 /* ── Dockerfile Editor Step Sub-Component ── */
@@ -314,6 +321,417 @@ const DockerfileEditorStep: React.FC<DockerfileEditorStepProps> = ({
   );
 };
 
+/* ─────────────────────────────────────────────────────────────
+   Step1Content — GitHub Source Selection with Repo Integrity
+   ───────────────────────────────────────────────────────────── */
+interface Step1ContentProps {
+  appType: 'frontend' | 'backend';
+  handleAppTypeChange: (type: 'frontend' | 'backend') => void;
+  selectedRepo: string;
+  handleRepoChange: (repo: string) => void;
+  getCategorizedRepos: (type?: 'frontend' | 'backend') => { recommended: any[]; other: any[] };
+  selectedBranches: string[];
+  setSelectedBranches: (val: string[]) => void;
+  selectedBranch: string;
+  setSelectedBranch: (val: string) => void;
+  branches: { name: string; protected: boolean }[];
+  setBranches: (val: any[]) => void;
+  loadingBranches: boolean;
+  fetchBranches?: (repo: string) => Promise<void>;
+  apps: AppResource[];
+  repoIntegrity: any | null;
+  repoIntegrityLoading: boolean;
+  handleMoveToStep2: () => void;
+  isViewer: boolean;
+}
+
+const CONFIDENCE_LABEL: Record<string, string> = { high: 'High', medium: 'Medium', low: 'Low' };
+const CONFIDENCE_COLOR: Record<string, string> = { high: 'var(--success)', medium: 'var(--warning)', low: 'var(--text-muted)' };
+const TYPE_COLOR: Record<string, { bg: string; border: string; text: string }> = {
+  backend:  { bg: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.4)', text: '#a78bfa' },
+  frontend: { bg: 'rgba(34,211,238,0.10)', border: 'rgba(34,211,238,0.35)', text: '#67e8f9' },
+  mixed:    { bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.35)', text: '#fbbf24' },
+  unknown:  { bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)', text: 'var(--text-muted)' },
+};
+const TYPE_LABEL: Record<string, string> = { backend: 'BACKEND', frontend: 'FRONTEND', mixed: 'MIXED', unknown: 'UNKNOWN' };
+const TYPE_ICON: Record<string, React.ReactNode> = {
+  backend:  <GitMerge size={12} />,
+  frontend: <Globe size={12} />,
+  mixed:    <AlertOctagon size={12} />,
+  unknown:  <HelpCircle size={12} />,
+};
+
+const Step1Content: React.FC<Step1ContentProps> = ({
+  appType, handleAppTypeChange, selectedRepo, handleRepoChange, getCategorizedRepos,
+  selectedBranches, setSelectedBranches, selectedBranch, setSelectedBranch,
+  branches, setBranches, loadingBranches, fetchBranches, apps,
+  repoIntegrity, repoIntegrityLoading, handleMoveToStep2, isViewer,
+}) => {
+  const [activeTab, setActiveTab] = React.useState<'configure' | 'integrity'>('configure');
+  const [mixedOverride, setMixedOverride] = React.useState(false);
+
+  // Reset tab and override when repo changes
+  React.useEffect(() => {
+    setActiveTab('configure');
+    setMixedOverride(false);
+  }, [selectedRepo]);
+
+  // Integrity check for the currently selected primary deploy branch
+  const primaryBranch = selectedBranch || selectedBranches[0] || null;
+  const branchIntegrity = repoIntegrity?.branches?.find((b: any) => b.name === primaryBranch) ?? null;
+
+  const detectedType: string = branchIntegrity?.detectedType ?? 'unknown';
+  const confidence: string = branchIntegrity?.confidence ?? 'low';
+
+  // Block if detected type contradicts selected app type, with sufficient confidence
+  const isHardBlock =
+    confidence !== 'low' &&
+    ((detectedType === 'backend' && appType === 'frontend') ||
+     (detectedType === 'frontend' && appType === 'backend'));
+
+  const isMixedWarn = detectedType === 'mixed' && confidence !== 'low';
+
+  // Determine the correct type hint for hard-block guidance
+  const correctType = detectedType === 'backend' ? 'Backend ACA Container' : 'Frontend SWA';
+
+  const canProceed = !isViewer && selectedRepo && selectedBranches.length > 0 && !loadingBranches &&
+    !isHardBlock && (!isMixedWarn || mixedOverride);
+
+  // Count integrity issues for badge
+  const integrityIssueCount = repoIntegrity?.issues?.length ?? 0;
+
+  return (
+    <div>
+      <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+        <GitBranch style={{ color: 'var(--accent-purple)' }} />
+        Select GitHub Repository &amp; Branches
+      </h3>
+
+      {/* ── Tab strip ── */}
+      {selectedRepo && (
+        <div style={{ display: 'flex', gap: '4px', marginBottom: '24px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0' }}>
+          {[
+            { id: 'configure', label: 'Configure Deployment', icon: <Settings size={13} /> },
+            {
+              id: 'integrity',
+              label: 'Repo Integrity',
+              icon: repoIntegrityLoading
+                ? <RefreshCw size={13} className="spin-anim" />
+                : integrityIssueCount > 0
+                  ? <AlertOctagon size={13} />
+                  : <CheckCircle size={13} />,
+              badge: integrityIssueCount > 0 ? integrityIssueCount : null,
+            }
+          ].map(tab => (
+            <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id as any)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '8px 16px', border: 'none', background: 'none', cursor: 'pointer',
+                fontSize: '0.84rem', fontWeight: activeTab === tab.id ? 600 : 400,
+                color: activeTab === tab.id ? 'var(--accent-purple)' : 'var(--text-secondary)',
+                borderBottom: activeTab === tab.id ? '2px solid var(--accent-purple)' : '2px solid transparent',
+                marginBottom: '-1px', transition: 'all 0.2s ease',
+              }}>
+              {tab.icon}
+              {tab.label}
+              {(tab as any).badge != null && (
+                <span style={{ background: 'var(--error)', color: '#fff', borderRadius: '10px', padding: '1px 6px', fontSize: '0.7rem', fontWeight: 700 }}>
+                  {(tab as any).badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════
+          CONFIGURE DEPLOYMENT TAB
+          ══════════════════════════════════════════ */}
+      {activeTab === 'configure' && (
+        <>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', marginBottom: '24px' }}>
+            Choose the repository, target branch triggers, and the primary deploy branch. Frontends deploy to Azure SWA, backends to Azure Container Apps.
+          </p>
+
+          {/* App Type */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Application Type</label>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {(['frontend', 'backend'] as const).map(t => (
+                <button key={t} type="button"
+                  className={appType === t ? 'btn-primary' : 'btn-secondary'}
+                  onClick={() => handleAppTypeChange(t)}
+                  style={{
+                    flex: 1, padding: '10px', borderRadius: '8px', fontSize: '0.88rem', fontWeight: 600,
+                    // Amber highlight when this is the correct type for a hard-blocked branch
+                    outline: isHardBlock && detectedType === t ? '2px solid var(--warning)' : 'none',
+                    outlineOffset: '2px',
+                  }}>
+                  {t === 'frontend' ? 'Frontend SWA' : 'Backend ACA Container'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Repository Selector */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>GitHub Repository</label>
+            <select value={selectedRepo} onChange={e => handleRepoChange(e.target.value)}
+              style={{ background: 'var(--input-bg)', color: 'var(--text-primary)' }}>
+              <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>-- Choose Repository --</option>
+              {(() => {
+                const { recommended, other } = getCategorizedRepos(appType);
+                return (<>
+                  {recommended.length > 0 && (
+                    <optgroup label="Recommended Repositories" style={{ background: 'var(--bg-secondary)' }}>
+                      {recommended.map(r => <option key={r.id} value={r.fullName} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{r.fullName}</option>)}
+                    </optgroup>
+                  )}
+                  {other.length > 0 && (
+                    <optgroup label="Other Repositories" style={{ background: 'var(--bg-secondary)' }}>
+                      {other.map(r => <option key={r.id} value={r.fullName} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{r.fullName}</option>)}
+                    </optgroup>
+                  )}
+                </>);
+              })()}
+            </select>
+          </div>
+
+          {/* Branches */}
+          {selectedRepo && (
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>Target Branches (triggers in YML)</label>
+                <button type="button" onClick={() => fetchBranches && fetchBranches(selectedRepo)} disabled={loadingBranches}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <RefreshCw size={12} className={loadingBranches ? 'spin-anim' : ''} /> Refresh
+                </button>
+              </div>
+              {loadingBranches ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', background: 'rgba(15,23,42,0.4)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+                  <RefreshCw size={14} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
+                  <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Loading repository branches...</span>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto', overflowX: 'hidden', padding: '8px', background: 'var(--input-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)', width: '100%', boxSizing: 'border-box' }}>
+                  {branches.map(b => {
+                    const isChecked = selectedBranches.includes(b.name);
+                    return (
+                      <label key={b.name} className={`branch-checkbox-item ${isChecked ? 'selected' : ''}`}>
+                        <input type="checkbox" checked={isChecked}
+                          onChange={e => {
+                            if (e.target.checked) setSelectedBranches([...selectedBranches, b.name]);
+                            else setSelectedBranches(selectedBranches.filter(x => x !== b.name));
+                          }}
+                          style={{ width: '16px', height: '16px', flexShrink: 0, marginTop: '2px', cursor: 'pointer' }} />
+                        <span style={{ minWidth: 0, wordBreak: 'break-all', whiteSpace: 'normal', lineHeight: '1.4' }}>
+                          {b.name}{b.protected ? ' 🔒' : ''}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+              {selectedBranches.length > 0 && (
+                <div style={{ marginTop: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Primary Deploy Branch</label>
+                  <select value={selectedBranch} onChange={e => setSelectedBranch(e.target.value)}
+                    style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)' }}>
+                    {selectedBranches.map(bn => <option key={bn} value={bn} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{bn}</option>)}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Hard block: type mismatch ── */}
+          {isHardBlock && primaryBranch && (
+            <div style={{ padding: '16px 18px', borderRadius: '10px', marginBottom: '20px', border: '1px solid var(--error)', background: 'rgba(239,68,68,0.08)' }}>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                <AlertOctagon size={20} style={{ color: 'var(--error)', flexShrink: 0, marginTop: '2px' }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, color: 'var(--error)', marginBottom: '6px', fontSize: '0.92rem' }}>
+                    Type Mismatch — Cannot Proceed
+                  </div>
+                  <div style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                    <div>🔍 <strong style={{ color: 'var(--text-primary)' }}>Detected:</strong> Branch <code style={{ background: 'rgba(255,255,255,0.07)', padding: '1px 5px', borderRadius: '4px' }}>{primaryBranch}</code> is a <strong>{TYPE_LABEL[detectedType]}</strong> repository
+                      {branchIntegrity?.signals?.backendFiles?.length > 0 && <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}> ({branchIntegrity.signals.backendFiles.slice(0,3).join(', ')})</span>}
+                      {branchIntegrity?.signals?.frontendFiles?.length > 0 && <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}> ({branchIntegrity.signals.frontendFiles.slice(0,3).join(', ')})</span>}
+                    </div>
+                    <div style={{ marginTop: '4px' }}>🎯 <strong style={{ color: 'var(--text-primary)' }}>Selected:</strong> {appType === 'frontend' ? 'Frontend SWA' : 'Backend ACA Container'}</div>
+                    <div style={{ marginTop: '10px', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: '6px', fontSize: '0.82rem', color: 'var(--warning)' }}>
+                      ✦ Switch App Type to <strong>{correctType}</strong> above, or choose a different branch / repository.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Mixed code override ── */}
+          {isMixedWarn && !isHardBlock && primaryBranch && (
+            <div style={{ padding: '14px 16px', borderRadius: '10px', marginBottom: '20px', border: '1px solid var(--warning)', background: 'rgba(245,158,11,0.07)' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <AlertTriangle size={18} style={{ color: 'var(--warning)', flexShrink: 0, marginTop: '2px' }} />
+                <div style={{ flex: 1, fontSize: '0.86rem' }}>
+                  <div style={{ fontWeight: 600, color: 'var(--warning)', marginBottom: '6px' }}>Mixed Code Detected</div>
+                  <div style={{ color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '12px' }}>
+                    Branch <code style={{ background: 'rgba(255,255,255,0.07)', padding: '1px 5px', borderRadius: '4px' }}>{primaryBranch}</code> contains both frontend and backend signals. Deploying the wrong type may cause a broken deployment.
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.84rem', color: 'var(--text-primary)' }}>
+                    <input type="checkbox" checked={mixedOverride} onChange={e => setMixedOverride(e.target.checked)}
+                      style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: 'var(--warning)' }} />
+                    I understand this branch contains mixed code — proceed anyway
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Duplicate deployment warning ── */}
+          {(() => {
+            const matchingApp = selectedRepo ? apps.find(a => a.repositoryUrl && a.repositoryUrl.toLowerCase().includes(selectedRepo.toLowerCase())) : null;
+            if (!matchingApp) return null;
+            return (
+              <div className="glass-panel" style={{ padding: '14px 16px', borderColor: 'var(--warning)', backgroundColor: 'rgba(245,158,11,0.08)', marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                <AlertTriangle size={16} style={{ color: 'var(--warning)', flexShrink: 0, marginTop: '2px' }} />
+                <div style={{ fontSize: '0.87rem', lineHeight: 1.5 }}>
+                  <strong style={{ color: 'var(--warning)' }}>Already Deployed:</strong> This repo is linked to <strong>{matchingApp.name}</strong>. Deploying again creates a duplicate.
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Next button */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px' }}>
+            <button type="button" className="btn-primary"
+              disabled={!canProceed}
+              onClick={handleMoveToStep2}
+              title={isHardBlock ? 'Resolve the type mismatch above before proceeding' : isMixedWarn && !mixedOverride ? 'Acknowledge the mixed code warning to proceed' : ''}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', opacity: canProceed ? 1 : 0.5, cursor: canProceed ? 'pointer' : 'not-allowed' }}>
+              Verify Pipeline YAML <ArrowRight size={16} />
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* ══════════════════════════════════════════
+          REPO INTEGRITY TAB
+          ══════════════════════════════════════════ */}
+      {activeTab === 'integrity' && (
+        <div>
+          {!selectedRepo ? (
+            <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px 0', fontSize: '0.9rem' }}>
+              Select a repository first to run an integrity check.
+            </div>
+          ) : repoIntegrityLoading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '48px 0', color: 'var(--text-secondary)' }}>
+              <RefreshCw size={20} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
+              Analysing repository branches...
+            </div>
+          ) : !repoIntegrity ? (
+            <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px 0', fontSize: '0.9rem' }}>
+              Could not load integrity report. Check your GitHub credentials.
+            </div>
+          ) : (
+            <>
+              {/* Issues summary */}
+              {repoIntegrity.issues?.length > 0 && (
+                <div style={{ padding: '14px 16px', borderRadius: '10px', marginBottom: '20px', border: '1px solid var(--warning)', background: 'rgba(245,158,11,0.07)' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
+                    <AlertTriangle size={15} style={{ color: 'var(--warning)' }} />
+                    <span style={{ fontWeight: 600, fontSize: '0.87rem', color: 'var(--warning)' }}>{repoIntegrity.issues.length} issue{repoIntegrity.issues.length > 1 ? 's' : ''} found</span>
+                  </div>
+                  {repoIntegrity.issues.map((issue: string, i: number) => (
+                    <div key={i} style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginLeft: '23px' }}>• {issue}</div>
+                  ))}
+                </div>
+              )}
+              {repoIntegrity.issues?.length === 0 && (
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', border: '1px solid var(--success)', background: 'rgba(34,197,94,0.06)', fontSize: '0.87rem', color: 'var(--success)' }}>
+                  <CheckCircle size={15} /> All branches look clean — no integrity issues detected.
+                </div>
+              )}
+
+              {/* Per-branch cards */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {repoIntegrity.branches?.map((branch: any) => {
+                  const tc = TYPE_COLOR[branch.detectedType] ?? TYPE_COLOR.unknown;
+                  const isCurrentPrimary = branch.name === primaryBranch;
+                  return (
+                    <div key={branch.name} style={{
+                      padding: '14px 16px', borderRadius: '10px',
+                      border: `1px solid ${isCurrentPrimary ? 'var(--accent-purple)' : tc.border}`,
+                      background: isCurrentPrimary ? 'rgba(139,92,246,0.06)' : tc.bg,
+                      position: 'relative'
+                    }}>
+                      {isCurrentPrimary && (
+                        <span style={{ position: 'absolute', top: '8px', right: '10px', fontSize: '0.68rem', fontWeight: 600, color: 'var(--accent-purple)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          Primary Branch
+                        </span>
+                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {branch.name}{branch.protected ? ' 🔒' : ''}
+                        </span>
+                        {/* Type badge */}
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700, background: tc.bg, border: `1px solid ${tc.border}`, color: tc.text, letterSpacing: '0.04em' }}>
+                          {TYPE_ICON[branch.detectedType]} {TYPE_LABEL[branch.detectedType]}
+                        </span>
+                        {/* Confidence */}
+                        <span style={{ fontSize: '0.75rem', color: CONFIDENCE_COLOR[branch.confidence] }}>
+                          ● {CONFIDENCE_LABEL[branch.confidence]} confidence
+                        </span>
+                      </div>
+
+                      {/* Key files */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '8px' }}>
+                        {branch.signals?.backendFiles?.slice(0, 4).map((f: string) => (
+                          <span key={f} style={{ fontSize: '0.72rem', padding: '2px 7px', borderRadius: '4px', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', color: '#a78bfa', fontFamily: 'monospace' }}>{f}</span>
+                        ))}
+                        {branch.signals?.frontendFiles?.slice(0, 4).map((f: string) => (
+                          <span key={f} style={{ fontSize: '0.72rem', padding: '2px 7px', borderRadius: '4px', background: 'rgba(34,211,238,0.08)', border: '1px solid rgba(34,211,238,0.2)', color: '#67e8f9', fontFamily: 'monospace' }}>{f}</span>
+                        ))}
+                        {branch.signals?.hasCiYml && (
+                          <span style={{ fontSize: '0.72rem', padding: '2px 7px', borderRadius: '4px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', color: 'var(--success)', fontFamily: 'monospace' }}>azure-pipelines.yml</span>
+                        )}
+                      </div>
+
+                      {/* Deployed state */}
+                      {branch.deployedAs ? (
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Rocket size={12} style={{ color: 'var(--success)' }} />
+                          Deployed as <strong style={{ color: 'var(--text-primary)' }}>{branch.deployedAs.name}</strong>
+                          <span style={{ fontSize: '0.7rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: 'var(--success)', fontWeight: 600 }}>
+                            {branch.deployedAs.type.toUpperCase()}
+                          </span>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <HelpCircle size={12} /> Not yet deployed
+                          {branch.name !== primaryBranch && (
+                            <button type="button" onClick={() => {
+                              setSelectedBranch(branch.name);
+                              if (!selectedBranches.includes(branch.name)) setSelectedBranches([...selectedBranches, branch.name]);
+                              setActiveTab('configure');
+                            }} style={{ marginLeft: '6px', background: 'none', border: 'none', color: 'var(--accent-purple)', cursor: 'pointer', fontSize: '0.76rem', padding: 0, textDecoration: 'underline' }}>
+                              Use as primary branch
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
   provisionStep,
   setProvisionStep,
@@ -417,7 +835,9 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
   pushDockerfileContent,
   provisionErrorDetail,
   setConfirmDialog,
-  currentUser
+  currentUser,
+  repoIntegrity,
+  repoIntegrityLoading
 }) => {
   const isViewer = currentUser?.role === 'viewer';
 
@@ -619,191 +1039,26 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
 
         {/* STEP 1: GITHUB SOURCE SELECTION */}
         {provisionStep === 1 && (
-          <div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-              <GitBranch style={{ color: 'var(--accent-purple)' }} />
-              Select GitHub Repository & Branches
-            </h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', marginBottom: '24px' }}>
-              Choose the repository, target branches triggers, and the primary deploy branch. You can deploy frontends to Azure Static Web Apps or backends to Azure Container Apps.
-            </p>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Application Type</label>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  type="button"
-                  className={appType === 'frontend' ? 'btn-primary' : 'btn-secondary'}
-                  onClick={() => handleAppTypeChange('frontend')}
-                  style={{ flex: 1, padding: '10px', borderRadius: '8px', fontSize: '0.88rem', fontWeight: 600 }}
-                >
-                  Frontend SWA
-                </button>
-                <button
-                  type="button"
-                  className={appType === 'backend' ? 'btn-primary' : 'btn-secondary'}
-                  onClick={() => handleAppTypeChange('backend')}
-                  style={{ flex: 1, padding: '10px', borderRadius: '8px', fontSize: '0.88rem', fontWeight: 600 }}
-                >
-                  Backend ACA Container
-                </button>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>GitHub Repository</label>
-              <select 
-                value={selectedRepo} 
-                onChange={(e) => handleRepoChange(e.target.value)}
-                style={{ background: 'var(--input-bg)', color: 'var(--text-primary)' }}
-              >
-                <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>-- Choose Repository --</option>
-                {(() => {
-                  const { recommended, other } = getCategorizedRepos(appType);
-                  return (
-                    <>
-                      {recommended.length > 0 && (
-                        <optgroup label="Recommended Repositories" style={{ background: 'var(--bg-secondary)' }}>
-                          {recommended.map(repo => (
-                            <option key={repo.id} value={repo.fullName} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{repo.fullName}</option>
-                          ))}
-                        </optgroup>
-                      )}
-                      {other.length > 0 && (
-                        <optgroup label="Other Repositories" style={{ background: 'var(--bg-secondary)' }}>
-                          {other.map(repo => (
-                            <option key={repo.id} value={repo.fullName} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{repo.fullName}</option>
-                          ))}
-                        </optgroup>
-                      )}
-                    </>
-                  );
-                })()}
-              </select>
-            </div>
-
-            {selectedRepo && (
-              <div style={{ marginBottom: '24px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>Select Target Branches (triggers in YML)</label>
-                  <button
-                    type="button"
-                    onClick={() => fetchBranches && fetchBranches(selectedRepo)}
-                    disabled={loadingBranches}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--text-secondary)',
-                      cursor: 'pointer',
-                      fontSize: '0.74rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <RefreshCw size={12} className={loadingBranches ? 'spin-anim' : ''} />
-                    Refresh Branches
-                  </button>
-                </div>
-                {loadingBranches ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', background: 'rgba(15,23,42,0.4)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
-                    <RefreshCw size={14} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
-                    <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Loading repository branches...</span>
-                  </div>
-                ) : (
-                  <div style={{ 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    gap: '6px', 
-                    maxHeight: '200px', 
-                    overflowY: 'auto', 
-                    overflowX: 'hidden',
-                    padding: '8px', 
-                    background: 'var(--input-bg)', 
-                    borderRadius: '8px', 
-                    border: '1px solid var(--glass-border)',
-                    width: '100%',
-                    boxSizing: 'border-box'
-                  }}>
-                    {branches.map((b) => {
-                      const isChecked = selectedBranches.includes(b.name);
-                      return (
-                        <label 
-                          key={b.name} 
-                          className={`branch-checkbox-item ${isChecked ? 'selected' : ''}`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedBranches([...selectedBranches, b.name]);
-                              } else {
-                                setSelectedBranches(selectedBranches.filter(x => x !== b.name));
-                              }
-                            }}
-                            style={{ width: '16px', height: '16px', flexShrink: 0, marginTop: '2px', cursor: 'pointer' }}
-                          />
-                          <span style={{ 
-                            minWidth: 0, 
-                            wordBreak: 'break-all', 
-                            whiteSpace: 'normal',
-                            lineHeight: '1.4' 
-                          }}>
-                            {b.name}{b.protected ? ' 🔒' : ''}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
-                
-                {selectedBranches.length > 0 && (
-                  <div style={{ marginTop: '16px' }}>
-                    <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Primary Deploy Branch (Initial target)</label>
-                    <select
-                      value={selectedBranch}
-                      onChange={(e) => setSelectedBranch(e.target.value)}
-                      style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)' }}
-                    >
-                      {selectedBranches.map(bName => (
-                        <option key={bName} value={bName} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{bName}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* DUPLICATE DEPLOYMENT WARNING */}
-            {(() => {
-              const isRepoDeployed = selectedRepo && apps.some(a => a.repositoryUrl && a.repositoryUrl.toLowerCase().includes(selectedRepo.toLowerCase()));
-              const matchingApp = isRepoDeployed ? apps.find(a => a.repositoryUrl && a.repositoryUrl.toLowerCase().includes(selectedRepo.toLowerCase())) : null;
-              if (matchingApp) {
-                return (
-                  <div className="glass-panel" style={{ padding: '16px', borderColor: 'var(--warning)', backgroundColor: 'rgba(245,158,11,0.08)', color: 'var(--text-primary)', marginBottom: '24px', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                    <AlertTriangle style={{ color: 'var(--warning)', flexShrink: 0, marginTop: '2px' }} size={18} />
-                    <div style={{ fontSize: '0.9rem', lineHeight: 1.5 }}>
-                      <strong style={{ color: 'var(--warning)' }}>Already Deployed Warning:</strong> This repository is already associated with {matchingApp.type} <strong style={{ color: 'var(--text-primary)' }}>{matchingApp.name}</strong>. Deploying again will configure a duplicate instance.
-                    </div>
-                  </div>
-                );
-              }
-              return null;
-            })()}
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '32px' }}>
-              <button 
-                type="button" 
-                className="btn-primary" 
-                disabled={isViewer || !selectedRepo || selectedBranches.length === 0 || loadingBranches}
-                onClick={() => handleMoveToStep2()}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: (isViewer || !selectedRepo || selectedBranches.length === 0 || loadingBranches) ? 'not-allowed' : 'pointer' }}
-              >
-                Verify Pipeline YAML <ArrowRight size={16} />
-              </button>
-            </div>
-          </div>
+          <Step1Content
+            appType={appType}
+            handleAppTypeChange={handleAppTypeChange}
+            selectedRepo={selectedRepo}
+            handleRepoChange={handleRepoChange}
+            getCategorizedRepos={getCategorizedRepos}
+            selectedBranches={selectedBranches}
+            setSelectedBranches={setSelectedBranches}
+            selectedBranch={selectedBranch}
+            setSelectedBranch={setSelectedBranch}
+            branches={branches}
+            setBranches={setBranches}
+            loadingBranches={loadingBranches}
+            fetchBranches={fetchBranches}
+            apps={apps}
+            repoIntegrity={repoIntegrity}
+            repoIntegrityLoading={repoIntegrityLoading}
+            handleMoveToStep2={handleMoveToStep2}
+            isViewer={isViewer}
+          />
         )}
 
         {/* STEP 2: PIPELINE YAML CONFIGURATION */}
