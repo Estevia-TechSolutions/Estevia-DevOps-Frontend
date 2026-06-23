@@ -59,6 +59,7 @@ import type { UserRecord } from './pages/TeamPage';
 import { LogDrawer } from './components/observability/LogDrawer';
 import { AuditLogsTable } from './components/team/AuditLogsTable';
 import { isFixable, applyAutoFix } from './utils/autoFixEngine';
+import { runWithConcurrency } from './utils/concurrency';
 import { DiffViewer } from './components/DiffViewer';
 import { Footer } from './components/layout/Footer';
 
@@ -1375,66 +1376,80 @@ function App() {
 
   // ─── Cloud Scanning YAML/Dockerfile Health Checks ─────────────────────────
   const fetchYmlHealthForGroups = useCallback(async (groups: any[]) => {
-    // Process groups in parallel so one slow/hanging request doesn't block others
-    groups.forEach(async (group, index) => {
-      if (!group.repoPath || group.type === 'vm' || group.type === 'network') return;
-      const branch = group.envs?.[0]?.branch || group.branches?.[0]?.name || 'main';
-      const isBackend = group.type === 'backend';
-      
+    // Filter groups first to only process valid repositories
+    const validGroups = groups.filter(group => group.repoPath && group.type !== 'vm' && group.type !== 'network');
+    if (validGroups.length === 0) return;
+
+    // Set all valid groups to loading state
+    validGroups.forEach(group => {
       setYmlHealthLoading(prev => ({ ...prev, [group.key]: true }));
-      let timeoutId: any = null;
-      try {
-        // Stagger requests slightly to avoid hitting GitHub rate limits
-        if (index > 0) {
-          await new Promise(r => setTimeout(r, index * 150));
-        }
+    });
 
-        // Add AbortController to enforce a 60-second request timeout limit (starting after the stagger timer completes)
-        const controller = new AbortController();
-        timeoutId = setTimeout(() => controller.abort(), 60000);
+    const startTime = Date.now();
 
-        const res = await fetch(
-          `${API_BASE}/apps/yml-health?organizationId=${organizationId}` +
-          `&githubRepo=${encodeURIComponent(group.repoPath)}` +
-          `&branch=${encodeURIComponent(branch)}` +
-          `&pipelineProvider=${pipelineProvider || 'azure_devops'}` +
-          `&checkDockerfile=${isBackend}`,
-          { signal: controller.signal }
-        );
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-          timeoutId = null;
-        }
+    await runWithConcurrency(
+      validGroups,
+      async (group, currentIndex) => {
+        const branch = group.envs?.[0]?.branch || group.branches?.[0]?.name || 'main';
+        const isBackend = group.type === 'backend';
         
-        let data: any;
+        let timeoutId: any = null;
         try {
-          data = await res.json();
-        } catch (jsonErr) {
-          data = { success: false, message: `Server error (${res.status})` };
-        }
+          // Stagger requests slightly to avoid hitting GitHub rate limits
+          const expectedStartTime = startTime + currentIndex * 150;
+          const delay = expectedStartTime - Date.now();
+          if (delay > 0) {
+            await new Promise(r => setTimeout(r, delay));
+          }
 
-        if (res.ok && data && data.success) {
-          setYmlHealthMap(prev => ({ ...prev, [group.key]: data }));
-        } else {
+          // Add AbortController to enforce a 45-second request timeout limit (starting after the stagger timer completes)
+          const controller = new AbortController();
+          timeoutId = setTimeout(() => controller.abort(), 45000);
+
+          const res = await fetch(
+            `${API_BASE}/apps/yml-health?organizationId=${organizationId}` +
+            `&githubRepo=${encodeURIComponent(group.repoPath)}` +
+            `&branch=${encodeURIComponent(branch)}` +
+            `&pipelineProvider=${pipelineProvider || 'azure_devops'}` +
+            `&checkDockerfile=${isBackend}`,
+            { signal: controller.signal }
+          );
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
+          }
+          
+          let data: any;
+          try {
+            data = await res.json();
+          } catch (jsonErr) {
+            data = { success: false, message: `Server error (${res.status})` };
+          }
+
+          if (res.ok && data && data.success) {
+            setYmlHealthMap(prev => ({ ...prev, [group.key]: data }));
+          } else {
+            setYmlHealthMap(prev => ({
+              ...prev,
+              [group.key]: { success: false, error: true, message: (data && data.message) || 'Failed to check health' }
+            }));
+          }
+        } catch (e: any) {
+          console.error(`Failed to fetch health check for group ${group.key}:`, e);
+          const errorMsg = e.name === 'AbortError' ? 'Scan timed out' : (e.message || 'Connection failed');
           setYmlHealthMap(prev => ({
             ...prev,
-            [group.key]: { success: false, error: true, message: (data && data.message) || 'Failed to check health' }
+            [group.key]: { success: false, error: true, message: errorMsg }
           }));
+        } finally {
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
+          setYmlHealthLoading(prev => ({ ...prev, [group.key]: false }));
         }
-      } catch (e: any) {
-        console.error(`Failed to fetch health check for group ${group.key}:`, e);
-        const errorMsg = e.name === 'AbortError' ? 'Scan timed out' : (e.message || 'Connection failed');
-        setYmlHealthMap(prev => ({
-          ...prev,
-          [group.key]: { success: false, error: true, message: errorMsg }
-        }));
-      } finally {
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-        }
-        setYmlHealthLoading(prev => ({ ...prev, [group.key]: false }));
-      }
-    });
+      },
+      2 // Limit concurrency to 2 to keep 4 browser connection slots open for other operations
+    );
   }, [organizationId, pipelineProvider]);
 
   useEffect(() => {
@@ -2221,7 +2236,7 @@ function App() {
     let billingTimeoutId: any = null;
     try {
       const controller = new AbortController();
-      timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
+      timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
 
       const res = await fetch(`${API_BASE}/apps/cost?organizationId=${organizationId}`, {
         signal: controller.signal
