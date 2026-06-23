@@ -1763,17 +1763,56 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   {/* Health check loading spinner */}
                   {isLoading && (
                     <span style={{
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      border: '1px solid var(--glass-border)',
+                      background: theme === 'light' ? 'rgba(59, 130, 246, 0.08)' : 'rgba(96, 165, 250, 0.12)',
+                      border: theme === 'light' ? '1px solid rgba(59, 130, 246, 0.25)' : '1px solid rgba(96, 165, 250, 0.35)',
                       padding: '3px 8px',
                       borderRadius: '12px',
                       display: 'inline-flex',
                       alignItems: 'center',
                       fontSize: '0.74rem',
-                      color: 'var(--text-secondary)'
+                      color: theme === 'light' ? '#2563eb' : '#60a5fa',
+                      fontWeight: 600,
+                      boxShadow: theme === 'light' ? '0 1px 3px rgba(59, 130, 246, 0.05)' : '0 0 8px rgba(96, 165, 250, 0.25)',
+                      transition: 'all 0.2s ease',
+                      cursor: 'default'
                     }}>
-                      <RefreshCw size={10} className="spin-anim" style={{ marginRight: '6px' }} />
+                      <RefreshCw size={10} className="spin-anim" style={{ marginRight: '6px', color: theme === 'light' ? '#2563eb' : '#60a5fa' }} />
                       Checking health...
+                    </span>
+                  )}
+
+                  {/* Healthy Badge */}
+                  {!isLoading && health && (
+                    health.ymlHealth && health.ymlHealth.exists && health.ymlHealth.valid && health.ymlHealth.warningCount === 0 &&
+                    (group.type !== 'backend' || (health.dockerfileHealth && health.dockerfileHealth.exists && health.dockerfileHealth.valid && health.dockerfileHealth.warningCount === 0))
+                  ) && (
+                    <span 
+                      style={{
+                        background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(52, 211, 153, 0.12)',
+                        border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(52, 211, 153, 0.3)',
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        fontSize: '0.74rem',
+                        color: theme === 'light' ? '#059669' : '#34d399',
+                        fontWeight: 600,
+                        boxShadow: theme === 'light' ? '0 1px 3px rgba(16, 185, 129, 0.05)' : '0 0 8px rgba(52, 211, 153, 0.25)',
+                        transition: 'all 0.2s ease',
+                        cursor: 'default'
+                      }}
+                      onMouseOver={(ev) => {
+                        ev.currentTarget.style.transform = 'scale(1.03)';
+                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 2px 6px rgba(16, 185, 129, 0.1)' : '0 0 12px rgba(52, 211, 153, 0.4)';
+                      }}
+                      onMouseOut={(ev) => {
+                        ev.currentTarget.style.transform = 'scale(1)';
+                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 1px 3px rgba(16, 185, 129, 0.05)' : '0 0 8px rgba(52, 211, 153, 0.25)';
+                      }}
+                    >
+                      <ShieldCheck size={11} style={{ color: theme === 'light' ? '#059669' : '#34d399' }} />
+                      <span>Healthy</span>
                     </span>
                   )}
 
@@ -1893,30 +1932,30 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   {!isLoading && health?.ymlHealth && health.ymlHealth.exists && health.ymlHealth.valid && health.ymlHealth.warningCount > 0 && (
                     <span 
                       style={{
-                        background: theme === 'light' ? 'rgba(109, 40, 217, 0.08)' : 'rgba(139, 92, 246, 0.12)',
-                        border: theme === 'light' ? '1px solid rgba(109, 40, 217, 0.25)' : '1px solid rgba(139, 92, 246, 0.3)',
+                        background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
+                        border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
                         padding: '3px 8px',
                         borderRadius: '12px',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '6px',
                         fontSize: '0.74rem',
-                        color: theme === 'light' ? '#7c3aed' : '#c084fc',
+                        color: theme === 'light' ? '#b45309' : '#fbbf24',
                         fontWeight: 600,
-                        boxShadow: theme === 'light' ? '0 1px 3px rgba(109, 40, 217, 0.05)' : '0 0 8px rgba(139, 92, 246, 0.2)',
+                        boxShadow: theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.05)' : '0 0 8px rgba(245, 158, 11, 0.2)',
                         transition: 'all 0.2s ease',
                         cursor: 'default'
                       }}
                       onMouseOver={(ev) => {
                         ev.currentTarget.style.transform = 'scale(1.03)';
-                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 2px 6px rgba(109, 40, 217, 0.1)' : '0 0 12px rgba(139, 92, 246, 0.35)';
+                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 2px 6px rgba(245, 158, 11, 0.1)' : '0 0 12px rgba(245, 158, 11, 0.35)';
                       }}
                       onMouseOut={(ev) => {
                         ev.currentTarget.style.transform = 'scale(1)';
-                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 1px 3px rgba(109, 40, 217, 0.05)' : '0 0 8px rgba(139, 92, 246, 0.2)';
+                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.05)' : '0 0 8px rgba(245, 158, 11, 0.2)';
                       }}
                     >
-                      <span>ℹ {health.ymlHealth.warningCount} YAML Warning{health.ymlHealth.warningCount > 1 ? 's' : ''}</span>
+                      <span>⚠ {health.ymlHealth.warningCount} YAML Warning{health.ymlHealth.warningCount > 1 ? 's' : ''}</span>
                     </span>
                   )}
 
@@ -1924,27 +1963,27 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   {!isLoading && health?.dockerfileHealth && health.dockerfileHealth.exists && health.dockerfileHealth.valid && health.dockerfileHealth.warningCount > 0 && (
                     <span 
                       style={{
-                        background: theme === 'light' ? 'rgba(109, 40, 217, 0.08)' : 'rgba(139, 92, 246, 0.12)',
-                        border: theme === 'light' ? '1px solid rgba(109, 40, 217, 0.25)' : '1px solid rgba(139, 92, 246, 0.3)',
+                        background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
+                        border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
                         padding: '3px 8px',
                         borderRadius: '12px',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '6px',
                         fontSize: '0.74rem',
-                        color: theme === 'light' ? '#7c3aed' : '#c084fc',
+                        color: theme === 'light' ? '#b45309' : '#fbbf24',
                         fontWeight: 600,
-                        boxShadow: theme === 'light' ? '0 1px 3px rgba(109, 40, 217, 0.05)' : '0 0 8px rgba(139, 92, 246, 0.2)',
+                        boxShadow: theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.05)' : '0 0 8px rgba(245, 158, 11, 0.2)',
                         transition: 'all 0.2s ease',
                         cursor: 'default'
                       }}
                       onMouseOver={(ev) => {
                         ev.currentTarget.style.transform = 'scale(1.03)';
-                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 2px 6px rgba(109, 40, 217, 0.1)' : '0 0 12px rgba(139, 92, 246, 0.35)';
+                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 2px 6px rgba(245, 158, 11, 0.1)' : '0 0 12px rgba(245, 158, 11, 0.35)';
                       }}
                       onMouseOut={(ev) => {
                         ev.currentTarget.style.transform = 'scale(1)';
-                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 1px 3px rgba(109, 40, 217, 0.05)' : '0 0 8px rgba(139, 92, 246, 0.2)';
+                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.05)' : '0 0 8px rgba(245, 158, 11, 0.2)';
                       }}
                     >
                       <span>🐳 {health.dockerfileHealth.warningCount} Dockerfile Warning{health.dockerfileHealth.warningCount > 1 ? 's' : ''}</span>
