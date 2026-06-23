@@ -2240,19 +2240,9 @@ function App() {
   const fetchCostData = async () => {
     setLoadingCosts(true);
     setCostError(null);
-    let timeoutId: any = null;
     let billingTimeoutId: any = null;
     try {
-      const controller = new AbortController();
-      timeoutId = setTimeout(() => controller.abort(), 45000); // 45-second timeout
-
-      const res = await fetch(`${API_BASE}/apps/cost?organizationId=${organizationId}`, {
-        signal: controller.signal
-      });
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
-      }
+      const res = await fetch(`${API_BASE}/apps/cost?organizationId=${organizationId}`);
       
       let data: any;
       try {
@@ -2289,9 +2279,6 @@ function App() {
       const errorMsg = err.name === 'AbortError' ? 'Cost query timed out' : (err.message || 'Failed loading cost metrics.');
       setCostError(errorMsg);
     } finally {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
       if (billingTimeoutId) {
         clearTimeout(billingTimeoutId);
       }
