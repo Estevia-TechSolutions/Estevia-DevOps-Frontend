@@ -797,50 +797,102 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus {
   }
 }
 
-/* Premium Tab Spinners */
+/* Premium Double Orbit Spinners */
 .tab-loading-spin,
 .tab-build-spin {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  animation: tab-spin 0.95s cubic-bezier(0.5, 0.12, 0.5, 0.88) infinite;
-  flex-shrink: 0;
-  margin-left: 5px;
+  position: relative;
+  width: 11px;
+  height: 11px;
   display: inline-block;
   vertical-align: middle;
+  margin-left: 5px;
+  flex-shrink: 0;
 }
 
-@keyframes tab-spin {
+/* Outer ring */
+.tab-loading-spin::before,
+.tab-build-spin::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  animation: spin-clockwise 1.2s cubic-bezier(0.5, 0.15, 0.5, 0.85) infinite;
+  box-sizing: border-box;
+}
+
+/* Inner concentric ring */
+.tab-loading-spin::after,
+.tab-build-spin::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  animation: spin-counter-clockwise 0.9s cubic-bezier(0.5, 0.15, 0.5, 0.85) infinite;
+  box-sizing: border-box;
+}
+
+@keyframes spin-clockwise {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
 
-/* Purple Loading Spinner */
-.tab-loading-spin {
-  border: 2px solid rgba(139, 92, 246, 0.08);
-  border-top-color: #8b5cf6;
-  border-right-color: rgba(139, 92, 246, 0.45); /* Fading trail effect */
-  filter: drop-shadow(0 0 3px rgba(139, 92, 246, 0.55));
-}
-[data-theme="light"] .tab-loading-spin {
-  border-color: rgba(109, 40, 217, 0.05);
-  border-top-color: #6d28d9;
-  border-right-color: rgba(109, 40, 217, 0.35);
-  filter: drop-shadow(0 0 2px rgba(109, 40, 217, 0.3));
+@keyframes spin-counter-clockwise {
+  0% { transform: rotate(360deg); }
+  100% { transform: rotate(0deg); }
 }
 
-/* Amber Build Spinner */
-.tab-build-spin {
-  border: 2px solid rgba(251, 191, 36, 0.08);
-  border-top-color: #fbbf24;
-  border-right-color: rgba(251, 191, 36, 0.5); /* Fading trail effect */
-  filter: drop-shadow(0 0 3px rgba(251, 191, 36, 0.55));
+/* --- Purple/Fuchsia Loading Dual-Orbit --- */
+.tab-loading-spin::before {
+  border: 1.5px solid rgba(139, 92, 246, 0.05);
+  border-top-color: #8b5cf6;
+  border-right-color: rgba(139, 92, 246, 0.4);
+  filter: drop-shadow(0 0 2px rgba(139, 92, 246, 0.7));
 }
-[data-theme="light"] .tab-build-spin {
-  border-color: rgba(217, 119, 6, 0.05);
+.tab-loading-spin::after {
+  border: 1.2px solid rgba(217, 70, 239, 0.05);
+  border-bottom-color: #d946ef;
+  border-left-color: rgba(217, 70, 239, 0.4);
+  filter: drop-shadow(0 0 2px rgba(217, 70, 239, 0.7));
+}
+
+[data-theme="light"] .tab-loading-spin::before {
+  border-color: rgba(109, 40, 217, 0.03);
+  border-top-color: #6d28d9;
+  border-right-color: rgba(109, 40, 217, 0.3);
+  filter: drop-shadow(0 0 1px rgba(109, 40, 217, 0.4));
+}
+[data-theme="light"] .tab-loading-spin::after {
+  border-color: rgba(162, 28, 175, 0.03);
+  border-bottom-color: #a21caf;
+  border-left-color: rgba(162, 28, 175, 0.3);
+  filter: drop-shadow(0 0 1px rgba(162, 28, 175, 0.4));
+}
+
+/* --- Amber/Orange Build Dual-Orbit --- */
+.tab-build-spin::before {
+  border: 1.5px solid rgba(251, 191, 36, 0.05);
+  border-top-color: #fbbf24;
+  border-right-color: rgba(251, 191, 36, 0.4);
+  filter: drop-shadow(0 0 2px rgba(251, 191, 36, 0.7));
+}
+.tab-build-spin::after {
+  border: 1.2px solid rgba(249, 115, 22, 0.05);
+  border-bottom-color: #f97316;
+  border-left-color: rgba(249, 115, 22, 0.4);
+  filter: drop-shadow(0 0 2px rgba(249, 115, 22, 0.7));
+}
+
+[data-theme="light"] .tab-build-spin::before {
+  border-color: rgba(217, 119, 6, 0.03);
   border-top-color: #d97706;
-  border-right-color: rgba(217, 119, 6, 0.35);
-  filter: drop-shadow(0 0 2px rgba(217, 119, 6, 0.3));
+  border-right-color: rgba(217, 119, 6, 0.3);
+  filter: drop-shadow(0 0 1px rgba(217, 119, 6, 0.4));
+}
+[data-theme="light"] .tab-build-spin::after {
+  border-color: rgba(194, 65, 12, 0.03);
+  border-bottom-color: #c2410c;
+  border-left-color: rgba(194, 65, 12, 0.3);
+  filter: drop-shadow(0 0 1px rgba(194, 65, 12, 0.4));
 }
 
 /* Clean Scope Page Toggles & Cards */
