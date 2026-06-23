@@ -687,6 +687,7 @@ function App() {
   }, []);
   
   const isGuidedProvisionRef = useRef(false);
+  const scanningRef = useRef(false);
   
   // Scanned Apps State
   const [apps, setApps] = useState<AppResource[]>([]);
@@ -2403,7 +2404,23 @@ function App() {
     if (token) {
       fetchCredentialStatus();
       fetchResourceGroups();
-      handleScan();
+      
+      // Load cached apps first, then run a live scan in the background
+      const loadCachedAndScan = async () => {
+        try {
+          const cachedRes = await fetch(`${API_BASE}/apps/scan?organizationId=${organizationId}&cached=true`);
+          const cachedData = await cachedRes.json();
+          if (cachedData.success && cachedData.apps && cachedData.apps.length > 0) {
+            console.log('[DevOps] Instantly loaded cached resources:', cachedData.apps.length);
+            setApps(cachedData.apps);
+          }
+        } catch (e) {
+          console.warn('[DevOps] Failed to load cached apps:', e);
+        }
+        handleScan(); // Perform live scan in the background
+      };
+      loadCachedAndScan();
+
       fetchOrgSettings();
       fetchGithubRepos();
       fetchCostData();
@@ -2445,6 +2462,32 @@ function App() {
       };
     }
   }, [activeBuildsCount, token]);
+
+  // Polling cached scan data during active scan to update UI incrementally
+  useEffect(() => {
+    let interval: any = null;
+    if (scanning && token) {
+      console.log('[DevOps Incremental Polling] Scan is active. Polling cached resources every 3s...');
+      interval = setInterval(async () => {
+        try {
+          const res = await fetch(`${API_BASE}/apps/scan?organizationId=${organizationId}&cached=true`);
+          const data = await res.json();
+          if (data.success && data.apps && data.apps.length > 0) {
+            console.log('[DevOps Incremental Polling] Received progressive app updates:', data.apps.length);
+            setApps(data.apps);
+          }
+        } catch (e) {
+          console.warn('[DevOps Incremental Polling] Error fetching progressive updates:', e);
+        }
+      }, 3000);
+    }
+    return () => {
+      if (interval) {
+        console.log('[DevOps Incremental Polling] Stopping progressive updates polling.');
+        clearInterval(interval);
+      }
+    };
+  }, [scanning, token, organizationId]);
 
   // Apply theme to document root
   useEffect(() => {
@@ -3023,6 +3066,11 @@ function App() {
   };
 
   const handleScan = async (rg?: string, skipHealthChecks = false) => {
+    if (scanningRef.current) {
+      console.log('[DevOps Scan] Scan already in progress, skipping duplicate scan request.');
+      return;
+    }
+    scanningRef.current = true;
     setScanning(true);
     setScanError(null);
     setSyncCountdown(300); // Reset timer on manual scan
@@ -3070,7 +3118,7 @@ function App() {
 
         // Auto-update cost management metrics as part of the scan flow
         console.log('[DevOps Scan] Triggering cost metrics refresh...');
-        await fetchCostData();
+        fetchCostData();
       } else {
         console.error('[DevOps Scan] [API ERROR] Backend reported failure:', data.message || data.error);
         setScanError(data.message || 'Failed to scan Azure resources.');
@@ -3085,6 +3133,7 @@ function App() {
     } finally {
       console.log('[DevOps Scan] [END] Scan finished.');
       setScanning(false);
+      scanningRef.current = false;
     }
   };
 
@@ -5363,6 +5412,7 @@ function App() {
             ymlHealthMap={ymlHealthMap}
             ymlHealthLoading={ymlHealthLoading}
             handleScan={handleScan}
+            refreshHealthForRepo={refreshHealthForRepo}
             theme={theme}
             setSelectedStageForJobs={setSelectedStageForJobs}
             azureDevopsOrgUrl={azureDevopsOrgUrl}

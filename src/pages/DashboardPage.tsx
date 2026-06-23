@@ -151,6 +151,7 @@ interface DashboardPageProps {
   controllingResource?: string | null;
   onBuildTransition?: (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
   onShowBuildHistory?: (app: AppResource) => void;
+  refreshHealthForRepo?: (repo: string) => void;
 }
 
 const isBuildActive = (run: any) => {
@@ -187,7 +188,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   onResourceControl,
   controllingResource,
   onBuildTransition,
-  onShowBuildHistory
+  onShowBuildHistory,
+  refreshHealthForRepo
 }) => {
   const isViewer = currentUser?.role === 'viewer';
   const organizationId = currentUser?.organization_id || 'estevia';
@@ -203,6 +205,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [complianceSearchQuery, setComplianceSearchQuery] = React.useState<string>('');
   const [selectedViolationIds, setSelectedViolationIds] = React.useState<string[]>([]);
   const [batchRemediating, setBatchRemediating] = React.useState<boolean>(false);
+  const [hoveredErrorGroup, setHoveredErrorGroup] = React.useState<string | null>(null);
 
   const fetchCompliance = async () => {
     setLoadingCompliance(true);
@@ -1819,8 +1822,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   {/* Scan Error Badge */}
                   {!isLoading && health?.error && (
                     <span 
-                      title={health.message || 'Check failed'}
+                      onMouseEnter={() => setHoveredErrorGroup(group.key)}
+                      onMouseLeave={() => setHoveredErrorGroup(null)}
                       style={{
+                        position: 'relative',
                         background: theme === 'light' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.12)',
                         border: theme === 'light' ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
                         padding: '3px 8px',
@@ -1833,7 +1838,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         fontWeight: 600,
                         boxShadow: theme === 'light' ? '0 1px 3px rgba(239, 68, 68, 0.05)' : '0 0 8px rgba(239, 68, 68, 0.2)',
                         transition: 'all 0.2s ease',
-                        cursor: 'help'
+                        cursor: 'default'
                       }}
                       onMouseOver={(ev) => {
                         ev.currentTarget.style.transform = 'scale(1.03)';
@@ -1843,7 +1848,97 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                       }}
                     >
                       <AlertCircle size={11} />
-                      <span>Cannot Check</span>
+                      <span>
+                        {health.message?.toLowerCase().includes('abort') || health.message?.toLowerCase().includes('timeout')
+                          ? 'Cannot check (request timed out)'
+                          : `Cannot check (${health.message || 'Check failed'})`}
+                      </span>
+                      {refreshHealthForRepo && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            refreshHealthForRepo(firstEnv?.repositoryUrl || group.repoUrl || '');
+                          }}
+                          style={{
+                            background: 'rgba(255, 255, 255, 0.08)',
+                            border: '1px solid var(--glass-border)',
+                            color: theme === 'light' ? '#dc2626' : '#f87171',
+                            borderRadius: '4px',
+                            padding: '1px 6px',
+                            fontSize: '0.65rem',
+                            cursor: 'pointer',
+                            marginLeft: '8px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseOver={(ev) => {
+                            ev.stopPropagation();
+                            ev.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                          }}
+                          onMouseOut={(ev) => {
+                            ev.stopPropagation();
+                            ev.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                          }}
+                        >
+                          <RefreshCw size={10} />
+                          Retry
+                        </button>
+                      )}
+                      {/* Floating custom tooltip */}
+                      {hoveredErrorGroup === group.key && (
+                        <div style={{
+                          position: 'absolute',
+                          bottom: 'calc(100% + 8px)',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          backgroundColor: '#090d16',
+                          color: '#f87171',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          borderRadius: '8px',
+                          padding: '8px 12px',
+                          fontSize: '0.72rem',
+                          fontWeight: 500,
+                          whiteSpace: 'normal',
+                          width: 'max-content',
+                          maxWidth: '280px',
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+                          zIndex: 99999,
+                          pointerEvents: 'none',
+                          lineHeight: '1.4',
+                          textAlign: 'center'
+                        }}>
+                          <div style={{ fontWeight: 700, marginBottom: '2px', color: '#ef4444' }}>Scan Error Detail:</div>
+                          {health.message || 'Check failed'}
+                          {/* Arrow */}
+                          <div style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            width: '0',
+                            height: '0',
+                            borderStyle: 'solid',
+                            borderWidth: '6px 6px 0 6px',
+                            borderColor: '#090d16 transparent transparent transparent'
+                          }} />
+                          {/* Inner red border arrow */}
+                          <div style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: '50%',
+                            transform: 'translateX(-50%) translateY(-1px)',
+                            width: '0',
+                            height: '0',
+                            borderStyle: 'solid',
+                            borderWidth: '6px 6px 0 6px',
+                            borderColor: 'rgba(239, 68, 68, 0.3) transparent transparent transparent',
+                            zIndex: -1
+                          }} />
+                        </div>
+                      )}
                     </span>
                   )}
 
