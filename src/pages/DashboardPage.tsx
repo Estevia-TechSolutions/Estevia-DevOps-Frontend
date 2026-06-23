@@ -3161,82 +3161,131 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                   {/* Violations Details & Remediation */}
                   <div className="glass-panel" style={{ padding: '24px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
-                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Identified Governance Violations</h3>
-                      
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '16px',
+                      marginBottom: '20px',
+                      borderBottom: '1px solid var(--glass-border)',
+                      paddingBottom: '18px'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                        <div>
+                          <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Identified Governance Violations</h3>
+                          <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                            Review resource configurations against corporate compliance policies and execute remediations.
+                          </p>
+                        </div>
+                      </div>
+
                       {/* Search & Filters Row */}
-                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <input
-                          type="text"
-                          placeholder="Search resource..."
-                          value={complianceSearchQuery}
-                          onChange={(e) => {
-                            setComplianceSearchQuery(e.target.value);
-                            setCompliancePage(1);
-                          }}
-                          style={{
-                            padding: '8px 14px',
-                            fontSize: '0.82rem',
-                            borderRadius: '8px',
-                            border: '1px solid var(--glass-border)',
-                            background: 'rgba(255, 255, 255, 0.03)',
-                            color: 'var(--text-primary)',
-                            outline: 'none',
-                            width: '180px',
-                            transition: 'border-color 0.2s ease',
-                          }}
-                          onFocus={(e) => e.target.style.borderColor = 'var(--accent-purple)'}
-                          onBlur={(e) => e.target.style.borderColor = 'var(--glass-border)'}
-                        />
-                        <select
-                          value={complianceFilterRule}
-                          onChange={(e) => {
-                            setComplianceFilterRule(e.target.value);
-                            setCompliancePage(1);
-                          }}
-                          style={{
-                            padding: '8px 14px',
-                            fontSize: '0.82rem',
-                            borderRadius: '8px',
-                            border: '1px solid var(--glass-border)',
-                            background: 'var(--bg-secondary)',
-                            color: 'var(--text-primary)',
-                            outline: 'none',
-                            cursor: 'pointer',
-                            transition: 'border-color 0.2s ease',
-                          }}
-                          onFocus={(e) => e.target.style.borderColor = 'var(--accent-purple)'}
-                          onBlur={(e) => e.target.style.borderColor = 'var(--glass-border)'}
-                        >
-                          <option value="all" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>All Rules</option>
-                          <option value="tagging" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Required Tagging</option>
-                          <option value="residency" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Region Residency</option>
-                          <option value="tls" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>SSL/TLS Security</option>
-                        </select>
-                        <select
-                          value={complianceFilterRemed}
-                          onChange={(e) => {
-                            setComplianceFilterRemed(e.target.value);
-                            setCompliancePage(1);
-                          }}
-                          style={{
-                            padding: '8px 14px',
-                            fontSize: '0.82rem',
-                            borderRadius: '8px',
-                            border: '1px solid var(--glass-border)',
-                            background: 'var(--bg-secondary)',
-                            color: 'var(--text-primary)',
-                            outline: 'none',
-                            cursor: 'pointer',
-                            transition: 'border-color 0.2s ease',
-                          }}
-                          onFocus={(e) => e.target.style.borderColor = 'var(--accent-purple)'}
-                          onBlur={(e) => e.target.style.borderColor = 'var(--glass-border)'}
-                        >
-                          <option value="all" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>All Actions</option>
-                          <option value="remediable" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>1-Click Remediate</option>
-                          <option value="manual" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Manual Action</option>
-                        </select>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
+                        {/* Search Input Container */}
+                        <div style={{ position: 'relative', flex: '1 1 240px', minWidth: '180px' }}>
+                          <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                          <input
+                            type="text"
+                            placeholder="Search resource..."
+                            value={complianceSearchQuery}
+                            onChange={(e) => {
+                              setComplianceSearchQuery(e.target.value);
+                              setCompliancePage(1);
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '8px 12px 8px 34px',
+                              fontSize: '0.82rem',
+                              borderRadius: '8px',
+                              border: '1px solid var(--glass-border)',
+                              background: theme === 'light' ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.03)',
+                              color: 'var(--text-primary)',
+                              outline: 'none',
+                              transition: 'all 0.2s ease',
+                              boxSizing: 'border-box'
+                            }}
+                            onFocus={(e) => {
+                              e.target.style.borderColor = 'var(--accent-purple)';
+                              e.target.style.backgroundColor = theme === 'light' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.06)';
+                            }}
+                            onBlur={(e) => {
+                              e.target.style.borderColor = 'var(--glass-border)';
+                              e.target.style.backgroundColor = theme === 'light' ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.03)';
+                            }}
+                          />
+                        </div>
+
+                        {/* Rules Select Container */}
+                        <div style={{ flex: '1 1 180px', minWidth: '140px' }}>
+                          <select
+                            value={complianceFilterRule}
+                            onChange={(e) => {
+                              setComplianceFilterRule(e.target.value);
+                              setCompliancePage(1);
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '8px 12px',
+                              fontSize: '0.82rem',
+                              borderRadius: '8px',
+                              border: '1px solid var(--glass-border)',
+                              background: theme === 'light' ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.03)',
+                              color: 'var(--text-primary)',
+                              outline: 'none',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                              boxSizing: 'border-box'
+                            }}
+                            onFocus={(e) => {
+                              e.target.style.borderColor = 'var(--accent-purple)';
+                              e.target.style.backgroundColor = theme === 'light' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.06)';
+                            }}
+                            onBlur={(e) => {
+                              e.target.style.borderColor = 'var(--glass-border)';
+                              e.target.style.backgroundColor = theme === 'light' ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.03)';
+                            }}
+                          >
+                            <option value="all" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>All Rules</option>
+                            <option value="tagging" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Required Tagging</option>
+                            <option value="residency" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Region Residency</option>
+                            <option value="tls" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>SSL/TLS Security</option>
+                          </select>
+                        </div>
+
+                        {/* Actions Select Container */}
+                        <div style={{ flex: '1 1 180px', minWidth: '140px' }}>
+                          <select
+                            value={complianceFilterRemed}
+                            onChange={(e) => {
+                              setComplianceFilterRemed(e.target.value);
+                              setCompliancePage(1);
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '8px 12px',
+                              fontSize: '0.82rem',
+                              borderRadius: '8px',
+                              border: '1px solid var(--glass-border)',
+                              background: theme === 'light' ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.03)',
+                              color: 'var(--text-primary)',
+                              outline: 'none',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                              boxSizing: 'border-box'
+                            }}
+                            onFocus={(e) => {
+                              e.target.style.borderColor = 'var(--accent-purple)';
+                              e.target.style.backgroundColor = theme === 'light' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.06)';
+                            }}
+                            onBlur={(e) => {
+                              e.target.style.borderColor = 'var(--glass-border)';
+                              e.target.style.backgroundColor = theme === 'light' ? 'rgba(0, 0, 0, 0.03)' : 'rgba(255, 255, 255, 0.03)';
+                            }}
+                          >
+                            <option value="all" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>All Actions</option>
+                            <option value="remediable" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>1-Click Remediate</option>
+                            <option value="manual" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Manual Action</option>
+                          </select>
+                        </div>
 
                         {(complianceSearchQuery || complianceFilterRule !== 'all' || complianceFilterRemed !== 'all') && (
                           <button
@@ -3249,10 +3298,22 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               setCompliancePage(1);
                             }}
                             style={{
-                              padding: '8px 14px',
+                              padding: '8px 16px',
                               fontSize: '0.82rem',
                               borderRadius: '8px',
-                              cursor: 'pointer'
+                              cursor: 'pointer',
+                              border: '1px solid rgba(239, 68, 68, 0.25)',
+                              color: 'var(--error)',
+                              background: 'rgba(239, 68, 68, 0.05)',
+                              transition: 'all 0.25s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
+                              e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.05)';
+                              e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.25)';
                             }}
                           >
                             Reset Filters
