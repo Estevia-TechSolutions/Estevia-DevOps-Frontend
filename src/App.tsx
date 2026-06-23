@@ -2523,7 +2523,7 @@ function App() {
       const intervalTime = activeBuildsCount > 0 ? 7000 : 20000;
       console.log(`[DevOps Polling] Active builds: ${activeBuildsCount}. Starting status polling every ${intervalTime / 1000}s...`);
       const interval = setInterval(() => {
-        handleScan(undefined, true);
+        handleScan(undefined, true, true);
       }, intervalTime);
       return () => {
         console.log('[DevOps Polling] Clearing build status polling.');
@@ -3136,18 +3136,20 @@ function App() {
     }
   };
 
-  const handleScan = async (rg?: string, skipHealthChecks = false) => {
+  const handleScan = async (rg?: string, skipHealthChecks = false, buildsOnly = false) => {
     if (scanningRef.current) {
       console.log('[DevOps Scan] Scan already in progress, skipping duplicate scan request.');
       return;
     }
     scanningRef.current = true;
-    setScanning(true);
-    setScanError(null);
-    setSyncCountdown(300); // Reset timer on manual scan
+    if (!buildsOnly) {
+      setScanning(true);
+      setScanError(null);
+      setSyncCountdown(300); // Reset timer on manual scan
+    }
     const activeRg = rg !== undefined ? rg : selectedControlResourceGroup;
-    const scanUrl = `${API_BASE}/apps/scan?organizationId=${organizationId}${activeRg ? `&resourceGroup=${activeRg}` : ''}`;
-    console.log('[DevOps Scan] [START] Initiating Cloud Scan.', { organizationId, scanUrl });
+    const scanUrl = `${API_BASE}/apps/scan?organizationId=${organizationId}${activeRg ? `&resourceGroup=${activeRg}` : ''}${buildsOnly ? '&buildsOnly=true' : ''}`;
+    console.log('[DevOps Scan] [START] Initiating Cloud Scan.', { organizationId, scanUrl, buildsOnly });
     try {
       const res = await fetch(scanUrl);
       console.log('[DevOps Scan] [HTTP STATUS]', res.status, res.statusText);
@@ -3158,21 +3160,23 @@ function App() {
       if (data.success) {
         const appsCount = data.apps ? data.apps.length : 0;
         console.log(`[DevOps Scan] [SUCCESS] Discovered ${appsCount} resources.`, data.apps);
-        if (appsCount === 0) {
+        if (appsCount === 0 && !buildsOnly) {
           console.warn('[DevOps Scan] [WARN] Scan returned 0 active resources. Check Azure subscription permissions or resource group filters.');
         }
         setApps(data.apps || []);
         const newlyGrouped = groupApps(data.apps || []);
-        if (!skipHealthChecks) {
+        if (!skipHealthChecks && !buildsOnly) {
           // Stagger the health checks by 1.5 seconds to allow cost query to dispatch first, avoiding browser socket contention
           setTimeout(() => {
             fetchYmlHealthForGroups(newlyGrouped);
           }, 1500);
         }
-        addEvent('Cloud Scan Completed', `Discovered ${appsCount} resources in resource group: ${activeRg || 'All'}.`, 'scan', 'success');
+        if (!buildsOnly) {
+          addEvent('Cloud Scan Completed', `Discovered ${appsCount} resources in resource group: ${activeRg || 'All'}.`, 'scan', 'success');
+        }
         
-        // Dispatch integrity notifications if present
-        if (data.integrity) {
+        // Dispatch integrity notifications if present (only for full scans)
+        if (data.integrity && !buildsOnly) {
           const { github, godaddy, azure } = data.integrity;
           const details = [
             `GitHub: ${github.success ? '🟢 Healthy' : `🔴 ${github.message}`}`,
@@ -3190,20 +3194,26 @@ function App() {
           );
         }
 
-        // Auto-update cost management metrics as part of the scan flow
-        console.log('[DevOps Scan] Triggering cost metrics refresh...');
-        fetchCostData();
+        // Auto-update cost management metrics as part of the scan flow (only for full scans)
+        if (!buildsOnly) {
+          console.log('[DevOps Scan] Triggering cost metrics refresh...');
+          fetchCostData();
+        }
       } else {
         console.error('[DevOps Scan] [API ERROR] Backend reported failure:', data.message || data.error);
-        setScanError(data.message || 'Failed to scan Azure resources.');
-        addEvent('Cloud Scan Failed', data.message || 'Failed to scan Azure resources.', 'scan', 'failed');
-        addNotification('Cloud Scan Failed', data.message || 'Failed to scan Azure resources.', 'error');
+        if (!buildsOnly) {
+          setScanError(data.message || 'Failed to scan Azure resources.');
+          addEvent('Cloud Scan Failed', data.message || 'Failed to scan Azure resources.', 'scan', 'failed');
+          addNotification('Cloud Scan Failed', data.message || 'Failed to scan Azure resources.', 'error');
+        }
       }
     } catch (e: any) {
       console.error('[DevOps Scan] [FETCH EXCEPTION] Connection/parsing error:', e);
-      setScanError(e.message || 'Error connecting to the DevOps backend server.');
-      addEvent('Cloud Scan Error', e.message || 'Error connecting to the DevOps backend server.', 'scan', 'failed');
-      addNotification('Cloud Scan Error', e.message || 'Error connecting to the DevOps backend server.', 'error');
+      if (!buildsOnly) {
+        setScanError(e.message || 'Error connecting to the DevOps backend server.');
+        addEvent('Cloud Scan Error', e.message || 'Error connecting to the DevOps backend server.', 'scan', 'failed');
+        addNotification('Cloud Scan Error', e.message || 'Error connecting to the DevOps backend server.', 'error');
+      }
     } finally {
       console.log('[DevOps Scan] [END] Scan finished.');
       setScanning(false);
