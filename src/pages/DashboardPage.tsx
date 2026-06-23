@@ -190,6 +190,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [complianceData, setComplianceData] = React.useState<any | null>(null);
   const [loadingCompliance, setLoadingCompliance] = React.useState<boolean>(false);
   const [remediatingId, setRemediatingId] = React.useState<string | null>(null);
+  const [compliancePage, setCompliancePage] = React.useState(1);
 
   const fetchCompliance = async () => {
     setLoadingCompliance(true);
@@ -3107,67 +3108,113 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         <h4 style={{ margin: 0 }}>All assets compliant!</h4>
                         <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '4px', marginBottom: 0 }}>No active violations found against rules policy.</p>
                       </div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {complianceData && complianceData.violations.map((v: any, index: number) => (
-                          <div key={index} style={{
-                            padding: '16px',
-                            borderRadius: '10px',
-                            border: '1px solid rgba(239,68,68,0.15)',
-                            backgroundColor: 'rgba(239,68,68,0.02)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '12px'
-                          }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
-                              <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                  <span style={{
-                                    fontSize: '0.62rem',
-                                    fontWeight: 700,
-                                    textTransform: 'uppercase',
-                                    color: '#ef4444',
-                                    backgroundColor: 'rgba(239,68,68,0.1)',
-                                    padding: '2px 6px',
-                                    borderRadius: '4px',
-                                    border: '1px solid rgba(239,68,68,0.2)'
-                                  }}>
-                                    {v.ruleName}
-                                  </span>
-                                  <strong style={{ color: 'var(--text-primary)', fontSize: '0.88rem' }}>{v.resourceName}</strong>
-                                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.74rem' }}>({v.resourceType})</span>
-                                </div>
-                                <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '6px' }}>{v.message}</div>
-                              </div>
+                    ) : (() => {
+                      const violations = complianceData?.violations || [];
+                      const compliancePageSize = 5;
+                      const totalViolations = violations.length;
+                      const totalPages = Math.ceil(totalViolations / compliancePageSize) || 1;
+                      
+                      // Ensure current page is within valid range
+                      const currentPage = Math.min(compliancePage, totalPages);
+                      const startIndex = (currentPage - 1) * compliancePageSize;
+                      const paginatedViolations = violations.slice(startIndex, startIndex + compliancePageSize);
 
-                              {v.remediable && (
-                                <button
-                                  type="button"
-                                  className="btn-primary"
-                                  disabled={isViewer || remediatingId === v.suggestionId}
-                                  onClick={() => handleRemediate(v)}
-                                  style={{
-                                    padding: '6px 12px',
-                                    fontSize: '0.72rem',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    alignSelf: 'flex-start'
-                                  }}
-                                >
-                                  {remediatingId === v.suggestionId ? (
-                                    <RefreshCw size={10} className="spin-anim" />
-                                  ) : (
-                                    <Shield size={10} />
-                                  )}
-                                  <span>1-Click Remediate</span>
-                                </button>
-                              )}
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          {paginatedViolations.map((v: any, index: number) => (
+                            <div key={startIndex + index} style={{
+                              padding: '16px',
+                              borderRadius: '10px',
+                              border: '1px solid rgba(239,68,68,0.15)',
+                              backgroundColor: 'rgba(239,68,68,0.02)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '12px'
+                            }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+                                <div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                    <span style={{
+                                      fontSize: '0.62rem',
+                                      fontWeight: 700,
+                                      textTransform: 'uppercase',
+                                      color: '#ef4444',
+                                      backgroundColor: 'rgba(239,68,68,0.1)',
+                                      padding: '2px 6px',
+                                      borderRadius: '4px',
+                                      border: '1px solid rgba(239,68,68,0.2)'
+                                    }}>
+                                      {v.ruleName}
+                                    </span>
+                                    <strong style={{ color: 'var(--text-primary)', fontSize: '0.88rem' }}>{v.resourceName}</strong>
+                                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.74rem' }}>({v.resourceType})</span>
+                                  </div>
+                                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '6px' }}>{v.message}</div>
+                                </div>
+
+                                {v.remediable && (
+                                  <button
+                                    type="button"
+                                    className="btn-primary"
+                                    disabled={isViewer || remediatingId === v.suggestionId}
+                                    onClick={() => handleRemediate(v)}
+                                    style={{
+                                      padding: '6px 12px',
+                                      fontSize: '0.72rem',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      alignSelf: 'flex-start'
+                                    }}
+                                  >
+                                    {remediatingId === v.suggestionId ? (
+                                      <RefreshCw size={10} className="spin-anim" />
+                                    ) : (
+                                      <Shield size={10} />
+                                    )}
+                                    <span>1-Click Remediate</span>
+                                  </button>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                          ))}
+
+                          {/* Pagination controls */}
+                          {totalPages > 1 && (
+                            <div style={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between', 
+                              alignItems: 'center', 
+                              marginTop: '16px',
+                              paddingTop: '16px',
+                              borderTop: '1px solid var(--glass-border)'
+                            }}>
+                              <button
+                                type="button"
+                                className="btn-secondary"
+                                disabled={currentPage === 1}
+                                onClick={() => setCompliancePage(p => Math.max(1, p - 1))}
+                                style={{ padding: '6px 12px', fontSize: '0.74rem' }}
+                              >
+                                Previous
+                              </button>
+                              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                                Page <strong>{currentPage}</strong> of {totalPages} ({totalViolations} violations)
+                              </span>
+                              <button
+                                type="button"
+                                className="btn-secondary"
+                                disabled={currentPage === totalPages}
+                                onClick={() => setCompliancePage(p => Math.min(totalPages, p + 1))}
+                                style={{ padding: '6px 12px', fontSize: '0.74rem' }}
+                              >
+                                Next
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </>
               )}
