@@ -23,6 +23,7 @@ interface Schedule {
 interface SchedulerRules {
   autoScaleAca: boolean;
   autoStopVm: boolean;
+  autoStopCluster: boolean;
   schedules: Schedule[];
 }
 
@@ -55,6 +56,7 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
     const normalized: SchedulerRules = {
       autoScaleAca: dataRules.autoScaleAca !== undefined ? dataRules.autoScaleAca : true,
       autoStopVm: dataRules.autoStopVm !== undefined ? dataRules.autoStopVm : false,
+      autoStopCluster: dataRules.autoStopCluster !== undefined ? dataRules.autoStopCluster : false,
       schedules: []
     };
 
@@ -158,12 +160,12 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
       const totalHoursInWeek = 24 * 7;
       const sleepHours = Math.max(0, totalHoursInWeek - activeHours);
       
-      const rate = app.app_type === 'backend' ? 0.15 : 0.05;
+      const rate = app.app_type === 'backend' ? 0.15 : app.app_type === 'cluster' ? 0.35 : 0.05;
       totalSavings += sleepHours * rate * 4.3; // 4.3 weeks per month
     });
 
-    // Add VM savings if enabled
-    if (rules.autoStopVm) {
+    // Add VM / AKS savings if enabled
+    if (rules.autoStopVm || rules.autoStopCluster) {
       let maxSleepHours = 0;
       rules.schedules.forEach(s => {
         let activeHours = 0;
@@ -179,7 +181,12 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
         const sleepHours = 24 * 7 - activeHours;
         if (sleepHours > maxSleepHours) maxSleepHours = sleepHours;
       });
-      totalSavings += maxSleepHours * 0.10 * 4.3;
+      
+      let baseRate = 0;
+      if (rules.autoStopVm) baseRate += 0.10;
+      if (rules.autoStopCluster) baseRate += 0.25;
+      
+      totalSavings += maxSleepHours * baseRate * 4.3;
     }
 
     setSavingsEstimate(parseFloat(totalSavings.toFixed(2)));
@@ -290,8 +297,8 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
     });
   };
 
-  // Toggle AutoScale / AutoStop options
-  const handleToggleRule = (field: 'autoScaleAca' | 'autoStopVm') => {
+  // Toggle AutoScale / AutoStop / autoStopCluster options
+  const handleToggleRule = (field: 'autoScaleAca' | 'autoStopVm' | 'autoStopCluster') => {
     if (!rules) return;
     setRules({
       ...rules,
@@ -460,6 +467,16 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
               />
               Auto-Stop Dev VM
             </label>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={rules.autoStopCluster}
+                onChange={() => handleToggleRule('autoStopCluster')}
+                style={{ cursor: 'pointer' }}
+              />
+              Auto-Stop Dev AKS
+            </label>
           </div>
         </div>
 
@@ -619,11 +636,13 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
                           const isChecked = activeSchedule.selectedApps.includes(app.name);
                           const isBackend = app.app_type === 'backend';
                           const isVm = app.app_type === 'vm';
+                          const isCluster = app.app_type === 'cluster';
                           
                           let borderColor = '1px solid var(--glass-border)';
                           if (isChecked) {
                             if (isBackend) borderColor = '1px solid rgba(16, 185, 129, 0.35)';
                             else if (isVm) borderColor = '1px solid rgba(245, 158, 11, 0.35)';
+                            else if (isCluster) borderColor = '1px solid rgba(59, 130, 246, 0.35)';
                             else borderColor = '1px solid rgba(59, 130, 246, 0.35)';
                           }
 
@@ -665,12 +684,12 @@ export const SleepScheduler: React.FC<SleepSchedulerProps> = ({ API_BASE, organi
                                   alignSelf: 'flex-start',
                                   fontWeight: 600,
                                   textTransform: 'uppercase',
-                                  color: isBackend ? 'var(--success)' : isVm ? '#f59e0b' : 'var(--accent-blue)',
-                                  background: isBackend ? 'rgba(34,197,94,0.08)' : isVm ? 'rgba(245,158,11,0.08)' : 'rgba(59,130,246,0.08)',
+                                  color: isBackend ? 'var(--success)' : isVm ? '#f59e0b' : isCluster ? 'var(--accent-blue)' : 'var(--accent-blue)',
+                                  background: isBackend ? 'rgba(34,197,94,0.08)' : isVm ? 'rgba(245,158,11,0.08)' : isCluster ? 'rgba(59,130,246,0.08)' : 'rgba(59,130,246,0.08)',
                                   padding: '0 4px',
                                   borderRadius: '2px'
                                 }}>
-                                  {isBackend ? 'ACA' : isVm ? 'VM' : 'SWA'}
+                                  {isBackend ? 'ACA' : isVm ? 'VM' : isCluster ? 'AKS' : 'SWA'}
                                 </span>
                               </div>
                             </div>
