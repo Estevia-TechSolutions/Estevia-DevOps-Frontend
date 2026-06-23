@@ -3175,14 +3175,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             setCompliancePage(1);
                           }}
                           style={{
-                            padding: '6px 12px',
-                            fontSize: '0.8rem',
-                            borderRadius: '6px',
+                            padding: '8px 14px',
+                            fontSize: '0.82rem',
+                            borderRadius: '8px',
                             border: '1px solid var(--glass-border)',
-                            background: 'rgba(255, 255, 255, 0.05)',
+                            background: 'rgba(255, 255, 255, 0.03)',
                             color: 'var(--text-primary)',
-                            width: '180px'
+                            outline: 'none',
+                            width: '180px',
+                            transition: 'border-color 0.2s ease',
                           }}
+                          onFocus={(e) => e.target.style.borderColor = 'var(--accent-purple)'}
+                          onBlur={(e) => e.target.style.borderColor = 'var(--glass-border)'}
                         />
                         <select
                           value={complianceFilterRule}
@@ -3191,18 +3195,23 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             setCompliancePage(1);
                           }}
                           style={{
-                            padding: '6px 12px',
-                            fontSize: '0.8rem',
-                            borderRadius: '6px',
+                            padding: '8px 14px',
+                            fontSize: '0.82rem',
+                            borderRadius: '8px',
                             border: '1px solid var(--glass-border)',
                             background: 'var(--bg-secondary)',
-                            color: 'var(--text-primary)'
+                            color: 'var(--text-primary)',
+                            outline: 'none',
+                            cursor: 'pointer',
+                            transition: 'border-color 0.2s ease',
                           }}
+                          onFocus={(e) => e.target.style.borderColor = 'var(--accent-purple)'}
+                          onBlur={(e) => e.target.style.borderColor = 'var(--glass-border)'}
                         >
-                          <option value="all">All Rules</option>
-                          <option value="tagging">Required Tagging</option>
-                          <option value="residency">Region Residency</option>
-                          <option value="tls">SSL/TLS Security</option>
+                          <option value="all" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>All Rules</option>
+                          <option value="tagging" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Required Tagging</option>
+                          <option value="residency" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Region Residency</option>
+                          <option value="tls" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>SSL/TLS Security</option>
                         </select>
                         <select
                           value={complianceFilterRemed}
@@ -3211,18 +3220,44 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             setCompliancePage(1);
                           }}
                           style={{
-                            padding: '6px 12px',
-                            fontSize: '0.8rem',
-                            borderRadius: '6px',
+                            padding: '8px 14px',
+                            fontSize: '0.82rem',
+                            borderRadius: '8px',
                             border: '1px solid var(--glass-border)',
                             background: 'var(--bg-secondary)',
-                            color: 'var(--text-primary)'
+                            color: 'var(--text-primary)',
+                            outline: 'none',
+                            cursor: 'pointer',
+                            transition: 'border-color 0.2s ease',
                           }}
+                          onFocus={(e) => e.target.style.borderColor = 'var(--accent-purple)'}
+                          onBlur={(e) => e.target.style.borderColor = 'var(--glass-border)'}
                         >
-                          <option value="all">All Actions</option>
-                          <option value="remediable">1-Click Remediate</option>
-                          <option value="manual">Manual Action</option>
+                          <option value="all" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>All Actions</option>
+                          <option value="remediable" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>1-Click Remediate</option>
+                          <option value="manual" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Manual Action</option>
                         </select>
+
+                        {(complianceSearchQuery || complianceFilterRule !== 'all' || complianceFilterRemed !== 'all') && (
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={() => {
+                              setComplianceSearchQuery('');
+                              setComplianceFilterRule('all');
+                              setComplianceFilterRemed('all');
+                              setCompliancePage(1);
+                            }}
+                            style={{
+                              padding: '8px 14px',
+                              fontSize: '0.82rem',
+                              borderRadius: '8px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Reset Filters
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -3237,7 +3272,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                       
                       // Apply Filters
                       const filteredViolations = allViolations.filter((v: any) => {
-                        const matchesSearch = v.resourceName.toLowerCase().includes(complianceSearchQuery.toLowerCase()) || v.resourceType.toLowerCase().includes(complianceSearchQuery.toLowerCase());
+                        const matchesSearch = !complianceSearchQuery ? true : (
+                          v.resourceName?.toLowerCase().includes(complianceSearchQuery.toLowerCase()) || 
+                          v.resourceType?.toLowerCase().includes(complianceSearchQuery.toLowerCase()) ||
+                          v.ruleName?.toLowerCase().includes(complianceSearchQuery.toLowerCase()) ||
+                          v.message?.toLowerCase().includes(complianceSearchQuery.toLowerCase())
+                        );
                         const matchesRule = complianceFilterRule === 'all' || v.ruleId === complianceFilterRule;
                         const matchesRemed = complianceFilterRemed === 'all' || 
                                              (complianceFilterRemed === 'remediable' && v.remediable) ||
@@ -3246,7 +3286,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                       });
 
                       const totalViolations = filteredViolations.length;
-                      const compliancePageSize = 8; // 8 items for a grid layout looks fantastic
+                      const compliancePageSize = 10; // Paginate with 10 items per page
                       const totalPages = Math.ceil(totalViolations / compliancePageSize) || 1;
                       const currentPage = Math.min(compliancePage, totalPages);
                       const startIndex = (currentPage - 1) * compliancePageSize;
