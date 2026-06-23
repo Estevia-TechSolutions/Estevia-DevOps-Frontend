@@ -147,6 +147,7 @@ interface CostPageProps {
   onResourceControl?: (name: string, action: 'start' | 'stop' | 'restart') => void;
   controllingResource?: string | null;
   mode?: 'cost' | 'optimization';
+  fetchCostData?: () => void;
 }
 
 export const CostPage: React.FC<CostPageProps> = ({
@@ -173,6 +174,7 @@ export const CostPage: React.FC<CostPageProps> = ({
   organizationId,
   onResourceControl,
   controllingResource,
+  fetchCostData,
   mode = 'optimization'
 }) => {
 
@@ -1305,7 +1307,27 @@ export const CostPage: React.FC<CostPageProps> = ({
               <span>Loading subscription costs...</span>
             </div>
           ) : costError ? (
-            <div style={{ color: 'var(--error)' }}>❌ Error: {costError}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--error)', padding: '10px 0' }}>
+              <span>❌ Error: {costError}</span>
+              {fetchCostData && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => fetchCostData()}
+                  style={{
+                    padding: '4px 10px',
+                    fontSize: '0.74rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <RefreshCw size={12} />
+                  Retry Cost Fetch
+                </button>
+              )}
+            </div>
           ) : filteredCosts.length === 0 ? (
             <div style={{ color: 'var(--text-secondary)', padding: '20px 0' }}>No resources match current filter criteria.</div>
           ) : (

@@ -205,7 +205,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [complianceSearchQuery, setComplianceSearchQuery] = React.useState<string>('');
   const [selectedViolationIds, setSelectedViolationIds] = React.useState<string[]>([]);
   const [batchRemediating, setBatchRemediating] = React.useState<boolean>(false);
-  const [hoveredErrorGroup, setHoveredErrorGroup] = React.useState<string | null>(null);
+  const [hoveredErrorTooltipData, setHoveredErrorTooltipData] = React.useState<{
+    groupKey: string;
+    errorMessage: string;
+    top: number;
+    left: number;
+  } | null>(null);
 
   const fetchCompliance = async () => {
     setLoadingCompliance(true);
@@ -1199,9 +1204,33 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         }
       `}</style>
       {scanError && (
-        <div className="glass-panel" style={{ padding: '16px', borderColor: 'var(--error)', backgroundColor: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-          <AlertCircle style={{ color: 'var(--error)' }} />
-          <span>{scanError}</span>
+        <div className="glass-panel" style={{ padding: '16px', borderColor: 'var(--error)', backgroundColor: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <AlertCircle style={{ color: 'var(--error)', flexShrink: 0 }} />
+            <span style={{ color: 'var(--text-primary)' }}>{scanError}</span>
+          </div>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => handleScan()}
+            disabled={scanning}
+            style={{
+              padding: '6px 12px',
+              fontSize: '0.78rem',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: scanning ? 'not-allowed' : 'pointer',
+              opacity: scanning ? 0.6 : 1,
+              borderColor: 'rgba(239, 68, 68, 0.4)',
+              color: 'var(--text-primary)',
+              flexShrink: 0
+            }}
+          >
+            <RefreshCw size={12} className={scanning ? "spin-anim" : ""} />
+            Retry Scan
+          </button>
         </div>
       )}
 
@@ -1217,10 +1246,32 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </div>
         </div>
       ) : apps.length === 0 ? (
-        <div className="glass-panel" style={{ padding: '60px', textAlign: 'center' }}>
-          <Search size={48} style={{ color: 'var(--text-secondary)', marginBottom: '16px' }} />
-          <h3>No active resources discovered</h3>
-          <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>Click the "Scan Active Cloud" button above to query Azure subscription.</p>
+        <div className="glass-panel" style={{ padding: '60px 40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+          <Search size={48} style={{ color: 'var(--text-secondary)' }} />
+          <div>
+            <h3 style={{ margin: 0 }}>No active resources discovered</h3>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '8px', marginBottom: 0 }}>Click the "Scan Active Cloud" button below to query Azure subscription.</p>
+          </div>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => handleScan()}
+            disabled={scanning}
+            style={{
+              marginTop: '8px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              fontSize: '0.85rem',
+              fontWeight: 500,
+              cursor: scanning ? 'not-allowed' : 'pointer',
+              opacity: scanning ? 0.6 : 1
+            }}
+          >
+            <RefreshCw size={14} className={scanning ? "spin-anim" : ""} />
+            Scan Active Cloud
+          </button>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
@@ -1822,8 +1873,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   {/* Scan Error Badge */}
                   {!isLoading && health?.error && (
                     <span 
-                      onMouseEnter={() => setHoveredErrorGroup(group.key)}
-                      onMouseLeave={() => setHoveredErrorGroup(null)}
+                      onMouseEnter={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setHoveredErrorTooltipData({
+                          groupKey: group.key,
+                          errorMessage: health.message || 'Check failed',
+                          top: rect.top - 8,
+                          left: rect.left + rect.width / 2
+                        });
+                      }}
+                      onMouseLeave={() => setHoveredErrorTooltipData(null)}
                       style={{
                         position: 'relative',
                         background: theme === 'light' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.12)',
@@ -1886,58 +1945,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                           <RefreshCw size={10} />
                           Retry
                         </button>
-                      )}
-                      {/* Floating custom tooltip */}
-                      {hoveredErrorGroup === group.key && (
-                        <div style={{
-                          position: 'absolute',
-                          bottom: 'calc(100% + 8px)',
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          backgroundColor: '#090d16',
-                          color: '#f87171',
-                          border: '1px solid rgba(239, 68, 68, 0.3)',
-                          borderRadius: '8px',
-                          padding: '8px 12px',
-                          fontSize: '0.72rem',
-                          fontWeight: 500,
-                          whiteSpace: 'normal',
-                          width: 'max-content',
-                          maxWidth: '280px',
-                          boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
-                          zIndex: 99999,
-                          pointerEvents: 'none',
-                          lineHeight: '1.4',
-                          textAlign: 'center'
-                        }}>
-                          <div style={{ fontWeight: 700, marginBottom: '2px', color: '#ef4444' }}>Scan Error Detail:</div>
-                          {health.message || 'Check failed'}
-                          {/* Arrow */}
-                          <div style={{
-                            position: 'absolute',
-                            top: '100%',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            width: '0',
-                            height: '0',
-                            borderStyle: 'solid',
-                            borderWidth: '6px 6px 0 6px',
-                            borderColor: '#090d16 transparent transparent transparent'
-                          }} />
-                          {/* Inner red border arrow */}
-                          <div style={{
-                            position: 'absolute',
-                            top: '100%',
-                            left: '50%',
-                            transform: 'translateX(-50%) translateY(-1px)',
-                            width: '0',
-                            height: '0',
-                            borderStyle: 'solid',
-                            borderWidth: '6px 6px 0 6px',
-                            borderColor: 'rgba(239, 68, 68, 0.3) transparent transparent transparent',
-                            zIndex: -1
-                          }} />
-                        </div>
                       )}
                     </span>
                   )}
@@ -4372,6 +4379,66 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 </div>
               );
             })}
+          </div>
+        );
+      })()}
+
+      {/* ── Group Header Error Fixed-Position Tooltip Portal ── */}
+      {hoveredErrorTooltipData && (() => {
+        const { errorMessage, top, left } = hoveredErrorTooltipData;
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              top: `${top}px`,
+              left: `${left}px`,
+              zIndex: 99999,
+              transform: 'translate(-50%, -100%)',
+              backgroundColor: '#090d16',
+              color: '#f87171',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              fontSize: '0.72rem',
+              fontWeight: 500,
+              whiteSpace: 'normal',
+              width: 'max-content',
+              maxWidth: '280px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+              pointerEvents: 'none',
+              lineHeight: '1.4',
+              textAlign: 'center',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)'
+            }}
+          >
+            <div style={{ fontWeight: 700, marginBottom: '2px', color: '#ef4444' }}>Scan Error Detail:</div>
+            {errorMessage || 'Check failed'}
+            {/* Arrow */}
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '0',
+              height: '0',
+              borderStyle: 'solid',
+              borderWidth: '6px 6px 0 6px',
+              borderColor: '#090d16 transparent transparent transparent'
+            }} />
+            {/* Inner red border arrow */}
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: '50%',
+              transform: 'translateX(-50%) translateY(-1px)',
+              width: '0',
+              height: '0',
+              borderStyle: 'solid',
+              borderWidth: '6px 6px 0 6px',
+              borderColor: 'rgba(239, 68, 68, 0.3) transparent transparent transparent',
+              zIndex: -1
+            }} />
           </div>
         );
       })()}

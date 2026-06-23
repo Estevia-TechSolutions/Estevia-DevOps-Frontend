@@ -1389,9 +1389,9 @@ function App() {
           await new Promise(r => setTimeout(r, index * 150));
         }
 
-        // Add AbortController to enforce a 30-second request timeout limit (starting after the stagger timer completes)
+        // Add AbortController to enforce a 60-second request timeout limit (starting after the stagger timer completes)
         const controller = new AbortController();
-        timeoutId = setTimeout(() => controller.abort(), 30000);
+        timeoutId = setTimeout(() => controller.abort(), 60000);
 
         const res = await fetch(
           `${API_BASE}/apps/yml-health?organizationId=${organizationId}` +
@@ -2209,28 +2209,61 @@ function App() {
   const fetchCostData = async () => {
     setLoadingCosts(true);
     setCostError(null);
+    let timeoutId: any = null;
+    let billingTimeoutId: any = null;
     try {
-      const res = await fetch(`${API_BASE}/apps/cost?organizationId=${organizationId}`);
-      const data = await res.json();
-      if (data.success) {
+      const controller = new AbortController();
+      timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
+
+      const res = await fetch(`${API_BASE}/apps/cost?organizationId=${organizationId}`, {
+        signal: controller.signal
+      });
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      
+      let data: any;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        data = { success: false, message: `Server error (${res.status})` };
+      }
+
+      if (res.ok && data && data.success) {
         setCostSummary(data.summary);
         setDetailedCosts(data.detailedCosts || []);
         setCostSuggestions(data.suggestions || []);
         setAppliedSuggestions(data.appliedSuggestions || []);
       } else {
-        throw new Error(data.message || 'Failed to retrieve cloud cost analytics.');
+        throw new Error((data && data.message) || 'Failed to retrieve cloud cost analytics.');
       }
 
       // Also fetch billing history invoices
-      const billingRes = await fetch(`${API_BASE}/apps/billing?organizationId=${organizationId}`);
+      const billingController = new AbortController();
+      billingTimeoutId = setTimeout(() => billingController.abort(), 10000); // 10-second timeout
+      const billingRes = await fetch(`${API_BASE}/apps/billing?organizationId=${organizationId}`, {
+        signal: billingController.signal
+      });
+      if (billingTimeoutId) {
+        clearTimeout(billingTimeoutId);
+        billingTimeoutId = null;
+      }
       if (billingRes.ok) {
         const billingData = await billingRes.json();
         setInvoices(billingData);
       }
     } catch (err: any) {
       console.error('[cost] Failed loading cost data:', err);
-      setCostError(err.message || 'Failed loading cost metrics.');
+      const errorMsg = err.name === 'AbortError' ? 'Cost query timed out' : (err.message || 'Failed loading cost metrics.');
+      setCostError(errorMsg);
     } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      if (billingTimeoutId) {
+        clearTimeout(billingTimeoutId);
+      }
       setLoadingCosts(false);
     }
   };
@@ -5669,6 +5702,7 @@ function App() {
             organizationId={organizationId}
             onResourceControl={handleResourceControl}
             controllingResource={controllingResource}
+            fetchCostData={fetchCostData}
             mode={activeTab === 'cost' ? 'cost' : 'optimization'}
           />
         )}
