@@ -1840,7 +1840,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         ev.currentTarget.style.transform = 'scale(1)';
                       }}
                     >
-                      <span>⚠ YAML Issues</span>
+                      <AlertCircle size={11} />
+                      <span>YAML Issues</span>
                       {!isViewer && (
                         <button
                           onClick={handleFixYml}
@@ -1896,7 +1897,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         ev.currentTarget.style.transform = 'scale(1)';
                       }}
                     >
-                      <span>🔴 Dockerfile Error</span>
+                      <AlertCircle size={11} />
+                      <span>Dockerfile Error</span>
                       {!isViewer && (
                         <button
                           onClick={handleFixDockerfile}
@@ -1955,7 +1957,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         ev.currentTarget.style.boxShadow = theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.05)' : '0 0 8px rgba(245, 158, 11, 0.2)';
                       }}
                     >
-                      <span>⚠ {health.ymlHealth.warningCount} YAML Warning{health.ymlHealth.warningCount > 1 ? 's' : ''}</span>
+                      <AlertCircle size={11} />
+                      <span>{health.ymlHealth.warningCount} YAML Warning{health.ymlHealth.warningCount > 1 ? 's' : ''}</span>
                     </span>
                   )}
 
@@ -1986,7 +1989,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         ev.currentTarget.style.boxShadow = theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.05)' : '0 0 8px rgba(245, 158, 11, 0.2)';
                       }}
                     >
-                      <span>🐳 {health.dockerfileHealth.warningCount} Dockerfile Warning{health.dockerfileHealth.warningCount > 1 ? 's' : ''}</span>
+                      <AlertCircle size={11} />
+                      <span>{health.dockerfileHealth.warningCount} Dockerfile Warning{health.dockerfileHealth.warningCount > 1 ? 's' : ''}</span>
                     </span>
                   )}
 
@@ -2259,37 +2263,89 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                               {/* YAML Health Details */}
                               {(item.type === 'frontend' || item.type === 'backend') && health?.ymlHealth && (
-                                <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
+                                <div style={{ fontSize: '0.72rem', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
                                   <span style={{ opacity: 0.7, flexShrink: 0 }}>📄 YAML:</span>
                                   {!health.ymlHealth.exists ? (
-                                    <span style={{ color: '#ef4444', fontWeight: 600 }}>🔴 Not Found</span>
+                                    <span style={{
+                                      background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                      border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                      color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                      padding: '2px 8px',
+                                      borderRadius: '10px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      fontSize: '0.68rem',
+                                      fontWeight: 600
+                                    }}>
+                                      <AlertCircle size={11} />
+                                      <span>Not Found</span>
+                                    </span>
                                   ) : health.ymlHealth.valid ? (
                                     health.ymlHealth.warningCount > 0 ? (
-                                      <span style={{ color: '#f59e0b', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                                        ⚠ {health.ymlHealth.warningCount} warning{health.ymlHealth.warningCount > 1 ? 's' : ''}
+                                      <span style={{
+                                        background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
+                                        border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
+                                        color: theme === 'light' ? '#b45309' : '#fbbf24',
+                                        padding: '2px 8px',
+                                        borderRadius: '10px',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        fontSize: '0.68rem',
+                                        fontWeight: 600
+                                      }}>
+                                        <AlertCircle size={11} />
+                                        <span>{health.ymlHealth.warningCount} warning{health.ymlHealth.warningCount > 1 ? 's' : ''}</span>
                                         {!isViewer && (
                                           <button
                                             type="button"
                                             onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); }}
-                                            style={{ background: 'none', border: 'none', color: 'var(--accent-purple)', textDecoration: 'underline', padding: 0, fontSize: '0.68rem', cursor: 'pointer', fontWeight: 600 }}
+                                            style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b45309' : '#fbbf24', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
                                           >
-                                            Fix Now →
+                                            Fix
                                           </button>
                                         )}
                                       </span>
                                     ) : (
-                                      <span style={{ color: '#10b981', fontWeight: 600 }}>✅ Valid</span>
+                                      <span style={{
+                                        background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(52, 211, 153, 0.12)',
+                                        border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(52, 211, 153, 0.3)',
+                                        color: theme === 'light' ? '#059669' : '#34d399',
+                                        padding: '2px 8px',
+                                        borderRadius: '10px',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        fontSize: '0.68rem',
+                                        fontWeight: 600
+                                      }}>
+                                        <ShieldCheck size={11} />
+                                        <span>Valid</span>
+                                      </span>
                                     )
                                   ) : (
-                                    <span style={{ color: '#ef4444', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                                      🔴 {health.ymlHealth.errors?.length || 0} error{health.ymlHealth.errors?.length > 1 ? 's' : ''}
+                                    <span style={{
+                                      background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                      border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                      color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                      padding: '2px 8px',
+                                      borderRadius: '10px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      fontSize: '0.68rem',
+                                      fontWeight: 600
+                                    }}>
+                                      <AlertCircle size={11} />
+                                      <span>{health.ymlHealth.errors?.length || 0} error{health.ymlHealth.errors?.length > 1 ? 's' : ''}</span>
                                       {!isViewer && (
                                         <button
                                           type="button"
                                           onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); }}
-                                          style={{ background: 'none', border: 'none', color: 'var(--accent-purple)', textDecoration: 'underline', padding: 0, fontSize: '0.68rem', cursor: 'pointer', fontWeight: 600 }}
+                                          style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b91c1c' : '#ef4444', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
                                         >
-                                          Fix Now →
+                                          Fix
                                         </button>
                                       )}
                                     </span>
@@ -2299,37 +2355,89 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                               {/* Dockerfile Health Details */}
                               {item.type === 'backend' && health?.dockerfileHealth && (
-                                <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
+                                <div style={{ fontSize: '0.72rem', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
                                   <span style={{ opacity: 0.7, flexShrink: 0 }}>🐳 Dockerfile:</span>
                                   {!health.dockerfileHealth.exists ? (
-                                    <span style={{ color: '#ef4444', fontWeight: 600 }}>🔴 Not Found</span>
+                                    <span style={{
+                                      background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                      border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                      color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                      padding: '2px 8px',
+                                      borderRadius: '10px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      fontSize: '0.68rem',
+                                      fontWeight: 600
+                                    }}>
+                                      <AlertCircle size={11} />
+                                      <span>Not Found</span>
+                                    </span>
                                   ) : health.dockerfileHealth.valid ? (
                                     health.dockerfileHealth.warningCount > 0 ? (
-                                      <span style={{ color: '#f59e0b', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                                        ⚠ {health.dockerfileHealth.warningCount} warning{health.dockerfileHealth.warningCount > 1 ? 's' : ''}
+                                      <span style={{
+                                        background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
+                                        border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
+                                        color: theme === 'light' ? '#b45309' : '#fbbf24',
+                                        padding: '2px 8px',
+                                        borderRadius: '10px',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        fontSize: '0.68rem',
+                                        fontWeight: 600
+                                      }}>
+                                        <AlertCircle size={11} />
+                                        <span>{health.dockerfileHealth.warningCount} warning{health.dockerfileHealth.warningCount > 1 ? 's' : ''}</span>
                                         {!isViewer && (
                                           <button
                                             type="button"
                                             onClick={(e) => { e.stopPropagation(); openDockerfileEditor(item, group); }}
-                                            style={{ background: 'none', border: 'none', color: 'var(--accent-purple)', textDecoration: 'underline', padding: 0, fontSize: '0.68rem', cursor: 'pointer', fontWeight: 600 }}
+                                            style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b45309' : '#fbbf24', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
                                           >
-                                            Fix Now →
+                                            Fix
                                           </button>
                                         )}
                                       </span>
                                     ) : (
-                                      <span style={{ color: '#10b981', fontWeight: 600 }}>✅ Valid</span>
+                                      <span style={{
+                                        background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(52, 211, 153, 0.12)',
+                                        border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(52, 211, 153, 0.3)',
+                                        color: theme === 'light' ? '#059669' : '#34d399',
+                                        padding: '2px 8px',
+                                        borderRadius: '10px',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        fontSize: '0.68rem',
+                                        fontWeight: 600
+                                      }}>
+                                        <ShieldCheck size={11} />
+                                        <span>Valid</span>
+                                      </span>
                                     )
                                   ) : (
-                                    <span style={{ color: '#ef4444', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                                      🔴 {health.dockerfileHealth.errors?.length || 0} error{health.dockerfileHealth.errors?.length > 1 ? 's' : ''}
+                                    <span style={{
+                                      background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                      border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                      color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                      padding: '2px 8px',
+                                      borderRadius: '10px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      fontSize: '0.68rem',
+                                      fontWeight: 600
+                                    }}>
+                                      <AlertCircle size={11} />
+                                      <span>{health.dockerfileHealth.errors?.length || 0} error{health.dockerfileHealth.errors?.length > 1 ? 's' : ''}</span>
                                       {!isViewer && (
                                         <button
                                           type="button"
                                           onClick={(e) => { e.stopPropagation(); openDockerfileEditor(item, group); }}
-                                          style={{ background: 'none', border: 'none', color: 'var(--accent-purple)', textDecoration: 'underline', padding: 0, fontSize: '0.68rem', cursor: 'pointer', fontWeight: 600 }}
+                                          style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b91c1c' : '#ef4444', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
                                         >
-                                          Fix Now →
+                                          Fix
                                         </button>
                                       )}
                                     </span>

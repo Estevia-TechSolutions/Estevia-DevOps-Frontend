@@ -406,6 +406,50 @@ interface EventLog {
 }
 
 function App() {
+  // Authentication states (moved to top for lexical scoping / shadow resolution)
+  const [token, setToken] = useState<string | null>(localStorage.getItem('devops_token'));
+  const [user, setUser] = useState<any>(() => {
+    const stored = localStorage.getItem('devops_user');
+    try {
+      return stored ? JSON.parse(stored) : null;
+    } catch (e: any) {
+      return null;
+    }
+  });
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // Custom authenticated fetch wrapper (shadows standard fetch)
+  const authFetch = async (url: RequestInfo | URL, options: RequestInit = {}) => {
+    const activeToken = localStorage.getItem('devops_token');
+    const headers = new Headers(options.headers || {});
+    
+    if (activeToken) {
+      headers.set('Authorization', `Bearer ${activeToken}`);
+    }
+    
+    if (options.body && typeof options.body === 'string' && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+    
+    const res = await window.fetch(url, {
+      ...options,
+      headers
+    });
+    
+    if (res.status === 401) {
+      console.warn('[authFetch] Unauthorized session. Logging out.');
+      setToken(null);
+      setUser(null);
+      localStorage.removeItem('devops_token');
+      localStorage.removeItem('devops_user');
+    }
+    
+    return res;
+  };
+
+  const fetch = authFetch;
+
   const [activeTab, setActiveTab] = useState<'scan' | 'provision' | 'credentials' | 'cost' | 'optimization' | 'databases' | 'guide' | 'users' | 'events'>('scan');
   const [organizationId, setOrganizationId] = useState<string>(
     new URLSearchParams(window.location.search).get('org') || 'estevia'
@@ -1337,15 +1381,16 @@ function App() {
       const isBackend = group.type === 'backend';
       
       setYmlHealthLoading(prev => ({ ...prev, [group.key]: true }));
+      let timeoutId: any = null;
       try {
         // Stagger requests slightly to avoid hitting GitHub rate limits
         if (index > 0) {
           await new Promise(r => setTimeout(r, index * 150));
         }
 
-        // Add AbortController to enforce a 10-second request timeout limit
+        // Add AbortController to enforce a 30-second request timeout limit (starting after the stagger timer completes)
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        timeoutId = setTimeout(() => controller.abort(), 30000);
 
         const res = await fetch(
           `${API_BASE}/apps/yml-health?organizationId=${organizationId}` +
@@ -1355,7 +1400,10 @@ function App() {
           `&checkDockerfile=${isBackend}`,
           { signal: controller.signal }
         );
-        clearTimeout(timeoutId);
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
         
         const data = await res.json();
         if (data.success) {
@@ -1364,6 +1412,9 @@ function App() {
       } catch (e: any) {
         console.error(`Failed to fetch health check for group ${group.key}:`, e);
       } finally {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
         setYmlHealthLoading(prev => ({ ...prev, [group.key]: false }));
       }
     });
@@ -1459,49 +1510,7 @@ function App() {
 
   const [syncCountdown, setSyncCountdown] = useState<number>(300);
 
-  // Authentication states
-  const [token, setToken] = useState<string | null>(localStorage.getItem('devops_token'));
-  const [user, setUser] = useState<any>(() => {
-    const stored = localStorage.getItem('devops_user');
-    try {
-      return stored ? JSON.parse(stored) : null;
-    } catch (e: any) {
-      return null;
-    }
-  });
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-
-  // Custom authenticated fetch wrapper (shadows standard fetch)
-  const authFetch = async (url: RequestInfo | URL, options: RequestInit = {}) => {
-    const activeToken = localStorage.getItem('devops_token');
-    const headers = new Headers(options.headers || {});
-    
-    if (activeToken) {
-      headers.set('Authorization', `Bearer ${activeToken}`);
-    }
-    
-    if (options.body && typeof options.body === 'string' && !headers.has('Content-Type')) {
-      headers.set('Content-Type', 'application/json');
-    }
-    
-    const res = await window.fetch(url, {
-      ...options,
-      headers
-    });
-    
-    if (res.status === 401) {
-      console.warn('[authFetch] Unauthorized session. Logging out.');
-      setToken(null);
-      setUser(null);
-      localStorage.removeItem('devops_token');
-      localStorage.removeItem('devops_user');
-    }
-    
-    return res;
-  };
-
-  const fetch = authFetch;
+  // Authentication wrapper and states moved to the top of App component for lexical scope resolution
 
   // Admin Override login state
   const [showAdminOverrideForm, setShowAdminOverrideForm] = useState(false);
