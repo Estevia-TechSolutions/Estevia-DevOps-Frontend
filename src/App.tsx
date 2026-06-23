@@ -1396,15 +1396,15 @@ function App() {
         let timeoutId: any = null;
         try {
           // Stagger requests slightly to avoid hitting GitHub rate limits
-          const expectedStartTime = startTime + currentIndex * 150;
+          const expectedStartTime = startTime + currentIndex * 400;
           const delay = expectedStartTime - Date.now();
           if (delay > 0) {
             await new Promise(r => setTimeout(r, delay));
           }
 
-          // Add AbortController to enforce a 45-second request timeout limit (starting after the stagger timer completes)
+          // Add AbortController to enforce a 60-second request timeout limit (starting after the stagger timer completes)
           const controller = new AbortController();
-          timeoutId = setTimeout(() => controller.abort(), 45000);
+          timeoutId = setTimeout(() => controller.abort(), 60000);
 
           const res = await fetch(
             `${API_BASE}/apps/yml-health?organizationId=${organizationId}` +
@@ -2509,13 +2509,14 @@ function App() {
 
   // Polling for active pipeline runs/builds status updates
   useEffect(() => {
-    if (activeBuildsCount > 0 && token) {
-      console.log(`[DevOps Polling] ${activeBuildsCount} build(s) active. Starting rapid scan polling every 7s...`);
+    if (token) {
+      const intervalTime = activeBuildsCount > 0 ? 7000 : 20000;
+      console.log(`[DevOps Polling] Active builds: ${activeBuildsCount}. Starting status polling every ${intervalTime / 1000}s...`);
       const interval = setInterval(() => {
         handleScan(undefined, true);
-      }, 7000);
+      }, intervalTime);
       return () => {
-        console.log('[DevOps Polling] Clearing rapid build status polling.');
+        console.log('[DevOps Polling] Clearing build status polling.');
         clearInterval(interval);
       };
     }
@@ -3153,7 +3154,10 @@ function App() {
         setApps(data.apps || []);
         const newlyGrouped = groupApps(data.apps || []);
         if (!skipHealthChecks) {
-          fetchYmlHealthForGroups(newlyGrouped);
+          // Stagger the health checks by 1.5 seconds to allow cost query to dispatch first, avoiding browser socket contention
+          setTimeout(() => {
+            fetchYmlHealthForGroups(newlyGrouped);
+          }, 1500);
         }
         addEvent('Cloud Scan Completed', `Discovered ${appsCount} resources in resource group: ${activeRg || 'All'}.`, 'scan', 'success');
         
