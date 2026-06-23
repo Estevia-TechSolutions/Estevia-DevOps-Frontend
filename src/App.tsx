@@ -695,13 +695,20 @@ function App() {
   
   // Scanned Apps State
   const [apps, setApps] = useState<AppResource[]>([]);
+  const [livePipelineRuns, setLivePipelineRuns] = useState<Record<number | string, any>>({});
   const activeBuildsCount = useMemo(() => {
     return apps.filter(app => {
-      if (!app.pipelineRun || !app.pipelineRun.state) return false;
-      const s = app.pipelineRun.state.toLowerCase();
+      const runId = app.pipelineRun?.id;
+      const pidKey = app.pipelineId ? `pid-${app.pipelineId}` : null;
+      const liveRun =
+        (pidKey && livePipelineRuns[pidKey]) ||
+        (runId && livePipelineRuns[runId]) ||
+        app.pipelineRun;
+      if (!liveRun || !liveRun.state) return false;
+      const s = liveRun.state.toLowerCase();
       return s === 'inprogress' || s === 'running' || s === 'canceling' || s === 'cancelling' || s === 'notstarted' || s === 'queued';
     }).length;
-  }, [apps]);
+  }, [apps, livePipelineRuns]);
 
   const [scanning, setScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
@@ -5606,6 +5613,8 @@ function App() {
             currentUser={user}
             onShowLogs={setActiveLogsAppName}
             onShowBuildHistory={(app) => setBuildHistoryDrawerApp(app)}
+            livePipelineRuns={livePipelineRuns}
+            setLivePipelineRuns={setLivePipelineRuns}
             onCloneApp={setCloningApp}
             onResourceControl={handleResourceControl}
             controllingResource={controllingResource}

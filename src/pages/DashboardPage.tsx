@@ -152,6 +152,8 @@ interface DashboardPageProps {
   onBuildTransition?: (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info') => void;
   onShowBuildHistory?: (app: AppResource) => void;
   refreshHealthForRepo?: (repo: string) => void;
+  livePipelineRuns: Record<number | string, any>;
+  setLivePipelineRuns: React.Dispatch<React.SetStateAction<Record<number | string, any>>>;
 }
 
 const isBuildActive = (run: any) => {
@@ -189,7 +191,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   controllingResource,
   onBuildTransition,
   onShowBuildHistory,
-  refreshHealthForRepo
+  refreshHealthForRepo,
+  livePipelineRuns,
+  setLivePipelineRuns
 }) => {
   const isViewer = currentUser?.role === 'viewer';
   const organizationId = currentUser?.organization_id || 'estevia';
@@ -422,9 +426,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     top: number;
     right: number;
   } | null>(null);
-
-  // Live pipeline build runs overridden telemetry
-  const [livePipelineRuns, setLivePipelineRuns] = React.useState<Record<number | string, any>>({});
 
   // Tracks which pipelineIds have finished their initial latest-build fetch
   const [loadedPipelines, setLoadedPipelines] = React.useState<Record<string, boolean>>({});
