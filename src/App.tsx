@@ -1290,6 +1290,7 @@ function App() {
       const data = await res.json();
       if (data.success) {
         setDockerfileContent(content); // update local state
+        refreshHealthForRepo(repo);
         return { success: true, message: data.message };
       }
       return { success: false, message: data.message || 'Failed to push Dockerfile.' };
@@ -2560,6 +2561,15 @@ function App() {
   // Compute grouped apps (by shared repo / base name) whenever apps change
   const appGroups = useMemo(() => groupApps(apps), [apps]);
 
+  const refreshHealthForRepo = useCallback((repo: string) => {
+    if (!repo) return;
+    const repoLower = repo.toLowerCase().replace('https://github.com/', '').replace(/\/$/, '');
+    const group = appGroups.find(g => g.repoPath && g.repoPath.toLowerCase() === repoLower);
+    if (group) {
+      fetchYmlHealthForGroups([group]);
+    }
+  }, [appGroups, fetchYmlHealthForGroups]);
+
   const fetchCredentialStatus = async () => {
     try {
       const res = await fetch(`${API_BASE}/credentials?organizationId=${organizationId}`);
@@ -3265,6 +3275,7 @@ function App() {
         setYmlSource('github');
         setYmlOriginal(ymlContent);
         alert('Pipeline YAML committed successfully to GitHub!');
+        refreshHealthForRepo(selectedRepo);
       } else {
         throw new Error(data.message || 'Failed to commit custom YAML.');
       }
@@ -3363,6 +3374,7 @@ function App() {
       if (!commitData.success) {
         throw new Error(commitData.message || 'Failed to commit custom YAML to GitHub.');
       }
+      refreshHealthForRepo(repo);
 
       setCreatingYml(false);
       await handleScannerDeploy();
@@ -3768,6 +3780,7 @@ function App() {
         setPipelineModalYmlOriginal(pipelineModalYmlContent);
         setYmlCreated(true);
         setPipelineWizardStep(3);
+        refreshHealthForRepo(githubRepo || pipelineApp.repositoryUrl || '');
         handleScan();
       } else {
         setPipelineError(data.message || 'Failed to register pipeline.');
@@ -3801,7 +3814,9 @@ function App() {
       if (data.success) {
         setYmlCreated(true);
         setPipelineSuccess(`✅ ${pipelineProvider === 'github_actions' ? '.github/workflows/deploy.yml' : 'azure-pipelines.yml'} committed to "${githubRepo}" and pipeline registered! ID: ${data.pipelineId}`);
+        const repoToRefresh = githubRepo;
         setGithubRepo('');
+        refreshHealthForRepo(repoToRefresh);
         handleScan();
       } else {
         setPipelineError(data.message || 'Failed to create YML and register pipeline.');
