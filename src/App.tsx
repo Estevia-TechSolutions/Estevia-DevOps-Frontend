@@ -1775,6 +1775,7 @@ function App() {
 
       setScannerDeployStep(4);
       handleScan();
+      setTimeout(() => handleScan(), 4000);
     } catch (e: any) {
       console.error('[ScannerDeploy] Failed:', e);
       setScannerDeployError(e.message || 'An unexpected error occurred during deployment.');
@@ -2430,6 +2431,20 @@ function App() {
       return () => clearInterval(interval);
     }
   }, [token, organizationId]);
+
+  // Polling for active pipeline runs/builds status updates
+  useEffect(() => {
+    if (activeBuildsCount > 0 && token) {
+      console.log(`[DevOps Polling] ${activeBuildsCount} build(s) active. Starting rapid scan polling every 7s...`);
+      const interval = setInterval(() => {
+        handleScan();
+      }, 7000);
+      return () => {
+        console.log('[DevOps Polling] Clearing rapid build status polling.');
+        clearInterval(interval);
+      };
+    }
+  }, [activeBuildsCount, token]);
 
   // Apply theme to document root
   useEffect(() => {
@@ -3462,6 +3477,7 @@ function App() {
       if (data.success) {
         setProvisionSuccess(`Successfully provisioned ${newName} in Azure.`);
         handleScan();
+        setTimeout(() => handleScan(), 4000);
         if (appType !== 'cluster' && appType !== 'database') {
           setProvisionStep(appType === 'backend' ? 5 : 4); // Shift Step 4 SWA vs Step 5 Backend Finalize
         }
@@ -3500,6 +3516,7 @@ function App() {
         setPipelineRegSuccess(true);
         setRegisteredPipelineUrl(data.pipelineUrl || '');
         handleScan();
+        setTimeout(() => handleScan(), 4000);
       } else {
         setPipelineRegError(data.message || 'Failed to register DevOps Pipeline.');
       }
@@ -3820,6 +3837,7 @@ function App() {
         setPipelineWizardStep(3);
         refreshHealthForRepo(githubRepo || pipelineApp.repositoryUrl || '');
         handleScan();
+        setTimeout(() => handleScan(), 4000);
       } else {
         setPipelineError(data.message || 'Failed to register pipeline.');
       }
@@ -3856,6 +3874,7 @@ function App() {
         setGithubRepo('');
         refreshHealthForRepo(repoToRefresh);
         handleScan();
+        setTimeout(() => handleScan(), 4000);
       } else {
         setPipelineError(data.message || 'Failed to create YML and register pipeline.');
       }
@@ -6851,6 +6870,7 @@ function App() {
           onReDeployQueued={(newBuildId) => {
             showToast('Deployment Queued', `Successfully queued new build run #${newBuildId}`, 'success');
             handleScan();
+            setTimeout(() => handleScan(), 4000);
           }}
         />
       )}
