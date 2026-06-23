@@ -452,9 +452,9 @@ function App() {
   const fetch = authFetch;
 
   const [activeTab, setActiveTab] = useState<'scan' | 'provision' | 'credentials' | 'cost' | 'optimization' | 'databases' | 'guide' | 'users' | 'events'>('scan');
-  const [organizationId, setOrganizationId] = useState<string>(
-    new URLSearchParams(window.location.search).get('org') || 'estevia'
-  );
+  const [organizationId, setOrganizationId] = useState<string>(() => {
+    return localStorage.getItem('devops_organization_id') || new URLSearchParams(window.location.search).get('org') || 'estevia';
+  });
 
   // Event filter state for Events Feed page
   const [selectedEventCategories, setSelectedEventCategories] = useState<string[]>(['build', 'power', 'scan', 'credential', 'audit', 'general']);
@@ -1003,7 +1003,9 @@ function App() {
   const [alterNewColNullable, setAlterNewColNullable] = useState(true);
 
   // Dynamic Organization Settings State
-  const [orgName, setOrgName] = useState<string>('');
+  const [orgName, setOrgName] = useState<string>(() => {
+    return localStorage.getItem('devops_organization_name') || '';
+  });
   const [azureSubscriptionId, setAzureSubscriptionId] = useState('');
   const [azureResourceGroup, setAzureResourceGroup] = useState('');
   const [defaultDnsDomain, setDefaultDnsDomain] = useState('');
@@ -1847,6 +1849,8 @@ function App() {
         localStorage.setItem('devops_user', JSON.stringify(data.user));
         localStorage.setItem('devops_requires_onboarding', String(data.requiresOnboarding));
         if (data.organization && data.organization.id) {
+          localStorage.setItem('devops_organization_id', data.organization.id);
+          localStorage.setItem('devops_organization_name', data.organization.name || data.organization.id);
           setOrganizationId(data.organization.id);
           setOrgName(data.organization.name || data.organization.id);
         }
@@ -1883,6 +1887,8 @@ function App() {
         localStorage.setItem('devops_user', JSON.stringify(data.user));
         localStorage.setItem('devops_requires_onboarding', String(data.requiresOnboarding));
         if (data.organization && data.organization.id) {
+          localStorage.setItem('devops_organization_id', data.organization.id);
+          localStorage.setItem('devops_organization_name', data.organization.name || data.organization.id);
           setOrganizationId(data.organization.id);
           setOrgName(data.organization.name || data.organization.id);
         }
@@ -1920,6 +1926,8 @@ function App() {
         localStorage.setItem('devops_user', JSON.stringify(data.user));
         localStorage.setItem('devops_requires_onboarding', String(data.requiresOnboarding));
         if (data.organization && data.organization.id) {
+          localStorage.setItem('devops_organization_id', data.organization.id);
+          localStorage.setItem('devops_organization_name', data.organization.name || data.organization.id);
           setOrganizationId(data.organization.id);
           setOrgName(data.organization.name || data.organization.id);
         }
@@ -1942,6 +1950,8 @@ function App() {
     localStorage.removeItem('devops_token');
     localStorage.removeItem('devops_user');
     localStorage.removeItem('devops_requires_onboarding');
+    localStorage.removeItem('devops_organization_id');
+    localStorage.removeItem('devops_organization_name');
     setToken(null);
     setUser(null);
     setRequiresOnboarding(false);
@@ -2460,18 +2470,27 @@ function App() {
       
       // Load cached apps first, then run a live scan in the background
       const loadCachedAndScan = async () => {
+        // Trigger the live cloud scan immediately so the loader shows up instantly on reload/login
+        if (!requiresOnboarding) {
+          handleScan();
+        }
+
+        // Fetch and load cached apps in the background to show instant UI if the live scan is still querying
         try {
           const cachedRes = await fetch(`${API_BASE}/apps/scan?organizationId=${organizationId}&cached=true`);
           const cachedData = await cachedRes.json();
           if (cachedData.success && cachedData.apps && cachedData.apps.length > 0) {
             console.log('[DevOps] Instantly loaded cached resources:', cachedData.apps.length);
-            setApps(cachedData.apps);
+            setApps((currentApps) => {
+              // Only load cached apps if the live scan hasn't already returned fresh results
+              if (currentApps.length === 0) {
+                return cachedData.apps;
+              }
+              return currentApps;
+            });
           }
         } catch (e) {
           console.warn('[DevOps] Failed to load cached apps:', e);
-        }
-        if (!requiresOnboarding) {
-          handleScan(); // Perform live scan in the background
         }
       };
       loadCachedAndScan();
