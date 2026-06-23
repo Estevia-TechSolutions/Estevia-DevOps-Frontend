@@ -4772,6 +4772,16 @@ function App() {
     );
   }
 
+  const tabLoadingMap: Record<string, boolean> = {
+    scan:         scanning,
+    provision:    loadingRepos || loadingBranches || loadingMetadata,
+    cost:         loadingCosts,
+    optimization: loadingCosts,
+    databases:    loadingDbServers || loadingDatabases || loadingSchema,
+    users:        loadingUsers,
+    events:       loadingAuditLogsForEvents,
+  };
+
   return (
     <div>
       {scanProgress > 0 && (
@@ -5407,8 +5417,11 @@ function App() {
                   <button className={`premium-tab-btn ${activeTab === 'scan' ? 'active' : ''}`} onClick={() => setActiveTab('scan')}>
                     <Server size={16} />
                     <span>Cloud Scanning</span>
+                    {tabLoadingMap.scan && (
+                      <span className="tab-loading-spin" title="Scanning cloud..." />
+                    )}
                     {activeBuildsCount > 0 && (
-                      <span className="premium-build-dot" title={`${activeBuildsCount} build(s) in progress`} />
+                      <span className="tab-build-spin" title={`${activeBuildsCount} build(s) in progress`} />
                     )}
                     <div className="menu-hover-card menu-hover-card-left">
                       <div className="menu-hover-card-title"><Server size={12} /> Cloud Scanning</div>
@@ -5418,6 +5431,9 @@ function App() {
                   <button className={`premium-tab-btn ${activeTab === 'provision' ? 'active' : ''}`} onClick={() => setActiveTab('provision')}>
                     <PlusCircle size={16} />
                     <span>Provision App</span>
+                    {tabLoadingMap.provision && (
+                      <span className="tab-loading-spin" title="Loading..." />
+                    )}
                     <div className="menu-hover-card">
                       <div className="menu-hover-card-title"><PlusCircle size={12} /> Provision App</div>
                       <div className="menu-hover-card-desc">Launch new Azure Static Web Apps or backend containers with guided step-by-step provisioning wizard.</div>
@@ -5426,6 +5442,9 @@ function App() {
                   <button className={`premium-tab-btn ${activeTab === 'cost' ? 'active' : ''}`} onClick={() => { setActiveTab('cost'); setCostTab('breakdown'); }}>
                     <Database size={16} />
                     <span>Cost & Billing</span>
+                    {tabLoadingMap.cost && (
+                      <span className="tab-loading-spin" title="Loading costs..." />
+                    )}
                     <div className="menu-hover-card">
                       <div className="menu-hover-card-title"><Database size={12} /> Cost & Billing</div>
                       <div className="menu-hover-card-desc">View a detailed Azure cost breakdown by resource group, service type, and environment for the current billing cycle.</div>
@@ -5434,6 +5453,9 @@ function App() {
                   <button className={`premium-tab-btn ${activeTab === 'optimization' ? 'active' : ''}`} onClick={() => { setActiveTab('optimization'); setCostTab('recommendations'); }}>
                     <TrendingDown size={16} />
                     <span>Cost Optimization</span>
+                    {tabLoadingMap.optimization && (
+                      <span className="tab-loading-spin" title="Loading costs..." />
+                    )}
                     <div className="menu-hover-card">
                       <div className="menu-hover-card-title"><TrendingDown size={12} /> Cost Optimization</div>
                       <div className="menu-hover-card-desc">AI-driven recommendations to right-size resources, schedule sleep timers, and reduce monthly cloud spend.</div>
@@ -5442,6 +5464,9 @@ function App() {
                   <button className={`premium-tab-btn ${activeTab === 'databases' ? 'active' : ''}`} onClick={() => setActiveTab('databases')}>
                     <Database size={16} />
                     <span>DB Hub</span>
+                    {tabLoadingMap.databases && (
+                      <span className="tab-loading-spin" title="Loading databases..." />
+                    )}
                     <div className="menu-hover-card">
                       <div className="menu-hover-card-title"><Database size={12} /> DB Hub</div>
                       <div className="menu-hover-card-desc">Browse and manage your connected database catalog — schemas, tables, and connection health at a glance.</div>
@@ -5459,6 +5484,9 @@ function App() {
                     <button className={`premium-tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>
                       <Users size={16} />
                       <span>Team Settings</span>
+                      {tabLoadingMap.users && (
+                        <span className="tab-loading-spin" title="Loading users..." />
+                      )}
                       <div className="menu-hover-card">
                         <div className="menu-hover-card-title"><Users size={12} /> Team Settings</div>
                         <div className="menu-hover-card-desc">Invite team members, assign roles (owner / admin / viewer), and review the full organisation audit trail.</div>
@@ -5468,6 +5496,9 @@ function App() {
                   <button className={`premium-tab-btn ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')}>
                     <Activity size={16} />
                     <span>Events Feed</span>
+                    {tabLoadingMap.events && (
+                      <span className="tab-loading-spin" title="Loading events..." />
+                    )}
                     {activeBuildsCount > 0 && (
                       <span className="premium-build-badge" title={`${activeBuildsCount} build(s) in progress`}>
                         {activeBuildsCount}

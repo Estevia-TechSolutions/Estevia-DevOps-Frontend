@@ -797,6 +797,43 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus {
   }
 }
 
+/* Spinner Layout Base */
+.tab-loading-spin,
+.tab-build-spin {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  animation: tab-spin 0.75s linear infinite;
+  flex-shrink: 0;
+  margin-left: 3px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+@keyframes tab-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Purple Loading Spinner */
+.tab-loading-spin {
+  border: 1.5px solid rgba(139, 92, 246, 0.18);
+  border-top-color: #8b5cf6;
+}
+[data-theme="light"] .tab-loading-spin {
+  border-color: rgba(109, 40, 217, 0.12);
+  border-top-color: #6d28d9;
+}
+
+/* Amber Build Spinner */
+.tab-build-spin {
+  border: 1.5px solid rgba(251, 191, 36, 0.18);
+  border-top-color: #fbbf24;
+}
+[data-theme="light"] .tab-build-spin {
+  border-color: rgba(217, 119, 6, 0.12);
+  border-top-color: #d97706;
+}
+
 /* Clean Scope Page Toggles & Cards */
 .scope-pill {
   background: transparent;
