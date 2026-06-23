@@ -704,6 +704,14 @@ function App() {
   const [scanProgress, setScanProgress] = useState(0);
   const [scanError, setScanError] = useState<string | null>(null);
 
+  const getScanProgressMessage = (progress: number) => {
+    if (progress < 40) return "Querying Azure resource groups...";
+    if (progress < 75) return "Discovering Container Apps & Static Web Apps...";
+    if (progress < 90) return "Syncing databases, virtual machines, and GoDaddy DNS...";
+    if (progress < 96) return "Fetching pipeline build runs from GitHub and Azure DevOps...";
+    return "Waiting for cloud providers to respond... (Almost finished)";
+  };
+
   // Control Centre Resource Groups States
   const [controlResourceGroups, setControlResourceGroups] = useState<string[]>([]);
   const [selectedControlResourceGroup, setSelectedControlResourceGroup] = useState<string>(() => {
@@ -2236,7 +2244,7 @@ function App() {
     let billingTimeoutId: any = null;
     try {
       const controller = new AbortController();
-      timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
+      timeoutId = setTimeout(() => controller.abort(), 45000); // 45-second timeout
 
       const res = await fetch(`${API_BASE}/apps/cost?organizationId=${organizationId}`, {
         signal: controller.signal
@@ -2481,7 +2489,9 @@ function App() {
 
       fetchOrgSettings();
       fetchGithubRepos();
-      fetchCostData();
+      setTimeout(() => {
+        fetchCostData();
+      }, 2500);
       fetchDbServers();
       if (user?.role === 'owner' || user?.role === 'admin') {
         fetchTeamUsers();
@@ -5442,7 +5452,7 @@ function App() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <RefreshCw size={13} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Scanning active cloud and refreshing cost metrics...</span>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{getScanProgressMessage(scanProgress)}</span>
                       </div>
                       <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-purple)' }}>{Math.floor(scanProgress)}%</span>
                     </div>

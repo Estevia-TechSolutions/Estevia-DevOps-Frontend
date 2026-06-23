@@ -197,6 +197,14 @@ interface ControlBannerProps {
   primaryResourceGroup?: string;
 }
 
+const getScanProgressMessage = (progress: number) => {
+  if (progress < 40) return "Querying Azure resource groups...";
+  if (progress < 75) return "Discovering Container Apps & Static Web Apps...";
+  if (progress < 90) return "Syncing databases, virtual machines, and GoDaddy DNS...";
+  if (progress < 96) return "Fetching pipeline build runs from GitHub and Azure DevOps...";
+  return "Waiting for cloud providers to respond... (Almost finished)";
+};
+
 export const ControlBanner: React.FC<ControlBannerProps> = ({
   scanning,
   scanProgress,
@@ -296,7 +304,7 @@ export const ControlBanner: React.FC<ControlBannerProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <RefreshCw size={14} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Scanning active cloud for updates and refreshing cost metrics...</span>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{getScanProgressMessage(scanProgress)}</span>
               </div>
               <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-purple)' }}>{Math.floor(scanProgress)}%</span>
             </div>

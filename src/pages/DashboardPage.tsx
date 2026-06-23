@@ -194,6 +194,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const isViewer = currentUser?.role === 'viewer';
   const organizationId = currentUser?.organization_id || 'estevia';
 
+  const getScanProgressMessage = (progress: number) => {
+    if (progress < 40) return "Querying Azure resource groups...";
+    if (progress < 75) return "Discovering Container Apps & Static Web Apps...";
+    if (progress < 90) return "Syncing databases, virtual machines, and GoDaddy DNS...";
+    if (progress < 96) return "Fetching pipeline build runs from GitHub and Azure DevOps...";
+    return "Waiting for cloud providers to respond... (Almost finished)";
+  };
+
   // Compliance state
   const [activeSubTab, setActiveSubTab] = React.useState<'resources' | 'compliance'>('resources');
   const [complianceData, setComplianceData] = React.useState<any | null>(null);
@@ -1239,7 +1247,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           <RefreshCw size={48} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
           <div>
             <h3 style={{ margin: 0 }}>Fetching Live Subscriptions... {Math.floor(scanProgress)}%</h3>
-            <p style={{ color: 'var(--text-secondary)', marginTop: '8px', marginBottom: 0 }}>Scanning Static Web Apps and Container Apps in resource group...</p>
+            <p style={{ color: 'var(--text-secondary)', marginTop: '8px', marginBottom: 0 }}>{getScanProgressMessage(scanProgress)}</p>
           </div>
           <div style={{ width: '100%', maxWidth: '400px', height: '8px', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: '4px', overflow: 'hidden', marginTop: '8px' }}>
             <div style={{ width: `${scanProgress}%`, height: '100%', backgroundColor: 'var(--accent-purple)', boxShadow: '0 0 10px var(--accent-purple-glow)', transition: 'width 0.15s ease-out', borderRadius: '4px' }} />
@@ -1832,6 +1840,28 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     }}>
                       <RefreshCw size={10} className="spin-anim" style={{ marginRight: '6px', color: theme === 'light' ? '#2563eb' : '#60a5fa' }} />
                       Checking health...
+                    </span>
+                  )}
+
+                  {/* Default Pending Badge */}
+                  {!isLoading && !health && group.repoPath && group.type !== 'vm' && (
+                    <span 
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid var(--glass-border)',
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '0.74rem',
+                        color: 'var(--text-secondary)',
+                        fontWeight: 600,
+                        cursor: 'default'
+                      }}
+                    >
+                      <Clock size={11} style={{ color: 'var(--text-secondary)' }} />
+                      <span>Health scan pending</span>
                     </span>
                   )}
 
