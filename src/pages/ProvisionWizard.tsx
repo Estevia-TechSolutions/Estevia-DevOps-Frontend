@@ -24,6 +24,48 @@ import {
   Server
 } from 'lucide-react';
 
+const renderValidationPanel = (result: any, isValidating: boolean) => {
+  if (isValidating) return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+      <span style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid var(--accent-purple)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      Validating...
+    </div>
+  );
+  if (!result) return null;
+  const hasErrors = result.errors && result.errors.length > 0;
+  const hasWarnings = result.warnings && result.warnings.length > 0;
+  if (!hasErrors && !hasWarnings) return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', fontSize: '0.76rem', color: '#10b981', fontWeight: 600 }}>
+      <span>✅</span> Looks good — no issues found
+    </div>
+  );
+  return (
+    <div style={{ borderRadius: '8px', border: `1px solid ${hasErrors ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`, background: hasErrors ? 'rgba(239,68,68,0.05)' : 'rgba(245,158,11,0.05)', overflow: 'hidden' }}>
+      <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: hasErrors ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)' }}>
+        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: hasErrors ? '#ef4444' : '#f59e0b' }}>
+          {hasErrors ? `❌ ${result.errors.length} error${result.errors.length > 1 ? 's' : ''}` : ''}
+          {hasErrors && hasWarnings ? ' · ' : ''}
+          {hasWarnings ? `⚠ ${result.warnings.length} warning${result.warnings.length > 1 ? 's' : ''}` : ''}
+        </span>
+      </div>
+      <div style={{ padding: '8px 0', display: 'flex', flexDirection: 'column', gap: '0' }}>
+        {(result.errors || []).map((e: any, i: number) => (
+          <div key={i} style={{ padding: '6px 12px', fontSize: '0.73rem', color: '#ef4444', display: 'flex', gap: '8px', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <span style={{ flexShrink: 0, fontWeight: 700 }}>❌</span>
+            <div><span style={{ opacity: 0.65, fontSize: '0.66rem' }}>{e.ruleId}{e.line ? ` · line ${e.line}` : ''} &nbsp;</span>{e.message}</div>
+          </div>
+        ))}
+        {(result.warnings || []).map((w: any, i: number) => (
+          <div key={i} style={{ padding: '6px 12px', fontSize: '0.73rem', color: '#f59e0b', display: 'flex', gap: '8px', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <span style={{ flexShrink: 0, fontWeight: 700 }}>⚠</span>
+            <div><span style={{ opacity: 0.65, fontSize: '0.66rem' }}>{w.ruleId}{w.line ? ` · line ${w.line}` : ''} &nbsp;</span>{w.message}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 interface AppResource {
   name: string;
   type: 'frontend' | 'backend' | 'vm' | 'cluster';
@@ -169,10 +211,12 @@ interface ProvisionWizardProps {
   currentUser?: any;
   repoIntegrity: any | null;
   repoIntegrityLoading: boolean;
+  provisionYmlValidation?: any;
+  provisionYmlValidating?: boolean;
 }
 
 /* ── Dockerfile Editor Step Sub-Component ── */
-interface DockerfileEditorStepProps {
+export interface DockerfileEditorStepProps {
   selectedRepo: string;
   selectedBranch: string;
   dockerfileLoading: boolean;
@@ -182,17 +226,48 @@ interface DockerfileEditorStepProps {
   onBack: () => void;
   onNext: () => void;
   isViewer?: boolean;
+  API_BASE: string;
 }
 
-const DockerfileEditorStep: React.FC<DockerfileEditorStepProps> = ({
+export const DockerfileEditorStep: React.FC<DockerfileEditorStepProps> = ({
   selectedRepo, selectedBranch, dockerfileLoading, dockerfileContent,
   fetchDockerfileContent, pushDockerfileContent, onBack, onNext, isViewer,
+  API_BASE
 }) => {
   const [editMode, setEditMode] = useState(false);
   const [editedContent, setEditedContent] = useState('');
   const [commitMsg, setCommitMsg] = useState('chore: update Dockerfile [via EvaOps DevOps Hub]');
   const [pushing, setPushing] = useState(false);
   const [pushResult, setPushResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Local validation states
+  const [validationResult, setValidationResult] = useState<any>(null);
+  const [isValidating, setIsValidating] = useState(false);
+
+  useEffect(() => {
+    const contentToValidate = editMode ? editedContent : dockerfileContent;
+    if (!contentToValidate || !contentToValidate.trim()) {
+      setValidationResult(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setIsValidating(true);
+      try {
+        const res = await fetch(`${API_BASE}/apps/validate-dockerfile`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: contentToValidate })
+        });
+        const data = await res.json();
+        setValidationResult(data);
+      } catch (e) {
+        setValidationResult(null);
+      } finally {
+        setIsValidating(false);
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [editedContent, dockerfileContent, editMode, API_BASE]);
 
   const handleEditToggle = () => {
     if (!editMode) setEditedContent(dockerfileContent);
@@ -309,6 +384,11 @@ const DockerfileEditorStep: React.FC<DockerfileEditorStepProps> = ({
         )}
       </div>
 
+      {/* Dockerfile validation panel */}
+      <div style={{ marginBottom: '16px' }}>
+        {renderValidationPanel(validationResult, isValidating)}
+      </div>
+
       {/* Commit message + Push button (only in edit mode) */}
       {editMode && (
         <div style={{ display: 'grid', gap: '10px', marginBottom: '20px', padding: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)', borderRadius: '10px' }}>
@@ -321,7 +401,7 @@ const DockerfileEditorStep: React.FC<DockerfileEditorStepProps> = ({
             style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
           />
           <button type="button" className="btn-primary" onClick={handlePush}
-            disabled={pushing || !editedContent.trim()}
+            disabled={pushing || !editedContent.trim() || (validationResult?.errors && validationResult.errors.length > 0)}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
             {pushing
               ? <><RefreshCw size={14} className="spin-anim" /> Pushing to GitHub...</>
@@ -337,7 +417,7 @@ const DockerfileEditorStep: React.FC<DockerfileEditorStepProps> = ({
           <ArrowLeft size={16} /> Back
         </button>
         <button type="button" className="btn-primary"
-          disabled={dockerfileLoading || !dockerfileContent || editMode}
+          disabled={dockerfileLoading || !dockerfileContent || editMode || (validationResult?.errors && validationResult.errors.length > 0)}
           onClick={onNext}
           style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           Configure Azure Resources <ArrowRight size={16} />
@@ -936,7 +1016,9 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
   setConfirmDialog,
   currentUser,
   repoIntegrity,
-  repoIntegrityLoading
+  repoIntegrityLoading,
+  provisionYmlValidation,
+  provisionYmlValidating
 }) => {
   const isViewer = currentUser?.role === 'viewer';
 
@@ -1307,8 +1389,8 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                     type="button"
                     className="btn-secondary"
                     onClick={handleCommitCustomYml}
-                    disabled={isViewer || creatingYml}
-                    style={{ padding: '4px 12px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '5px', cursor: (isViewer || creatingYml) ? 'not-allowed' : 'pointer' }}
+                    disabled={isViewer || creatingYml || (provisionYmlValidation?.errors && provisionYmlValidation.errors.length > 0)}
+                    style={{ padding: '4px 12px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '5px', cursor: (isViewer || creatingYml || (provisionYmlValidation?.errors && provisionYmlValidation.errors.length > 0)) ? 'not-allowed' : 'pointer' }}
                   >
                     {creatingYml ? (
                       <><RefreshCw size={12} className="spin-anim" /> Committing...</>
@@ -1336,6 +1418,11 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                     }}
                   />
                 </div>
+
+                {/* YAML Validation Panel */}
+                <div style={{ marginBottom: '20px' }}>
+                  {renderValidationPanel(provisionYmlValidation, !!provisionYmlValidating)}
+                </div>
               </div>
             )}
 
@@ -1352,7 +1439,7 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
               <button 
                 type="button" 
                 className="btn-primary" 
-                disabled={ymlLoading || creatingYml || !ymlContent || (appType === 'backend' && dockerfileMissing)}
+                disabled={ymlLoading || creatingYml || !ymlContent || (appType === 'backend' && dockerfileMissing) || (provisionYmlValidation?.errors && provisionYmlValidation.errors.length > 0)}
                 onClick={() => {
                   if (appType === 'backend') {
                     setProvisionStep(3);
@@ -1380,6 +1467,7 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
             onBack={() => setProvisionStep(2)}
             onNext={() => setProvisionStep(4)}
             isViewer={isViewer}
+            API_BASE={API_BASE}
           />
         )}
 

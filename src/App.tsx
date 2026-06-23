@@ -52,7 +52,7 @@ import { CredentialsPage } from './pages/CredentialsPage';
 import { DatabaseCatalogPage } from './pages/DatabaseCatalogPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { CostPage } from './pages/CostPage';
-import { ProvisionWizard } from './pages/ProvisionWizard';
+import { ProvisionWizard, DockerfileEditorStep } from './pages/ProvisionWizard';
 import { GuidePage } from './pages/GuidePage';
 import { TeamPage } from './pages/TeamPage';
 import type { UserRecord } from './pages/TeamPage';
@@ -764,6 +764,7 @@ function App() {
   // Cloud Scanning YAML Health Map (keyed by group.key)
   const [ymlHealthMap, setYmlHealthMap] = useState<Record<string, any>>({});
   const [ymlHealthLoading, setYmlHealthLoading] = useState<Record<string, boolean>>({});
+  const [dockerfileEditApp, setDockerfileEditApp] = useState<AppResource | null>(null);
 
   const [selectedRepo, setSelectedRepo] = useState('');
   const [selectedBranch, setSelectedBranch] = useState('');
@@ -2858,6 +2859,8 @@ function App() {
           console.warn('[DevOps Scan] [WARN] Scan returned 0 active resources. Check Azure subscription permissions or resource group filters.');
         }
         setApps(data.apps || []);
+        const newlyGrouped = groupApps(data.apps || []);
+        fetchYmlHealthForGroups(newlyGrouped);
         addEvent('Cloud Scan Completed', `Discovered ${appsCount} resources in resource group: ${activeRg || 'All'}.`, 'scan', 'success');
         
         // Dispatch integrity notifications if present
@@ -3937,6 +3940,15 @@ function App() {
       checkYmlExists(activeRepo, initialProvider);
       loadYmlForPipelineModal(activeRepo, defaultBranch, initialProvider);
     }
+  };
+
+  const openDockerfileEditor = async (app: AppResource, group?: AppGroup) => {
+    setDockerfileEditApp(app);
+    setDockerfileContent('');
+    setDockerfileValidation(null);
+    const repo = app.repositoryUrl?.replace('https://github.com/', '').replace(/\/$/, '') || group?.repoPath || '';
+    const branch = app.branch || 'main';
+    await fetchDockerfileContent(repo, branch);
   };
 
   if (!token) {
@@ -5143,6 +5155,9 @@ function App() {
             handleDeleteApp={handleDeleteApp}
             openDnsModal={openDnsModal}
             openPipelineModal={openPipelineModal}
+            openDockerfileEditor={openDockerfileEditor}
+            ymlHealthMap={ymlHealthMap}
+            ymlHealthLoading={ymlHealthLoading}
             handleScan={handleScan}
             theme={theme}
             setSelectedStageForJobs={setSelectedStageForJobs}
@@ -5284,6 +5299,8 @@ function App() {
             currentUser={user}
             repoIntegrity={repoIntegrity}
             repoIntegrityLoading={repoIntegrityLoading}
+            provisionYmlValidation={provisionYmlValidation}
+            provisionYmlValidating={provisionYmlValidating}
           />
         )}
 
@@ -7331,6 +7348,11 @@ function App() {
                             : 'Generated default YAML deployment template.'}
                         </span>
                       </div>
+
+                      {/* YAML Validation Panel */}
+                      <div style={{ marginTop: '12px' }}>
+                        {renderValidationPanel(pipelineYmlValidation, pipelineYmlValidating)}
+                      </div>
                     </>
                   )}
                 </div>
@@ -7364,7 +7386,7 @@ function App() {
                   </button>
                   <button
                     type="submit"
-                    disabled={creatingPipeline || pipelineModalYmlLoading || user?.role === 'viewer'}
+                    disabled={creatingPipeline || pipelineModalYmlLoading || user?.role === 'viewer' || (pipelineYmlValidation?.errors && pipelineYmlValidation.errors.length > 0)}
                     style={{
                       background: 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))',
                       color: '#ffffff',
@@ -7444,6 +7466,70 @@ function App() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Dockerfile Edit Modal Overlay */}
+      {dockerfileEditApp && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(2, 6, 23, 0.75)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+          animation: 'fade-in-anim 0.2s ease-out'
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: '650px',
+            width: '100%',
+            padding: '28px',
+            border: '1px solid var(--glass-border)',
+            boxShadow: 'var(--modal-shadow)',
+            position: 'relative'
+          }}>
+            <button
+              onClick={() => setDockerfileEditApp(null)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                padding: '4px'
+              }}
+            >
+              <X size={18} />
+            </button>
+            <div style={{ padding: '4px' }}>
+              <DockerfileEditorStep
+                selectedRepo={dockerfileEditApp.repositoryUrl?.replace('https://github.com/', '').replace(/\/$/, '') || ''}
+                selectedBranch={dockerfileEditApp.branch || 'main'}
+                dockerfileLoading={dockerfileLoading}
+                dockerfileContent={dockerfileContent}
+                fetchDockerfileContent={fetchDockerfileContent}
+                pushDockerfileContent={pushDockerfileContent}
+                onBack={() => setDockerfileEditApp(null)}
+                onNext={() => {
+                  setDockerfileEditApp(null);
+                  showToast('Success', 'Dockerfile changes have been pushed and verified successfully.', 'success');
+                  const group = appGroups.find(g => g.repoPath && dockerfileEditApp.repositoryUrl?.toLowerCase().includes(g.repoPath.toLowerCase()));
+                  if (group) fetchYmlHealthForGroups([group]);
+                }}
+                isViewer={user?.role === 'viewer'}
+                API_BASE={API_BASE}
+              />
+            </div>
           </div>
         </div>
       )}
