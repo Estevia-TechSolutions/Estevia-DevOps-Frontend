@@ -29,6 +29,23 @@
   --scrollbar-thumb: rgba(255, 255, 255, 0.1);
   --scrollbar-hover: rgba(255, 255, 255, 0.2);
   --modal-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  --type-backend-bg: rgba(139, 92, 246, 0.12);
+  --type-backend-border: rgba(139, 92, 246, 0.4);
+  --type-backend-text: #a78bfa;
+  --type-frontend-bg: rgba(34, 211, 238, 0.10);
+  --type-frontend-border: rgba(34, 211, 238, 0.35);
+  --type-frontend-text: #67e8f9;
+  --type-mixed-bg: rgba(245, 158, 11, 0.10);
+  --type-mixed-border: rgba(245, 158, 11, 0.35);
+  --type-mixed-text: #fbbf24;
+  --type-unknown-bg: rgba(148, 163, 184, 0.08);
+  --type-unknown-border: rgba(148, 163, 184, 0.2);
+  --type-unknown-text: var(--text-muted);
+  --primary-branch-bg: rgba(139, 92, 246, 0.06);
+  --success-badge-bg: rgba(34, 197, 94, 0.1);
+  --success-badge-border: rgba(34, 197, 94, 0.2);
+  --error-bg: rgba(239, 68, 68, 0.08);
+  --warning-bg: rgba(245, 158, 11, 0.07);
 }
 
 /* ─── Light Theme ─── */
@@ -59,6 +76,23 @@
   --scrollbar-thumb: rgba(0, 0, 0, 0.12);
   --scrollbar-hover: rgba(0, 0, 0, 0.22);
   --modal-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+  --type-backend-bg: rgba(124, 58, 237, 0.08);
+  --type-backend-border: rgba(124, 58, 237, 0.25);
+  --type-backend-text: #6d28d9;
+  --type-frontend-bg: rgba(13, 148, 136, 0.08);
+  --type-frontend-border: rgba(13, 148, 136, 0.25);
+  --type-frontend-text: #0d9488;
+  --type-mixed-bg: rgba(217, 119, 6, 0.08);
+  --type-mixed-border: rgba(217, 119, 6, 0.25);
+  --type-mixed-text: #b45309;
+  --type-unknown-bg: rgba(148, 163, 184, 0.1);
+  --type-unknown-border: rgba(148, 163, 184, 0.25);
+  --type-unknown-text: var(--text-muted);
+  --primary-branch-bg: rgba(124, 58, 237, 0.05);
+  --success-badge-bg: rgba(22, 163, 74, 0.08);
+  --success-badge-border: rgba(22, 163, 74, 0.25);
+  --error-bg: rgba(220, 38, 38, 0.06);
+  --warning-bg: rgba(217, 119, 6, 0.06);
 }
 
 [data-theme="light"] .branch-checkbox-item:hover {

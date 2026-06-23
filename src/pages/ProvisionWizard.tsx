@@ -348,10 +348,10 @@ interface Step1ContentProps {
 const CONFIDENCE_LABEL: Record<string, string> = { high: 'High', medium: 'Medium', low: 'Low' };
 const CONFIDENCE_COLOR: Record<string, string> = { high: 'var(--success)', medium: 'var(--warning)', low: 'var(--text-muted)' };
 const TYPE_COLOR: Record<string, { bg: string; border: string; text: string }> = {
-  backend:  { bg: 'rgba(139,92,246,0.12)', border: 'rgba(139,92,246,0.4)', text: '#a78bfa' },
-  frontend: { bg: 'rgba(34,211,238,0.10)', border: 'rgba(34,211,238,0.35)', text: '#67e8f9' },
-  mixed:    { bg: 'rgba(245,158,11,0.10)', border: 'rgba(245,158,11,0.35)', text: '#fbbf24' },
-  unknown:  { bg: 'rgba(148,163,184,0.08)', border: 'rgba(148,163,184,0.2)', text: 'var(--text-muted)' },
+  backend:  { bg: 'var(--type-backend-bg)', border: 'var(--type-backend-border)', text: 'var(--type-backend-text)' },
+  frontend: { bg: 'var(--type-frontend-bg)', border: 'var(--type-frontend-border)', text: 'var(--type-frontend-text)' },
+  mixed:    { bg: 'var(--type-mixed-bg)', border: 'var(--type-mixed-border)', text: 'var(--type-mixed-text)' },
+  unknown:  { bg: 'var(--type-unknown-bg)', border: 'var(--type-unknown-border)', text: 'var(--type-unknown-text)' },
 };
 const TYPE_LABEL: Record<string, string> = { backend: 'BACKEND', frontend: 'FRONTEND', mixed: 'MIXED', unknown: 'UNKNOWN' };
 const TYPE_ICON: Record<string, React.ReactNode> = {
@@ -379,6 +379,9 @@ const Step1Content: React.FC<Step1ContentProps> = ({
   // Integrity check for the currently selected primary deploy branch
   const primaryBranch = selectedBranch || selectedBranches[0] || null;
   const branchIntegrity = repoIntegrity?.branches?.find((b: any) => b.name === primaryBranch) ?? null;
+
+  // The primary/default branch returned by GitHub's repository details
+  const githubDefaultBranch = repoIntegrity?.defaultBranch || 'main';
 
   const detectedType: string = branchIntegrity?.detectedType ?? 'unknown';
   const confidence: string = branchIntegrity?.confidence ?? 'low';
@@ -508,7 +511,7 @@ const Step1Content: React.FC<Step1ContentProps> = ({
                 </button>
               </div>
               {loadingBranches ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', background: 'rgba(15,23,42,0.4)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', background: 'var(--input-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                   <RefreshCw size={14} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
                   <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Loading repository branches...</span>
                 </div>
@@ -546,7 +549,7 @@ const Step1Content: React.FC<Step1ContentProps> = ({
 
           {/* ── Hard block: type mismatch ── */}
           {isHardBlock && primaryBranch && (
-            <div style={{ padding: '16px 18px', borderRadius: '10px', marginBottom: '20px', border: '1px solid var(--error)', background: 'rgba(239,68,68,0.08)' }}>
+            <div style={{ padding: '16px 18px', borderRadius: '10px', marginBottom: '20px', border: '1px solid var(--error)', background: 'var(--error-bg)' }}>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                 <AlertOctagon size={20} style={{ color: 'var(--error)', flexShrink: 0, marginTop: '2px' }} />
                 <div style={{ flex: 1 }}>
@@ -554,12 +557,12 @@ const Step1Content: React.FC<Step1ContentProps> = ({
                     Type Mismatch — Cannot Proceed
                   </div>
                   <div style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                    <div>🔍 <strong style={{ color: 'var(--text-primary)' }}>Detected:</strong> Branch <code style={{ background: 'rgba(255,255,255,0.07)', padding: '1px 5px', borderRadius: '4px' }}>{primaryBranch}</code> is a <strong>{TYPE_LABEL[detectedType]}</strong> repository
+                    <div>🔍 <strong style={{ color: 'var(--text-primary)' }}>Detected:</strong> Branch <code style={{ background: 'var(--divider)', padding: '1px 5px', borderRadius: '4px' }}>{primaryBranch}</code> is a <strong>{TYPE_LABEL[detectedType]}</strong> repository
                       {branchIntegrity?.signals?.backendFiles?.length > 0 && <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}> ({branchIntegrity.signals.backendFiles.slice(0,3).join(', ')})</span>}
                       {branchIntegrity?.signals?.frontendFiles?.length > 0 && <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}> ({branchIntegrity.signals.frontendFiles.slice(0,3).join(', ')})</span>}
                     </div>
                     <div style={{ marginTop: '4px' }}>🎯 <strong style={{ color: 'var(--text-primary)' }}>Selected:</strong> {appType === 'frontend' ? 'Frontend SWA' : 'Backend ACA Container'}</div>
-                    <div style={{ marginTop: '10px', padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: '6px', fontSize: '0.82rem', color: 'var(--warning)' }}>
+                    <div style={{ marginTop: '10px', padding: '8px 12px', background: 'var(--glass-border)', borderRadius: '6px', fontSize: '0.82rem', color: 'var(--warning)' }}>
                       ✦ Switch App Type to <strong>{correctType}</strong> above, or choose a different branch / repository.
                     </div>
                   </div>
@@ -570,13 +573,13 @@ const Step1Content: React.FC<Step1ContentProps> = ({
 
           {/* ── Mixed code override ── */}
           {isMixedWarn && !isHardBlock && primaryBranch && (
-            <div style={{ padding: '14px 16px', borderRadius: '10px', marginBottom: '20px', border: '1px solid var(--warning)', background: 'rgba(245,158,11,0.07)' }}>
+            <div style={{ padding: '14px 16px', borderRadius: '10px', marginBottom: '20px', border: '1px solid var(--warning)', background: 'var(--warning-bg)' }}>
               <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                 <AlertTriangle size={18} style={{ color: 'var(--warning)', flexShrink: 0, marginTop: '2px' }} />
                 <div style={{ flex: 1, fontSize: '0.86rem' }}>
                   <div style={{ fontWeight: 600, color: 'var(--warning)', marginBottom: '6px' }}>Mixed Code Detected</div>
                   <div style={{ color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '12px' }}>
-                    Branch <code style={{ background: 'rgba(255,255,255,0.07)', padding: '1px 5px', borderRadius: '4px' }}>{primaryBranch}</code> contains both frontend and backend signals. Deploying the wrong type may cause a broken deployment.
+                    Branch <code style={{ background: 'var(--divider)', padding: '1px 5px', borderRadius: '4px' }}>{primaryBranch}</code> contains both frontend and backend signals. Deploying the wrong type may cause a broken deployment.
                   </div>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.84rem', color: 'var(--text-primary)' }}>
                     <input type="checkbox" checked={mixedOverride} onChange={e => setMixedOverride(e.target.checked)}
@@ -593,7 +596,7 @@ const Step1Content: React.FC<Step1ContentProps> = ({
             const matchingApp = selectedRepo ? apps.find(a => a.repositoryUrl && a.repositoryUrl.toLowerCase().includes(selectedRepo.toLowerCase())) : null;
             if (!matchingApp) return null;
             return (
-              <div className="glass-panel" style={{ padding: '14px 16px', borderColor: 'var(--warning)', backgroundColor: 'rgba(245,158,11,0.08)', marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+              <div className="glass-panel" style={{ padding: '14px 16px', borderColor: 'var(--warning)', backgroundColor: 'var(--warning-bg)', marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                 <AlertTriangle size={16} style={{ color: 'var(--warning)', flexShrink: 0, marginTop: '2px' }} />
                 <div style={{ fontSize: '0.87rem', lineHeight: 1.5 }}>
                   <strong style={{ color: 'var(--warning)' }}>Already Deployed:</strong> This repo is linked to <strong>{matchingApp.name}</strong>. Deploying again creates a duplicate.
@@ -637,7 +640,7 @@ const Step1Content: React.FC<Step1ContentProps> = ({
             <>
               {/* Issues summary */}
               {repoIntegrity.issues?.length > 0 && (
-                <div style={{ padding: '14px 16px', borderRadius: '10px', marginBottom: '20px', border: '1px solid var(--warning)', background: 'rgba(245,158,11,0.07)' }}>
+                <div style={{ padding: '14px 16px', borderRadius: '10px', marginBottom: '20px', border: '1px solid var(--warning)', background: 'var(--warning-bg)' }}>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
                     <AlertTriangle size={15} style={{ color: 'var(--warning)' }} />
                     <span style={{ fontWeight: 600, fontSize: '0.87rem', color: 'var(--warning)' }}>{repoIntegrity.issues.length} issue{repoIntegrity.issues.length > 1 ? 's' : ''} found</span>
@@ -648,7 +651,7 @@ const Step1Content: React.FC<Step1ContentProps> = ({
                 </div>
               )}
               {repoIntegrity.issues?.length === 0 && (
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', border: '1px solid var(--success)', background: 'rgba(34,197,94,0.06)', fontSize: '0.87rem', color: 'var(--success)' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', border: '1px solid var(--success)', background: 'var(--success-badge-bg)', fontSize: '0.87rem', color: 'var(--success)' }}>
                   <CheckCircle size={15} /> All branches look clean — no integrity issues detected.
                 </div>
               )}
@@ -657,12 +660,12 @@ const Step1Content: React.FC<Step1ContentProps> = ({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {repoIntegrity.branches?.map((branch: any) => {
                   const tc = TYPE_COLOR[branch.detectedType] ?? TYPE_COLOR.unknown;
-                  const isCurrentPrimary = branch.name === primaryBranch;
+                  const isCurrentPrimary = branch.name === githubDefaultBranch;
                   return (
                     <div key={branch.name} style={{
                       padding: '14px 16px', borderRadius: '10px',
                       border: `1px solid ${isCurrentPrimary ? 'var(--accent-purple)' : tc.border}`,
-                      background: isCurrentPrimary ? 'rgba(139,92,246,0.06)' : tc.bg,
+                      background: isCurrentPrimary ? 'var(--primary-branch-bg)' : tc.bg,
                       position: 'relative'
                     }}>
                       {isCurrentPrimary && (
@@ -687,13 +690,13 @@ const Step1Content: React.FC<Step1ContentProps> = ({
                       {/* Key files */}
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '8px' }}>
                         {branch.signals?.backendFiles?.slice(0, 4).map((f: string) => (
-                          <span key={f} style={{ fontSize: '0.72rem', padding: '2px 7px', borderRadius: '4px', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', color: '#a78bfa', fontFamily: 'monospace' }}>{f}</span>
+                          <span key={f} style={{ fontSize: '0.72rem', padding: '2px 7px', borderRadius: '4px', background: 'var(--type-backend-bg)', border: '1px solid var(--type-backend-border)', color: 'var(--type-backend-text)', fontFamily: 'monospace' }}>{f}</span>
                         ))}
                         {branch.signals?.frontendFiles?.slice(0, 4).map((f: string) => (
-                          <span key={f} style={{ fontSize: '0.72rem', padding: '2px 7px', borderRadius: '4px', background: 'rgba(34,211,238,0.08)', border: '1px solid rgba(34,211,238,0.2)', color: '#67e8f9', fontFamily: 'monospace' }}>{f}</span>
+                          <span key={f} style={{ fontSize: '0.72rem', padding: '2px 7px', borderRadius: '4px', background: 'var(--type-frontend-bg)', border: '1px solid var(--type-frontend-border)', color: 'var(--type-frontend-text)', fontFamily: 'monospace' }}>{f}</span>
                         ))}
                         {branch.signals?.hasCiYml && (
-                          <span style={{ fontSize: '0.72rem', padding: '2px 7px', borderRadius: '4px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', color: 'var(--success)', fontFamily: 'monospace' }}>azure-pipelines.yml</span>
+                          <span style={{ fontSize: '0.72rem', padding: '2px 7px', borderRadius: '4px', background: 'var(--success-badge-bg)', border: '1px solid var(--success-badge-border)', color: 'var(--success)', fontFamily: 'monospace' }}>azure-pipelines.yml</span>
                         )}
                       </div>
 
@@ -702,7 +705,7 @@ const Step1Content: React.FC<Step1ContentProps> = ({
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <Rocket size={12} style={{ color: 'var(--success)' }} />
                           Deployed as <strong style={{ color: 'var(--text-primary)' }}>{branch.deployedAs.name}</strong>
-                          <span style={{ fontSize: '0.7rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: 'var(--success)', fontWeight: 600 }}>
+                          <span style={{ fontSize: '0.7rem', padding: '1px 6px', borderRadius: '4px', background: 'var(--success-badge-bg)', border: '1px solid var(--success-badge-border)', color: 'var(--success)', fontWeight: 600 }}>
                             {branch.deployedAs.type.toUpperCase()}
                           </span>
                         </div>
@@ -715,7 +718,7 @@ const Step1Content: React.FC<Step1ContentProps> = ({
                               if (!selectedBranches.includes(branch.name)) setSelectedBranches([...selectedBranches, branch.name]);
                               setActiveTab('configure');
                             }} style={{ marginLeft: '6px', background: 'none', border: 'none', color: 'var(--accent-purple)', cursor: 'pointer', fontSize: '0.76rem', padding: 0, textDecoration: 'underline' }}>
-                              Use as primary branch
+                              Use for deployment
                             </button>
                           )}
                         </div>
