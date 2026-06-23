@@ -724,6 +724,8 @@ function App() {
   const [pipelineModalYmlLoading, setPipelineModalYmlLoading] = useState(false);
   const [pipelineModalYmlSource, setPipelineModalYmlSource] = useState<'github' | 'template' | null>(null);
   const [pipelineWizardStep, setPipelineWizardStep] = useState(1);
+  const [pipelineYmlValidation, setPipelineYmlValidation] = useState<any>(null);
+  const [pipelineYmlValidating, setPipelineYmlValidating] = useState(false);
 
   // Provisioning Wizard State
   const [newName, setNewName] = useState('');
@@ -749,11 +751,19 @@ function App() {
   const [ymlError, setYmlError] = useState<string | null>(null);
   const [ymlSource, setYmlSource] = useState<'github' | 'template' | null>(null);
   const [targetPort, setTargetPort] = useState('5005');
+  const [provisionYmlValidation, setProvisionYmlValidation] = useState<any>(null);
+  const [provisionYmlValidating, setProvisionYmlValidating] = useState(false);
 
   // Scanner Custom YML Editor States
   const [scannerYmlContent, setScannerYmlContent] = useState('');
   const [scannerYmlLoading, setScannerYmlLoading] = useState(false);
   const [scannerYmlSource, setScannerYmlSource] = useState<'github' | 'template' | null>(null);
+  const [scannerYmlValidation, setScannerYmlValidation] = useState<any>(null);
+  const [scannerYmlValidating, setScannerYmlValidating] = useState(false);
+
+  // Cloud Scanning YAML Health Map (keyed by group.key)
+  const [ymlHealthMap, setYmlHealthMap] = useState<Record<string, any>>({});
+  const [ymlHealthLoading, setYmlHealthLoading] = useState<Record<string, boolean>>({});
 
   const [selectedRepo, setSelectedRepo] = useState('');
   const [selectedBranch, setSelectedBranch] = useState('');
@@ -1051,7 +1061,83 @@ function App() {
   const [dockerfileChecked, setDockerfileChecked] = useState(false);
   const [dockerfileContent, setDockerfileContent] = useState('');
   const [dockerfileLoading, setDockerfileLoading] = useState(false);
+  const [dockerfileValidation, setDockerfileValidation] = useState<any>(null);
+  const [dockerfileValidating, setDockerfileValidating] = useState(false);
   const [provisionErrorDetail, setProvisionErrorDetail] = useState<string | null>(null);
+
+  // ─── Shared YAML + Dockerfile validator helper ───────────────────────────
+  const validateYmlContent = useCallback(async (content: string, provider: string, setResult: (r: any) => void, setLoading: (b: boolean) => void) => {
+    if (!content || !content.trim()) { setResult(null); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/apps/validate-yml`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ymlContent: content, pipelineProvider: provider })
+      });
+      const data = await res.json();
+      setResult(data);
+    } catch (e) { setResult(null); }
+    finally { setLoading(false); }
+  }, []);
+
+  const validateDockerfileContent = useCallback(async (content: string, setResult: (r: any) => void, setLoading: (b: boolean) => void) => {
+    if (!content || !content.trim()) { setResult(null); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/apps/validate-dockerfile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content })
+      });
+      const data = await res.json();
+      setResult(data);
+    } catch (e) { setResult(null); }
+    finally { setLoading(false); }
+  }, []);
+
+  // Shared inline validation panel renderer
+  const renderValidationPanel = (result: any, isValidating: boolean) => {
+    if (isValidating) return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+        <span style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid var(--accent-purple)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        Validating...
+      </div>
+    );
+    if (!result) return null;
+    const hasErrors = result.errors && result.errors.length > 0;
+    const hasWarnings = result.warnings && result.warnings.length > 0;
+    if (!hasErrors && !hasWarnings) return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', fontSize: '0.76rem', color: '#10b981', fontWeight: 600 }}>
+        <span>✅</span> Looks good — no issues found
+      </div>
+    );
+    return (
+      <div style={{ borderRadius: '8px', border: `1px solid ${hasErrors ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`, background: hasErrors ? 'rgba(239,68,68,0.05)' : 'rgba(245,158,11,0.05)', overflow: 'hidden' }}>
+        <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: hasErrors ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)' }}>
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: hasErrors ? '#ef4444' : '#f59e0b' }}>
+            {hasErrors ? `❌ ${result.errors.length} error${result.errors.length > 1 ? 's' : ''}` : ''}
+            {hasErrors && hasWarnings ? ' · ' : ''}
+            {hasWarnings ? `⚠ ${result.warnings.length} warning${result.warnings.length > 1 ? 's' : ''}` : ''}
+          </span>
+        </div>
+        <div style={{ padding: '8px 0', display: 'flex', flexDirection: 'column', gap: '0' }}>
+          {(result.errors || []).map((e: any, i: number) => (
+            <div key={i} style={{ padding: '6px 12px', fontSize: '0.73rem', color: '#ef4444', display: 'flex', gap: '8px', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <span style={{ flexShrink: 0, fontWeight: 700 }}>❌</span>
+              <div><span style={{ opacity: 0.65, fontSize: '0.66rem' }}>{e.ruleId}{e.line ? ` · line ${e.line}` : ''} &nbsp;</span>{e.message}</div>
+            </div>
+          ))}
+          {(result.warnings || []).map((w: any, i: number) => (
+            <div key={i} style={{ padding: '6px 12px', fontSize: '0.73rem', color: '#f59e0b', display: 'flex', gap: '8px', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+              <span style={{ flexShrink: 0, fontWeight: 700 }}>⚠</span>
+              <div><span style={{ opacity: 0.65, fontSize: '0.66rem' }}>{w.ruleId}{w.line ? ` · line ${w.line}` : ''} &nbsp;</span>{w.message}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   const fetchDockerfileContent = async (repo: string, branch: string) => {
     setDockerfileLoading(true);
@@ -1091,6 +1177,63 @@ function App() {
       return { success: false, message: e.message || 'Network error pushing Dockerfile.' };
     }
   };
+
+  // ─── Debounced validation effects ─────────────────────────────────────────────────
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (ymlContent) validateYmlContent(ymlContent, pipelineProvider, setProvisionYmlValidation, setProvisionYmlValidating);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [ymlContent, pipelineProvider]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (scannerYmlContent) validateYmlContent(scannerYmlContent, pipelineProvider, setScannerYmlValidation, setScannerYmlValidating);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [scannerYmlContent, pipelineProvider]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (pipelineModalYmlContent) validateYmlContent(pipelineModalYmlContent, pipelineProvider, setPipelineYmlValidation, setPipelineYmlValidating);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [pipelineModalYmlContent, pipelineProvider]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (dockerfileContent) validateDockerfileContent(dockerfileContent, setDockerfileValidation, setDockerfileValidating);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [dockerfileContent]);
+
+  // ─── Cloud Scanning YAML/Dockerfile Health Checks ─────────────────────────
+  const fetchYmlHealthForGroups = useCallback(async (groups: any[]) => {
+    for (const group of groups) {
+      if (!group.repoPath || group.type === 'vm' || group.type === 'network') continue;
+      const branch = group.envs?.[0]?.branch || group.branches?.[0]?.name || 'main';
+      const isBackend = group.type === 'backend';
+      setYmlHealthLoading(prev => ({ ...prev, [group.key]: true }));
+      try {
+        const res = await fetch(
+          `${API_BASE}/apps/yml-health?organizationId=${organizationId}` +
+          `&githubRepo=${encodeURIComponent(group.repoPath)}` +
+          `&branch=${encodeURIComponent(branch)}` +
+          `&pipelineProvider=${pipelineProvider || 'azure_devops'}` +
+          `&checkDockerfile=${isBackend}`
+        );
+        const data = await res.json();
+        if (data.success) {
+          setYmlHealthMap(prev => ({ ...prev, [group.key]: data }));
+        }
+      } catch (e) { /* silently skip */ }
+      finally {
+        setYmlHealthLoading(prev => ({ ...prev, [group.key]: false }));
+      }
+      // Stagger requests to avoid GitHub rate limiting
+      await new Promise(r => setTimeout(r, 300));
+    }
+  }, [organizationId, pipelineProvider]);
 
   useEffect(() => {
     if (activeTab === 'provision' || activeTab === 'credentials') {
@@ -1135,6 +1278,8 @@ function App() {
         setDockerfileMissing(false);
         setDockerfileChecked(false);
         setDockerfileContent('');
+        setDockerfileValidation(null);
+        setProvisionYmlValidation(null);
         setCommittingDockerfile(false);
         setDockerfileCheckError(null);
       }
