@@ -1816,6 +1816,37 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     </span>
                   )}
 
+                  {/* Scan Error Badge */}
+                  {!isLoading && health?.error && (
+                    <span 
+                      title={health.message || 'Check failed'}
+                      style={{
+                        background: theme === 'light' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                        border: theme === 'light' ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '0.74rem',
+                        color: theme === 'light' ? '#dc2626' : '#f87171',
+                        fontWeight: 600,
+                        boxShadow: theme === 'light' ? '0 1px 3px rgba(239, 68, 68, 0.05)' : '0 0 8px rgba(239, 68, 68, 0.2)',
+                        transition: 'all 0.2s ease',
+                        cursor: 'help'
+                      }}
+                      onMouseOver={(ev) => {
+                        ev.currentTarget.style.transform = 'scale(1.03)';
+                      }}
+                      onMouseOut={(ev) => {
+                        ev.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    >
+                      <AlertCircle size={11} />
+                      <span>Cannot Check</span>
+                    </span>
+                  )}
+
                   {/* YAML Issues Badge */}
                   {!isLoading && health?.ymlHealth && health.ymlHealth.exists && !health.ymlHealth.valid && (
                     <span 
@@ -2260,6 +2291,28 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                   </button>
                                 )}
                               </div>
+
+                              {/* Scan Error Message */}
+                              {!isLoading && health?.error && (
+                                <div style={{ fontSize: '0.72rem', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
+                                  <span style={{ opacity: 0.7, flexShrink: 0 }}>🔍 Scan Status:</span>
+                                  <span style={{
+                                    background: theme === 'light' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                    border: theme === 'light' ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                    color: theme === 'light' ? '#dc2626' : '#f87171',
+                                    padding: '2px 8px',
+                                    borderRadius: '10px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    fontSize: '0.68rem',
+                                    fontWeight: 600
+                                  }}>
+                                    <AlertCircle size={11} />
+                                    <span>Unavailable: {health.message || 'Check failed'}</span>
+                                  </span>
+                                </div>
+                              )}
 
                               {/* YAML Health Details */}
                               {(item.type === 'frontend' || item.type === 'backend') && health?.ymlHealth && (

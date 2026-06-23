@@ -1405,12 +1405,28 @@ function App() {
           timeoutId = null;
         }
         
-        const data = await res.json();
-        if (data.success) {
+        let data: any;
+        try {
+          data = await res.json();
+        } catch (jsonErr) {
+          data = { success: false, message: `Server error (${res.status})` };
+        }
+
+        if (res.ok && data && data.success) {
           setYmlHealthMap(prev => ({ ...prev, [group.key]: data }));
+        } else {
+          setYmlHealthMap(prev => ({
+            ...prev,
+            [group.key]: { success: false, error: true, message: (data && data.message) || 'Failed to check health' }
+          }));
         }
       } catch (e: any) {
         console.error(`Failed to fetch health check for group ${group.key}:`, e);
+        const errorMsg = e.name === 'AbortError' ? 'Scan timed out' : (e.message || 'Connection failed');
+        setYmlHealthMap(prev => ({
+          ...prev,
+          [group.key]: { success: false, error: true, message: errorMsg }
+        }));
       } finally {
         if (timeoutId) {
           clearTimeout(timeoutId);
