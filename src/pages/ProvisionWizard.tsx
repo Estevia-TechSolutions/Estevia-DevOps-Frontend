@@ -24,6 +24,7 @@ import {
   Server
 } from 'lucide-react';
 import { isFixable, applyAutoFix } from '../utils/autoFixEngine';
+import { DiffViewer } from '../components/DiffViewer';
 
 const renderValidationPanel = (
   result: any,
@@ -227,6 +228,7 @@ interface ProvisionWizardProps {
   ymlError: string | null;
   setYmlError: (val: string | null) => void;
   ymlContent: string;
+  ymlOriginal: string;
   setYmlContent: (val: string) => void;
   ymlSource: 'github' | 'template' | null;
   creatingYml: boolean;
@@ -360,6 +362,11 @@ export const DockerfileEditorStep: React.FC<DockerfileEditorStepProps> = ({
   // Local validation states
   const [validationResult, setValidationResult] = useState<any>(null);
   const [isValidating, setIsValidating] = useState(false);
+  const [viewMode, setViewMode] = useState<'editor' | 'diff'>('editor');
+
+  useEffect(() => {
+    if (!editMode) setViewMode('editor');
+  }, [editMode]);
 
   useEffect(() => {
     const contentToValidate = editMode ? editedContent : dockerfileContent;
@@ -481,18 +488,63 @@ export const DockerfileEditorStep: React.FC<DockerfileEditorStepProps> = ({
             <span>No Dockerfile could be loaded from GitHub.</span>
           </div>
         ) : editMode ? (
-          <textarea
-            value={editedContent}
-            onChange={e => setEditedContent(e.target.value)}
-            spellCheck={false}
-            style={{
-              width: '100%', minHeight: '360px', padding: '16px', borderRadius: '10px',
-              background: 'rgba(0,0,0,0.35)', border: '1px solid var(--accent-purple)',
-              color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '0.82rem',
-              lineHeight: '1.5', resize: 'vertical', boxSizing: 'border-box',
-              outline: 'none', caretColor: 'var(--accent-purple)',
-            }}
-          />
+          <>
+            {editedContent !== dockerfileContent && (
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('editor')}
+                  style={{
+                    background: viewMode === 'editor' ? 'rgba(124, 58, 237, 0.15)' : 'transparent',
+                    border: `1px solid ${viewMode === 'editor' ? 'var(--accent-purple)' : 'var(--glass-border)'}`,
+                    color: viewMode === 'editor' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '0.74rem',
+                    cursor: 'pointer',
+                    fontWeight: 600
+                  }}
+                >
+                  📝 Editor
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('diff')}
+                  style={{
+                    background: viewMode === 'diff' ? 'rgba(124, 58, 237, 0.15)' : 'transparent',
+                    border: `1px solid ${viewMode === 'diff' ? 'var(--accent-purple)' : 'var(--glass-border)'}`,
+                    color: viewMode === 'diff' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontSize: '0.74rem',
+                    cursor: 'pointer',
+                    fontWeight: 600
+                  }}
+                >
+                  🔍 View Changes
+                </button>
+              </div>
+            )}
+
+            {viewMode === 'diff' ? (
+              <div style={{ marginBottom: '20px' }}>
+                <DiffViewer original={dockerfileContent} current={editedContent} theme={localStorage.getItem('devops_theme') || 'dark'} />
+              </div>
+            ) : (
+              <textarea
+                value={editedContent}
+                onChange={e => setEditedContent(e.target.value)}
+                spellCheck={false}
+                style={{
+                  width: '100%', minHeight: '360px', padding: '16px', borderRadius: '10px',
+                  background: 'rgba(0,0,0,0.35)', border: '1px solid var(--accent-purple)',
+                  color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '0.82rem',
+                  lineHeight: '1.5', resize: 'vertical', boxSizing: 'border-box',
+                  outline: 'none', caretColor: 'var(--accent-purple)',
+                }}
+              />
+            )}
+          </>
         ) : (
           <pre style={{
             margin: 0, padding: '16px', borderRadius: '10px',
@@ -1046,6 +1098,7 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
   ymlError,
   setYmlError,
   ymlContent,
+  ymlOriginal,
   setYmlContent,
   ymlSource,
   creatingYml,
@@ -1151,6 +1204,7 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
   provisionYmlValidating
 }) => {
   const isViewer = currentUser?.role === 'viewer';
+  const [ymlViewMode, setYmlViewMode] = useState<'editor' | 'diff'>('editor');
 
   const handleCommitDefaultDockerfileClick = async () => {
     setCommittingDockerfile(true);
@@ -1530,24 +1584,67 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                   </button>
                 </div>
 
-                <div className="glass-panel" style={{ padding: '16px', backgroundColor: '#0f172a', border: '1px solid var(--glass-border)', borderRadius: '8px', marginBottom: '20px' }}>
-                  <textarea
-                    value={ymlContent}
-                    onChange={(e) => setYmlContent(e.target.value)}
-                    rows={14}
-                    style={{
-                      width: '100%',
-                      fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-                      fontSize: '0.85rem',
-                      color: '#e2e8f0',
-                      background: 'transparent',
-                      border: 'none',
-                      outline: 'none',
-                      resize: 'vertical',
-                      lineHeight: '1.5'
-                    }}
-                  />
-                </div>
+                {ymlContent !== ymlOriginal && (
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setYmlViewMode('editor')}
+                      style={{
+                        background: ymlViewMode === 'editor' ? 'rgba(124, 58, 237, 0.15)' : 'transparent',
+                        border: `1px solid ${ymlViewMode === 'editor' ? 'var(--accent-purple)' : 'var(--glass-border)'}`,
+                        color: ymlViewMode === 'editor' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        borderRadius: '6px',
+                        padding: '4px 10px',
+                        fontSize: '0.74rem',
+                        cursor: 'pointer',
+                        fontWeight: 600
+                      }}
+                    >
+                      📝 Editor
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setYmlViewMode('diff')}
+                      style={{
+                        background: ymlViewMode === 'diff' ? 'rgba(124, 58, 237, 0.15)' : 'transparent',
+                        border: `1px solid ${ymlViewMode === 'diff' ? 'var(--accent-purple)' : 'var(--glass-border)'}`,
+                        color: ymlViewMode === 'diff' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        borderRadius: '6px',
+                        padding: '4px 10px',
+                        fontSize: '0.74rem',
+                        cursor: 'pointer',
+                        fontWeight: 600
+                      }}
+                    >
+                      🔍 View Changes
+                    </button>
+                  </div>
+                )}
+
+                {ymlViewMode === 'diff' ? (
+                  <div style={{ marginBottom: '20px' }}>
+                    <DiffViewer original={ymlOriginal} current={ymlContent} theme={localStorage.getItem('devops_theme') || 'dark'} />
+                  </div>
+                ) : (
+                  <div className="glass-panel" style={{ padding: '16px', backgroundColor: '#0f172a', border: '1px solid var(--glass-border)', borderRadius: '8px', marginBottom: '20px' }}>
+                    <textarea
+                      value={ymlContent}
+                      onChange={(e) => setYmlContent(e.target.value)}
+                      rows={14}
+                      style={{
+                        width: '100%',
+                        fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+                        fontSize: '0.85rem',
+                        color: '#e2e8f0',
+                        background: 'transparent',
+                        border: 'none',
+                        outline: 'none',
+                        resize: 'vertical',
+                        lineHeight: '1.5'
+                      }}
+                    />
+                  </div>
+                )}
 
                 {/* YAML Validation Panel */}
                 <div style={{ marginBottom: '20px' }}>

@@ -59,6 +59,7 @@ import type { UserRecord } from './pages/TeamPage';
 import { LogDrawer } from './components/observability/LogDrawer';
 import { AuditLogsTable } from './components/team/AuditLogsTable';
 import { isFixable, applyAutoFix } from './utils/autoFixEngine';
+import { DiffViewer } from './components/DiffViewer';
 import { Footer } from './components/layout/Footer';
 
 const Github = ({ size = 24, ...props }: { size?: number; [key: string]: any }) => (
@@ -722,8 +723,10 @@ function App() {
   // Pipeline Modal YML Editor States
   const [pipelineBranch, setPipelineBranch] = useState('main');
   const [pipelineModalYmlContent, setPipelineModalYmlContent] = useState('');
+  const [pipelineModalYmlOriginal, setPipelineModalYmlOriginal] = useState('');
   const [pipelineModalYmlLoading, setPipelineModalYmlLoading] = useState(false);
   const [pipelineModalYmlSource, setPipelineModalYmlSource] = useState<'github' | 'template' | null>(null);
+  const [ymlViewMode, setYmlViewMode] = useState<'editor' | 'diff'>('editor');
   const [pipelineWizardStep, setPipelineWizardStep] = useState(1);
   const [pipelineYmlValidation, setPipelineYmlValidation] = useState<any>(null);
   const [pipelineYmlValidating, setPipelineYmlValidating] = useState(false);
@@ -748,6 +751,7 @@ function App() {
   const [virtualNetworks, setVirtualNetworks] = useState<any[]>([]);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [ymlContent, setYmlContent] = useState<string>('');
+  const [ymlOriginal, setYmlOriginal] = useState<string>('');
   const [ymlLoading, setYmlLoading] = useState(false);
   const [ymlError, setYmlError] = useState<string | null>(null);
   const [ymlSource, setYmlSource] = useState<'github' | 'template' | null>(null);
@@ -3203,6 +3207,7 @@ function App() {
     setYmlLoading(true);
     setYmlError(null);
     setYmlContent('');
+    setYmlOriginal('');
     setYmlSource(null);
     try {
       // 1. Try fetching existing configuration file from the primary branch
@@ -3211,6 +3216,7 @@ function App() {
       
       if (data.success && data.exists) {
         setYmlContent(data.content);
+        setYmlOriginal(data.content);
         setYmlSource('github');
       } else {
         // 2. Fetch the default template populated with trigger branches list
@@ -3219,6 +3225,7 @@ function App() {
         const templateData = await templateRes.json();
         if (templateData.success) {
           setYmlContent(templateData.content);
+          setYmlOriginal(templateData.content);
           setYmlSource('template');
         } else {
           throw new Error(templateData.message || 'Failed to fetch default template.');
@@ -3256,6 +3263,7 @@ function App() {
       const data = await res.json();
       if (data.success) {
         setYmlSource('github');
+        setYmlOriginal(ymlContent);
         alert('Pipeline YAML committed successfully to GitHub!');
       } else {
         throw new Error(data.message || 'Failed to commit custom YAML.');
@@ -3757,6 +3765,7 @@ function App() {
       const data = await res.json();
       if (data.success) {
         setPipelineSuccess(`✅ ${pipelineProvider === 'github_actions' ? '.github/workflows/deploy.yml' : 'azure-pipelines.yml'} committed and pipeline registered successfully! ID: ${data.pipelineId}`);
+        setPipelineModalYmlOriginal(pipelineModalYmlContent);
         setYmlCreated(true);
         setPipelineWizardStep(3);
         handleScan();
@@ -3935,6 +3944,7 @@ function App() {
     if (!repo) return;
     setPipelineModalYmlLoading(true);
     setPipelineModalYmlContent('');
+    setPipelineModalYmlOriginal('');
     setPipelineModalYmlSource(null);
     try {
       const res = await fetch(`${API_BASE}/apps/get-yml?organizationId=${organizationId}&githubRepo=${encodeURIComponent(repo)}&branch=${encodeURIComponent(branch)}&pipelineProvider=${provider}`);
@@ -3942,12 +3952,14 @@ function App() {
       
       if (data.success && data.exists) {
         setPipelineModalYmlContent(data.content);
+        setPipelineModalYmlOriginal(data.content);
         setPipelineModalYmlSource('github');
       } else {
         const templateRes = await fetch(`${API_BASE}/apps/default-yml?organizationId=${organizationId}&githubRepo=${encodeURIComponent(repo)}&branches=${encodeURIComponent(branch + ',main,qa,dev')}&appType=${pipelineApp?.type || 'frontend'}&pipelineProvider=${provider}`);
         const templateData = await templateRes.json();
         if (templateData.success) {
           setPipelineModalYmlContent(templateData.content);
+          setPipelineModalYmlOriginal(templateData.content);
           setPipelineModalYmlSource('template');
         } else {
           throw new Error(templateData.message || 'Failed to fetch default template.');
@@ -3969,6 +3981,7 @@ function App() {
     setYmlFound(null);
     setYmlCreated(false);
     setPipelineWizardStep(1);
+    setYmlViewMode('editor');
 
     let defaultRepo = '';
     const owner = githubOwner || 'Estevia-TechSolutions';
@@ -5344,6 +5357,7 @@ function App() {
             ymlError={ymlError}
             setYmlError={setYmlError}
             ymlContent={ymlContent}
+            ymlOriginal={ymlOriginal}
             setYmlContent={setYmlContent}
             ymlSource={ymlSource}
             creatingYml={creatingYml}
@@ -7438,25 +7452,66 @@ function App() {
                     </div>
                   ) : (
                     <>
-                      <textarea
-                        rows={12}
-                        value={pipelineModalYmlContent}
-                        onChange={(e) => setPipelineModalYmlContent(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          borderRadius: '8px',
-                          backgroundColor: 'var(--input-bg)',
-                          border: '1px solid var(--glass-border)',
-                          color: 'var(--text-primary)',
-                          fontSize: '0.82rem',
-                          fontFamily: 'monospace',
-                          lineHeight: '1.4',
-                          outline: 'none',
-                          boxSizing: 'border-box',
-                          resize: 'vertical'
-                        }}
-                      />
+                      {pipelineModalYmlContent !== pipelineModalYmlOriginal && (
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={() => setYmlViewMode('editor')}
+                            style={{
+                              background: ymlViewMode === 'editor' ? 'rgba(124, 58, 237, 0.15)' : 'transparent',
+                              border: `1px solid ${ymlViewMode === 'editor' ? 'var(--accent-purple)' : 'var(--glass-border)'}`,
+                              color: ymlViewMode === 'editor' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                              borderRadius: '6px',
+                              padding: '4px 10px',
+                              fontSize: '0.74rem',
+                              cursor: 'pointer',
+                              fontWeight: 600
+                            }}
+                          >
+                            📝 Editor
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setYmlViewMode('diff')}
+                            style={{
+                              background: ymlViewMode === 'diff' ? 'rgba(124, 58, 237, 0.15)' : 'transparent',
+                              border: `1px solid ${ymlViewMode === 'diff' ? 'var(--accent-purple)' : 'var(--glass-border)'}`,
+                              color: ymlViewMode === 'diff' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                              borderRadius: '6px',
+                              padding: '4px 10px',
+                              fontSize: '0.74rem',
+                              cursor: 'pointer',
+                              fontWeight: 600
+                            }}
+                          >
+                            🔍 View Changes
+                          </button>
+                        </div>
+                      )}
+
+                      {ymlViewMode === 'diff' ? (
+                        <DiffViewer original={pipelineModalYmlOriginal} current={pipelineModalYmlContent} theme={theme} />
+                      ) : (
+                        <textarea
+                          rows={12}
+                          value={pipelineModalYmlContent}
+                          onChange={(e) => setPipelineModalYmlContent(e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '12px',
+                            borderRadius: '8px',
+                            backgroundColor: 'var(--input-bg)',
+                            border: '1px solid var(--glass-border)',
+                            color: 'var(--text-primary)',
+                            fontSize: '0.82rem',
+                            fontFamily: 'monospace',
+                            lineHeight: '1.4',
+                            outline: 'none',
+                            boxSizing: 'border-box',
+                            resize: 'vertical'
+                          }}
+                        />
+                      )}
                       <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <Info size={12} style={{ color: 'var(--accent-blue)' }} />
                         <span>
