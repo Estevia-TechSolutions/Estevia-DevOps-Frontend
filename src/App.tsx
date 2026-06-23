@@ -2192,9 +2192,17 @@ function App() {
       if (res.ok && data.success) {
         setRequiresOnboarding(false);
         localStorage.setItem('devops_requires_onboarding', 'false');
-        fetchOrgSettings();
+        
+        // Wait for settings to load first so handleScan has the correct resource group!
+        const settings = await fetchOrgSettings();
         fetchGithubRepos();
-        handleScan();
+        
+        // Reset scanningRef and scanning state just in case it got stuck during onboarding
+        scanningRef.current = false;
+        setScanning(false);
+        
+        const targetRg = settings?.azure_resource_group || undefined;
+        handleScan(targetRg);
       } else {
         throw new Error(data.message || 'Failed to finalize onboarding.');
       }
@@ -2450,7 +2458,9 @@ function App() {
         } catch (e) {
           console.warn('[DevOps] Failed to load cached apps:', e);
         }
-        handleScan(); // Perform live scan in the background
+        if (!requiresOnboarding) {
+          handleScan(); // Perform live scan in the background
+        }
       };
       loadCachedAndScan();
 
@@ -2462,7 +2472,7 @@ function App() {
         fetchTeamUsers();
       }
     }
-  }, [organizationId, token, user?.role]);
+  }, [organizationId, token, user?.role, requiresOnboarding]);
 
   // Auto-scan cloud resources and refresh costs with a 5-minute countdown timer
   useEffect(() => {
@@ -2567,10 +2577,12 @@ function App() {
         setDomainInput(data.settings.default_dns_domain || 'esteviatech.com');
         setDevopsOrgUrl(data.settings.azure_devops_org_url || 'https://dev.azure.com/esteviatech');
         setDevopsProject(data.settings.azure_devops_project || 'Estevia-Platform');
+        return data.settings;
       }
     } catch (e) {
       console.error('Failed to load organization settings:', e);
     }
+    return null;
   };
 
   const fetchGithubRepos = async () => {
