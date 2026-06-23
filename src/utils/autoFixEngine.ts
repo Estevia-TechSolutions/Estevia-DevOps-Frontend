@@ -12,7 +12,8 @@ const FIXABLE_RULES = new Set([
   'AZ_DOCKER_MISSING_REGISTRY',
   'DOCKER_NO_EXPOSE',
   'DOCKER_ROOT_USER',
-  'DOCKER_LATEST_TAG'
+  'DOCKER_LATEST_TAG',
+  'DOCKER_COPY_DOT_DOT'
 ]);
 
 export function isFixable(ruleId: string): boolean {
@@ -190,6 +191,22 @@ export function applyAutoFix(
         else if (lower.includes('nginx')) pin = 'alpine';
         return `FROM ${baseImage}:${pin}`;
       });
+    }
+
+    case 'DOCKER_COPY_DOT_DOT': {
+      let copyIdx = -1;
+      for (let i = 0; i < lines.length; i++) {
+        const l = lines[i].trim().toUpperCase();
+        if (l === 'COPY . .' || l.match(/^COPY\s+\.\s+\./)) {
+          copyIdx = i;
+          break;
+        }
+      }
+      if (copyIdx !== -1) {
+        lines.splice(copyIdx, 0, '# dockerignore: ensure node_modules and build artifacts are excluded');
+        return lines.join('\n');
+      }
+      break;
     }
 
     default:
