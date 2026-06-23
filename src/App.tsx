@@ -439,11 +439,13 @@ function App() {
     });
     
     if (res.status === 401) {
-      console.warn('[authFetch] Unauthorized session. Logging out.');
+      console.warn('[authFetch] Unauthorized session. Logging out and clearing all session data.');
+      ['devops_token','devops_user','devops_requires_onboarding','devops_organization_id',
+       'devops_organization_name','evaops_events','evaops_notifications',
+       'selectedControlResourceGroup','token','authToken','jwt','organizationId']
+        .forEach(key => localStorage.removeItem(key));
       setToken(null);
       setUser(null);
-      localStorage.removeItem('devops_token');
-      localStorage.removeItem('devops_user');
     }
     
     return res;
@@ -1947,11 +1949,26 @@ function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('devops_token');
-    localStorage.removeItem('devops_user');
-    localStorage.removeItem('devops_requires_onboarding');
-    localStorage.removeItem('devops_organization_id');
-    localStorage.removeItem('devops_organization_name');
+    // Clear all session, user, org, notification, and resource-selection data.
+    // We preserve 'devops_theme' as it is a UI preference, not session data.
+    const SESSION_KEYS = [
+      'devops_token',
+      'devops_user',
+      'devops_requires_onboarding',
+      'devops_organization_id',
+      'devops_organization_name',
+      'evaops_events',
+      'evaops_notifications',
+      'selectedControlResourceGroup',
+      // Legacy / alternate token key names used by some components
+      'token',
+      'authToken',
+      'jwt',
+      'organizationId',
+    ];
+    SESSION_KEYS.forEach(key => localStorage.removeItem(key));
+
+    // Reset React state
     setToken(null);
     setUser(null);
     setRequiresOnboarding(false);
@@ -1959,6 +1976,7 @@ function App() {
     setDetailedCosts([]);
     setCostSuggestions([]);
   };
+
 
   // Onboarding Wizard API Handlers
   const handleOnboardStep1 = async () => {
