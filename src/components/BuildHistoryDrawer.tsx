@@ -453,7 +453,7 @@ export const BuildHistoryDrawer: React.FC<BuildHistoryDrawerProps> = ({
                               target="_blank"
                               rel="noreferrer"
                               style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}
-                              title="Open build in Azure DevOps"
+                              title={pipelineId && String(pipelineId).startsWith('github-actions:') ? "Open build in GitHub Actions" : "Open build in Azure DevOps"}
                             >
                               <ExternalLink size={12} />
                             </a>

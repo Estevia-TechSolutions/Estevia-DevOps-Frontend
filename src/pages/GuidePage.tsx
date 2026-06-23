@@ -31,7 +31,7 @@ interface GuidePageProps {
   theme?: 'dark' | 'light';
 }
 
-type TabType = 'getting-started' | 'capabilities' | 'branch-matching' | 'security' | 'entra-manual' | 'faq' | 'roadmap' | 'eva-ai';
+type TabType = 'getting-started' | 'capabilities' | 'branch-matching' | 'security' | 'entra-manual' | 'azure-devops-cicd' | 'github-actions-cicd' | 'faq' | 'roadmap' | 'eva-ai';
 
 export const GuidePage: React.FC<GuidePageProps> = () => {
   const [activeSubTab, setActiveSubTab] = useState<TabType>('getting-started');
@@ -45,6 +45,13 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
 
   const scopeData = useMemo(() => {
     return [
+      {
+        category: 'provisioning',
+        categoryLabel: 'Provisioning',
+        isCapability: true,
+        title: 'AKS Cluster Auto-Discovery & Scan',
+        text: 'Discovers active Azure Kubernetes Service (AKS) clusters inside resource groups. Validates node pools, system namespaces, ingress configuration, and bootstrap states.'
+      },
       {
         category: 'provisioning',
         categoryLabel: 'Provisioning',
@@ -338,6 +345,8 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
     { id: 'branch-matching', label: 'Branch Naming Rules', icon: GitBranch, desc: 'Environment matching priorities' },
     { id: 'security', label: 'Security & Scopes', icon: Lock, desc: 'Token permission matrix' },
     { id: 'entra-manual', label: 'Manual Entra ID Setup', icon: Key, desc: 'Manual App Registration guide' },
+    { id: 'azure-devops-cicd', label: 'Azure DevOps CI/CD', icon: Globe, desc: 'Azure Pipelines setup & guide' },
+    { id: 'github-actions-cicd', label: 'GitHub Actions CI/CD', icon: GitBranch, desc: 'GitHub workflow setup & guide' },
     { id: 'eva-ai', label: 'Eva AI & Analyst', icon: MessageSquare, desc: 'CloudOps virtual assistant guides' },
     { id: 'faq', label: 'FAQs & Troubleshooting', icon: HelpCircle, desc: 'Common queries & issues' },
     { id: 'roadmap', label: 'Platform Roadmap', icon: Compass, desc: 'AWS & Azure future features' }
@@ -1068,6 +1077,100 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
             </div>
           )}
 
+          {/* TAB CONTENT: AZURE DEVOPS CI/CD */}
+          {activeSubTab === 'azure-devops-cicd' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                  Azure DevOps CI/CD Integration Guide
+                </h3>
+                <p style={{ margin: '6px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                  Learn how to configure, automate, and monitor your Azure Pipelines CI/CD workflows inside EvaOps.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Globe size={16} style={{ color: 'var(--accent-purple)' }} />
+                    Automated YAML Configuration (azure-pipelines.yml)
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                    The Setup CI/CD Pipeline wizard generates a multi-stage YAML pipeline file tailor-made to your target application type (Static Web App or Container App) and target environment (dev, qa, prod, etc.). It registers a project variable group containing Azure service connections, environment specific variables, and deployment credentials to execute automated deployments on code changes.
+                  </p>
+                </div>
+
+                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    Integration Steps
+                  </h4>
+                  <ol style={{ margin: 0, paddingLeft: '20px', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.7' }}>
+                    <li>Select <strong>Azure DevOps</strong> in the Pipeline Provider toggle when running the Setup CI/CD modal wizard.</li>
+                    <li>Verify the default Azure DevOps Organization and Project parameters loaded from database configurations.</li>
+                    <li>Verify or edit the auto-generated YAML deployment configuration file inside the interactive code editor.</li>
+                    <li>Click <strong>Commit & Create Pipeline</strong>. The system will commit `azure-pipelines.yml` to your repository, register the pipeline endpoint in Azure DevOps, and establish variables sync.</li>
+                  </ol>
+                </div>
+
+                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    Variable Group Syncing
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                    When a pipeline is setup, EvaOps automatically compiles required deployment secrets and parameters (like container registry credentials or SWA deployment tokens) and syncs them directly into an Azure DevOps variable group named <code>evaops-secrets-[appname]</code>, keeping credentials out of source code.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB CONTENT: GITHUB ACTIONS CI/CD */}
+          {activeSubTab === 'github-actions-cicd' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                  GitHub Actions CI/CD Integration Guide
+                </h3>
+                <p style={{ margin: '6px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                  Configure GitHub Actions workflows to automate and deploy your applications directly from GitHub repository triggers.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <GitBranch size={16} style={{ color: 'var(--accent-teal)' }} />
+                    Automated Workflow Configuration (.github/workflows/deploy.yml)
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                    The Setup CI/CD Pipeline wizard generates a `.github/workflows/deploy.yml` deployment script for the target branch of your GitHub repository. It automates container build operations, leverages GitHub runner tasks to compile assets, and triggers Azure CLI commands to deploy directly to Azure Container Apps or Azure Static Web Apps.
+                  </p>
+                </div>
+
+                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    Integration Steps
+                  </h4>
+                  <ol style={{ margin: 0, paddingLeft: '20px', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.7' }}>
+                    <li>Select <strong>GitHub Actions</strong> in the Pipeline Provider toggle inside the Setup CI/CD modal wizard.</li>
+                    <li>Verify the branch mapping and the target repository paths before proceeding.</li>
+                    <li>Review or edit the auto-generated GitHub Actions YAML deployment workflow template in the interactive code editor.</li>
+                    <li>Click <strong>Commit & Create Pipeline</strong>. The system will commit `.github/workflows/deploy.yml` to your repository, register the pipeline reference, and authorize ECR/ACR access permissions.</li>
+                  </ol>
+                </div>
+
+                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    Registry Authentication & Access Rights
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                    For Azure Container Apps (ACA), deployment requires write and push permissions to ECR/ACR. During the setup process, EvaOps automatically configures registry access controls so that the workflow runner can log in and push Docker images securely using the organization credentials.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* TAB CONTENT: FAQ */}
           {activeSubTab === 'faq' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -1345,15 +1448,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     
-                    {/* AKS */}
-                    <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <h4 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                        AKS (Azure Kubernetes Service) Bootstrap
-                      </h4>
-                      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                        Graphical wizard to provision node pools, map NGINX Ingress controllers, auto-configure Cert-Manager certificates, and register Helm release pipelines.
-                      </p>
-                    </div>
+
 
                     {/* Azure APIM */}
                     <div className="glass-panel" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>

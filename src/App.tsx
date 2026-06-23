@@ -3480,12 +3480,13 @@ function App() {
           devopsOrgUrl,
           devopsProject,
           branch: pipelineBranch,
-          customYml: pipelineModalYmlContent
+          customYml: pipelineModalYmlContent,
+          pipelineProvider
         })
       });
       const data = await res.json();
       if (data.success) {
-        setPipelineSuccess(`✅ azure-pipelines.yml committed and pipeline registered successfully! ID: ${data.pipelineId}`);
+        setPipelineSuccess(`✅ ${pipelineProvider === 'github_actions' ? '.github/workflows/deploy.yml' : 'azure-pipelines.yml'} committed and pipeline registered successfully! ID: ${data.pipelineId}`);
         setYmlCreated(true);
         setPipelineWizardStep(3);
         handleScan();
@@ -3513,13 +3514,14 @@ function App() {
           appName: pipelineApp.name,
           githubRepo,
           devopsOrgUrl,
-          devopsProject
+          devopsProject,
+          pipelineProvider
         })
       });
       const data = await res.json();
       if (data.success) {
         setYmlCreated(true);
-        setPipelineSuccess(`✅ azure-pipelines.yml committed to "${githubRepo}" and pipeline registered! ID: ${data.pipelineId}`);
+        setPipelineSuccess(`✅ ${pipelineProvider === 'github_actions' ? '.github/workflows/deploy.yml' : 'azure-pipelines.yml'} committed to "${githubRepo}" and pipeline registered! ID: ${data.pipelineId}`);
         setGithubRepo('');
         handleScan();
       } else {
@@ -3634,22 +3636,22 @@ function App() {
     }
   };
 
-  const checkYmlExists = async (repo: string) => {
+  const checkYmlExists = async (repo: string, provider: 'azure_devops' | 'github_actions' = pipelineProvider) => {
     if (!repo) return;
     setCheckingYml(true);
     setYmlMissing(null);
     setYmlFound(null);
     try {
-      const res = await fetch(`${API_BASE}/apps/check-yml?organizationId=${organizationId}&githubRepo=${encodeURIComponent(repo)}`);
+      const res = await fetch(`${API_BASE}/apps/check-yml?organizationId=${organizationId}&githubRepo=${encodeURIComponent(repo)}&pipelineProvider=${provider}`);
       const data = await res.json();
       if (data.exists === false) {
         setYmlMissing({
-          message: `azure-pipelines.yml was not found in "${repo}".`,
+          message: `${provider === 'github_actions' ? '.github/workflows/deploy.yml' : 'azure-pipelines.yml'} was not found in "${repo}".`,
           githubRepo: repo
         });
       } else if (data.exists === true) {
         // Build the GitHub URL to the yml file
-        setYmlFound(`https://github.com/${repo}/blob/main/azure-pipelines.yml`);
+        setYmlFound(`https://github.com/${repo}/blob/main/${provider === 'github_actions' ? '.github/workflows/deploy.yml' : 'azure-pipelines.yml'}`);
       }
       // If exists === null (no token), leave both as null
     } catch (e) {
@@ -3659,20 +3661,20 @@ function App() {
     }
   };
 
-  const loadYmlForPipelineModal = async (repo: string, branch: string) => {
+  const loadYmlForPipelineModal = async (repo: string, branch: string, provider: 'azure_devops' | 'github_actions' = pipelineProvider) => {
     if (!repo) return;
     setPipelineModalYmlLoading(true);
     setPipelineModalYmlContent('');
     setPipelineModalYmlSource(null);
     try {
-      const res = await fetch(`${API_BASE}/apps/get-yml?organizationId=${organizationId}&githubRepo=${encodeURIComponent(repo)}&branch=${encodeURIComponent(branch)}`);
+      const res = await fetch(`${API_BASE}/apps/get-yml?organizationId=${organizationId}&githubRepo=${encodeURIComponent(repo)}&branch=${encodeURIComponent(branch)}&pipelineProvider=${provider}`);
       const data = await res.json();
       
       if (data.success && data.exists) {
         setPipelineModalYmlContent(data.content);
         setPipelineModalYmlSource('github');
       } else {
-        const templateRes = await fetch(`${API_BASE}/apps/default-yml?organizationId=${organizationId}&githubRepo=${encodeURIComponent(repo)}&branches=${encodeURIComponent(branch + ',main,qa,dev')}&appType=${pipelineApp?.type || 'frontend'}`);
+        const templateRes = await fetch(`${API_BASE}/apps/default-yml?organizationId=${organizationId}&githubRepo=${encodeURIComponent(repo)}&branches=${encodeURIComponent(branch + ',main,qa,dev')}&appType=${pipelineApp?.type || 'frontend'}&pipelineProvider=${provider}`);
         const templateData = await templateRes.json();
         if (templateData.success) {
           setPipelineModalYmlContent(templateData.content);
@@ -3749,6 +3751,8 @@ function App() {
 
     setDevopsOrgUrl(azureDevopsOrgUrl || 'https://dev.azure.com/esteviatech');
     setDevopsProject(azureDevopsProject || 'Estevia-Platform');
+    const initialProvider = app.pipelineId && String(app.pipelineId).startsWith('github-actions:') ? 'github_actions' : 'azure_devops';
+    setPipelineProvider(initialProvider);
 
     // Resolve target branch based on app's actual branch, or fallback to app name suffix
     let defaultBranch = app.branch || 'main';
@@ -3780,8 +3784,8 @@ function App() {
 
     // Proactively check if azure-pipelines.yml exists and load content
     if (activeRepo) {
-      checkYmlExists(activeRepo);
-      loadYmlForPipelineModal(activeRepo, defaultBranch);
+      checkYmlExists(activeRepo, initialProvider);
+      loadYmlForPipelineModal(activeRepo, defaultBranch, initialProvider);
     }
   };
 
@@ -6937,9 +6941,81 @@ function App() {
                 e.preventDefault();
                 setPipelineWizardStep(2);
                 if (githubRepo) {
-                  loadYmlForPipelineModal(githubRepo, pipelineBranch);
+                  loadYmlForPipelineModal(githubRepo, pipelineBranch, pipelineProvider);
                 }
               }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                    Pipeline Provider
+                  </label>
+                  <div style={{
+                    display: 'flex',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    padding: '4px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--glass-border)',
+                  }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPipelineProvider('azure_devops');
+                        if (githubRepo) {
+                          checkYmlExists(githubRepo, 'azure_devops');
+                          loadYmlForPipelineModal(githubRepo, pipelineBranch, 'azure_devops');
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        padding: '8px 16px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: pipelineProvider === 'azure_devops' ? 'var(--accent-purple)' : 'transparent',
+                        color: pipelineProvider === 'azure_devops' ? '#ffffff' : 'var(--text-secondary)',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease-in-out'
+                      }}
+                    >
+                      <Globe size={16} />
+                      Azure DevOps
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPipelineProvider('github_actions');
+                        if (githubRepo) {
+                          checkYmlExists(githubRepo, 'github_actions');
+                          loadYmlForPipelineModal(githubRepo, pipelineBranch, 'github_actions');
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        padding: '8px 16px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: pipelineProvider === 'github_actions' ? 'var(--accent-purple)' : 'transparent',
+                        color: pipelineProvider === 'github_actions' ? '#ffffff' : 'var(--text-secondary)',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease-in-out'
+                      }}
+                    >
+                      <GitBranch size={16} />
+                      GitHub Actions
+                    </button>
+                  </div>
+                </div>
+
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
                     Target Application
@@ -6994,43 +7070,45 @@ function App() {
                 </div>
 
                 {/* DevOps Settings */}
-                <div style={{ display: 'flex', gap: '16px' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
-                      DevOps Org URL
-                    </label>
-                    <div style={{
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      backgroundColor: 'var(--bg-primary)',
-                      border: '1px solid var(--glass-border)',
-                      fontSize: '0.86rem',
-                      color: 'var(--text-primary)',
-                      fontWeight: 500,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {devopsOrgUrl}
+                {pipelineProvider === 'azure_devops' && (
+                  <div style={{ display: 'flex', gap: '16px' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                        DevOps Org URL
+                      </label>
+                      <div style={{
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        backgroundColor: 'var(--bg-primary)',
+                        border: '1px solid var(--glass-border)',
+                        fontSize: '0.86rem',
+                        color: 'var(--text-primary)',
+                        fontWeight: 500,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {devopsOrgUrl}
+                      </div>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                        DevOps Project
+                      </label>
+                      <div style={{
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        backgroundColor: 'var(--bg-primary)',
+                        border: '1px solid var(--glass-border)',
+                        fontSize: '0.86rem',
+                        color: 'var(--text-primary)',
+                        fontWeight: 500
+                      }}>
+                        {devopsProject}
+                      </div>
                     </div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
-                      DevOps Project
-                    </label>
-                    <div style={{
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      backgroundColor: 'var(--bg-primary)',
-                      border: '1px solid var(--glass-border)',
-                      fontSize: '0.86rem',
-                      color: 'var(--text-primary)',
-                      fontWeight: 500
-                    }}>
-                      {devopsProject}
-                    </div>
-                  </div>
-                </div>
+                )}
 
                 {/* Action Buttons */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
@@ -7067,7 +7145,7 @@ function App() {
               <form onSubmit={handleCreatePipelineSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>
-                    azure-pipelines.yml Configuration
+                    {pipelineProvider === 'github_actions' ? '.github/workflows/deploy.yml' : 'azure-pipelines.yml'} Configuration
                   </label>
                   {pipelineModalYmlLoading ? (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '12px' }}>
@@ -7184,7 +7262,7 @@ function App() {
                   <CheckCircle2 size={32} style={{ color: 'var(--success)' }} />
                   <span style={{ fontWeight: 600, fontSize: '1rem' }}>CI/CD Pipeline Setup Complete!</span>
                   <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                    The `azure-pipelines.yml` file has been committed to branch `{pipelineBranch}` of `{githubRepo}`, and the build pipeline is fully configured in Azure DevOps.
+                    The `{pipelineProvider === 'github_actions' ? '.github/workflows/deploy.yml' : 'azure-pipelines.yml'}` file has been committed to branch `{pipelineBranch}` of `{githubRepo}`, and the build pipeline is fully configured in {pipelineProvider === 'github_actions' ? 'GitHub Actions' : 'Azure DevOps'}.
                   </p>
                 </div>
 
