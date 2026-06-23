@@ -1330,30 +1330,43 @@ function App() {
 
   // ─── Cloud Scanning YAML/Dockerfile Health Checks ─────────────────────────
   const fetchYmlHealthForGroups = useCallback(async (groups: any[]) => {
-    for (const group of groups) {
-      if (!group.repoPath || group.type === 'vm' || group.type === 'network') continue;
+    // Process groups in parallel so one slow/hanging request doesn't block others
+    groups.forEach(async (group, index) => {
+      if (!group.repoPath || group.type === 'vm' || group.type === 'network') return;
       const branch = group.envs?.[0]?.branch || group.branches?.[0]?.name || 'main';
       const isBackend = group.type === 'backend';
+      
       setYmlHealthLoading(prev => ({ ...prev, [group.key]: true }));
       try {
+        // Stagger requests slightly to avoid hitting GitHub rate limits
+        if (index > 0) {
+          await new Promise(r => setTimeout(r, index * 150));
+        }
+
+        // Add AbortController to enforce a 10-second request timeout limit
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
         const res = await fetch(
           `${API_BASE}/apps/yml-health?organizationId=${organizationId}` +
           `&githubRepo=${encodeURIComponent(group.repoPath)}` +
           `&branch=${encodeURIComponent(branch)}` +
           `&pipelineProvider=${pipelineProvider || 'azure_devops'}` +
-          `&checkDockerfile=${isBackend}`
+          `&checkDockerfile=${isBackend}`,
+          { signal: controller.signal }
         );
+        clearTimeout(timeoutId);
+        
         const data = await res.json();
         if (data.success) {
           setYmlHealthMap(prev => ({ ...prev, [group.key]: data }));
         }
-      } catch (e) { /* silently skip */ }
-      finally {
+      } catch (e: any) {
+        console.error(`Failed to fetch health check for group ${group.key}:`, e);
+      } finally {
         setYmlHealthLoading(prev => ({ ...prev, [group.key]: false }));
       }
-      // Stagger requests to avoid GitHub rate limiting
-      await new Promise(r => setTimeout(r, 300));
-    }
+    });
   }, [organizationId, pipelineProvider]);
 
   useEffect(() => {
