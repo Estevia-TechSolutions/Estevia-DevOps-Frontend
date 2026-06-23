@@ -30,7 +30,7 @@ export function applyAutoFix(
     return content;
   }
 
-  let lines = content.split('\n');
+  const lines = content.split('\n');
 
   switch (ruleId) {
     case 'AZ_MISSING_TRIGGER':
@@ -181,7 +181,7 @@ export function applyAutoFix(
     }
 
     case 'DOCKER_LATEST_TAG': {
-      return content.replace(/^FROM\s+([a-zA-Z0-9_\-\./]+):latest/mi, (match, baseImage) => {
+      return content.replace(/^FROM\s+([a-zA-Z0-9_\-./]+):latest/mi, (match, baseImage) => {
         let pin = 'alpine';
         const lower = baseImage.toLowerCase();
         if (lower.includes('node')) pin = '20-alpine';
