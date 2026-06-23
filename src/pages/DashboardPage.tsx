@@ -23,6 +23,7 @@ import {
   MoreVertical,
   GitCompare,
   Shield,
+  ShieldCheck,
   Lock,
   Copy,
   Check,
@@ -191,6 +192,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [loadingCompliance, setLoadingCompliance] = React.useState<boolean>(false);
   const [remediatingId, setRemediatingId] = React.useState<string | null>(null);
   const [compliancePage, setCompliancePage] = React.useState(1);
+  const [complianceFilterRule, setComplianceFilterRule] = React.useState<string>('all');
+  const [complianceFilterRemed, setComplianceFilterRemed] = React.useState<string>('all');
+  const [complianceSearchQuery, setComplianceSearchQuery] = React.useState<string>('');
+  const [selectedViolationIds, setSelectedViolationIds] = React.useState<string[]>([]);
+  const [batchRemediating, setBatchRemediating] = React.useState<boolean>(false);
 
   const fetchCompliance = async () => {
     setLoadingCompliance(true);
@@ -253,6 +259,60 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       alert('Error applying compliance remediation.');
     } finally {
       setRemediatingId(null);
+    }
+  };
+
+  const handleBatchRemediate = async () => {
+    if (selectedViolationIds.length === 0) return;
+    
+    const violationsToRemediate = (complianceData?.violations || []).filter(
+      (v: any) => selectedViolationIds.includes(v.suggestionId) && v.remediable
+    );
+
+    if (violationsToRemediate.length === 0) {
+      alert('No remediable violations selected.');
+      return;
+    }
+
+    setBatchRemediating(true);
+    try {
+      const token = localStorage.getItem('devops_token');
+      const res = await fetch(`${API_BASE}/apps/compliance/remediate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          organizationId,
+          violations: violationsToRemediate.map((v: any) => ({
+            resourceName: v.resourceName,
+            ruleId: v.ruleId,
+            remediationType: v.remediationType,
+            suggestionId: v.suggestionId
+          }))
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (onBuildTransition) {
+          onBuildTransition(
+            'Batch Remediation Applied',
+            `Successfully remediated ${violationsToRemediate.length} compliance violation(s).`,
+            'success'
+          );
+        }
+        setSelectedViolationIds([]);
+        fetchCompliance();
+        handleScan();
+      } else {
+        alert(data.message || 'Batch remediation failed.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error applying batch compliance remediation.');
+    } finally {
+      setBatchRemediating(false);
     }
   };
 
@@ -3101,7 +3161,71 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                   {/* Violations Details & Remediation */}
                   <div className="glass-panel" style={{ padding: '24px' }}>
-                    <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', fontWeight: 700 }}>Identified Governance Violations</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Identified Governance Violations</h3>
+                      
+                      {/* Search & Filters Row */}
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <input
+                          type="text"
+                          placeholder="Search resource..."
+                          value={complianceSearchQuery}
+                          onChange={(e) => {
+                            setComplianceSearchQuery(e.target.value);
+                            setCompliancePage(1);
+                          }}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '0.8rem',
+                            borderRadius: '6px',
+                            border: '1px solid var(--glass-border)',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            color: 'var(--text-primary)',
+                            width: '180px'
+                          }}
+                        />
+                        <select
+                          value={complianceFilterRule}
+                          onChange={(e) => {
+                            setComplianceFilterRule(e.target.value);
+                            setCompliancePage(1);
+                          }}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '0.8rem',
+                            borderRadius: '6px',
+                            border: '1px solid var(--glass-border)',
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--text-primary)'
+                          }}
+                        >
+                          <option value="all">All Rules</option>
+                          <option value="tagging">Required Tagging</option>
+                          <option value="residency">Region Residency</option>
+                          <option value="tls">SSL/TLS Security</option>
+                        </select>
+                        <select
+                          value={complianceFilterRemed}
+                          onChange={(e) => {
+                            setComplianceFilterRemed(e.target.value);
+                            setCompliancePage(1);
+                          }}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '0.8rem',
+                            borderRadius: '6px',
+                            border: '1px solid var(--glass-border)',
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--text-primary)'
+                          }}
+                        >
+                          <option value="all">All Actions</option>
+                          <option value="remediable">1-Click Remediate</option>
+                          <option value="manual">Manual Action</option>
+                        </select>
+                      </div>
+                    </div>
+
                     {complianceData && complianceData.violations.length === 0 ? (
                       <div style={{ padding: '30px', textAlign: 'center', color: 'var(--success)' }}>
                         <CheckCircle2 size={36} style={{ marginBottom: '8px' }} />
@@ -3109,75 +3233,248 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '4px', marginBottom: 0 }}>No active violations found against rules policy.</p>
                       </div>
                     ) : (() => {
-                      const violations = complianceData?.violations || [];
-                      const compliancePageSize = 5;
-                      const totalViolations = violations.length;
-                      const totalPages = Math.ceil(totalViolations / compliancePageSize) || 1;
+                      const allViolations = complianceData?.violations || [];
                       
-                      // Ensure current page is within valid range
+                      // Apply Filters
+                      const filteredViolations = allViolations.filter((v: any) => {
+                        const matchesSearch = v.resourceName.toLowerCase().includes(complianceSearchQuery.toLowerCase()) || v.resourceType.toLowerCase().includes(complianceSearchQuery.toLowerCase());
+                        const matchesRule = complianceFilterRule === 'all' || v.ruleId === complianceFilterRule;
+                        const matchesRemed = complianceFilterRemed === 'all' || 
+                                             (complianceFilterRemed === 'remediable' && v.remediable) ||
+                                             (complianceFilterRemed === 'manual' && !v.remediable);
+                        return matchesSearch && matchesRule && matchesRemed;
+                      });
+
+                      const totalViolations = filteredViolations.length;
+                      const compliancePageSize = 8; // 8 items for a grid layout looks fantastic
+                      const totalPages = Math.ceil(totalViolations / compliancePageSize) || 1;
                       const currentPage = Math.min(compliancePage, totalPages);
                       const startIndex = (currentPage - 1) * compliancePageSize;
-                      const paginatedViolations = violations.slice(startIndex, startIndex + compliancePageSize);
+                      const paginatedViolations = filteredViolations.slice(startIndex, startIndex + compliancePageSize);
+                      
+                      const remediableFiltered = filteredViolations.filter((v: any) => v.remediable);
+                      const paginatedRemediable = paginatedViolations.filter((v: any) => v.remediable);
+                      const isAllPageSelected = paginatedRemediable.length > 0 && paginatedRemediable.every((v: any) => selectedViolationIds.includes(v.suggestionId));
+
+                      const handleSelectAll = () => {
+                        if (isAllPageSelected) {
+                          // deselect paginated items
+                          const toRemove = paginatedRemediable.map((v: any) => v.suggestionId);
+                          setSelectedViolationIds(prev => prev.filter(id => !toRemove.includes(id)));
+                        } else {
+                          // select all paginated items
+                          const toAdd = paginatedRemediable.map((v: any) => v.suggestionId);
+                          setSelectedViolationIds(prev => Array.from(new Set([...prev, ...toAdd])));
+                        }
+                      };
 
                       return (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                          {paginatedViolations.map((v: any, index: number) => (
-                            <div key={startIndex + index} style={{
-                              padding: '16px',
-                              borderRadius: '10px',
-                              border: '1px solid rgba(239,68,68,0.15)',
-                              backgroundColor: 'rgba(239,68,68,0.02)',
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                          
+                          {/* Batch Actions Bar */}
+                          {remediableFiltered.length > 0 && (
+                            <div style={{
                               display: 'flex',
-                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '12px 18px',
+                              borderRadius: '8px',
+                              backgroundColor: 'rgba(139, 92, 246, 0.05)',
+                              border: '1px solid rgba(139, 92, 246, 0.15)',
+                              flexWrap: 'wrap',
                               gap: '12px'
                             }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
-                                <div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                    <span style={{
-                                      fontSize: '0.62rem',
-                                      fontWeight: 700,
-                                      textTransform: 'uppercase',
-                                      color: '#ef4444',
-                                      backgroundColor: 'rgba(239,68,68,0.1)',
-                                      padding: '2px 6px',
-                                      borderRadius: '4px',
-                                      border: '1px solid rgba(239,68,68,0.2)'
-                                    }}>
-                                      {v.ruleName}
-                                    </span>
-                                    <strong style={{ color: 'var(--text-primary)', fontSize: '0.88rem' }}>{v.resourceName}</strong>
-                                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.74rem' }}>({v.resourceType})</span>
-                                  </div>
-                                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '6px' }}>{v.message}</div>
-                                </div>
-
-                                {v.remediable && (
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: 'var(--text-primary)', cursor: 'pointer', margin: 0 }}>
+                                <input
+                                  type="checkbox"
+                                  checked={isAllPageSelected}
+                                  onChange={handleSelectAll}
+                                  style={{ width: '15px', height: '15px', accentColor: 'var(--accent-purple)' }}
+                                />
+                                <span>Select All Remediable on Page</span>
+                              </label>
+                              
+                              {selectedViolationIds.length > 0 && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                    <strong>{selectedViolationIds.length}</strong> rule violation(s) selected
+                                  </span>
                                   <button
                                     type="button"
                                     className="btn-primary"
-                                    disabled={isViewer || remediatingId === v.suggestionId}
-                                    onClick={() => handleRemediate(v)}
+                                    disabled={isViewer || batchRemediating}
+                                    onClick={handleBatchRemediate}
                                     style={{
-                                      padding: '6px 12px',
-                                      fontSize: '0.72rem',
+                                      padding: '6px 16px',
+                                      fontSize: '0.74rem',
                                       display: 'flex',
                                       alignItems: 'center',
-                                      gap: '6px',
-                                      alignSelf: 'flex-start'
+                                      gap: '8px',
+                                      background: 'var(--accent-purple)',
+                                      borderColor: 'var(--accent-purple-glow)'
                                     }}
                                   >
-                                    {remediatingId === v.suggestionId ? (
-                                      <RefreshCw size={10} className="spin-anim" />
+                                    {batchRemediating ? (
+                                      <RefreshCw size={12} className="spin-anim" />
                                     ) : (
-                                      <Shield size={10} />
+                                      <ShieldCheck size={12} />
                                     )}
-                                    <span>1-Click Remediate</span>
+                                    <span>Remediate Selected ({selectedViolationIds.length})</span>
                                   </button>
-                                )}
-                              </div>
+                                </div>
+                              )}
                             </div>
-                          ))}
+                          )}
+
+                          {filteredViolations.length === 0 ? (
+                            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                              <Search size={32} style={{ opacity: 0.5, marginBottom: '8px' }} />
+                              <h4 style={{ margin: 0 }}>No violations match filters</h4>
+                              <p style={{ fontSize: '0.8rem', marginTop: '4px', marginBottom: 0 }}>Try clearing search or filters to see all violations.</p>
+                            </div>
+                          ) : (
+                            /* Cards Grid: 4 columns in a row layout */
+                            <div style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                              gap: '16px'
+                            }}>
+                              {paginatedViolations.map((v: any, index: number) => {
+                                const isSelected = selectedViolationIds.includes(v.suggestionId);
+                                return (
+                                  <div
+                                    key={startIndex + index}
+                                    style={{
+                                      padding: '16px',
+                                      borderRadius: '12px',
+                                      border: `1px solid ${isSelected ? 'rgba(139,92,246,0.35)' : 'rgba(239,68,68,0.18)'}`,
+                                      background: isSelected 
+                                        ? 'linear-gradient(145deg, rgba(139,92,246,0.06) 0%, rgba(99,102,241,0.04) 100%)'
+                                        : 'rgba(239,68,68,0.02)',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      justifyContent: 'space-between',
+                                      minHeight: '200px',
+                                      boxShadow: isSelected ? '0 0 16px rgba(139,92,246,0.1)' : 'none',
+                                      transition: 'all 0.25s ease'
+                                    }}
+                                  >
+                                    <div>
+                                      {/* Header Row: Checkbox, Rule Tag, Resource Name */}
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '10px' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
+                                          <span style={{
+                                            fontSize: '0.58rem',
+                                            fontWeight: 700,
+                                            textTransform: 'uppercase',
+                                            color: v.remediable ? 'var(--accent-purple)' : '#f59e0b',
+                                            backgroundColor: v.remediable ? 'rgba(139,92,246,0.1)' : 'rgba(245,158,11,0.1)',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            border: `1px solid ${v.remediable ? 'rgba(139,92,246,0.2)' : 'rgba(245,158,11,0.2)'}`,
+                                            alignSelf: 'flex-start'
+                                          }}>
+                                            {v.ruleName}
+                                          </span>
+                                          <strong style={{
+                                            color: 'var(--text-primary)',
+                                            fontSize: '0.88rem',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap'
+                                          }}>
+                                            {v.resourceName}
+                                          </strong>
+                                          <span style={{ color: 'var(--text-secondary)', fontSize: '0.72rem' }}>
+                                            {v.resourceType.split('/').pop() || v.resourceType}
+                                          </span>
+                                        </div>
+
+                                        {v.remediable && (
+                                          <input
+                                            type="checkbox"
+                                            checked={isSelected}
+                                            disabled={isViewer}
+                                            onChange={() => {
+                                              if (isSelected) {
+                                                setSelectedViolationIds(prev => prev.filter(id => id !== v.suggestionId));
+                                              } else {
+                                                setSelectedViolationIds(prev => [...prev, v.suggestionId]);
+                                              }
+                                            }}
+                                            style={{
+                                              width: '16px',
+                                              height: '16px',
+                                              cursor: isViewer ? 'not-allowed' : 'pointer',
+                                              accentColor: 'var(--accent-purple)',
+                                              flexShrink: 0
+                                            }}
+                                          />
+                                        )}
+                                      </div>
+
+                                      {/* Violation Message */}
+                                      <p style={{
+                                        color: 'var(--text-secondary)',
+                                        fontSize: '0.78rem',
+                                        lineHeight: '1.4',
+                                        margin: '0 0 16px 0'
+                                      }}>
+                                        {v.message}
+                                      </p>
+                                    </div>
+
+                                    {/* Action Row */}
+                                    <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                      {v.remediable ? (
+                                        <button
+                                          type="button"
+                                          className="btn-primary"
+                                          disabled={isViewer || remediatingId === v.suggestionId}
+                                          onClick={() => handleRemediate(v)}
+                                          style={{
+                                            width: '100%',
+                                            padding: '6px 12px',
+                                            fontSize: '0.72rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '6px'
+                                          }}
+                                        >
+                                          {remediatingId === v.suggestionId ? (
+                                            <RefreshCw size={10} className="spin-anim" />
+                                          ) : (
+                                            <Shield size={10} />
+                                          )}
+                                          <span>1-Click Remediate</span>
+                                        </button>
+                                      ) : (
+                                        <div style={{
+                                          width: '100%',
+                                          padding: '6px 12px',
+                                          fontSize: '0.72rem',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          gap: '6px',
+                                          borderRadius: '6px',
+                                          backgroundColor: 'rgba(255,255,255,0.02)',
+                                          border: '1px solid var(--glass-border)',
+                                          color: 'var(--text-secondary)',
+                                          cursor: 'not-allowed',
+                                          userSelect: 'none'
+                                        }}>
+                                          <AlertCircle size={10} style={{ color: '#f59e0b' }} />
+                                          <span>Manual Action Required</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
 
                           {/* Pagination controls */}
                           {totalPages > 1 && (
