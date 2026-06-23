@@ -1249,8 +1249,40 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             <h3 style={{ margin: 0 }}>Fetching Live Subscriptions... {Math.floor(scanProgress)}%</h3>
             <p style={{ color: 'var(--text-secondary)', marginTop: '8px', marginBottom: 0 }}>{getScanProgressMessage(scanProgress)}</p>
           </div>
-          <div style={{ width: '100%', maxWidth: '400px', height: '8px', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: '4px', overflow: 'hidden', marginTop: '8px' }}>
-            <div style={{ width: `${scanProgress}%`, height: '100%', backgroundColor: 'var(--accent-purple)', boxShadow: '0 0 10px var(--accent-purple-glow)', transition: 'width 0.15s ease-out', borderRadius: '4px' }} />
+          <div style={{ display: 'flex', gap: '4px', width: '100%', maxWidth: '400px', marginTop: '8px' }}>
+            {[
+              { limit: 40, label: 'Resources' },
+              { limit: 75, label: 'Apps' },
+              { limit: 90, label: 'DB & DNS' },
+              { limit: 96, label: 'Builds' },
+              { limit: 100, label: 'Syncing' }
+            ].map((stage, idx, arr) => {
+              const prevLimit = idx === 0 ? 0 : arr[idx - 1].limit;
+              const range = stage.limit - prevLimit;
+              const segmentProgress = Math.min(100, Math.max(0, ((scanProgress - prevLimit) / range) * 100));
+              return (
+                <div 
+                  key={idx} 
+                  style={{ 
+                    flex: 1, 
+                    height: '8px', 
+                    backgroundColor: 'rgba(255, 255, 255, 0.08)', 
+                    borderRadius: '4px', 
+                    overflow: 'hidden',
+                    position: 'relative'
+                  }}
+                  title={`${stage.label}: ${Math.round(segmentProgress)}%`}
+                >
+                  <div style={{ 
+                    width: `${segmentProgress}%`, 
+                    height: '100%', 
+                    backgroundColor: segmentProgress > 0 ? 'var(--accent-purple)' : 'transparent',
+                    boxShadow: segmentProgress > 0 ? '0 0 10px var(--accent-purple-glow)' : 'none',
+                    transition: 'width 0.15s ease-out'
+                  }} />
+                </div>
+              );
+            })}
           </div>
         </div>
       ) : apps.length === 0 ? (

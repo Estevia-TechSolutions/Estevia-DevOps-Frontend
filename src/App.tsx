@@ -5453,8 +5453,40 @@ function App() {
                       </div>
                       <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-purple)' }}>{Math.floor(scanProgress)}%</span>
                     </div>
-                    <div style={{ width: '100%', height: '4px', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden' }}>
-                      <div style={{ width: `${scanProgress}%`, height: '100%', backgroundColor: 'var(--accent-purple)', boxShadow: '0 0 8px var(--accent-purple-glow)', transition: 'width 0.15s ease-out', borderRadius: '2px' }} />
+                    <div style={{ display: 'flex', gap: '4px', width: '100%' }}>
+                      {[
+                        { limit: 40, label: 'Resources' },
+                        { limit: 75, label: 'Apps' },
+                        { limit: 90, label: 'DB & DNS' },
+                        { limit: 96, label: 'Builds' },
+                        { limit: 100, label: 'Syncing' }
+                      ].map((stage, idx, arr) => {
+                        const prevLimit = idx === 0 ? 0 : arr[idx - 1].limit;
+                        const range = stage.limit - prevLimit;
+                        const segmentProgress = Math.min(100, Math.max(0, ((scanProgress - prevLimit) / range) * 100));
+                        return (
+                          <div 
+                            key={idx} 
+                            style={{ 
+                              flex: 1, 
+                              height: '4px', 
+                              backgroundColor: 'rgba(255, 255, 255, 0.06)', 
+                              borderRadius: '2px', 
+                              overflow: 'hidden',
+                              position: 'relative'
+                            }}
+                            title={`${stage.label}: ${Math.round(segmentProgress)}%`}
+                          >
+                            <div style={{ 
+                              width: `${segmentProgress}%`, 
+                              height: '100%', 
+                              backgroundColor: segmentProgress > 0 ? 'var(--accent-purple)' : 'transparent',
+                              boxShadow: segmentProgress > 0 ? '0 0 8px var(--accent-purple-glow)' : 'none',
+                              transition: 'width 0.15s ease-out'
+                            }} />
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

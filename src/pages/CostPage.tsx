@@ -2574,7 +2574,15 @@ export const CostPage: React.FC<CostPageProps> = ({
 
           {/* Recommendations List Container (Full Width) */}
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {(() => {
+            {loadingCosts ? (
+              <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                <RefreshCw size={36} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
+                <h3 style={{ margin: 0 }}>Analyzing Optimization Recommendations...</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', margin: 0 }}>
+                  Querying live telemetry and Azure Advisor parameters...
+                </p>
+              </div>
+            ) : (() => {
               let activeList = showImplemented ? appliedSuggestions : costSuggestions;
               
               // Apply source filter
@@ -2658,42 +2666,42 @@ export const CostPage: React.FC<CostPageProps> = ({
                               alignItems: 'center',
                               justifyContent: 'center',
                               color: isSuggestionApplied ? 'var(--success)' : priorityColor,
+                              fontSize: '1.1rem',
                               flexShrink: 0
                             }}>
-                              <TrendingDown size={16} />
+                              {isSuggestionApplied ? <CheckCircle2 size={16} /> : icon}
                             </div>
                             
                             {/* Badges/Pills on the Right Corner */}
                             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', flexShrink: 0 }}>
                               <span style={{ 
-                                fontSize: '0.6rem', 
-                                fontWeight: 700, 
-                                color: isSuggestionApplied ? 'var(--success)' : priorityColor, 
-                                background: isSuggestionApplied ? 'rgba(34,197,94,0.08)' : priorityBg,
-                                padding: '1px 6px',
-                                borderRadius: '8px',
-                                border: `1px solid ${isSuggestionApplied ? 'var(--success)' : priorityColor}30`,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                              }}>
-                                {isSuggestionApplied ? <CheckCircle2 size={10} /> : icon}
-                                {isSuggestionApplied ? 'RESOLVED' : priorityVal.toUpperCase()}
-                              </span>
-
-                              <span style={{ 
-                                fontSize: '0.6rem', 
-                                fontWeight: 700, 
-                                padding: '1px 6px',
-                                borderRadius: '8px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '3px',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                fontSize: '0.62rem',
+                                fontWeight: 700,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.03em',
                                 ...sourceBadgeStyle
                               }}>
                                 {isEvaSource && <Sparkles size={8} />}
                                 {sourceVal.toUpperCase()}
                               </span>
+
+                              {!isSuggestionApplied && (
+                                <span style={{
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.62rem',
+                                  fontWeight: 700,
+                                  textTransform: 'uppercase',
+                                  color: priorityColor,
+                                  background: priorityBg,
+                                  border: `1px solid ${priorityColor}30`,
+                                  letterSpacing: '0.03em'
+                                }}>
+                                  {priorityVal.toUpperCase()}
+                                </span>
+                              )}
                             </div>
                           </div>
 
@@ -2750,7 +2758,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                             ) : isSuggestionApplied ? (
                               <>
                                 <CheckCircle2 size={11} />
-                                Remediated
+                                Remedied
                               </>
                             ) : (
                               'Remediate'
