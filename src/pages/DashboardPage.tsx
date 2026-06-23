@@ -2419,6 +2419,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                     {item.pipelineId ? (
                                       <a 
                                         href={(() => {
+                                          const pid = String(item.pipelineId || '');
+                                          if (pid.startsWith('github-actions:')) {
+                                            const repoPath = pid.split(':').slice(1).join(':');
+                                            if (item.pipelineRun?.webUrl) {
+                                              return item.pipelineRun.webUrl;
+                                            }
+                                            return `https://github.com/${repoPath}/actions`;
+                                          }
                                           if (item.pipelineRun?.webUrl) {
                                             try {
                                               const url = new URL(item.pipelineRun.webUrl);
@@ -2668,6 +2676,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                     {item.pipelineId ? (
                                       <a 
                                         href={(() => {
+                                          const pid = String(item.pipelineId || '');
+                                          if (pid.startsWith('github-actions:')) {
+                                            const repoPath = pid.split(':').slice(1).join(':');
+                                            if (item.pipelineRun?.webUrl) {
+                                              return item.pipelineRun.webUrl;
+                                            }
+                                            return `https://github.com/${repoPath}/actions`;
+                                          }
                                           if (item.pipelineRun?.webUrl) {
                                             try {
                                               const url = new URL(item.pipelineRun.webUrl);

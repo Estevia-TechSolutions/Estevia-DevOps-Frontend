@@ -3003,6 +3003,11 @@ function App() {
   };
 
   const handleMoveToStep2 = async () => {
+    if (appType === 'cluster' || appType === 'database') {
+      setProvisionStep(4);
+      return;
+    }
+
     if (appType === 'backend') {
       setYmlLoading(true);
       const isMissing = await checkDockerfile(selectedRepo, selectedBranch || selectedBranches[0]);
