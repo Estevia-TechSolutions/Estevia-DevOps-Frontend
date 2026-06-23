@@ -1548,7 +1548,7 @@ function App() {
     onConfirm: () => void;
   } | null>(null);
 
-  const [syncCountdown, setSyncCountdown] = useState<number>(300);
+  const [syncCountdown, setSyncCountdown] = useState<number>(1800);
 
   // Authentication wrapper and states moved to the top of App component for lexical scope resolution
 
@@ -2486,23 +2486,25 @@ function App() {
     }
   }, [organizationId, token, user?.role, requiresOnboarding]);
 
-  // Auto-scan cloud resources and refresh costs with a 5-minute countdown timer
+  // Auto-scan cloud resources and refresh costs with a 30-minute countdown timer
   useEffect(() => {
     if (token) {
-      setSyncCountdown(300);
+      if (scanning) {
+        return;
+      }
       const interval = setInterval(() => {
         setSyncCountdown((prev) => {
           if (prev <= 1) {
             console.log('[DevOps Auto Refresh] Timer reached 0. Triggering auto cloud & cost scan...');
             handleScan(undefined, true);
-            return 300;
+            return 1800;
           }
           return prev - 1;
         });
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [token, organizationId]);
+  }, [token, organizationId, scanning]);
 
   // Polling for active pipeline runs/builds status updates
   useEffect(() => {
@@ -3132,7 +3134,6 @@ function App() {
     if (!buildsOnly) {
       setScanning(true);
       setScanError(null);
-      setSyncCountdown(300); // Reset timer on manual scan
     }
     const activeRg = rg !== undefined ? rg : selectedControlResourceGroup;
     const scanUrl = `${API_BASE}/apps/scan?organizationId=${organizationId}${activeRg ? `&resourceGroup=${activeRg}` : ''}${buildsOnly ? '&buildsOnly=true' : ''}`;
@@ -3205,6 +3206,9 @@ function App() {
       console.log('[DevOps Scan] [END] Scan finished.');
       setScanning(false);
       scanningRef.current = false;
+      if (!buildsOnly) {
+        setSyncCountdown(1800); // Start 30 min duration from when manual/auto scan completes
+      }
     }
   };
 
