@@ -40,8 +40,8 @@ interface AppResource {
 interface ProvisionWizardProps {
   provisionStep: number;
   setProvisionStep: (val: number) => void;
-  appType: 'frontend' | 'backend';
-  setAppType: (val: 'frontend' | 'backend') => void;
+  appType: 'frontend' | 'backend' | 'cluster' | 'database';
+  setAppType: (val: 'frontend' | 'backend' | 'cluster' | 'database') => void;
   newName: string;
   setNewName: (val: string) => void;
   newLocation: string;
@@ -83,8 +83,8 @@ interface ProvisionWizardProps {
   setDnsBindError: (val: string | null) => void;
   dnsBinding: boolean;
   domainInput: string;
-  getCategorizedRepos: (appType?: 'frontend' | 'backend') => { recommended: any[]; other: any[] };
-  handleAppTypeChange: (type: 'frontend' | 'backend') => void;
+  getCategorizedRepos: (appType?: 'frontend' | 'backend' | 'cluster' | 'database') => { recommended: any[]; other: any[] };
+  handleAppTypeChange: (type: 'frontend' | 'backend' | 'cluster' | 'database') => void;
   handleRepoChange: (repoName: string) => void;
   handleMoveToStep2: () => void;
   handleCommitCustomYml: () => void;
@@ -93,6 +93,27 @@ interface ProvisionWizardProps {
   handleDnsBind: () => void;
   organizationId: string;
   API_BASE: string;
+
+  // New AKS and Database provisioning states passed from App.tsx
+  kubernetesVersion: string;
+  setKubernetesVersion: (val: string) => void;
+  nodeCount: number;
+  setNodeCount: (val: number) => void;
+  vmSize: string;
+  setVmSize: (val: string) => void;
+  subnetId: string;
+  setSubnetId: (val: string) => void;
+  dbSkuName: string;
+  setDbSkuName: (val: string) => void;
+  dbSkuTier: string;
+  setDbSkuTier: (val: string) => void;
+  dbVersion: string;
+  setDbVersion: (val: string) => void;
+  dbAdminUsername: string;
+  setDbAdminUsername: (val: string) => void;
+  dbAdminPassword: string;
+  setDbAdminPassword: (val: string) => void;
+  virtualNetworks: any[];
 
   // Metadata dropdown state variables
   locations: any[];
@@ -325,11 +346,11 @@ const DockerfileEditorStep: React.FC<DockerfileEditorStepProps> = ({
    Step1Content — GitHub Source Selection with Repo Integrity
    ───────────────────────────────────────────────────────────── */
 interface Step1ContentProps {
-  appType: 'frontend' | 'backend';
-  handleAppTypeChange: (type: 'frontend' | 'backend') => void;
+  appType: 'frontend' | 'backend' | 'cluster' | 'database';
+  handleAppTypeChange: (type: 'frontend' | 'backend' | 'cluster' | 'database') => void;
   selectedRepo: string;
   handleRepoChange: (repo: string) => void;
-  getCategorizedRepos: (type?: 'frontend' | 'backend') => { recommended: any[]; other: any[] };
+  getCategorizedRepos: (type?: 'frontend' | 'backend' | 'cluster' | 'database') => { recommended: any[]; other: any[] };
   selectedBranches: string[];
   setSelectedBranches: (val: string[]) => void;
   selectedBranch: string;
@@ -397,8 +418,10 @@ const Step1Content: React.FC<Step1ContentProps> = ({
   // Determine the correct type hint for hard-block guidance
   const correctType = detectedType === 'backend' ? 'Backend ACA Container' : 'Frontend SWA';
 
-  const canProceed = !isViewer && selectedRepo && selectedBranches.length > 0 && !loadingBranches &&
-    !isHardBlock && (!isMixedWarn || mixedOverride);
+  const canProceed = !isViewer && (
+    ((appType === 'frontend' || appType === 'backend') && selectedRepo && selectedBranches.length > 0 && !loadingBranches && !isHardBlock && (!isMixedWarn || mixedOverride)) ||
+    (appType === 'cluster' || appType === 'database')
+  );
 
   // Count integrity issues for badge
   const integrityIssueCount = repoIntegrity?.issues?.length ?? 0;
@@ -453,52 +476,54 @@ const Step1Content: React.FC<Step1ContentProps> = ({
       {activeTab === 'configure' && (
         <>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', marginBottom: '24px' }}>
-            Choose the repository, target branch triggers, and the primary deploy branch. Frontends deploy to Azure SWA, backends to Azure Container Apps.
+            Choose the application type. For web applications, select the GitHub source repository. For managed cloud infrastructure, proceed directly to resource setup.
           </p>
 
           {/* App Type */}
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Application Type</label>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              {(['frontend', 'backend'] as const).map(t => (
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              {(['frontend', 'backend', 'cluster', 'database'] as const).map(t => (
                 <button key={t} type="button"
                   className={appType === t ? 'btn-primary' : 'btn-secondary'}
                   onClick={() => handleAppTypeChange(t)}
                   style={{
-                    flex: 1, padding: '10px', borderRadius: '8px', fontSize: '0.88rem', fontWeight: 600,
+                    flex: '1 1 45%', padding: '10px', borderRadius: '8px', fontSize: '0.88rem', fontWeight: 600,
                     // Amber highlight when this is the correct type for a hard-blocked branch
                     outline: isHardBlock && detectedType === t ? '2px solid var(--warning)' : 'none',
                     outlineOffset: '2px',
                   }}>
-                  {t === 'frontend' ? 'Frontend SWA' : 'Backend ACA Container'}
+                  {t === 'frontend' ? 'Frontend SWA' : t === 'backend' ? 'Backend ACA Container' : t === 'cluster' ? 'AKS Managed Cluster' : 'Azure MySQL Database'}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Repository Selector */}
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>GitHub Repository</label>
-            <select value={selectedRepo} onChange={e => handleRepoChange(e.target.value)}
-              style={{ background: 'var(--input-bg)', color: 'var(--text-primary)' }}>
-              <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>-- Choose Repository --</option>
-              {(() => {
-                const { recommended, other } = getCategorizedRepos(appType);
-                return (<>
-                  {recommended.length > 0 && (
-                    <optgroup label="Recommended Repositories" style={{ background: 'var(--bg-secondary)' }}>
-                      {recommended.map(r => <option key={r.id} value={r.fullName} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{r.fullName}</option>)}
-                    </optgroup>
-                  )}
-                  {other.length > 0 && (
-                    <optgroup label="Other Repositories" style={{ background: 'var(--bg-secondary)' }}>
-                      {other.map(r => <option key={r.id} value={r.fullName} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{r.fullName}</option>)}
-                    </optgroup>
-                  )}
-                </>);
-              })()}
-            </select>
-          </div>
+          {(appType === 'frontend' || appType === 'backend') ? (
+            <>
+              {/* Repository Selector */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>GitHub Repository</label>
+                <select value={selectedRepo} onChange={e => handleRepoChange(e.target.value)}
+                  style={{ background: 'var(--input-bg)', color: 'var(--text-primary)' }}>
+                  <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>-- Choose Repository --</option>
+                  {(() => {
+                    const { recommended, other } = getCategorizedRepos(appType);
+                    return (<>
+                      {recommended.length > 0 && (
+                        <optgroup label="Recommended Repositories" style={{ background: 'var(--bg-secondary)' }}>
+                          {recommended.map(r => <option key={r.id} value={r.fullName} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{r.fullName}</option>)}
+                        </optgroup>
+                      )}
+                      {other.length > 0 && (
+                        <optgroup label="Other Repositories" style={{ background: 'var(--bg-secondary)' }}>
+                          {other.map(r => <option key={r.id} value={r.fullName} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{r.fullName}</option>)}
+                        </optgroup>
+                      )}
+                    </>);
+                  })()}
+                </select>
+              </div>
 
           {/* Branches */}
           {selectedRepo && (
@@ -546,6 +571,14 @@ const Step1Content: React.FC<Step1ContentProps> = ({
               )}
             </div>
           )}
+        </>
+      ) : (
+        <div className="glass-panel" style={{ padding: '24px', borderColor: 'var(--accent-purple)', background: 'rgba(139, 92, 246, 0.04)', marginBottom: '24px', borderRadius: '10px' }}>
+          <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+            ℹ️ <strong>Infrastructure Deployment:</strong> AKS Clusters and MySQL Database Servers are managed cloud infrastructures. No GitHub repository integration is required to provision these resources. You can proceed directly to the Azure Resource Configuration.
+          </p>
+        </div>
+      )}
 
           {/* ── Hard block: type mismatch ── */}
           {isHardBlock && primaryBranch && (
@@ -612,7 +645,7 @@ const Step1Content: React.FC<Step1ContentProps> = ({
               onClick={handleMoveToStep2}
               title={isHardBlock ? 'Resolve the type mismatch above before proceeding' : isMixedWarn && !mixedOverride ? 'Acknowledge the mixed code warning to proceed' : ''}
               style={{ display: 'flex', alignItems: 'center', gap: '6px', opacity: canProceed ? 1 : 0.5, cursor: canProceed ? 'pointer' : 'not-allowed' }}>
-              Verify Pipeline YAML <ArrowRight size={16} />
+              {appType === 'cluster' || appType === 'database' ? 'Configure Infrastructure' : 'Verify Pipeline YAML'} <ArrowRight size={16} />
             </button>
           </div>
         </>
@@ -814,6 +847,27 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
   maxReplicas,
   setMaxReplicas,
 
+  // AKS / Database provisioning configs passed from App.tsx
+  kubernetesVersion,
+  setKubernetesVersion,
+  nodeCount,
+  setNodeCount,
+  vmSize,
+  setVmSize,
+  subnetId,
+  setSubnetId,
+  dbSkuName,
+  setDbSkuName,
+  dbSkuTier,
+  setDbSkuTier,
+  dbVersion,
+  setDbVersion,
+  dbAdminUsername,
+  setDbAdminUsername,
+  dbAdminPassword,
+  setDbAdminPassword,
+  virtualNetworks,
+
   // Custom paths
   customAppLocation,
   setCustomAppLocation,
@@ -897,76 +951,96 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
         borderColor: 'rgba(168, 85, 247, 0.20)',
         boxShadow: '0 0 30px rgba(139, 92, 246, 0.06), inset 0 0 20px rgba(139, 92, 246, 0.04)',
       }}>
-        {[
-          { stepNum: 1, label: 'GitHub Source Connection', sublabel: 'Select repository, triggers, and deployment target branch' },
-          { stepNum: 2, label: 'Verify Build Pipeline YML', sublabel: 'Review, modify, and commit azure-pipelines.yml configuration file' },
-          { stepNum: 3, label: appType === 'backend' ? 'Provision Azure ACA' : 'Provision Azure SWA', sublabel: 'Create managed container environments or static site hosts in the cloud' },
-          { stepNum: 4, label: 'Bindings & Launch Sequence', sublabel: 'Register Azure DevOps build pipelines and bind GoDaddy subdomains' }
-        ].map((s) => {
-          const isActive = provisionStep === s.stepNum;
-          const isCompleted = provisionStep > s.stepNum;
-          return (
-            <div key={s.stepNum} style={{ 
-              display: 'flex', 
-              gap: '16px', 
-              opacity: isActive || isCompleted ? 1 : 0.5,
-              transition: 'opacity 0.3s ease'
-            }}>
-              {/* Stepper column line and circle */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  backgroundColor: isCompleted ? 'var(--accent-blue)' : isActive ? 'var(--bg-secondary)' : '#1e293b',
-                  border: `2px solid ${isCompleted ? 'var(--accent-blue)' : isActive ? 'var(--accent-purple)' : 'rgba(255,255,255,0.1)'}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: isCompleted || isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                  fontSize: '0.88rem',
-                  fontWeight: 600,
-                  boxShadow: isActive ? '0 0 12px var(--accent-purple-glow)' : 'none',
-                  transition: 'all 0.3s ease'
-                }}>
-                  {isCompleted ? '✓' : s.stepNum}
+        {(() => {
+          const steps = [
+            { stepNum: 1, label: 'GitHub Source Connection', sublabel: 'Select repository, triggers, and deployment target branch' }
+          ];
+          if (appType === 'frontend' || appType === 'backend') {
+            steps.push({ stepNum: 2, label: 'Verify Build Pipeline YML', sublabel: 'Review, modify, and commit azure-pipelines.yml configuration file' });
+          }
+          steps.push({ 
+            stepNum: 4, 
+            label: appType === 'backend' 
+              ? 'Provision Azure ACA' 
+              : appType === 'cluster'
+              ? 'Provision AKS Cluster'
+              : appType === 'database'
+              ? 'Provision MySQL Server'
+              : 'Provision Azure SWA', 
+            sublabel: appType === 'cluster'
+              ? 'Configure Kubernetes settings, node counts, VM size, and subnet injections'
+              : appType === 'database'
+              ? 'Configure MySQL database version, pricing tiers, and subnet delegation'
+              : 'Create managed container environments or static site hosts in the cloud' 
+          });
+          if (appType === 'frontend' || appType === 'backend') {
+            steps.push({ stepNum: 5, label: 'Bindings & Launch Sequence', sublabel: 'Register Azure DevOps build pipelines and bind GoDaddy subdomains' });
+          }
+          return steps.map((s, idx) => {
+            const isActive = provisionStep === s.stepNum;
+            const isCompleted = provisionStep > s.stepNum;
+            return (
+              <div key={s.stepNum} style={{ 
+                display: 'flex', 
+                gap: '16px', 
+                opacity: isActive || isCompleted ? 1 : 0.5,
+                transition: 'opacity 0.3s ease'
+              }}>
+                {/* Stepper column line and circle */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    backgroundColor: isCompleted ? 'var(--accent-blue)' : isActive ? 'var(--bg-secondary)' : '#1e293b',
+                    border: `2px solid ${isCompleted ? 'var(--accent-blue)' : isActive ? 'var(--accent-purple)' : 'rgba(255,255,255,0.1)'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: isCompleted || isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                    boxShadow: isActive ? '0 0 12px var(--accent-purple-glow)' : 'none',
+                    transition: 'all 0.3s ease'
+                  }}>
+                    {isCompleted ? '✓' : idx + 1}
+                  </div>
+                  {idx < steps.length - 1 && (
+                    <div style={{ 
+                      width: '2px', 
+                      height: '38px',
+                      background: isCompleted 
+                        ? 'var(--accent-blue)' 
+                        : isActive 
+                          ? 'linear-gradient(180deg, var(--accent-purple), rgba(255,255,255,0.06))' 
+                          : 'rgba(255,255,255,0.06)', 
+                      margin: '4px 0' 
+                    }} />
+                  )}
                 </div>
-                {s.stepNum < 4 && (
-                  <div style={{ 
-                    width: '2px', 
-                    height: '38px',
-                    background: isCompleted 
-                      ? 'var(--accent-blue)' 
-                      : isActive 
-                        ? 'linear-gradient(180deg, var(--accent-purple), rgba(255,255,255,0.06))' 
-                        : 'rgba(255,255,255,0.06)', 
-                    margin: '4px 0' 
-                  }} />
-                )}
-              </div>
-              
-              {/* Label & Sublabel */}
-              <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: s.stepNum < 4 ? '26px' : '0' }}>
-                <span style={{ 
-                  fontSize: '0.88rem', 
-                  color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)', 
-                  fontWeight: isActive ? 600 : 400,
-                  lineHeight: '1.4'
-                }}>
-                  {s.label}
-                </span>
-                <span style={{ 
-                  fontSize: '0.72rem', 
-                  color: 'var(--text-secondary)',
-                  marginTop: '4px',
-                  lineHeight: '1.4'
-                }}>
-                  {s.sublabel}
-                </span>
+                
+                {/* Label & Sublabel */}
+                <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: idx < steps.length - 1 ? '26px' : '0' }}>
+                  <span style={{ 
+                    fontSize: '0.88rem', 
+                    color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)', 
+                    fontWeight: isActive ? 600 : 400,
+                    lineHeight: '1.4'
+                  }}>
+                    {s.label}
+                  </span>
+                  <span style={{ 
+                    fontSize: '0.72rem', 
+                    color: 'var(--text-secondary)',
+                    marginTop: '4px',
+                    lineHeight: '1.4'
+                  }}>
+                    {s.sublabel}
+                  </span>
               </div>
             </div>
           );
-        })}
+        })})()}
 
         {/* Informative text at the bottom of the sidebar */}
         <div style={{ 
@@ -1270,11 +1344,21 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
           <div>
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
               <PlusCircle style={{ color: 'var(--accent-purple)' }} />
-              {appType === 'backend' ? 'Provision Azure Container App' : 'Provision Azure SWA Resource'}
+              {appType === 'backend' 
+                ? 'Provision Azure Container App' 
+                : appType === 'cluster'
+                ? 'Provision AKS Managed Cluster'
+                : appType === 'database'
+                ? 'Provision MySQL Flexible Server'
+                : 'Provision Azure SWA Resource'}
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', marginBottom: '24px' }}>
               {appType === 'backend' 
                 ? 'Create a secure, managed container app on Azure to host your backend services. It runs in the regional container environment.' 
+                : appType === 'cluster'
+                ? 'Deploy a production-ready Azure Kubernetes Service (AKS) cluster mapped into your virtual network topology.'
+                : appType === 'database'
+                ? 'Deploy an enterprise-grade Azure Database for MySQL Flexible Server with native VNet subnet delegation.'
                 : 'Create a high-availability Static Web App container in Azure. Azure will host the frontend bundle and supply a default hostname.'}
             </p>
 
@@ -1315,13 +1399,27 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
               <div style={{ display: 'grid', gap: '20px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                    {appType === 'backend' ? 'Container App Name' : 'Static Web App Name'}
+                    {appType === 'backend' 
+                      ? 'Container App Name' 
+                      : appType === 'cluster'
+                      ? 'AKS Cluster Name'
+                      : appType === 'database'
+                      ? 'MySQL Server Name'
+                      : 'Static Web App Name'}
                   </label>
                   <input 
                     type="text" 
                     value={newName} 
                     onChange={(e) => setNewName(e.target.value)} 
-                    placeholder={appType === 'backend' ? 'estevia-brand-api' : 'estevia-brand-site-swa'} 
+                    placeholder={
+                      appType === 'backend' 
+                        ? 'estevia-brand-api' 
+                        : appType === 'cluster'
+                        ? 'estevia-prod-aks'
+                        : appType === 'database'
+                        ? 'estevia-prod-mysql'
+                        : 'estevia-brand-site-swa'
+                    } 
                     required 
                     disabled={provisioning}
                   />
@@ -1482,13 +1580,128 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                     </div>
                   </>
                 )}
+
+                {appType === 'cluster' && (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Kubernetes Version</label>
+                        <select value={kubernetesVersion} onChange={e => setKubernetesVersion(e.target.value)} disabled={provisioning}>
+                          <option value="1.28.3" style={{ background: 'var(--bg-secondary)' }}>1.28.3 (Default)</option>
+                          <option value="1.27.3" style={{ background: 'var(--bg-secondary)' }}>1.27.3</option>
+                          <option value="1.29.2" style={{ background: 'var(--bg-secondary)' }}>1.29.2</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>System Node Count</label>
+                        <input type="number" min="1" max="100" value={nodeCount} onChange={e => setNodeCount(parseInt(e.target.value || '1', 10))} disabled={provisioning} />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>VM Size Tiers</label>
+                      <select value={vmSize} onChange={e => setVmSize(e.target.value)} disabled={provisioning}>
+                        <option value="Standard_D2s_v5" style={{ background: 'var(--bg-secondary)' }}>Standard_D2s_v5 (2 vCPU, 8 GB RAM - Default)</option>
+                        <option value="Standard_B2s" style={{ background: 'var(--bg-secondary)' }}>Standard_B2s (2 vCPU, 4 GB RAM - Burstable Dev/QA)</option>
+                        <option value="Standard_D4s_v5" style={{ background: 'var(--bg-secondary)' }}>Standard_D4s_v5 (4 vCPU, 16 GB RAM - Production Scale)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Virtual Network Subnet Injection</label>
+                      <select value={subnetId} onChange={e => setSubnetId(e.target.value)} disabled={provisioning}>
+                        <option value="" style={{ background: 'var(--bg-secondary)' }}>-- None (Deploy on Public Managed VNet) --</option>
+                        {virtualNetworks.map(vn => (
+                          <optgroup key={vn.id} label={`${vn.name} (${vn.location})`} style={{ background: 'var(--bg-secondary)' }}>
+                            {vn.subnets.map((sub: any) => (
+                              <option key={sub.id} value={sub.id} style={{ background: 'var(--bg-secondary)' }}>
+                                {sub.name} ({sub.addressPrefix})
+                              </option>
+                            ))}
+                          </optgroup>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                {appType === 'database' && (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>MySQL Engine Version</label>
+                        <select value={dbVersion} onChange={e => setDbVersion(e.target.value)} disabled={provisioning}>
+                          <option value="8.0.21" style={{ background: 'var(--bg-secondary)' }}>8.0.21 (Default)</option>
+                          <option value="5.7" style={{ background: 'var(--bg-secondary)' }}>5.7 (Legacy)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>SKU Tier</label>
+                        <select value={dbSkuTier} onChange={e => {
+                          setDbSkuTier(e.target.value);
+                          setDbSkuName(e.target.value === 'Burstable' ? 'Standard_B1ms' : 'Standard_D2ads_v5');
+                        }} disabled={provisioning}>
+                          <option value="Burstable" style={{ background: 'var(--bg-secondary)' }}>Burstable (Cheapest - Dev/QA)</option>
+                          <option value="GeneralPurpose" style={{ background: 'var(--bg-secondary)' }}>General Purpose (Production Scale)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Pricing SKU Size</label>
+                      <select value={dbSkuName} onChange={e => setDbSkuName(e.target.value)} disabled={provisioning}>
+                        {dbSkuTier === 'Burstable' ? (
+                          <>
+                            <option value="Standard_B1ms" style={{ background: 'var(--bg-secondary)' }}>Standard_B1ms (1 vCPU, 2 GB RAM - $15/mo)</option>
+                            <option value="Standard_B2s" style={{ background: 'var(--bg-secondary)' }}>Standard_B2s (2 vCPU, 4 GB RAM - $30/mo)</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="Standard_D2ads_v5" style={{ background: 'var(--bg-secondary)' }}>Standard_D2ads_v5 (2 vCPU, 8 GB RAM - $118/mo)</option>
+                            <option value="Standard_D4ads_v5" style={{ background: 'var(--bg-secondary)' }}>Standard_D4ads_v5 (4 vCPU, 16 GB RAM - $236/mo)</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Private Subnet Delegation (VNet Integration)</label>
+                      <select value={subnetId} onChange={e => setSubnetId(e.target.value)} disabled={provisioning}>
+                        <option value="" style={{ background: 'var(--bg-secondary)' }}>-- None (Public Endpoint Access) --</option>
+                        {virtualNetworks.map(vn => (
+                          <optgroup key={vn.id} label={`${vn.name} (${vn.location})`} style={{ background: 'var(--bg-secondary)' }}>
+                            {vn.subnets.map((sub: any) => {
+                              const isDelegated = sub.delegations?.some((d: any) => d.serviceName === 'Microsoft.DBforMySQL/flexibleServers' || d.properties?.serviceName === 'Microsoft.DBforMySQL/flexibleServers');
+                              return (
+                                <option key={sub.id} value={sub.id} style={{ background: 'var(--bg-secondary)' }}>
+                                  {sub.name} ({sub.addressPrefix}) {isDelegated ? '✓ Delegated' : '(Will Auto-Delegate)'}
+                                </option>
+                              );
+                            })}
+                          </optgroup>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Admin Username</label>
+                        <input type="text" value={dbAdminUsername} onChange={e => setDbAdminUsername(e.target.value)} required disabled={provisioning} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Admin Password</label>
+                        <input type="password" value={dbAdminPassword} onChange={e => setDbAdminPassword(e.target.value)} required disabled={provisioning} />
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px', borderTop: '1px solid var(--glass-border)', paddingTop: '20px' }}>
                 <button 
                   type="button" 
                   className="btn-secondary" 
-                  onClick={() => setProvisionStep(appType === 'backend' ? 3 : 2)}
+                  onClick={() => setProvisionStep(appType === 'backend' ? 3 : (appType === 'cluster' || appType === 'database') ? 1 : 2)}
                   disabled={provisioning}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
@@ -1503,11 +1716,11 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                 >
                   {provisioning ? (
                     <>
-                      <RefreshCw size={14} className="spin-anim" /> Allocating {appType === 'backend' ? 'Container App' : 'SWA'} (10-20s)...
+                      <RefreshCw size={14} className="spin-anim" /> Allocating {appType === 'backend' ? 'Container App' : appType === 'cluster' ? 'AKS Cluster' : appType === 'database' ? 'MySQL Database' : 'SWA'} (10-20s)...
                     </>
                   ) : (
                     <>
-                      Deploy {appType === 'backend' ? 'Container App' : 'SWA'} Resource <ArrowRight size={16} />
+                      Deploy {appType === 'backend' ? 'Container App' : appType === 'cluster' ? 'AKS Cluster' : appType === 'database' ? 'MySQL Database' : 'SWA'} Resource <ArrowRight size={16} />
                     </>
                   )}
                 </button>

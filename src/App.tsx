@@ -731,7 +731,17 @@ function App() {
   const [provisionSuccess, setProvisionSuccess] = useState<string | null>(null);
   const [provisionError, setProvisionError] = useState<string | null>(null);
   const [provisionStep, setProvisionStep] = useState(1);
-  const [appType, setAppType] = useState<'frontend' | 'backend'>('frontend');
+  const [appType, setAppType] = useState<'frontend' | 'backend' | 'cluster' | 'database'>('frontend');
+  const [kubernetesVersion, setKubernetesVersion] = useState('1.28.3');
+  const [nodeCount, setNodeCount] = useState(1);
+  const [vmSize, setVmSize] = useState('Standard_D2s_v5');
+  const [subnetId, setSubnetId] = useState('');
+  const [dbSkuName, setDbSkuName] = useState('Standard_B1ms');
+  const [dbSkuTier, setDbSkuTier] = useState('Burstable');
+  const [dbVersion, setDbVersion] = useState('8.0.21');
+  const [dbAdminUsername, setDbAdminUsername] = useState('estevia');
+  const [dbAdminPassword, setDbAdminPassword] = useState('Ewco26INCP');
+  const [virtualNetworks, setVirtualNetworks] = useState<any[]>([]);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [ymlContent, setYmlContent] = useState<string>('');
   const [ymlLoading, setYmlLoading] = useState(false);
@@ -986,6 +996,7 @@ function App() {
         setManagedEnvironments(data.managedEnvironments || []);
         setContainerRegistries(data.containerRegistries || []);
         setServiceConnections(data.serviceConnections || { arm: [], docker: [] });
+        setVirtualNetworks(data.virtualNetworks || []);
         
         // Auto-select defaults if empty
         if (data.resourceGroups && data.resourceGroups.length > 0 && !selectedResourceGroup) {
@@ -2179,7 +2190,7 @@ function App() {
     }
   };
 
-  const getCategorizedRepos = (type?: 'frontend' | 'backend') => {
+  const getCategorizedRepos = (type?: 'frontend' | 'backend' | 'cluster' | 'database') => {
     if (!type) return { recommended: [], other: githubRepos };
     const isFrontendApp = type === 'frontend';
     const recommended: any[] = [];
@@ -2906,14 +2917,18 @@ function App() {
     }
   };
 
-  const handleAppTypeChange = (type: 'frontend' | 'backend') => {
+  const handleAppTypeChange = (type: 'frontend' | 'backend' | 'cluster' | 'database') => {
     setAppType(type);
     if (selectedRepo) {
       const shortName = selectedRepo.split('/').pop() || '';
       if (type === 'frontend') {
         setNewName(shortName ? `${shortName}-swa` : '');
-      } else {
+      } else if (type === 'backend') {
         setNewName(shortName ? `${shortName}-api` : '');
+      } else if (type === 'cluster') {
+        setNewName(shortName ? `${shortName}-cluster` : '');
+      } else if (type === 'database') {
+        setNewName(shortName ? `${shortName}-db` : '');
       }
     }
   };
@@ -3101,14 +3116,25 @@ function App() {
           cpu: selectedCpu,
           memory: selectedMemory,
           minReplicas: minReplicas,
-          maxReplicas: maxReplicas
+          maxReplicas: maxReplicas,
+          kubernetesVersion,
+          nodeCount,
+          vmSize,
+          subnetId,
+          version: dbVersion,
+          skuName: dbSkuName,
+          skuTier: dbSkuTier,
+          adminUsername: dbAdminUsername,
+          adminPassword: dbAdminPassword
         })
       });
       const data = await res.json();
       if (data.success) {
         setProvisionSuccess(`Successfully provisioned ${newName} in Azure.`);
         handleScan();
-        setProvisionStep(appType === 'backend' ? 5 : 4); // Shift Step 4 SWA vs Step 5 Backend Finalize
+        if (appType !== 'cluster' && appType !== 'database') {
+          setProvisionStep(appType === 'backend' ? 5 : 4); // Shift Step 4 SWA vs Step 5 Backend Finalize
+        }
       } else {
         setProvisionError(data.message || 'Failed to provision application.');
         setProvisionErrorDetail(data.error || data.details || null);
@@ -4983,6 +5009,25 @@ function App() {
         {/* TAB 2: PROVISION WEB APP WIZARD */}
         {activeTab === 'provision' && (
           <ProvisionWizard
+            kubernetesVersion={kubernetesVersion}
+            setKubernetesVersion={setKubernetesVersion}
+            nodeCount={nodeCount}
+            setNodeCount={setNodeCount}
+            vmSize={vmSize}
+            setVmSize={setVmSize}
+            subnetId={subnetId}
+            setSubnetId={setSubnetId}
+            dbSkuName={dbSkuName}
+            setDbSkuName={setDbSkuName}
+            dbSkuTier={dbSkuTier}
+            setDbSkuTier={setDbSkuTier}
+            dbVersion={dbVersion}
+            setDbVersion={setDbVersion}
+            dbAdminUsername={dbAdminUsername}
+            setDbAdminUsername={setDbAdminUsername}
+            dbAdminPassword={dbAdminPassword}
+            setDbAdminPassword={setDbAdminPassword}
+            virtualNetworks={virtualNetworks}
             fetchBranches={fetchBranches}
             provisionStep={provisionStep}
             setProvisionStep={setProvisionStep}
@@ -5200,6 +5245,8 @@ function App() {
         {/* TAB 5: DATABASE CATALOG */}
         {activeTab === 'databases' && (
           <DatabaseCatalogPage
+            apps={apps}
+            virtualNetworks={virtualNetworks}
             dbServers={dbServers}
             selectedDbServer={selectedDbServer}
             setSelectedDbServer={setSelectedDbServer}

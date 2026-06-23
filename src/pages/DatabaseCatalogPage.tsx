@@ -22,6 +22,8 @@ import { ErdVisualizer } from '../components/database/ErdVisualizer';
 import { CompareMigrateWizard } from '../components/database/CompareMigrateWizard';
 
 interface DatabaseCatalogPageProps {
+  apps: any[];
+  virtualNetworks: any[];
   dbServers: any[];
   selectedDbServer: any | null;
   setSelectedDbServer: (val: any | null) => void;
@@ -87,6 +89,8 @@ interface DatabaseCatalogPageProps {
 }
 
 export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
+  apps,
+  virtualNetworks,
   dbServers,
   selectedDbServer,
   setSelectedDbServer,
@@ -1466,6 +1470,122 @@ mysqli_ssl_set($conn, NULL, NULL, "/path/to/DigiCertGlobalRootG2.crt.pem", NULL,
 mysqli_real_connect($conn, '${selectedDbServer.host}', 'estevia_db_user', $password, '${selectedDatabase.name}', 3306, NULL, MYSQLI_CLIENT_SSL);`}</code>
                       )}
                     </pre>
+                  </div>
+
+                  {/* Network Connectivity & Line-of-Sight Check */}
+                  <div style={{ marginTop: '24px', borderTop: '1px solid var(--divider)', paddingTop: '20px' }}>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '1.1rem' }}>🌐</span>
+                      VNet Network Connectivity &amp; Line-of-Sight Check
+                    </h3>
+                    
+                    {!selectedDbServer.privateNetwork ? (
+                      <div className="glass-panel" style={{ padding: '16px', borderColor: 'var(--success)', backgroundColor: 'rgba(34, 197, 94, 0.05)', color: 'var(--text-primary)', borderRadius: '8px', fontSize: '0.86rem', lineHeight: '1.5' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, color: 'var(--success)', marginBottom: '6px' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--success)' }} />
+                          Public Routing Enabled
+                        </div>
+                        This database is configured with public endpoints. All compute workloads (SWA, Container Apps, VMs) can route connections directly via the public DNS endpoint.
+                      </div>
+                    ) : (() => {
+                      const dbSubnetId = selectedDbServer.delegatedSubnetResourceId || '';
+                      const dbVnetId = dbSubnetId ? dbSubnetId.toLowerCase().split('/subnets/')[0] : '';
+                      const dbVnetName = dbSubnetId ? dbSubnetId.split('/virtualNetworks/')[1]?.split('/')[0] : 'Unknown VNet';
+                      const dbSubnetName = dbSubnetId ? dbSubnetId.split('/subnets/')[1] : 'Unknown Subnet';
+
+                      // Find all compute resources
+                      const computeApps = apps.filter(a => ['backend', 'cluster', 'vm'].includes(a.type));
+
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                            Database Server Subnet delegation: <code style={{ color: 'var(--text-primary)', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>{dbVnetName} / {dbSubnetName}</code>
+                          </div>
+                          
+                          {computeApps.length === 0 ? (
+                            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', padding: '10px 0' }}>
+                              No compute workloads (backends, clusters, or VMs) found to test connectivity.
+                            </div>
+                          ) : (
+                            computeApps.map(app => {
+                              const details = app.azureResourceDetails || {};
+                              const compSubnetId = details.vnetSubnetID || details.agentPoolProfiles?.[0]?.vnetSubnetID || '';
+                              
+                              let statusText = 'Isolated Compute (Public Only)';
+                              let statusColor = 'var(--accent-orange)';
+                              let statusBg = 'rgba(245, 158, 11, 0.05)';
+                              let statusBorder = 'rgba(245, 158, 11, 0.2)';
+                              let explanation = 'This compute resource is not configured inside a virtual network. It cannot resolve or connect to the database\'s private endpoints.';
+                              let icon = '⚠️';
+
+                              if (compSubnetId) {
+                                const compVnetId = compSubnetId.toLowerCase().split('/subnets/')[0];
+                                const compVnetName = compSubnetId.split('/virtualNetworks/')[1]?.split('/')[0] || 'Compute VNet';
+                                const compSubnetName = compSubnetId.split('/subnets/')[1] || 'Subnet';
+
+                                if (compVnetId === dbVnetId) {
+                                  statusText = 'Same Virtual Network (Direct line-of-sight)';
+                                  statusColor = 'var(--success)';
+                                  statusBg = 'rgba(34, 197, 94, 0.05)';
+                                  statusBorder = 'rgba(34, 197, 94, 0.2)';
+                                  explanation = `Direct internal connectivity is active inside virtual network ${compVnetName} (${compSubnetName}).`;
+                                  icon = '🟢';
+                                } else {
+                                  // Look up network peerings
+                                  const dbVnetResource = apps.find(a => a.type === 'network' && a.resourceId?.toLowerCase() === dbVnetId);
+                                  const isPeered = dbVnetResource?.azureResourceDetails?.peerings?.some((p: any) => 
+                                    p.remoteVirtualNetworkId?.toLowerCase() === compVnetId && p.peeringState?.toLowerCase() === 'connected'
+                                  );
+
+                                  if (isPeered) {
+                                    statusText = 'Peered Virtual Network (Connected)';
+                                    statusColor = 'var(--success)';
+                                    statusBg = 'rgba(34, 197, 94, 0.05)';
+                                    statusBorder = 'rgba(34, 197, 94, 0.2)';
+                                    explanation = `Traffic routes securely across peered VNets (${compVnetName} peered to ${dbVnetName}).`;
+                                    icon = '🟢';
+                                  } else {
+                                    statusText = 'No Line-of-Sight (Network Isolation)';
+                                    statusColor = 'var(--error)';
+                                    statusBg = 'rgba(239, 68, 68, 0.05)';
+                                    statusBorder = 'rgba(239, 68, 68, 0.2)';
+                                    explanation = `Resource is inside VNet ${compVnetName} (${compSubnetName}) but no connected VNet Peering exists to ${dbVnetName}. Connection will be blocked.`;
+                                    icon = '🔴';
+                                  }
+                                }
+                              }
+
+                              return (
+                                <div key={app.resourceId || app.name} className="glass-panel" style={{
+                                  padding: '12px 16px',
+                                  borderColor: statusBorder,
+                                  backgroundColor: statusBg,
+                                  borderRadius: '8px',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '6px'
+                                }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                      {app.name} 
+                                      <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginLeft: '8px', fontWeight: 400, textTransform: 'uppercase', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>
+                                        {app.type === 'backend' ? 'Container App' : app.type === 'cluster' ? 'AKS' : 'VM'}
+                                      </span>
+                                    </span>
+                                    <span style={{ fontSize: '0.78rem', color: statusColor, display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                                      {icon} {statusText}
+                                    </span>
+                                  </div>
+                                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                                    {explanation}
+                                  </p>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
