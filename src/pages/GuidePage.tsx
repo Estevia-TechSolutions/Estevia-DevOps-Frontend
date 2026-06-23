@@ -64,7 +64,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
         categoryLabel: 'Provisioning',
         isCapability: true,
         title: 'Git Pipeline Seeding',
-        text: 'Generates and commits custom azure-pipelines.yml configurations directly to GitHub.'
+        text: 'Generates and commits custom azure-pipelines.yml or GitHub Actions deploy.yml configurations directly to GitHub.'
       },
       {
         category: 'provisioning',
@@ -353,8 +353,8 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
       answer: 'SWA tokens are fetched securely from Azure Resource Manager using your Azure Service Principal credentials, and injected directly into the designated Azure DevOps Variable Group. This completely automates pipeline configuration.'
     },
     {
-      question: 'Can I customize the azure-pipelines.yml file?',
-      answer: 'Yes! Step 2 of the "Setup CI/CD" wizard opens an interactive editor showing the auto-generated YAML code. You can make adjustments, change triggers, or add custom stages before committing it.'
+      question: 'Can I customize the CI/CD pipeline configuration file (azure-pipelines.yml or deploy.yml)?',
+      answer: 'Yes! Step 2 of the "Setup CI/CD" wizard supports both Azure DevOps Pipelines and GitHub Actions. It opens an interactive editor showing the auto-generated YAML code. You can make adjustments, change triggers, or add custom stages/jobs before committing it directly to your repository.'
     },
     {
       question: 'What if scanning does not show my newly provisioned apps?',

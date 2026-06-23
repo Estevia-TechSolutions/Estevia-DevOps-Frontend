@@ -704,6 +704,7 @@ function App() {
   // Pipeline Modal State
   const [pipelineApp, setPipelineApp] = useState<AppResource | null>(null);
   const [githubRepo, setGithubRepo] = useState('');
+  const [pipelineProvider, setPipelineProvider] = useState<'azure_devops' | 'github_actions'>('azure_devops');
   const [useCustomRepo, setUseCustomRepo] = useState(false);
   const [devopsOrgUrl, setDevopsOrgUrl] = useState('https://dev.azure.com/Estevia-TechSolutions');
   const [devopsProject, setDevopsProject] = useState('ProTrack');
@@ -2939,8 +2940,8 @@ function App() {
     setYmlContent('');
     setYmlSource(null);
     try {
-      // 1. Try fetching existing azure-pipelines.yml from the primary branch
-      const res = await fetch(`${API_BASE}/apps/get-yml?organizationId=${organizationId}&githubRepo=${encodeURIComponent(repo)}&branch=${encodeURIComponent(primaryBranch)}`);
+      // 1. Try fetching existing configuration file from the primary branch
+      const res = await fetch(`${API_BASE}/apps/get-yml?organizationId=${organizationId}&githubRepo=${encodeURIComponent(repo)}&branch=${encodeURIComponent(primaryBranch)}&pipelineProvider=${pipelineProvider}`);
       const data = await res.json();
       
       if (data.success && data.exists) {
@@ -2949,7 +2950,7 @@ function App() {
       } else {
         // 2. Fetch the default template populated with trigger branches list
         const branchesParam = allBranches.join(',');
-        const templateRes = await fetch(`${API_BASE}/apps/default-yml?organizationId=${organizationId}&githubRepo=${encodeURIComponent(repo)}&branches=${encodeURIComponent(branchesParam)}&appType=${appType}&customAppLocation=${encodeURIComponent(customAppLocation)}&customApiLocation=${encodeURIComponent(customApiLocation)}&customOutputLocation=${encodeURIComponent(customOutputLocation)}`);
+        const templateRes = await fetch(`${API_BASE}/apps/default-yml?organizationId=${organizationId}&githubRepo=${encodeURIComponent(repo)}&branches=${encodeURIComponent(branchesParam)}&appType=${appType}&customAppLocation=${encodeURIComponent(customAppLocation)}&customApiLocation=${encodeURIComponent(customApiLocation)}&customOutputLocation=${encodeURIComponent(customOutputLocation)}&pipelineProvider=${pipelineProvider}`);
         const templateData = await templateRes.json();
         if (templateData.success) {
           setYmlContent(templateData.content);
@@ -2983,7 +2984,8 @@ function App() {
           devopsProject: devopsProject || azureDevopsProject,
           branch: primary,
           skipRegistration: true,
-          customYml: ymlContent
+          customYml: ymlContent,
+          pipelineProvider: pipelineProvider
         })
       });
       const data = await res.json();
@@ -3161,7 +3163,8 @@ function App() {
           githubRepo: selectedRepo,
           devopsOrgUrl: devopsOrgUrl || azureDevopsOrgUrl,
           devopsProject: devopsProject || azureDevopsProject,
-          branch: selectedBranch
+          branch: selectedBranch,
+          pipelineProvider: pipelineProvider
         })
       });
       const data = await res.json();
@@ -5009,6 +5012,8 @@ function App() {
         {/* TAB 2: PROVISION WEB APP WIZARD */}
         {activeTab === 'provision' && (
           <ProvisionWizard
+            pipelineProvider={pipelineProvider}
+            setPipelineProvider={setPipelineProvider}
             kubernetesVersion={kubernetesVersion}
             setKubernetesVersion={setKubernetesVersion}
             nodeCount={nodeCount}

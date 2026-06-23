@@ -18,7 +18,10 @@ import {
   CheckCircle,
   HelpCircle,
   GitMerge,
-  Rocket
+  Rocket,
+  Cpu,
+  Database,
+  Server
 } from 'lucide-react';
 
 interface AppResource {
@@ -38,6 +41,8 @@ interface AppResource {
 }
 
 interface ProvisionWizardProps {
+  pipelineProvider: 'azure_devops' | 'github_actions';
+  setPipelineProvider: (val: 'azure_devops' | 'github_actions') => void;
   provisionStep: number;
   setProvisionStep: (val: number) => void;
   appType: 'frontend' | 'backend' | 'cluster' | 'database';
@@ -346,6 +351,8 @@ const DockerfileEditorStep: React.FC<DockerfileEditorStepProps> = ({
    Step1Content — GitHub Source Selection with Repo Integrity
    ───────────────────────────────────────────────────────────── */
 interface Step1ContentProps {
+  pipelineProvider: 'azure_devops' | 'github_actions';
+  setPipelineProvider: (val: 'azure_devops' | 'github_actions') => void;
   appType: 'frontend' | 'backend' | 'cluster' | 'database';
   handleAppTypeChange: (type: 'frontend' | 'backend' | 'cluster' | 'database') => void;
   selectedRepo: string;
@@ -383,6 +390,7 @@ const TYPE_ICON: Record<string, React.ReactNode> = {
 };
 
 const Step1Content: React.FC<Step1ContentProps> = ({
+  pipelineProvider, setPipelineProvider,
   appType, handleAppTypeChange, selectedRepo, handleRepoChange, getCategorizedRepos,
   selectedBranches, setSelectedBranches, selectedBranch, setSelectedBranch,
   branches, setBranches, loadingBranches, fetchBranches, apps,
@@ -482,18 +490,31 @@ const Step1Content: React.FC<Step1ContentProps> = ({
           {/* App Type */}
           <div style={{ marginBottom: '20px' }}>
             <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Application Type</label>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'nowrap', width: '100%' }}>
               {(['frontend', 'backend', 'cluster', 'database'] as const).map(t => (
                 <button key={t} type="button"
                   className={appType === t ? 'btn-primary' : 'btn-secondary'}
                   onClick={() => handleAppTypeChange(t)}
                   style={{
-                    flex: '1 1 45%', padding: '10px', borderRadius: '8px', fontSize: '0.88rem', fontWeight: 600,
+                    flex: 1, 
+                    padding: '10px 4px', 
+                    borderRadius: '8px', 
+                    fontSize: '0.8rem', 
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    whiteSpace: 'nowrap',
                     // Amber highlight when this is the correct type for a hard-blocked branch
                     outline: isHardBlock && detectedType === t ? '2px solid var(--warning)' : 'none',
                     outlineOffset: '2px',
                   }}>
-                  {t === 'frontend' ? 'Frontend SWA' : t === 'backend' ? 'Backend ACA Container' : t === 'cluster' ? 'AKS Managed Cluster' : 'Azure MySQL Database'}
+                  {t === 'frontend' && <Globe size={14} />}
+                  {t === 'backend' && <Cpu size={14} />}
+                  {t === 'cluster' && <Server size={14} />}
+                  {t === 'database' && <Database size={14} />}
+                  {t === 'frontend' ? 'Frontend SWA' : t === 'backend' ? 'Backend ACA' : t === 'cluster' ? 'AKS Cluster' : 'MySQL Database'}
                 </button>
               ))}
             </div>
@@ -501,6 +522,25 @@ const Step1Content: React.FC<Step1ContentProps> = ({
 
           {(appType === 'frontend' || appType === 'backend') ? (
             <>
+              {/* CI/CD Provider Selection */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>CI/CD Pipeline Provider</label>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button type="button"
+                    className={pipelineProvider === 'azure_devops' ? 'btn-primary' : 'btn-secondary'}
+                    onClick={() => setPipelineProvider('azure_devops')}
+                    style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600 }}>
+                    Azure DevOps Pipelines
+                  </button>
+                  <button type="button"
+                    className={pipelineProvider === 'github_actions' ? 'btn-primary' : 'btn-secondary'}
+                    onClick={() => setPipelineProvider('github_actions')}
+                    style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600 }}>
+                    GitHub Actions
+                  </button>
+                </div>
+              </div>
+
               {/* Repository Selector */}
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>GitHub Repository</label>
@@ -769,6 +809,8 @@ const Step1Content: React.FC<Step1ContentProps> = ({
 };
 
 export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
+  pipelineProvider,
+  setPipelineProvider,
   provisionStep,
   setProvisionStep,
   appType,
@@ -1117,6 +1159,8 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
         {/* STEP 1: GITHUB SOURCE SELECTION */}
         {provisionStep === 1 && (
           <Step1Content
+            pipelineProvider={pipelineProvider}
+            setPipelineProvider={setPipelineProvider}
             appType={appType}
             handleAppTypeChange={handleAppTypeChange}
             selectedRepo={selectedRepo}
@@ -1146,7 +1190,7 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
               Verify & Customize Build Pipeline YML
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', marginBottom: '20px' }}>
-              Configure the `azure-pipelines.yml` file to be committed to branch <strong>{selectedBranch}</strong>. This YML defines trigger branches and handles automated builds.
+              Configure the <code>{pipelineProvider === 'github_actions' ? '.github/workflows/deploy.yml' : 'azure-pipelines.yml'}</code> file to be committed to branch <strong>{selectedBranch}</strong>. This YML defines trigger branches and handles automated builds.
             </p>
 
             {/* Missing Dockerfile Warning Block */}
@@ -1240,7 +1284,7 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
             {ymlLoading ? (
               <div style={{ padding: '40px 20px', textAlign: 'center' }}>
                 <RefreshCw size={36} className="spin-anim" style={{ color: 'var(--accent-purple)', marginBottom: '12px' }} />
-                <p style={{ color: 'var(--text-secondary)' }}>Loading azure-pipelines.yml configuration...</p>
+                <p style={{ color: 'var(--text-secondary)' }}>Loading {pipelineProvider === 'github_actions' ? '.github/workflows/deploy.yml' : 'azure-pipelines.yml'} configuration...</p>
               </div>
             ) : (
               <div>
@@ -1737,7 +1781,7 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
               Finalize DNS Bindings & CI/CD Pipelines
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', marginBottom: '24px' }}>
-              The Azure resource is active! Now connect it to your Azure DevOps pipeline for CI/CD automation and link your GoDaddy custom subdomain.
+              The Azure resource is active! Now connect it to your {pipelineProvider === 'github_actions' ? 'GitHub Actions integration' : 'Azure DevOps pipeline'} for CI/CD automation and link your GoDaddy custom subdomain.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '32px' }}>
@@ -1751,7 +1795,7 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                       1. Register CI/CD Build Pipeline
                     </h4>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginTop: '4px' }}>
-                      Creates the build configuration on Azure DevOps linked to branch <strong>{selectedBranch}</strong>.
+                      {pipelineProvider === 'github_actions' ? 'Registers the GitHub Actions integration' : 'Creates the build configuration on Azure DevOps'} linked to branch <strong>{selectedBranch}</strong>.
                     </p>
                   </div>
                   {pipelineRegSuccess && (
@@ -1779,14 +1823,14 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                         <RefreshCw size={12} className="spin-anim" /> Registering...
                       </>
                     ) : (
-                      'Create Pipeline in DevOps'
+                      pipelineProvider === 'github_actions' ? 'Register GitHub Actions' : 'Create Pipeline in DevOps'
                     )}
                   </button>
                 ) : (
                   registeredPipelineUrl && (
                     <a href={registeredPipelineUrl} target="_blank" rel="noreferrer" className="btn-secondary"
                        style={{ padding: '8px 16px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}>
-                      Open Build Pipeline <ExternalLink size={12} />
+                      {pipelineProvider === 'github_actions' ? 'Open GitHub Actions' : 'Open Build Pipeline'} <ExternalLink size={12} />
                     </a>
                   )
                 )}
