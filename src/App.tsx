@@ -1774,8 +1774,8 @@ function App() {
       }
 
       setScannerDeployStep(4);
-      handleScan();
-      setTimeout(() => handleScan(), 4000);
+      handleScan(undefined, true);
+      setTimeout(() => handleScan(undefined, true), 4000);
     } catch (e: any) {
       console.error('[ScannerDeploy] Failed:', e);
       setScannerDeployError(e.message || 'An unexpected error occurred during deployment.');
@@ -2422,7 +2422,7 @@ function App() {
         setSyncCountdown((prev) => {
           if (prev <= 1) {
             console.log('[DevOps Auto Refresh] Timer reached 0. Triggering auto cloud & cost scan...');
-            handleScan();
+            handleScan(undefined, true);
             return 300;
           }
           return prev - 1;
@@ -2437,7 +2437,7 @@ function App() {
     if (activeBuildsCount > 0 && token) {
       console.log(`[DevOps Polling] ${activeBuildsCount} build(s) active. Starting rapid scan polling every 7s...`);
       const interval = setInterval(() => {
-        handleScan();
+        handleScan(undefined, true);
       }, 7000);
       return () => {
         console.log('[DevOps Polling] Clearing rapid build status polling.');
@@ -3022,7 +3022,7 @@ function App() {
     }
   };
 
-  const handleScan = async (rg?: string) => {
+  const handleScan = async (rg?: string, skipHealthChecks = false) => {
     setScanning(true);
     setScanError(null);
     setSyncCountdown(300); // Reset timer on manual scan
@@ -3044,7 +3044,9 @@ function App() {
         }
         setApps(data.apps || []);
         const newlyGrouped = groupApps(data.apps || []);
-        fetchYmlHealthForGroups(newlyGrouped);
+        if (!skipHealthChecks) {
+          fetchYmlHealthForGroups(newlyGrouped);
+        }
         addEvent('Cloud Scan Completed', `Discovered ${appsCount} resources in resource group: ${activeRg || 'All'}.`, 'scan', 'success');
         
         // Dispatch integrity notifications if present
@@ -3476,8 +3478,8 @@ function App() {
       const data = await res.json();
       if (data.success) {
         setProvisionSuccess(`Successfully provisioned ${newName} in Azure.`);
-        handleScan();
-        setTimeout(() => handleScan(), 4000);
+        handleScan(undefined, true);
+        setTimeout(() => handleScan(undefined, true), 4000);
         if (appType !== 'cluster' && appType !== 'database') {
           setProvisionStep(appType === 'backend' ? 5 : 4); // Shift Step 4 SWA vs Step 5 Backend Finalize
         }
@@ -3515,8 +3517,8 @@ function App() {
       if (data.success) {
         setPipelineRegSuccess(true);
         setRegisteredPipelineUrl(data.pipelineUrl || '');
-        handleScan();
-        setTimeout(() => handleScan(), 4000);
+        handleScan(undefined, true);
+        setTimeout(() => handleScan(undefined, true), 4000);
       } else {
         setPipelineRegError(data.message || 'Failed to register DevOps Pipeline.');
       }
@@ -3836,8 +3838,8 @@ function App() {
         setYmlCreated(true);
         setPipelineWizardStep(3);
         refreshHealthForRepo(githubRepo || pipelineApp.repositoryUrl || '');
-        handleScan();
-        setTimeout(() => handleScan(), 4000);
+        handleScan(undefined, true);
+        setTimeout(() => handleScan(undefined, true), 4000);
       } else {
         setPipelineError(data.message || 'Failed to register pipeline.');
       }
@@ -3873,8 +3875,8 @@ function App() {
         const repoToRefresh = githubRepo;
         setGithubRepo('');
         refreshHealthForRepo(repoToRefresh);
-        handleScan();
-        setTimeout(() => handleScan(), 4000);
+        handleScan(undefined, true);
+        setTimeout(() => handleScan(undefined, true), 4000);
       } else {
         setPipelineError(data.message || 'Failed to create YML and register pipeline.');
       }
@@ -6869,8 +6871,8 @@ function App() {
           onClose={() => setBuildHistoryDrawerApp(null)}
           onReDeployQueued={(newBuildId) => {
             showToast('Deployment Queued', `Successfully queued new build run #${newBuildId}`, 'success');
-            handleScan();
-            setTimeout(() => handleScan(), 4000);
+            handleScan(undefined, true);
+            setTimeout(() => handleScan(undefined, true), 4000);
           }}
         />
       )}
