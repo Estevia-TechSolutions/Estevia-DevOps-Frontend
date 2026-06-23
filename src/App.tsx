@@ -689,6 +689,7 @@ function App() {
   
   const isGuidedProvisionRef = useRef(false);
   const scanningRef = useRef(false);
+  const buildsScanningRef = useRef(false);
   
   // Scanned Apps State
   const [apps, setApps] = useState<AppResource[]>([]);
@@ -2220,8 +2221,9 @@ function App() {
         const settings = await fetchOrgSettings();
         fetchGithubRepos();
         
-        // Reset scanningRef and scanning state just in case it got stuck during onboarding
+        // Reset scanning refs and scanning state just in case it got stuck during onboarding
         scanningRef.current = false;
+        buildsScanningRef.current = false;
         setScanning(false);
         
         const targetRg = settings?.azure_resource_group || undefined;
@@ -3126,12 +3128,18 @@ function App() {
   };
 
   const handleScan = async (rg?: string, skipHealthChecks = false, buildsOnly = false) => {
-    if (scanningRef.current) {
-      console.log('[DevOps Scan] Scan already in progress, skipping duplicate scan request.');
-      return;
-    }
-    scanningRef.current = true;
-    if (!buildsOnly) {
+    if (buildsOnly) {
+      if (buildsScanningRef.current) {
+        console.log('[DevOps Scan] Background builds status polling already in progress, skipping.');
+        return;
+      }
+      buildsScanningRef.current = true;
+    } else {
+      if (scanningRef.current) {
+        console.log('[DevOps Scan] Scan already in progress, skipping duplicate scan request.');
+        return;
+      }
+      scanningRef.current = true;
       setScanning(true);
       setScanError(null);
     }
@@ -3204,9 +3212,11 @@ function App() {
       }
     } finally {
       console.log('[DevOps Scan] [END] Scan finished.');
-      setScanning(false);
-      scanningRef.current = false;
-      if (!buildsOnly) {
+      if (buildsOnly) {
+        buildsScanningRef.current = false;
+      } else {
+        setScanning(false);
+        scanningRef.current = false;
         setSyncCountdown(1800); // Start 30 min duration from when manual/auto scan completes
       }
     }
