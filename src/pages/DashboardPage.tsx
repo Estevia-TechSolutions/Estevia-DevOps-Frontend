@@ -1779,33 +1779,52 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                   {/* YAML Issues Badge */}
                   {!isLoading && health?.ymlHealth && health.ymlHealth.exists && !health.ymlHealth.valid && (
-                    <span style={{
-                      background: 'rgba(245, 158, 11, 0.1)',
-                      border: '1px solid rgba(245, 158, 11, 0.3)',
-                      padding: '3px 8px',
-                      borderRadius: '12px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      fontSize: '0.74rem',
-                      color: '#f59e0b',
-                      boxShadow: '0 0 6px rgba(245, 158, 11, 0.15)'
-                    }}>
+                    <span 
+                      style={{
+                        background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                        border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '0.74rem',
+                        color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                        boxShadow: theme === 'light' ? '0 1px 3px rgba(220, 38, 38, 0.05)' : '0 0 8px rgba(239, 68, 68, 0.2)',
+                        transition: 'all 0.2s ease',
+                        cursor: 'default'
+                      }}
+                      onMouseOver={(ev) => {
+                        ev.currentTarget.style.transform = 'scale(1.03)';
+                      }}
+                      onMouseOut={(ev) => {
+                        ev.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    >
                       <span>⚠ YAML Issues</span>
                       {!isViewer && (
                         <button
                           onClick={handleFixYml}
                           style={{
-                            background: 'rgba(245, 158, 11, 0.2)',
+                            background: theme === 'light' ? 'rgba(220, 38, 38, 0.15)' : 'rgba(239, 68, 68, 0.2)',
                             border: 'none',
                             borderRadius: '4px',
-                            color: '#f59e0b',
+                            color: theme === 'light' ? '#b91c1c' : '#ef4444',
                             fontSize: '0.68rem',
                             fontWeight: 700,
                             padding: '1px 5px',
                             cursor: 'pointer',
                             display: 'inline-flex',
-                            alignItems: 'center'
+                            alignItems: 'center',
+                            transition: 'all 0.15s ease'
+                          }}
+                          onMouseOver={(ev) => {
+                            ev.stopPropagation();
+                            ev.currentTarget.style.background = theme === 'light' ? 'rgba(220, 38, 38, 0.25)' : 'rgba(239, 68, 68, 0.35)';
+                          }}
+                          onMouseOut={(ev) => {
+                            ev.stopPropagation();
+                            ev.currentTarget.style.background = theme === 'light' ? 'rgba(220, 38, 38, 0.15)' : 'rgba(239, 68, 68, 0.2)';
                           }}
                         >
                           Fix →
@@ -1816,33 +1835,52 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                   {/* Dockerfile Error Badge */}
                   {!isLoading && health?.dockerfileHealth && health.dockerfileHealth.exists && !health.dockerfileHealth.valid && (
-                    <span style={{
-                      background: 'rgba(239, 68, 68, 0.1)',
-                      border: '1px solid rgba(239, 68, 68, 0.3)',
-                      padding: '3px 8px',
-                      borderRadius: '12px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      fontSize: '0.74rem',
-                      color: '#ef4444',
-                      boxShadow: '0 0 6px rgba(239, 68, 68, 0.15)'
-                    }}>
+                    <span 
+                      style={{
+                        background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                        border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '0.74rem',
+                        color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                        boxShadow: theme === 'light' ? '0 1px 3px rgba(220, 38, 38, 0.05)' : '0 0 8px rgba(239, 68, 68, 0.2)',
+                        transition: 'all 0.2s ease',
+                        cursor: 'default'
+                      }}
+                      onMouseOver={(ev) => {
+                        ev.currentTarget.style.transform = 'scale(1.03)';
+                      }}
+                      onMouseOut={(ev) => {
+                        ev.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    >
                       <span>🔴 Dockerfile Error</span>
                       {!isViewer && (
                         <button
                           onClick={handleFixDockerfile}
                           style={{
-                            background: 'rgba(239, 68, 68, 0.2)',
+                            background: theme === 'light' ? 'rgba(220, 38, 38, 0.15)' : 'rgba(239, 68, 68, 0.2)',
                             border: 'none',
                             borderRadius: '4px',
-                            color: '#ef4444',
+                            color: theme === 'light' ? '#b91c1c' : '#ef4444',
                             fontSize: '0.68rem',
                             fontWeight: 700,
                             padding: '1px 5px',
                             cursor: 'pointer',
                             display: 'inline-flex',
-                            alignItems: 'center'
+                            alignItems: 'center',
+                            transition: 'all 0.15s ease'
+                          }}
+                          onMouseOver={(ev) => {
+                            ev.stopPropagation();
+                            ev.currentTarget.style.background = theme === 'light' ? 'rgba(220, 38, 38, 0.25)' : 'rgba(239, 68, 68, 0.35)';
+                          }}
+                          onMouseOut={(ev) => {
+                            ev.stopPropagation();
+                            ev.currentTarget.style.background = theme === 'light' ? 'rgba(220, 38, 38, 0.15)' : 'rgba(239, 68, 68, 0.2)';
                           }}
                         >
                           Fix →
@@ -1853,18 +1891,63 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                   {/* YAML Warnings Pill */}
                   {!isLoading && health?.ymlHealth && health.ymlHealth.exists && health.ymlHealth.valid && health.ymlHealth.warningCount > 0 && (
-                    <span style={{
-                      background: 'rgba(59, 130, 246, 0.1)',
-                      border: '1px solid rgba(59, 130, 246, 0.3)',
-                      padding: '3px 8px',
-                      borderRadius: '12px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      fontSize: '0.74rem',
-                      color: '#3b82f6'
-                    }}>
+                    <span 
+                      style={{
+                        background: theme === 'light' ? 'rgba(109, 40, 217, 0.08)' : 'rgba(139, 92, 246, 0.12)',
+                        border: theme === 'light' ? '1px solid rgba(109, 40, 217, 0.25)' : '1px solid rgba(139, 92, 246, 0.3)',
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '0.74rem',
+                        color: theme === 'light' ? '#7c3aed' : '#c084fc',
+                        fontWeight: 600,
+                        boxShadow: theme === 'light' ? '0 1px 3px rgba(109, 40, 217, 0.05)' : '0 0 8px rgba(139, 92, 246, 0.2)',
+                        transition: 'all 0.2s ease',
+                        cursor: 'default'
+                      }}
+                      onMouseOver={(ev) => {
+                        ev.currentTarget.style.transform = 'scale(1.03)';
+                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 2px 6px rgba(109, 40, 217, 0.1)' : '0 0 12px rgba(139, 92, 246, 0.35)';
+                      }}
+                      onMouseOut={(ev) => {
+                        ev.currentTarget.style.transform = 'scale(1)';
+                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 1px 3px rgba(109, 40, 217, 0.05)' : '0 0 8px rgba(139, 92, 246, 0.2)';
+                      }}
+                    >
                       <span>ℹ {health.ymlHealth.warningCount} YAML Warning{health.ymlHealth.warningCount > 1 ? 's' : ''}</span>
+                    </span>
+                  )}
+
+                  {/* Dockerfile Warnings Pill */}
+                  {!isLoading && health?.dockerfileHealth && health.dockerfileHealth.exists && health.dockerfileHealth.valid && health.dockerfileHealth.warningCount > 0 && (
+                    <span 
+                      style={{
+                        background: theme === 'light' ? 'rgba(109, 40, 217, 0.08)' : 'rgba(139, 92, 246, 0.12)',
+                        border: theme === 'light' ? '1px solid rgba(109, 40, 217, 0.25)' : '1px solid rgba(139, 92, 246, 0.3)',
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '0.74rem',
+                        color: theme === 'light' ? '#7c3aed' : '#c084fc',
+                        fontWeight: 600,
+                        boxShadow: theme === 'light' ? '0 1px 3px rgba(109, 40, 217, 0.05)' : '0 0 8px rgba(139, 92, 246, 0.2)',
+                        transition: 'all 0.2s ease',
+                        cursor: 'default'
+                      }}
+                      onMouseOver={(ev) => {
+                        ev.currentTarget.style.transform = 'scale(1.03)';
+                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 2px 6px rgba(109, 40, 217, 0.1)' : '0 0 12px rgba(139, 92, 246, 0.35)';
+                      }}
+                      onMouseOut={(ev) => {
+                        ev.currentTarget.style.transform = 'scale(1)';
+                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 1px 3px rgba(109, 40, 217, 0.05)' : '0 0 8px rgba(139, 92, 246, 0.2)';
+                      }}
+                    >
+                      <span>🐳 {health.dockerfileHealth.warningCount} Dockerfile Warning{health.dockerfileHealth.warningCount > 1 ? 's' : ''}</span>
                     </span>
                   )}
 

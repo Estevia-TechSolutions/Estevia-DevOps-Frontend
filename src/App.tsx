@@ -58,6 +58,7 @@ import { TeamPage } from './pages/TeamPage';
 import type { UserRecord } from './pages/TeamPage';
 import { LogDrawer } from './components/observability/LogDrawer';
 import { AuditLogsTable } from './components/team/AuditLogsTable';
+import { isFixable, applyAutoFix } from './utils/autoFixEngine';
 import { Footer } from './components/layout/Footer';
 
 const Github = ({ size = 24, ...props }: { size?: number; [key: string]: any }) => (
@@ -1097,8 +1098,14 @@ function App() {
     finally { setLoading(false); }
   }, []);
 
-  // Shared inline validation panel renderer
-  const renderValidationPanel = (result: any, isValidating: boolean) => {
+  // Shared inline validation panel renderer with high contrast and intelligent Auto-Fix
+  const renderValidationPanel = (
+    result: any,
+    isValidating: boolean,
+    content?: string,
+    onContentChange?: (val: string) => void,
+    provider?: string
+  ) => {
     if (isValidating) return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
         <span style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid var(--accent-purple)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
@@ -1113,28 +1120,129 @@ function App() {
         <span>✅</span> Looks good — no issues found
       </div>
     );
+
+    const errorColor = theme === 'light' ? '#b91c1c' : '#f87171';
+    const errorBg = theme === 'light' ? 'rgba(185, 28, 28, 0.03)' : 'rgba(239, 68, 68, 0.04)';
+    const errorBorder = theme === 'light' ? 'rgba(185, 28, 28, 0.18)' : 'rgba(239, 68, 68, 0.25)';
+    const errorHeaderBg = theme === 'light' ? 'rgba(185, 28, 28, 0.06)' : 'rgba(239, 68, 68, 0.08)';
+
+    const warningColor = theme === 'light' ? '#b45309' : '#fbbf24';
+    const warningBg = theme === 'light' ? 'rgba(180, 83, 9, 0.03)' : 'rgba(245, 158, 11, 0.04)';
+    const warningBorder = theme === 'light' ? 'rgba(180, 83, 9, 0.18)' : 'rgba(245, 158, 11, 0.25)';
+    const warningHeaderBg = theme === 'light' ? 'rgba(180, 83, 9, 0.06)' : 'rgba(245, 158, 11, 0.08)';
+
+    const cardBorder = hasErrors ? errorBorder : warningBorder;
+    const cardBg = hasErrors ? errorBg : warningBg;
+    const headerBg = hasErrors ? errorHeaderBg : warningHeaderBg;
+    const textColor = hasErrors ? errorColor : warningColor;
+    const shadow = theme === 'light' ? '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)' : '0 4px 12px rgba(0,0,0,0.15)';
+
     return (
-      <div style={{ borderRadius: '8px', border: `1px solid ${hasErrors ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`, background: hasErrors ? 'rgba(239,68,68,0.05)' : 'rgba(245,158,11,0.05)', overflow: 'hidden' }}>
-        <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: hasErrors ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)' }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: hasErrors ? '#ef4444' : '#f59e0b' }}>
+      <div style={{
+        borderRadius: '8px',
+        border: `1px solid ${cardBorder}`,
+        borderLeft: `4px solid ${textColor}`,
+        background: cardBg,
+        boxShadow: shadow,
+        overflow: 'hidden',
+        transition: 'all 0.2s ease-in-out'
+      }}>
+        <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: `1px solid ${cardBorder}`, background: headerBg }}>
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: textColor }}>
             {hasErrors ? `❌ ${result.errors.length} error${result.errors.length > 1 ? 's' : ''}` : ''}
             {hasErrors && hasWarnings ? ' · ' : ''}
             {hasWarnings ? `⚠ ${result.warnings.length} warning${result.warnings.length > 1 ? 's' : ''}` : ''}
           </span>
         </div>
-        <div style={{ padding: '8px 0', display: 'flex', flexDirection: 'column', gap: '0' }}>
-          {(result.errors || []).map((e: any, i: number) => (
-            <div key={i} style={{ padding: '6px 12px', fontSize: '0.73rem', color: '#ef4444', display: 'flex', gap: '8px', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-              <span style={{ flexShrink: 0, fontWeight: 700 }}>❌</span>
-              <div><span style={{ opacity: 0.65, fontSize: '0.66rem' }}>{e.ruleId}{e.line ? ` · line ${e.line}` : ''} &nbsp;</span>{e.message}</div>
-            </div>
-          ))}
-          {(result.warnings || []).map((w: any, i: number) => (
-            <div key={i} style={{ padding: '6px 12px', fontSize: '0.73rem', color: '#f59e0b', display: 'flex', gap: '8px', alignItems: 'flex-start', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-              <span style={{ flexShrink: 0, fontWeight: 700 }}>⚠</span>
-              <div><span style={{ opacity: 0.65, fontSize: '0.66rem' }}>{w.ruleId}{w.line ? ` · line ${w.line}` : ''} &nbsp;</span>{w.message}</div>
-            </div>
-          ))}
+        <div style={{ padding: '4px 0', display: 'flex', flexDirection: 'column', gap: '0' }}>
+          {(result.errors || []).map((e: any, i: number) => {
+            const isRuleFixable = isFixable(e.ruleId) && content && onContentChange;
+            return (
+              <div key={`err-${i}`} style={{ padding: '8px 12px', fontSize: '0.73rem', color: errorColor, display: 'flex', gap: '8px', alignItems: 'center', borderBottom: i === (result.errors.length - 1) && !hasWarnings ? 'none' : '1px solid rgba(255,255,255,0.03)' }}>
+                <span style={{ flexShrink: 0, fontWeight: 700 }}>❌</span>
+                <div style={{ flex: 1 }}><span style={{ opacity: 0.65, fontSize: '0.66rem', fontWeight: 600 }}>{e.ruleId}{e.line ? ` · line ${e.line}` : ''} &nbsp;</span>{e.message}</div>
+                {isRuleFixable && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const fixed = applyAutoFix(content!, e.ruleId, e.message, e.line);
+                      onContentChange!(fixed);
+                    }}
+                    style={{
+                      marginLeft: '8px',
+                      flexShrink: 0,
+                      background: theme === 'light' ? 'rgba(185, 28, 28, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                      border: `1px solid ${theme === 'light' ? 'rgba(185, 28, 28, 0.25)' : 'rgba(239, 68, 68, 0.3)'}`,
+                      color: errorColor,
+                      fontSize: '0.66rem',
+                      fontWeight: 700,
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      transition: 'all 0.15s ease'
+                    }}
+                    onMouseOver={(ev) => {
+                      ev.currentTarget.style.transform = 'scale(1.03)';
+                      ev.currentTarget.style.background = theme === 'light' ? 'rgba(185, 28, 28, 0.12)' : 'rgba(239, 68, 68, 0.2)';
+                    }}
+                    onMouseOut={(ev) => {
+                      ev.currentTarget.style.transform = 'scale(1)';
+                      ev.currentTarget.style.background = theme === 'light' ? 'rgba(185, 28, 28, 0.08)' : 'rgba(239, 68, 68, 0.12)';
+                    }}
+                  >
+                    🪄 Auto Fix
+                  </button>
+                )}
+              </div>
+            );
+          })}
+          {(result.warnings || []).map((w: any, i: number) => {
+            const isRuleFixable = isFixable(w.ruleId) && content && onContentChange;
+            return (
+              <div key={`warn-${i}`} style={{ padding: '8px 12px', fontSize: '0.73rem', color: warningColor, display: 'flex', gap: '8px', alignItems: 'center', borderBottom: i === (result.warnings.length - 1) ? 'none' : '1px solid rgba(255,255,255,0.03)' }}>
+                <span style={{ flexShrink: 0, fontWeight: 700 }}>⚠</span>
+                <div style={{ flex: 1 }}><span style={{ opacity: 0.65, fontSize: '0.66rem', fontWeight: 600 }}>{w.ruleId}{w.line ? ` · line ${w.line}` : ''} &nbsp;</span>{w.message}</div>
+                {isRuleFixable && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const fixed = applyAutoFix(content!, w.ruleId, w.message, w.line);
+                      onContentChange!(fixed);
+                    }}
+                    style={{
+                      marginLeft: '8px',
+                      flexShrink: 0,
+                      background: theme === 'light' ? 'rgba(180, 83, 9, 0.08)' : 'rgba(245, 158, 11, 0.12)',
+                      border: `1px solid ${theme === 'light' ? 'rgba(180, 83, 9, 0.25)' : 'rgba(245, 158, 11, 0.3)'}`,
+                      color: warningColor,
+                      fontSize: '0.66rem',
+                      fontWeight: 700,
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      transition: 'all 0.15s ease'
+                    }}
+                    onMouseOver={(ev) => {
+                      ev.currentTarget.style.transform = 'scale(1.03)';
+                      ev.currentTarget.style.background = theme === 'light' ? 'rgba(180, 83, 9, 0.12)' : 'rgba(245, 158, 11, 0.2)';
+                    }}
+                    onMouseOut={(ev) => {
+                      ev.currentTarget.style.transform = 'scale(1)';
+                      ev.currentTarget.style.background = theme === 'light' ? 'rgba(180, 83, 9, 0.08)' : 'rgba(245, 158, 11, 0.12)';
+                    }}
+                  >
+                    🪄 Auto Fix
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -7351,7 +7459,13 @@ function App() {
 
                       {/* YAML Validation Panel */}
                       <div style={{ marginTop: '12px' }}>
-                        {renderValidationPanel(pipelineYmlValidation, pipelineYmlValidating)}
+                        {renderValidationPanel(
+                          pipelineYmlValidation,
+                          pipelineYmlValidating,
+                          pipelineModalYmlContent,
+                          setPipelineModalYmlContent,
+                          pipelineProvider
+                        )}
                       </div>
                     </>
                   )}
