@@ -16,7 +16,12 @@ steps:
   displayName: 'Install Node.js'
 
 - script: |
-    echo "VITE_API_BASE=https://api-evaops.esteviatech.com/api" > .env.production
+    API_BASE="${VITE_API_BASE:-https://api-evaops.esteviatech.com/api}"
+    DEFAULT_DOMAIN="${VITE_DEFAULT_DOMAIN:-esteviatech.com}"
+    DEVOPS_ORG_URL="${VITE_AZURE_DEVOPS_ORG_URL:-https://dev.azure.com/esteviatech}"
+    echo "VITE_API_BASE=$API_BASE" > .env.production
+    echo "VITE_DEFAULT_DOMAIN=$DEFAULT_DOMAIN" >> .env.production
+    echo "VITE_AZURE_DEVOPS_ORG_URL=$DEVOPS_ORG_URL" >> .env.production
   displayName: 'Create production env file'
 
 - script: |

@@ -753,7 +753,7 @@ function App() {
   // Bind Domain Modal State
   const [selectedApp, setSelectedApp] = useState<AppResource | null>(null);
   const [subdomainInput, setSubdomainInput] = useState('');
-  const [domainInput, setDomainInput] = useState('esteviatech.com');
+  const [domainInput, setDomainInput] = useState(import.meta.env.VITE_DEFAULT_DOMAIN || '');
   const [binding, setBinding] = useState(false);
   const [bindSuccess, setBindSuccess] = useState<string | null>(null);
   const [bindError, setBindError] = useState<string | null>(null);
@@ -801,8 +801,8 @@ function App() {
   const [dbSkuName, setDbSkuName] = useState('Standard_B1ms');
   const [dbSkuTier, setDbSkuTier] = useState('Burstable');
   const [dbVersion, setDbVersion] = useState('8.0.21');
-  const [dbAdminUsername, setDbAdminUsername] = useState('estevia');
-  const [dbAdminPassword, setDbAdminPassword] = useState('Ewco26INCP');
+  const [dbAdminUsername, setDbAdminUsername] = useState('admin');
+  const [dbAdminPassword, setDbAdminPassword] = useState('');
   const [virtualNetworks, setVirtualNetworks] = useState<any[]>([]);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [ymlContent, setYmlContent] = useState<string>('');
@@ -1482,7 +1482,7 @@ function App() {
         setYmlContent('');
         setTargetPort('5005');
         setDnsBinding(false);
-        setDomainInput(defaultDnsDomain || 'esteviatech.com');
+        setDomainInput(defaultDnsDomain || import.meta.env.VITE_DEFAULT_DOMAIN || '');
         setProvisionSuccess(null);
         setProvisionError(null);
         setProvisionErrorDetail(null);
@@ -1583,17 +1583,17 @@ function App() {
   const [onboardAzureTenantId, setOnboardAzureTenantId] = useState(user?.tenant_id || '');
   const [onboardAzureClientId, setOnboardAzureClientId] = useState('');
   const [onboardAzureClientSecret, setOnboardAzureClientSecret] = useState('');
-  const [onboardAzureRg, setOnboardAzureRg] = useState('Estevia-Prod-RG');
+  const [onboardAzureRg, setOnboardAzureRg] = useState('');
 
-  const [onboardDevopsUrl, setOnboardDevopsUrl] = useState('https://dev.azure.com/esteviatech');
-  const [onboardDevopsProject, setOnboardDevopsProject] = useState('Estevia-Platform');
+  const [onboardDevopsUrl, setOnboardDevopsUrl] = useState('https://dev.azure.com/');
+  const [onboardDevopsProject, setOnboardDevopsProject] = useState('');
   const [onboardDevopsPat, setOnboardDevopsPat] = useState('');
-  const [onboardGithubOwner, setOnboardGithubOwner] = useState('Estevia-TechSolutions');
+  const [onboardGithubOwner, setOnboardGithubOwner] = useState('');
   const [onboardGithubPat, setOnboardGithubPat] = useState('');
 
   const [onboardGodaddyKey, setOnboardGodaddyKey] = useState('');
   const [onboardGodaddySecret, setOnboardGodaddySecret] = useState('');
-  const [onboardGodaddyDomain, setOnboardGodaddyDomain] = useState('esteviatech.com');
+  const [onboardGodaddyDomain, setOnboardGodaddyDomain] = useState(import.meta.env.VITE_DEFAULT_DOMAIN || '');
 
   const [onboardTesting, setOnboardTesting] = useState(false);
   const [onboardTestResult, setOnboardTestResult] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -1627,7 +1627,7 @@ function App() {
   const [scannerProvisionBranch, setScannerProvisionBranch] = useState('');
   const [scannerProvisionSwaName, setScannerProvisionSwaName] = useState('');
   const [scannerProvisionSubdomain, setScannerProvisionSubdomain] = useState('');
-  const [scannerProvisionDomain, setScannerProvisionDomain] = useState('esteviatech.com');
+  const [scannerProvisionDomain, setScannerProvisionDomain] = useState(import.meta.env.VITE_DEFAULT_DOMAIN || '');
   const [scannerProvisionRegion, setScannerProvisionRegion] = useState('eastus2');
 
   // Scanner Modal Execution Step Status
@@ -1674,7 +1674,7 @@ function App() {
     const subdomain = envKey === 'prod' ? repoSegment : `${cleanBranchName}-${repoSegment}`;
     setScannerProvisionSubdomain(subdomain.toLowerCase());
 
-    setScannerProvisionDomain(defaultDnsDomain || 'esteviatech.com');
+    setScannerProvisionDomain(defaultDnsDomain || import.meta.env.VITE_DEFAULT_DOMAIN || '');
     setScannerProvisionRegion('eastus2');
 
     setScannerDeployStep(0);
@@ -2610,9 +2610,9 @@ function App() {
         setProdManagedEnvId(data.settings.prod_managed_env_id || '');
         
         // Auto-configure default inputs
-        setDomainInput(data.settings.default_dns_domain || 'esteviatech.com');
-        setDevopsOrgUrl(data.settings.azure_devops_org_url || 'https://dev.azure.com/esteviatech');
-        setDevopsProject(data.settings.azure_devops_project || 'Estevia-Platform');
+        setDomainInput(data.settings.default_dns_domain || import.meta.env.VITE_DEFAULT_DOMAIN || '');
+        setDevopsOrgUrl(data.settings.azure_devops_org_url || import.meta.env.VITE_AZURE_DEVOPS_ORG_URL || '');
+        setDevopsProject(data.settings.azure_devops_project || '');
         return data.settings;
       }
     } catch (e) {
@@ -4099,7 +4099,7 @@ function App() {
 
     if (app.dnsDetails && app.dnsDetails.subdomain) {
       setSubdomainInput(app.dnsDetails.subdomain);
-      setDomainInput(app.dnsDetails.domain || defaultDnsDomain || 'esteviatech.com');
+      setDomainInput(app.dnsDetails.domain || defaultDnsDomain || import.meta.env.VITE_DEFAULT_DOMAIN || '');
     } else {
       const name = app.name.toLowerCase();
       if (name.includes('marketing-web') || name === 'estevia-marketing-site') {
@@ -4138,7 +4138,7 @@ function App() {
           setSubdomainInput(`${env}-${cleanBase}`);
         }
       }
-      setDomainInput(defaultDnsDomain || 'esteviatech.com');
+      setDomainInput(defaultDnsDomain || import.meta.env.VITE_DEFAULT_DOMAIN || '');
     }
   };
 
@@ -4259,8 +4259,8 @@ function App() {
       }
     }
 
-    setDevopsOrgUrl(azureDevopsOrgUrl || 'https://dev.azure.com/esteviatech');
-    setDevopsProject(azureDevopsProject || 'Estevia-Platform');
+    setDevopsOrgUrl(azureDevopsOrgUrl || import.meta.env.VITE_AZURE_DEVOPS_ORG_URL || '');
+    setDevopsProject(azureDevopsProject || '');
     const initialProvider = app.pipelineId && String(app.pipelineId).startsWith('github-actions:') ? 'github_actions' : 'azure_devops';
     setPipelineProvider(initialProvider);
 

@@ -972,19 +972,52 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                   </thead>
                   <tbody>
                     {[
-                      { provider: 'GitHub', token: 'Personal Access Token (PAT)', scopes: ['repo (Full repository control)', 'admin:repo_hook'] },
-                      { provider: 'Azure DevOps', token: 'Personal Access Token (PAT)', scopes: ['Build (Read & Write)', 'Variable Groups (Read/Write/Manage)', 'Service Connections (Read & Write)'] },
-                      { provider: 'Azure Cloud', token: 'Entra Active Directory Service Principal', scopes: ['Contributor or Owner assigned to target Resource Group / Subscription'] },
-                      { provider: 'GoDaddy', token: 'Developer API Key & Secret', scopes: ['Production access environment (OTE sandbox is not supported)'] }
+                      {
+                        provider: 'GitHub',
+                        token: 'Personal Access Token (PAT)',
+                        scopes: ['repo (Full repository control)', 'admin:repo_hook'],
+                        howToGet: "GitHub Settings → Developer Settings → Personal Access Tokens (Classic) → Generate New Token. Select 'repo' and 'admin:repo_hook' scopes."
+                      },
+                      {
+                        provider: 'Azure DevOps',
+                        token: 'Personal Access Token (PAT)',
+                        scopes: ['Build (Read & Write)', 'Variable Groups (Read/Write/Manage)', 'Service Connections (Read & Write)'],
+                        howToGet: "User Settings (Avatar menu) → Personal Access Tokens → New Token. Select 'Build', 'Variable Groups', and 'Service Connections' scopes."
+                      },
+                      {
+                        provider: 'Azure Cloud',
+                        token: 'Entra Active Directory Service Principal',
+                        scopes: ['Contributor or Owner assigned to target Resource Group / Subscription'],
+                        howToGet: "Azure Portal → Entra ID → App Registrations → New Registration. Generate Client Secret under 'Certificates & secrets', and assign the App ID the 'Contributor' role in target resource groups under IAM."
+                      },
+                      {
+                        provider: 'GoDaddy',
+                        token: 'Developer API Key & Secret',
+                        scopes: ['Production access environment (OTE sandbox is not supported)'],
+                        howToGet: "GoDaddy Developer Portal (developer.godaddy.com) → API Keys → Create New API Key. Choose 'Production' environment."
+                      }
                     ].map((row, idx) => (
                       <tr key={idx} style={{
                         borderBottom: idx === 3 ? 'none' : '1px solid var(--divider)',
                         transition: 'background 0.2s',
                         cursor: 'default'
                       }} className="table-row-hover">
-                        <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--text-primary)' }}>{row.provider}</td>
-                        <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{row.token}</td>
-                        <td style={{ padding: '14px 16px' }}>
+                        <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--text-primary)', verticalAlign: 'top' }}>{row.provider}</td>
+                        <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
+                          <div style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{row.token}</div>
+                          {row.howToGet && (
+                            <div style={{
+                              fontSize: '0.74rem',
+                              color: 'var(--text-muted)',
+                              marginTop: '6px',
+                              lineHeight: '1.4',
+                              maxWidth: '350px'
+                            }}>
+                              <span style={{ fontWeight: 650, color: 'var(--text-secondary)' }}>How to get:</span> {row.howToGet}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                             {row.scopes.map((scope, sidx) => (
                               <code key={sidx} style={{
