@@ -440,6 +440,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     livePipelineRunsRef.current = livePipelineRuns;
   }, [livePipelineRuns]);
 
+  const appsRef = React.useRef(apps);
+  React.useEffect(() => {
+    appsRef.current = apps;
+  }, [apps]);
+
+  const pipelineIdsString = React.useMemo(() => {
+    return JSON.stringify(apps.map(a => a.pipelineId || '').sort());
+  }, [apps]);
+
   // Monitor livePipelineRuns for transitions (build finished/failed)
   const prevPipelineRunsRef = React.useRef<Record<number, any>>({});
   React.useEffect(() => {
@@ -524,7 +533,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   // Active Telemetry Polling for active builds
   React.useEffect(() => {
     // Find all builds that are active
-    const activeBuilds = apps
+    const activeBuilds = appsRef.current
       .map(app => {
         const runId = app.pipelineRun?.id;
         // Primary lookup: by known runId from scan; secondary: by pipelineId (set by discovery poller)
@@ -610,7 +619,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       isSubscribed = false;
       clearInterval(intervalId);
     };
-  }, [apps, activeBuildIdsString, organizationId, selectedTaskForModal]);
+  }, [activeBuildIdsString, organizationId, selectedTaskForModal]);
 
   // ── New-Build Discovery Poller ──────────────────────────────────────────────
   // Runs every 30 s and fetches the LATEST build for every app that has a
@@ -618,7 +627,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   // This detects newly triggered builds BEFORE the next full 5-min cloud scan.
   React.useEffect(() => {
     // Only run if there are apps with pipelines
-    const appsWithPipelines = apps.filter(a => a.pipelineId);
+    const appsWithPipelines = appsRef.current.filter(a => a.pipelineId);
     if (appsWithPipelines.length === 0) return;
 
     // Reset loadedPipelines for the new set of apps
@@ -628,7 +637,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
     const discoverNewBuilds = async () => {
       const token = localStorage.getItem('devops_token');
-      for (const app of appsWithPipelines) {
+      // Always fetch latest apps array from ref to ensure fresh branch configuration
+      const currentApps = appsRef.current.filter(a => a.pipelineId);
+      for (const app of currentApps) {
         if (!isSubscribed) break;
         const pipelineId = app.pipelineId;
         if (!pipelineId) continue;
@@ -697,7 +708,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       clearTimeout(initialTimer);
       clearInterval(intervalId);
     };
-  }, [apps, organizationId]);
+  }, [pipelineIdsString, organizationId]);
 
   const prevTaskRef = React.useRef<{ id: string; buildId: string; logId: number; state: string } | null>(null);
 
