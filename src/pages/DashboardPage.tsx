@@ -210,6 +210,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   };
 
   const [showVpcDetails, setShowVpcDetails] = React.useState<boolean>(false);
+  const [viewScrapedConfig, setViewScrapedConfig] = React.useState<{ fileName: string; fileContent: string; appName: string; searchedFiles?: string[] } | null>(null);
+  const [expandedWarnings, setExpandedWarnings] = React.useState<Record<string, boolean>>({});
 
   // Compliance state
   const [activeSubTab, setActiveSubTab] = React.useState<'resources' | 'compliance'>('resources');
@@ -924,7 +926,37 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     return null;
   };
 
-  const getVnetName = (app: AppResource) => {
+  const getVnetName = (app: AppResource): string | null => {
+    if (app.type === 'frontend') {
+      const configuredBackendUrl = app.azureResourceDetails?.configuredBackendUrl;
+      if (configuredBackendUrl) {
+        let host = '';
+        try {
+          const urlObj = new URL(configuredBackendUrl);
+          host = urlObj.hostname;
+        } catch (e) {
+          host = configuredBackendUrl.replace(/^https?:\/\//i, '').split('/')[0];
+        }
+        const allBackends = apps.filter(a => a.type === 'backend');
+        const matchingBackend = allBackends.find(b => {
+          const bHost = b.hostname || b.azureResourceDetails?.hostname || '';
+          const bDns = b.dnsDetails?.fqdn || '';
+          return (
+            bHost.toLowerCase().includes(host.toLowerCase()) ||
+            bDns.toLowerCase().includes(host.toLowerCase()) ||
+            host.toLowerCase().includes(b.name.toLowerCase())
+          );
+        });
+        if (matchingBackend) {
+          const backendVnet = getVnetName(matchingBackend);
+          if (backendVnet) {
+            return `None (Public SWA) → Talks to Backend VNet: ${backendVnet}`;
+          }
+        }
+      }
+      return 'None (Public Cloud)';
+    }
+
     const details = app.azureResourceDetails;
     if (!details) return null;
     if (details.vnetName) return details.vnetName;
@@ -941,7 +973,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const checkNetworkWarnings = (
     item: AppResource,
     group: AppGroup
-  ): { status: 'verified' | 'warning' | 'unverified'; message: string; detail: string } | null => {
+  ): { status: 'verified' | 'warning' | 'unverified'; message: string; detail: string; sourceFile?: string; sourceContent?: string; sourceAppName?: string; scrapedSearchedFiles?: string[] } | null => {
     const themeEnv = getEnvTag(item).label; // 'DEV' | 'QA' | 'PROD'
     const itemVnet = getVnetName(item);
 
@@ -953,7 +985,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         return {
           status: 'unverified',
           message: 'Unverified',
-          detail: 'Could not validate network: Backend API details were not found in the SWA codebase.'
+          detail: 'Could not validate network: Backend API details were not found in the SWA codebase.',
+          sourceFile: item.azureResourceDetails?.scrapedSourceFile,
+          sourceContent: item.azureResourceDetails?.scrapedSourceContent,
+          sourceAppName: item.name
         };
       }
 
@@ -985,7 +1020,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           return {
             status: 'warning',
             message: 'Mismatched',
-            detail: `Network Mismatch: SWA is running as ${themeEnv} but is configured to connect to backend '${matchingBackend.name}' which is in ${backendEnv}.`
+            detail: `Network Mismatch: SWA is running as ${themeEnv} but is configured to connect to backend '${matchingBackend.name}' which is in ${backendEnv}.`,
+            sourceFile: item.azureResourceDetails?.scrapedSourceFile,
+            sourceContent: item.azureResourceDetails?.scrapedSourceContent,
+            sourceAppName: item.name
           };
         } else {
           // Check backend's own database connection network status recursively
@@ -994,14 +1032,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             return {
               status: backendValidation.status,
               message: backendValidation.status === 'warning' ? 'Backend Warning' : 'Backend Unverified',
-              detail: `Network Warning: SWA is connected to backend '${matchingBackend.name}', but this backend has a database connection issue: ${backendValidation.detail}`
+              detail: `Network Warning: SWA is connected to backend '${matchingBackend.name}', but this backend has a database connection issue: ${backendValidation.detail}`,
+              sourceFile: backendValidation.sourceFile || matchingBackend.azureResourceDetails?.scrapedSourceFile,
+              sourceContent: backendValidation.sourceContent || matchingBackend.azureResourceDetails?.scrapedSourceContent,
+              sourceAppName: backendValidation.sourceAppName || matchingBackend.name
             };
           }
 
           return {
             status: 'verified',
             message: 'Verified',
-            detail: `Network connection verified: SWA is connected to matching backend '${matchingBackend.name}' (${backendEnv}).`
+            detail: `Network connection verified: SWA is connected to matching backend '${matchingBackend.name}' (${backendEnv}).`,
+            sourceFile: item.azureResourceDetails?.scrapedSourceFile,
+            sourceContent: item.azureResourceDetails?.scrapedSourceContent,
+            sourceAppName: item.name
           };
         }
       } else {
@@ -1017,13 +1061,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           return {
             status: 'warning',
             message: 'Mismatched',
-            detail: `Network Mismatch: SWA is running as ${themeEnv} but is configured to connect to '${host}' (${urlEnv}).`
+            detail: `Network Mismatch: SWA is running as ${themeEnv} but is configured to connect to '${host}' (${urlEnv}).`,
+            sourceFile: item.azureResourceDetails?.scrapedSourceFile,
+            sourceContent: item.azureResourceDetails?.scrapedSourceContent,
+            sourceAppName: item.name
           };
         } else {
           return {
             status: 'verified',
             message: 'Verified',
-            detail: `Network connection verified: SWA is connected to '${host}' (${urlEnv}).`
+            detail: `Network connection verified: SWA is connected to '${host}' (${urlEnv}).`,
+            sourceFile: item.azureResourceDetails?.scrapedSourceFile,
+            sourceContent: item.azureResourceDetails?.scrapedSourceContent,
+            sourceAppName: item.name
           };
         }
       }
@@ -1037,7 +1087,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         return {
           status: 'unverified',
           message: 'Unverified',
-          detail: 'Could not validate database network: DB_HOST details were not found in the backend codebase.'
+          detail: 'Could not validate database network: DB_HOST details were not found in the backend codebase.',
+          sourceFile: item.azureResourceDetails?.scrapedSourceFile,
+          sourceContent: item.azureResourceDetails?.scrapedSourceContent,
+          sourceAppName: item.name
         };
       }
 
@@ -1045,7 +1098,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         return {
           status: 'unverified',
           message: 'Unverified',
-          detail: 'Could not validate database network: VNet / VPC details are not resolved for this Container App.'
+          detail: 'Could not validate database network: VNet / VPC details are not resolved for this Container App.',
+          sourceFile: item.azureResourceDetails?.scrapedSourceFile,
+          sourceContent: item.azureResourceDetails?.scrapedSourceContent,
+          sourceAppName: item.name
         };
       }
 
@@ -1112,13 +1168,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           return {
             status: 'warning',
             message: 'Unpeered',
-            detail: `VNet Connection Warning: Backend '${item.name}' (${themeEnv}) is in ${itemVnet} but is configured to connect to database '${matchingDb.name}' in ${dbVnetName}. Without active VNet peering between these networks, database connections will fail.`
+            detail: `VNet Connection Warning: Backend '${item.name}' (${themeEnv}) is in ${itemVnet} but is configured to connect to database '${matchingDb.name}' in ${dbVnetName}. Without active VNet peering between these networks, database connections will fail.`,
+            sourceFile: item.azureResourceDetails?.scrapedSourceFile,
+            sourceContent: item.azureResourceDetails?.scrapedSourceContent,
+            sourceAppName: item.name
           };
         } else {
           return {
             status: 'verified',
             message: 'Peered DB',
-            detail: `Peered database connection verified: connected to database '${matchingDb.name}' (${dbVnetName}) over peered virtual network.`
+            detail: `Peered database connection verified: connected to database '${matchingDb.name}' (${dbVnetName}) over peered virtual network.`,
+            sourceFile: item.azureResourceDetails?.scrapedSourceFile,
+            sourceContent: item.azureResourceDetails?.scrapedSourceContent,
+            sourceAppName: item.name
           };
         }
       } else {
@@ -1148,13 +1210,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           return {
             status: 'warning',
             message: 'Unpeered',
-            detail: `VNet Connection Warning: Backend '${item.name}' (${themeEnv}) is in ${itemVnet} but is configured to connect to database '${configuredDbHost}' (${dbEnv}). Without VNet peering, connection will fail.`
+            detail: `VNet Connection Warning: Backend '${item.name}' (${themeEnv}) is in ${itemVnet} but is configured to connect to database '${configuredDbHost}' (${dbEnv}). Without VNet peering, connection will fail.`,
+            sourceFile: item.azureResourceDetails?.scrapedSourceFile,
+            sourceContent: item.azureResourceDetails?.scrapedSourceContent,
+            sourceAppName: item.name
           };
         } else {
           return {
             status: 'verified',
             message: 'Peered DB',
-            detail: `Database connection verified: '${configuredDbHost}' (${dbEnv}) is accessible from ${itemVnet}.`
+            detail: `Database connection verified: '${configuredDbHost}' (${dbEnv}) is accessible from ${itemVnet}.`,
+            sourceFile: item.azureResourceDetails?.scrapedSourceFile,
+            sourceContent: item.azureResourceDetails?.scrapedSourceContent,
+            sourceAppName: item.name
           };
         }
       }
@@ -2759,88 +2827,207 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 )}
                               </div>
 
-                              {/* VNet / VPC Details */}
-                              <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
-                                <Network size={12} style={{ opacity: 0.7, color: 'var(--accent-teal)', flexShrink: 0 }} />
-                                <span>VNet / VPC: <strong style={{ color: 'var(--text-primary)' }}>{getVnetName(item) || 'None (Public Cloud)'}</strong></span>
-                              </div>
+                              {/* VNet and Network Connectivity Card (Premium Glassmorphic Layout) */}
+                              <div style={{
+                                marginTop: '10px',
+                                padding: '8px 12px',
+                                borderRadius: '10px',
+                                background: theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)',
+                                border: '1px solid var(--glass-border)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '6px',
+                                boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.03)',
+                                backdropFilter: 'blur(8px)',
+                                WebkitBackdropFilter: 'blur(8px)'
+                              }}>
+                                {/* VNet Name Row */}
+                                <div style={{ 
+                                  fontSize: '0.72rem', 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'space-between',
+                                  gap: '8px', 
+                                  fontWeight: 400, 
+                                  color: 'var(--text-secondary)' 
+                                }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <Network size={11} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
+                                    <span>VNet / VPC:</span>
+                                  </div>
+                                  <strong style={{ 
+                                    color: 'var(--text-primary)',
+                                    background: 'rgba(255, 255, 255, 0.06)',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.68rem',
+                                    fontWeight: 600,
+                                    border: '1px solid rgba(255, 255, 255, 0.05)'
+                                  }}>
+                                    {getVnetName(item) || 'None (Public Cloud)'}
+                                  </strong>
+                                </div>
 
-                              {/* Network / VNet Warning (Pill & Inline Resolution Style) */}
-                              {(() => {
-                                const validation = checkNetworkWarnings(item, group);
-                                if (!validation) return null;
-                                
-                                let pillBg = 'rgba(148, 163, 184, 0.08)';
-                                let pillBorder = 'rgba(148, 163, 184, 0.2)';
-                                let pillColor = '#94a3b8';
-                                let pillIcon = <HelpCircle size={10} />;
+                                {/* Network Connection Status Row */}
+                                {(() => {
+                                  const validation = checkNetworkWarnings(item, group);
+                                  if (!validation) return null;
+                                  
+                                  let pillBg = 'rgba(148, 163, 184, 0.08)';
+                                  let pillBorder = 'rgba(148, 163, 184, 0.2)';
+                                  let pillColor = '#94a3b8';
+                                  let pillIcon = <HelpCircle size={10} />;
 
-                                if (validation.status === 'verified') {
-                                  pillBg = 'rgba(16, 185, 129, 0.08)';
-                                  pillBorder = 'rgba(16, 185, 129, 0.25)';
-                                  pillColor = '#10b981';
-                                  pillIcon = <CheckCircle2 size={10} />;
-                                } else if (validation.status === 'warning') {
-                                  pillBg = 'rgba(239, 68, 68, 0.08)';
-                                  pillBorder = 'rgba(239, 68, 68, 0.25)';
-                                  pillColor = '#f87171';
-                                  pillIcon = <AlertTriangle size={10} />;
-                                }
+                                  if (validation.status === 'verified') {
+                                    pillBg = 'rgba(16, 185, 129, 0.08)';
+                                    pillBorder = 'rgba(16, 185, 129, 0.25)';
+                                    pillColor = '#10b981';
+                                    pillIcon = <CheckCircle2 size={10} />;
+                                  } else if (validation.status === 'warning') {
+                                    pillBg = 'rgba(239, 68, 68, 0.08)';
+                                    pillBorder = 'rgba(239, 68, 68, 0.25)';
+                                    pillColor = '#f87171';
+                                    pillIcon = <AlertTriangle size={10} />;
+                                  }
 
-                                return (
-                                  <>
-                                    <div 
-                                      style={{ 
+                                  return (
+                                    <>
+                                      <div style={{ 
                                         fontSize: '0.72rem', 
-                                        marginTop: '4px', 
                                         display: 'flex', 
                                         alignItems: 'center', 
+                                        justifyContent: 'space-between',
                                         gap: '8px', 
                                         fontWeight: 400, 
                                         color: 'var(--text-secondary)' 
-                                      }}
-                                      title={validation.detail}
-                                    >
-                                      <Network size={12} style={{ opacity: 0.7, color: 'var(--accent-teal)', flexShrink: 0 }} />
-                                      <span>Network: </span>
-                                      <span 
-                                        style={{
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          gap: '4px',
-                                          fontSize: '0.65rem',
-                                          fontWeight: 600,
-                                          padding: '2px 8px',
-                                          borderRadius: '20px',
-                                          background: pillBg,
-                                          border: `1px solid ${pillBorder}`,
-                                          color: pillColor,
-                                          cursor: 'help'
-                                        }}
-                                        title={validation.detail}
-                                      >
-                                        {pillIcon}
-                                        <span>{validation.message}</span>
-                                      </span>
-                                    </div>
-                                    
-                                    {validation.status !== 'verified' && (
-                                      <div style={{
-                                        fontSize: '0.68rem',
-                                        marginTop: '6px',
-                                        padding: '6px 10px',
-                                        borderRadius: '6px',
-                                        background: validation.status === 'warning' ? 'rgba(239, 68, 68, 0.04)' : 'rgba(148, 163, 184, 0.04)',
-                                        border: validation.status === 'warning' ? '1px solid rgba(239, 68, 68, 0.15)' : '1px solid rgba(148, 163, 184, 0.15)',
-                                        color: validation.status === 'warning' ? '#f87171' : '#94a3b8',
-                                        lineHeight: 1.3
                                       }}>
-                                        {validation.detail}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                          <HelpCircle size={11} style={{ color: pillColor, opacity: 0.8, flexShrink: 0 }} />
+                                          <span>Connectivity:</span>
+                                        </div>
+                                        <span 
+                                          style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            fontSize: '0.65rem',
+                                            fontWeight: 600,
+                                            padding: '2px 8px',
+                                            borderRadius: '20px',
+                                            background: pillBg,
+                                            border: `1px solid ${pillBorder}`,
+                                            color: pillColor,
+                                            cursor: 'help'
+                                          }}
+                                          title={validation.detail}
+                                        >
+                                          {pillIcon}
+                                          <span>{validation.message}</span>
+                                        </span>
                                       </div>
-                                    )}
-                                  </>
-                                );
-                              })()}
+                                      
+                                      {validation.status !== 'verified' && (
+                                        <div style={{
+                                          display: 'flex',
+                                          justifyContent: 'flex-end',
+                                          marginTop: '2px'
+                                        }}>
+                                          <button
+                                            onClick={() => setExpandedWarnings(prev => ({ ...prev, [item.name]: !prev[item.name] }))}
+                                            style={{
+                                              background: 'none',
+                                              border: 'none',
+                                              padding: '2px 0px',
+                                              fontSize: '0.62rem',
+                                              color: validation.status === 'warning' ? '#fca5a5' : '#cbd5e1',
+                                              cursor: 'pointer',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: '3px',
+                                              textDecoration: 'underline',
+                                              fontWeight: 500,
+                                              transition: 'opacity 0.2s'
+                                            }}
+                                            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; }}
+                                            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+                                          >
+                                            <span>{expandedWarnings[item.name] ? 'Hide Resolution Details' : 'View Resolution Details ➔'}</span>
+                                          </button>
+                                        </div>
+                                      )}
+
+                                      {validation.status !== 'verified' && expandedWarnings[item.name] && (
+                                        <div style={{
+                                          fontSize: '0.66rem',
+                                          marginTop: '6px',
+                                          padding: '8px 10px',
+                                          borderRadius: '6px',
+                                          background: validation.status === 'warning' 
+                                            ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(239, 68, 68, 0.03) 100%)' 
+                                            : 'linear-gradient(135deg, rgba(148, 163, 184, 0.08) 0%, rgba(148, 163, 184, 0.03) 100%)',
+                                          borderLeft: validation.status === 'warning' 
+                                            ? '3px solid #f87171' 
+                                            : '3px solid #94a3b8',
+                                          borderTop: '1px solid rgba(255,255,255,0.02)',
+                                          borderRight: '1px solid rgba(255,255,255,0.02)',
+                                          borderBottom: '1px solid rgba(255,255,255,0.02)',
+                                          color: validation.status === 'warning' ? '#fca5a5' : '#cbd5e1',
+                                          lineHeight: 1.45,
+                                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                          letterSpacing: '0.015em'
+                                        }}>
+                                          <div style={{ 
+                                            fontWeight: 700, 
+                                            marginBottom: '3px', 
+                                            color: validation.status === 'warning' ? '#f87171' : '#94a3b8',
+                                            textTransform: 'uppercase',
+                                            fontSize: '0.62rem',
+                                            letterSpacing: '0.05em',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            gap: '4px',
+                                            flexWrap: 'wrap'
+                                          }}>
+                                            <span>⚠️ Network Resolution:</span>
+                                            {(validation.sourceFile || validation.scrapedSearchedFiles) && (
+                                              <button 
+                                                onClick={() => setViewScrapedConfig({
+                                                  fileName: validation.sourceFile || 'No Config File Found',
+                                                  fileContent: validation.sourceContent || '',
+                                                  searchedFiles: validation.scrapedSearchedFiles || [],
+                                                  appName: validation.sourceAppName || item.name
+                                                })}
+                                                style={{
+                                                  background: 'rgba(255, 255, 255, 0.08)',
+                                                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                                                  borderRadius: '4px',
+                                                  padding: '2px 6px',
+                                                  fontSize: '0.58rem',
+                                                  color: 'var(--text-primary)',
+                                                  cursor: 'pointer',
+                                                  textTransform: 'none',
+                                                  fontWeight: 500,
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  gap: '3px',
+                                                  transition: 'all 0.2s',
+                                                  marginBottom: '2px'
+                                                }}
+                                                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'; }}
+                                                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; }}
+                                              >
+                                                📄 View Scraped Config
+                                              </button>
+                                            )}
+                                          </div>
+                                          <div style={{ marginTop: '2px' }}>{validation.detail}</div>
+                                        </div>
+                                      )}
+                                    </>
+                                  );
+                                })()}
+                              </div>
 
                               {/* Scan Error Message */}
                               {!isLoading && health?.error && (
@@ -5524,6 +5711,110 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             </div>
           </div>
         </div>
+      )}
+      {/* ─── Scraped Config Code Viewer Drawer ─── */}
+      {viewScrapedConfig && (
+        <>
+          <div className="drawer-backdrop" onClick={() => setViewScrapedConfig(null)} />
+          <div className="drawer-container" style={{ width: '560px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--divider)', paddingBottom: '16px', marginBottom: '8px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Scraped Codebase Config</h3>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Resource: <strong>{viewScrapedConfig.appName}</strong></span>
+              </div>
+              <button 
+                onClick={() => setViewScrapedConfig(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '1.2rem'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1, minHeight: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: 'var(--text-secondary)', flexShrink: 0 }}>
+                <span style={{ fontWeight: 600 }}>Source File:</span>
+                <code style={{ background: 'rgba(255,255,255,0.05)', padding: '3px 8px', borderRadius: '4px', color: 'var(--accent-teal)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  {viewScrapedConfig.fileName}
+                </code>
+              </div>
+
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                {viewScrapedConfig.fileContent ? (
+                  <>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px', flexShrink: 0 }}>File Content:</div>
+                    <pre style={{
+                      flex: 1,
+                      background: '#090d16',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: '8px',
+                      padding: '16px',
+                      color: '#e2e8f0',
+                      fontSize: '0.75rem',
+                      fontFamily: 'monospace',
+                      overflow: 'auto',
+                      whiteSpace: 'pre',
+                      lineHeight: 1.5,
+                      margin: 0
+                    }}>
+                      {viewScrapedConfig.fileContent}
+                    </pre>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#f87171', marginBottom: '8px', flexShrink: 0 }}>
+                      ⚠️ No configuration variables resolved
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '10px', lineHeight: 1.45, flexShrink: 0 }}>
+                      The scanner checked the files listed below in the repository but did not find any matching environment configurations or variable definitions:
+                    </div>
+                    <div style={{
+                      flex: 1,
+                      background: '#090d16',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: '8px',
+                      padding: '14px 16px',
+                      overflow: 'auto',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      margin: 0
+                    }}>
+                      {viewScrapedConfig.searchedFiles && viewScrapedConfig.searchedFiles.length > 0 ? (
+                        viewScrapedConfig.searchedFiles.map((file, idx) => (
+                          <div key={idx} style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            fontSize: '0.74rem',
+                            fontFamily: 'monospace',
+                            color: 'var(--text-secondary)',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            background: 'rgba(255, 255, 255, 0.02)',
+                            border: '1px solid rgba(255, 255, 255, 0.05)'
+                          }}>
+                            <span style={{ fontSize: '0.8rem', opacity: 0.65 }}>🔍</span>
+                            <span>{file}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontStyle: 'italic', padding: '12px', textAlign: 'center' }}>
+                          No files were queried.
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
