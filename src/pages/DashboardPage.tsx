@@ -2467,6 +2467,38 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     >
                       <ShieldCheck size={11} style={{ color: theme === 'light' ? '#059669' : '#34d399' }} />
                       <span>Healthy</span>
+                    </span >
+                  )}
+
+                  {/* Network Issues Badge */}
+                  {!isLoading && group.envs.some(app => {
+                    const validation = checkNetworkWarnings(app, group);
+                    return validation && (validation.status === 'warning' || validation.status === 'unverified');
+                  }) && (
+                    <span 
+                      style={{
+                        background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
+                        border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '0.74rem',
+                        color: theme === 'light' ? '#b45309' : '#fbbf24',
+                        boxShadow: theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.05)' : '0 0 8px rgba(245, 158, 11, 0.2)',
+                        transition: 'all 0.2s ease',
+                        cursor: 'default'
+                      }}
+                      onMouseOver={(ev) => {
+                        ev.currentTarget.style.transform = 'scale(1.03)';
+                      }}
+                      onMouseOut={(ev) => {
+                        ev.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    >
+                      <Network size={11} style={{ color: theme === 'light' ? '#b45309' : '#fbbf24' }} />
+                      <span>Network Issues</span>
                     </span>
                   )}
 
@@ -3509,7 +3541,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                           <hr style={{ border: 'none', borderTop: '1px solid var(--glass-border)', margin: '14px 0 12px 0', opacity: 0.6 }} />
 
                           {/* Separate Section: Infrastructure & Code Validation */}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%' }}>
                             
                             {/* VNet and Network Connectivity Card (Premium Glassmorphic Layout) */}
                             {(() => {
@@ -3526,6 +3558,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                               return (
                                 <div style={{
+                                  flex: 2,
+                                  minWidth: '320px',
                                   padding: '8px 12px',
                                   borderRadius: '10px',
                                   background: theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)',
@@ -3745,8 +3779,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             })()}
 
                             {/* YAML Health Details Card */}
-                            {(item.type === 'frontend' || item.type === 'backend') && health?.ymlHealth && (
+                            {((item.type === 'frontend' || item.type === 'backend') && health && health.ymlHealth) && (
                               <div style={{
+                                flex: 1,
+                                minWidth: '180px',
                                 padding: '8px 12px',
                                 borderRadius: '10px',
                                 background: theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)',
@@ -3853,8 +3889,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             )}
 
                             {/* Dockerfile Health Details Card */}
-                            {item.type === 'backend' && health?.dockerfileHealth && (
+                            {(item.type === 'backend' && health && health.dockerfileHealth) && (
                               <div style={{
+                                flex: 1,
+                                minWidth: '180px',
                                 padding: '8px 12px',
                                 borderRadius: '10px',
                                 background: theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)',
