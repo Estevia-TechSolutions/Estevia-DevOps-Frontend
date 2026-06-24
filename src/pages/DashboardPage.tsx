@@ -421,9 +421,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     };
   }, []);
 
-  // Active dashboard tab state ('swa' | 'aca' | 'vm' | 'cluster')
-  const [activeDashboardTab, setActiveDashboardTab] = React.useState<'swa' | 'aca' | 'vm' | 'cluster'>('swa');
-  const [hoveredTab, setHoveredTab] = React.useState<'swa' | 'aca' | 'vm' | 'cluster' | null>(null);
+  // Active dashboard tab state ('swa' | 'aca' | 'vm' | 'cluster' | 'yaml' | 'docker')
+  const [activeDashboardTab, setActiveDashboardTab] = React.useState<'swa' | 'aca' | 'vm' | 'cluster' | 'yaml' | 'docker'>('swa');
+  const [hoveredTab, setHoveredTab] = React.useState<'swa' | 'aca' | 'vm' | 'cluster' | 'yaml' | 'docker' | null>(null);
   const [hoveredEnv, setHoveredEnv] = React.useState<string | null>(null);
   // Fixed-position tooltip data for the group header "X Environments" hover
   const [groupTooltipData, setGroupTooltipData] = React.useState<{
@@ -988,7 +988,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           detail: 'Could not validate network: Backend API details were not found in the SWA codebase.',
           sourceFile: item.azureResourceDetails?.scrapedSourceFile,
           sourceContent: item.azureResourceDetails?.scrapedSourceContent,
-          sourceAppName: item.name
+          sourceAppName: item.name,
+          scrapedSearchedFiles: item.azureResourceDetails?.scrapedSearchedFiles
         };
       }
 
@@ -1090,7 +1091,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           detail: 'Could not validate database network: DB_HOST details were not found in the backend codebase.',
           sourceFile: item.azureResourceDetails?.scrapedSourceFile,
           sourceContent: item.azureResourceDetails?.scrapedSourceContent,
-          sourceAppName: item.name
+          sourceAppName: item.name,
+          scrapedSearchedFiles: item.azureResourceDetails?.scrapedSearchedFiles
         };
       }
 
@@ -1885,6 +1887,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             const swaGroups = filteredAppGroups.filter(g => g.type === 'frontend');
             const acaGroups = filteredAppGroups.filter(g => g.type === 'backend');
             const vmGroups = filteredAppGroups.filter(g => g.type === 'vm');
+            // YAML tab: all groups that have yaml health data (swa + aca)
+            const yamlGroups = filteredAppGroups.filter(g => g.type === 'frontend' || g.type === 'backend');
+            // Docker tab: backend (ACA) groups only — Dockerfiles belong to container apps
+            const dockerGroups = filteredAppGroups.filter(g => g.type === 'backend');
 
             const allCategories = [
               {
@@ -1922,6 +1928,30 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 colorRaw: '#f59e0b',
                 bg: 'rgba(245,158,11,0.12)',
                 glow: 'rgba(245,158,11,0.4)'
+              },
+              {
+                key: 'yaml' as const,
+                label: 'Pipelines',
+                shortLabel: 'YAML',
+                description: 'Azure DevOps pipeline YAML health — review and fix pipeline configurations, triggers, variables, and stage definitions across all repositories.',
+                groups: yamlGroups,
+                icon: <GitBranch size={16} />,
+                color: '#f97316',
+                colorRaw: '#f97316',
+                bg: 'rgba(249,115,22,0.12)',
+                glow: 'rgba(249,115,22,0.4)'
+              },
+              {
+                key: 'docker' as const,
+                label: 'Docker Images',
+                shortLabel: 'Docker',
+                description: 'Dockerfile health — validate and edit Dockerfile configurations for all container-deployed backend services.',
+                groups: dockerGroups,
+                icon: <Terminal size={16} />,
+                color: '#0ea5e9',
+                colorRaw: '#0ea5e9',
+                bg: 'rgba(14,165,233,0.12)',
+                glow: 'rgba(14,165,233,0.4)'
               }
             ];
 
@@ -2139,6 +2169,184 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                       if (firstEnv) openDockerfileEditor(firstEnv, group);
                     };
 
+                    // ── YAML / Docker compact view ──────────────────────────────────────────
+                    if (activeTab === 'yaml' || activeTab === 'docker') {
+                      const isLt = theme === 'light';
+                      const isYaml = activeTab === 'yaml';
+                      const tabAccent = isYaml ? '#f97316' : '#0ea5e9';
+                      const tabAccentBg = isYaml ? 'rgba(249,115,22,0.1)' : 'rgba(14,165,233,0.1)';
+                      const tabAccentGlow = isYaml ? '0 0 10px rgba(249,115,22,0.4)' : '0 0 10px rgba(14,165,233,0.4)';
+
+                      return (
+                        <div key={group.key} className="glass-panel" style={{ padding: '0', position: 'relative', overflow: 'hidden' }}>
+                          {/* Left accent strip */}
+                          <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', backgroundColor: tabAccent, boxShadow: tabAccentGlow }} />
+
+                          {/* Group Header */}
+                          <div style={{ padding: '16px 20px 14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', borderBottom: '1px solid var(--glass-border)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <div style={{ width: '30px', height: '30px', borderRadius: '8px', backgroundColor: tabAccentBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {isYaml ? <GitBranch size={15} style={{ color: tabAccent }} /> : <Terminal size={15} style={{ color: tabAccent }} />}
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  {group.label}
+                                  <span style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '2px 7px', borderRadius: '8px', backgroundColor: isYaml ? 'rgba(249,115,22,0.12)' : 'rgba(14,165,233,0.12)', color: tabAccent, border: `1px solid ${tabAccent}25` }}>
+                                    {isYaml ? 'YAML' : 'Docker'}
+                                  </span>
+                                </div>
+                                {group.repoPath && (
+                                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <GitBranch size={10} style={{ opacity: 0.6 }} />
+                                    <span style={{ fontFamily: 'monospace' }}>{group.repoPath}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            {/* Action button */}
+                            <button
+                              type="button"
+                              disabled={isViewer || !firstEnv}
+                              onClick={isYaml ? handleFixYml : handleFixDockerfile}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: '6px',
+                                padding: '6px 14px', borderRadius: '8px',
+                                fontSize: '0.75rem', fontWeight: 600,
+                                background: isViewer ? 'transparent' : tabAccentBg,
+                                color: isViewer ? 'var(--text-secondary)' : tabAccent,
+                                border: `1px solid ${isViewer ? 'var(--glass-border)' : `${tabAccent}40`}`,
+                                cursor: isViewer ? 'not-allowed' : 'pointer',
+                                opacity: isViewer ? 0.5 : 1,
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => { if (!isViewer) e.currentTarget.style.background = isYaml ? 'rgba(249,115,22,0.18)' : 'rgba(14,165,233,0.18)'; }}
+                              onMouseLeave={(e) => { if (!isViewer) e.currentTarget.style.background = tabAccentBg; }}
+                            >
+                              {isYaml ? <GitBranch size={13} /> : <Terminal size={13} />}
+                              <span>{isYaml ? 'Edit Pipeline YAML' : 'Edit Dockerfile'}</span>
+                            </button>
+                          </div>
+
+                          {/* Per-env health rows */}
+                          <div style={{ padding: '10px 20px 14px 24px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            {group.envs.map((env, idx) => {
+                              const envTag = getEnvTag(env);
+                              const envHealth = ymlHealthMap?.[group.key];
+                              const envLoading = ymlHealthLoading?.[group.key];
+
+                              // Build the status badge
+                              let badgeText = '';
+                              let badgeColor = '#94a3b8';
+                              let badgeBg = 'rgba(148,163,184,0.1)';
+                              let badgeBorder = 'rgba(148,163,184,0.25)';
+                              let badgeIcon: React.ReactNode = <HelpCircle size={10} />;
+
+                              if (envLoading) {
+                                badgeText = 'Loading...';
+                                badgeColor = 'var(--accent-purple)';
+                                badgeBg = 'rgba(139,92,246,0.1)';
+                                badgeBorder = 'rgba(139,92,246,0.25)';
+                                badgeIcon = <RefreshCw size={10} className="spin-anim" />;
+                              } else if (isYaml) {
+                                if (!envHealth) {
+                                  badgeText = 'Not Scanned';
+                                } else if (!envHealth.ymlHealth?.exists) {
+                                  badgeText = 'Not Found';
+                                  badgeColor = '#ef4444';
+                                  badgeBg = 'rgba(239,68,68,0.1)';
+                                  badgeBorder = 'rgba(239,68,68,0.25)';
+                                  badgeIcon = <AlertCircle size={10} />;
+                                } else if (!envHealth.ymlHealth?.valid) {
+                                  badgeText = 'Invalid';
+                                  badgeColor = '#ef4444';
+                                  badgeBg = 'rgba(239,68,68,0.1)';
+                                  badgeBorder = 'rgba(239,68,68,0.25)';
+                                  badgeIcon = <AlertCircle size={10} />;
+                                } else if ((envHealth.ymlHealth?.warningCount || 0) > 0) {
+                                  badgeText = `${envHealth.ymlHealth.warningCount} Warning${envHealth.ymlHealth.warningCount > 1 ? 's' : ''}`;
+                                  badgeColor = '#f59e0b';
+                                  badgeBg = 'rgba(245,158,11,0.1)';
+                                  badgeBorder = 'rgba(245,158,11,0.25)';
+                                  badgeIcon = <AlertTriangle size={10} />;
+                                } else {
+                                  badgeText = 'Valid';
+                                  badgeColor = '#10b981';
+                                  badgeBg = 'rgba(16,185,129,0.1)';
+                                  badgeBorder = 'rgba(16,185,129,0.25)';
+                                  badgeIcon = <CheckCircle2 size={10} />;
+                                }
+                              } else {
+                                // Docker tab
+                                if (!envHealth) {
+                                  badgeText = 'Not Scanned';
+                                } else if (!envHealth.dockerfileExists) {
+                                  badgeText = 'Not Found';
+                                  badgeColor = '#ef4444';
+                                  badgeBg = 'rgba(239,68,68,0.1)';
+                                  badgeBorder = 'rgba(239,68,68,0.25)';
+                                  badgeIcon = <AlertCircle size={10} />;
+                                } else if (!envHealth.dockerfileValid) {
+                                  badgeText = 'Invalid';
+                                  badgeColor = '#ef4444';
+                                  badgeBg = 'rgba(239,68,68,0.1)';
+                                  badgeBorder = 'rgba(239,68,68,0.25)';
+                                  badgeIcon = <AlertCircle size={10} />;
+                                } else if ((envHealth.dockerfileWarnings?.length || 0) > 0) {
+                                  badgeText = `${envHealth.dockerfileWarnings.length} Warning${envHealth.dockerfileWarnings.length > 1 ? 's' : ''}`;
+                                  badgeColor = '#f59e0b';
+                                  badgeBg = 'rgba(245,158,11,0.1)';
+                                  badgeBorder = 'rgba(245,158,11,0.25)';
+                                  badgeIcon = <AlertTriangle size={10} />;
+                                } else {
+                                  badgeText = 'Valid';
+                                  badgeColor = '#10b981';
+                                  badgeBg = 'rgba(16,185,129,0.1)';
+                                  badgeBorder = 'rgba(16,185,129,0.25)';
+                                  badgeIcon = <CheckCircle2 size={10} />;
+                                }
+                              }
+
+                              return (
+                                <div
+                                  key={env.name}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    padding: '7px 10px', borderRadius: '8px',
+                                    background: isLt ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)',
+                                    border: `1px solid ${isLt ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`,
+                                    gap: '10px',
+                                    transition: 'background 0.15s'
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                                    <span style={{
+                                      fontSize: '0.58rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px',
+                                      color: envTag.color, background: envTag.bg, border: `1px solid ${envTag.border}`,
+                                      flexShrink: 0
+                                    }}>{envTag.label}</span>
+                                    <span style={{ fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      {env.name}
+                                    </span>
+                                  </div>
+                                  <span style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                    fontSize: '0.64rem', fontWeight: 700,
+                                    padding: '3px 9px', borderRadius: '20px',
+                                    background: badgeBg, border: `1px solid ${badgeBorder}`, color: badgeColor,
+                                    flexShrink: 0, whiteSpace: 'nowrap'
+                                  }}>
+                                    {badgeIcon}
+                                    {badgeText}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // ── Standard SWA / ACA / VM card accordion ──────────────────────────────
                     return (
                       <div key={group.key} className="glass-panel" style={{ padding: '0', position: 'relative', overflow: 'hidden' }}>
               {/* Left accent strip */}
@@ -2926,104 +3134,174 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                         </span>
                                       </div>
                                       
-                                      {validation.status !== 'verified' && (
-                                        <div style={{
-                                          display: 'flex',
-                                          justifyContent: 'flex-end',
-                                          marginTop: '2px'
-                                        }}>
-                                          <button
-                                            onClick={() => setExpandedWarnings(prev => ({ ...prev, [item.name]: !prev[item.name] }))}
-                                            style={{
-                                              background: 'none',
-                                              border: 'none',
-                                              padding: '2px 0px',
+                                      {validation.status !== 'verified' && (() => {
+                                        const isLt = theme === 'light';
+                                        const isWarn = validation.status === 'warning';
+                                        const toggleColor = isWarn
+                                          ? (isLt ? '#dc2626' : '#fca5a5')
+                                          : (isLt ? '#4b5563' : '#cbd5e1');
+                                        return (
+                                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2px' }}>
+                                            <button
+                                              onClick={() => setExpandedWarnings(prev => ({ ...prev, [item.name]: !prev[item.name] }))}
+                                              style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                padding: '2px 0px',
+                                                fontSize: '0.62rem',
+                                                color: toggleColor,
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '3px',
+                                                textDecoration: 'underline',
+                                                fontWeight: 500,
+                                                transition: 'opacity 0.2s'
+                                              }}
+                                              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; }}
+                                              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+                                            >
+                                              <span>{expandedWarnings[item.name] ? 'Hide Resolution Details' : 'View Resolution Details ➔'}</span>
+                                            </button>
+                                          </div>
+                                        );
+                                      })()}
+
+                                      {validation.status !== 'verified' && expandedWarnings[item.name] && (() => {
+                                        const isLt = theme === 'light';
+                                        const isWarn = validation.status === 'warning';
+                                        // Theme-aware colors
+                                        const bannerBg = isWarn
+                                          ? (isLt
+                                            ? 'linear-gradient(135deg, rgba(220,38,38,0.07) 0%, rgba(220,38,38,0.03) 100%)'
+                                            : 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.03) 100%)')
+                                          : (isLt
+                                            ? 'linear-gradient(135deg, rgba(100,116,139,0.07) 0%, rgba(100,116,139,0.03) 100%)'
+                                            : 'linear-gradient(135deg, rgba(148,163,184,0.08) 0%, rgba(148,163,184,0.03) 100%)');
+                                        const bannerBorderLeft = isWarn
+                                          ? (isLt ? '3px solid #dc2626' : '3px solid #f87171')
+                                          : (isLt ? '3px solid #64748b' : '3px solid #94a3b8');
+                                        const bannerEdge = isLt
+                                          ? '1px solid rgba(0,0,0,0.06)'
+                                          : '1px solid rgba(255,255,255,0.02)';
+                                        const bannerText = isWarn
+                                          ? (isLt ? '#991b1b' : '#fca5a5')
+                                          : (isLt ? '#374151' : '#cbd5e1');
+                                        const headerColor = isWarn
+                                          ? (isLt ? '#b91c1c' : '#f87171')
+                                          : (isLt ? '#4b5563' : '#94a3b8');
+                                        const btnBg = isLt ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.08)';
+                                        const btnBgHover = isLt ? 'rgba(0,0,0,0.13)' : 'rgba(255,255,255,0.15)';
+                                        const btnBorder = isLt ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,255,255,0.15)';
+                                        const hasSearchedFiles = validation.scrapedSearchedFiles && validation.scrapedSearchedFiles.length > 0;
+                                        return (
+                                          <div style={{
+                                            fontSize: '0.66rem',
+                                            marginTop: '6px',
+                                            padding: '8px 10px',
+                                            borderRadius: '6px',
+                                            background: bannerBg,
+                                            borderLeft: bannerBorderLeft,
+                                            borderTop: bannerEdge,
+                                            borderRight: bannerEdge,
+                                            borderBottom: bannerEdge,
+                                            color: bannerText,
+                                            lineHeight: 1.45,
+                                            boxShadow: isLt ? '0 2px 8px rgba(0,0,0,0.06)' : '0 4px 12px rgba(0,0,0,0.15)',
+                                            letterSpacing: '0.015em'
+                                          }}>
+                                            {/* Header row: label + "View Scraped Config" button */}
+                                            <div style={{
+                                              fontWeight: 700,
+                                              marginBottom: '3px',
+                                              color: headerColor,
+                                              textTransform: 'uppercase',
                                               fontSize: '0.62rem',
-                                              color: validation.status === 'warning' ? '#fca5a5' : '#cbd5e1',
-                                              cursor: 'pointer',
+                                              letterSpacing: '0.05em',
                                               display: 'flex',
                                               alignItems: 'center',
-                                              gap: '3px',
-                                              textDecoration: 'underline',
-                                              fontWeight: 500,
-                                              transition: 'opacity 0.2s'
-                                            }}
-                                            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; }}
-                                            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
-                                          >
-                                            <span>{expandedWarnings[item.name] ? 'Hide Resolution Details' : 'View Resolution Details ➔'}</span>
-                                          </button>
-                                        </div>
-                                      )}
+                                              justifyContent: 'space-between',
+                                              gap: '4px',
+                                              flexWrap: 'wrap'
+                                            }}>
+                                              <span>⚠️ Network Resolution:</span>
+                                              {(validation.sourceFile || validation.scrapedSearchedFiles) && (
+                                                <button
+                                                  onClick={() => setViewScrapedConfig({
+                                                    fileName: validation.sourceFile || 'No Config File Found',
+                                                    fileContent: validation.sourceContent || '',
+                                                    searchedFiles: validation.scrapedSearchedFiles || [],
+                                                    appName: validation.sourceAppName || item.name
+                                                  })}
+                                                  style={{
+                                                    background: btnBg,
+                                                    border: btnBorder,
+                                                    borderRadius: '4px',
+                                                    padding: '2px 6px',
+                                                    fontSize: '0.58rem',
+                                                    color: 'var(--text-primary)',
+                                                    cursor: 'pointer',
+                                                    textTransform: 'none',
+                                                    fontWeight: 500,
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '3px',
+                                                    transition: 'all 0.2s',
+                                                    marginBottom: '2px'
+                                                  }}
+                                                  onMouseEnter={(e) => { e.currentTarget.style.background = btnBgHover; }}
+                                                  onMouseLeave={(e) => { e.currentTarget.style.background = btnBg; }}
+                                                >
+                                                  📄 View Scraped Config
+                                                </button>
+                                              )}
+                                            </div>
 
-                                      {validation.status !== 'verified' && expandedWarnings[item.name] && (
-                                        <div style={{
-                                          fontSize: '0.66rem',
-                                          marginTop: '6px',
-                                          padding: '8px 10px',
-                                          borderRadius: '6px',
-                                          background: validation.status === 'warning' 
-                                            ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(239, 68, 68, 0.03) 100%)' 
-                                            : 'linear-gradient(135deg, rgba(148, 163, 184, 0.08) 0%, rgba(148, 163, 184, 0.03) 100%)',
-                                          borderLeft: validation.status === 'warning' 
-                                            ? '3px solid #f87171' 
-                                            : '3px solid #94a3b8',
-                                          borderTop: '1px solid rgba(255,255,255,0.02)',
-                                          borderRight: '1px solid rgba(255,255,255,0.02)',
-                                          borderBottom: '1px solid rgba(255,255,255,0.02)',
-                                          color: validation.status === 'warning' ? '#fca5a5' : '#cbd5e1',
-                                          lineHeight: 1.45,
-                                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                                          letterSpacing: '0.015em'
-                                        }}>
-                                          <div style={{ 
-                                            fontWeight: 700, 
-                                            marginBottom: '3px', 
-                                            color: validation.status === 'warning' ? '#f87171' : '#94a3b8',
-                                            textTransform: 'uppercase',
-                                            fontSize: '0.62rem',
-                                            letterSpacing: '0.05em',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            gap: '4px',
-                                            flexWrap: 'wrap'
-                                          }}>
-                                            <span>⚠️ Network Resolution:</span>
-                                            {(validation.sourceFile || validation.scrapedSearchedFiles) && (
-                                              <button 
-                                                onClick={() => setViewScrapedConfig({
-                                                  fileName: validation.sourceFile || 'No Config File Found',
-                                                  fileContent: validation.sourceContent || '',
-                                                  searchedFiles: validation.scrapedSearchedFiles || [],
-                                                  appName: validation.sourceAppName || item.name
-                                                })}
-                                                style={{
-                                                  background: 'rgba(255, 255, 255, 0.08)',
-                                                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                                                  borderRadius: '4px',
-                                                  padding: '2px 6px',
-                                                  fontSize: '0.58rem',
-                                                  color: 'var(--text-primary)',
-                                                  cursor: 'pointer',
-                                                  textTransform: 'none',
-                                                  fontWeight: 500,
-                                                  display: 'inline-flex',
+                                            {/* Detail message */}
+                                            <div style={{ marginTop: '2px' }}>{validation.detail}</div>
+
+                                            {/* Searched files list — shown when scraping found nothing */}
+                                            {hasSearchedFiles && (
+                                              <div style={{ marginTop: '8px', paddingTop: '6px', borderTop: isLt ? '1px solid rgba(0,0,0,0.07)' : '1px dashed rgba(255,255,255,0.08)' }}>
+                                                <div style={{
+                                                  fontSize: '0.6rem',
+                                                  fontWeight: 700,
+                                                  textTransform: 'uppercase',
+                                                  letterSpacing: '0.06em',
+                                                  color: isLt ? '#6b7280' : '#94a3b8',
+                                                  marginBottom: '5px',
+                                                  display: 'flex',
                                                   alignItems: 'center',
-                                                  gap: '3px',
-                                                  transition: 'all 0.2s',
-                                                  marginBottom: '2px'
-                                                }}
-                                                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)'; }}
-                                                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; }}
-                                              >
-                                                📄 View Scraped Config
-                                              </button>
+                                                  gap: '5px'
+                                                }}>
+                                                  <span>📂</span>
+                                                  <span>Files Searched (none contained the required key):</span>
+                                                </div>
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                                  {validation.scrapedSearchedFiles!.map((f: string) => (
+                                                    <span
+                                                      key={f}
+                                                      style={{
+                                                        fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
+                                                        fontSize: '0.58rem',
+                                                        padding: '2px 7px',
+                                                        borderRadius: '4px',
+                                                        background: isLt ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)',
+                                                        border: isLt ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)',
+                                                        color: isLt ? '#1f2937' : '#e2e8f0',
+                                                        fontWeight: 500,
+                                                        whiteSpace: 'nowrap'
+                                                      }}
+                                                    >
+                                                      {f}
+                                                    </span>
+                                                  ))}
+                                                </div>
+                                              </div>
                                             )}
                                           </div>
-                                          <div style={{ marginTop: '2px' }}>{validation.detail}</div>
-                                        </div>
-                                      )}
+                                        );
+                                      })()}
                                     </>
                                   );
                                 })()}
