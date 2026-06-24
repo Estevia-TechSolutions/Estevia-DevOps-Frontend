@@ -5508,25 +5508,14 @@ function App() {
                     </div>
                   </button>
                   <button className={`premium-tab-btn ${activeTab === 'cost' ? 'active' : ''}`} onClick={() => { setActiveTab('cost'); setCostTab('breakdown'); }}>
-                    <Database size={16} />
-                    <span>Cost & Billing</span>
-                    {tabLoadingMap.cost && (
-                      <span className="tab-loading-spin" title="Loading costs..." />
-                    )}
-                    <div className="menu-hover-card">
-                      <div className="menu-hover-card-title"><Database size={12} /> Cost & Billing</div>
-                      <div className="menu-hover-card-desc">View a detailed Azure cost breakdown by resource group, service type, and environment for the current billing cycle.</div>
-                    </div>
-                  </button>
-                  <button className={`premium-tab-btn ${activeTab === 'optimization' ? 'active' : ''}`} onClick={() => { setActiveTab('optimization'); setCostTab('recommendations'); }}>
                     <TrendingDown size={16} />
-                    <span>Cost Optimization</span>
-                    {tabLoadingMap.optimization && (
+                    <span>Cost Management</span>
+                    {(tabLoadingMap.cost || tabLoadingMap.optimization) && (
                       <span className="tab-loading-spin" title="Loading costs..." />
                     )}
                     <div className="menu-hover-card">
-                      <div className="menu-hover-card-title"><TrendingDown size={12} /> Cost Optimization</div>
-                      <div className="menu-hover-card-desc">AI-driven recommendations to right-size resources, schedule sleep timers, and reduce monthly cloud spend.</div>
+                      <div className="menu-hover-card-title"><TrendingDown size={12} /> Cost Management</div>
+                      <div className="menu-hover-card-desc">View a detailed Azure cost breakdown, billing invoices, and AI-driven recommendations to right-size resources, configure schedules, and optimize cloud spend.</div>
                     </div>
                   </button>
                   <button className={`premium-tab-btn ${activeTab === 'databases' ? 'active' : ''}`} onClick={() => setActiveTab('databases')}>
@@ -5918,7 +5907,7 @@ function App() {
 
 
         {/* TAB 4: COST MANAGEMENT & OPTIMIZATION */}
-        {(activeTab === 'cost' || activeTab === 'optimization') && (
+        {activeTab === 'cost' && (
           <CostPage
             costSummary={costSummary}
             detailedCosts={detailedCosts}
@@ -5944,7 +5933,7 @@ function App() {
             onResourceControl={handleResourceControl}
             controllingResource={controllingResource}
             fetchCostData={fetchCostData}
-            mode={activeTab === 'cost' ? 'cost' : 'optimization'}
+            mode={(costTab === 'breakdown' || costTab === 'billing') ? 'cost' : 'optimization'}
           />
         )}
 

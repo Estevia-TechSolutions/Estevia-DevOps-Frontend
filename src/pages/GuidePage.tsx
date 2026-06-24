@@ -31,7 +31,7 @@ interface GuidePageProps {
   theme?: 'dark' | 'light';
 }
 
-type TabType = 'getting-started' | 'capabilities' | 'branch-matching' | 'security' | 'entra-manual' | 'azure-devops-cicd' | 'github-actions-cicd' | 'validation-sanity' | 'faq' | 'roadmap' | 'eva-ai';
+type TabType = 'getting-started' | 'capabilities' | 'validation-rules' | 'security-auth' | 'pipelines-cicd' | 'eva-ai' | 'faq-roadmap';
 
 export const GuidePage: React.FC<GuidePageProps> = () => {
   const [activeSubTab, setActiveSubTab] = useState<TabType>('getting-started');
@@ -363,18 +363,26 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
   const navItems = [
     { id: 'getting-started', label: 'Getting Started', icon: BookOpen, desc: 'Operational workflow checklist' },
     { id: 'capabilities', label: 'System Boundaries', icon: Cpu, desc: 'Capabilities & exclusions' },
-    { id: 'branch-matching', label: 'Branch Naming Rules', icon: GitBranch, desc: 'Environment matching priorities' },
-    { id: 'security', label: 'Security & Scopes', icon: Lock, desc: 'Token permission matrix' },
-    { id: 'entra-manual', label: 'Manual Entra ID Setup', icon: Key, desc: 'Manual App Registration guide' },
-    { id: 'azure-devops-cicd', label: 'Azure DevOps CI/CD', icon: Globe, desc: 'Azure Pipelines setup & guide' },
-    { id: 'github-actions-cicd', label: 'GitHub Actions CI/CD', icon: GitBranch, desc: 'GitHub workflow setup & guide' },
-    { id: 'validation-sanity', label: 'Validation & Sanity', icon: ShieldCheck, desc: 'Network, YAML & Docker checks' },
+    { id: 'validation-rules', label: 'Validation & Rules', icon: ShieldCheck, desc: 'Network, branch & syntax checks' },
+    { id: 'security-auth', label: 'Security & Auth', icon: Lock, desc: 'Permissions & Entra ID setup' },
+    { id: 'pipelines-cicd', label: 'Pipelines & CI/CD', icon: Globe, desc: 'Azure & GitHub workflow setups' },
     { id: 'eva-ai', label: 'Eva AI & Analyst', icon: MessageSquare, desc: 'CloudOps virtual assistant guides' },
-    { id: 'faq', label: 'FAQs & Troubleshooting', icon: HelpCircle, desc: 'Common queries & issues' },
-    { id: 'roadmap', label: 'Platform Roadmap', icon: Compass, desc: 'AWS & Azure future features' }
+    { id: 'faq-roadmap', label: 'FAQs & Roadmap', icon: HelpCircle, desc: 'Troubleshooting & future features' }
   ];
 
   const faqData = [
+    {
+      question: 'How does the multi-workspace Log Analytics segregation work?',
+      answer: 'EvaOps automatically routes observability log queries depending on your resource environment tags. Log queries for production resources are sent to your Production Workspace Customer ID, and dev/qa resource queries to your Dev/QA Workspace Customer ID. You can configure and verify both workspace IDs in the credentials panel under Log Analytics Settings.'
+    },
+    {
+      question: 'What do the different network validation severity levels (Critical, Warning, Info) mean?',
+      answer: 'Network verification status is now classified into three severities: Critical (Red) indicates a broken deployment configuration (e.g. backend container missing its required DB_HOST variable or unresolved private subnets); Warning (Amber) alerts you to environment mismatches (e.g. a staging frontend connecting to a production database); Info (Blue) is for standalone static web sites (like marketing pages) that intentionally run without any backend API bindings.'
+    },
+    {
+      question: 'Are auto-discovered Azure Service Principal credentials saved automatically?',
+      answer: 'Yes. When you trigger auto-discovery for Azure environment credentials, EvaOps automatically detects, registers, and vault-encrypts the Service Principal or Managed Identity configuration details directly into the integrations table in your database. This eliminates the need for manually copy-pasting API keys and tenant IDs.'
+    },
     {
       question: 'Why does my DNS custom domain say "Verification Failed" in Azure?',
       answer: 'DNS propagation is not instantaneous. After EvaOps updates the GoDaddy records, it can take 2-5 minutes for Azure to query and verify the new CNAME mapping globally. Wait a few moments, scan again, and click the Link custom domain button.'
@@ -839,7 +847,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
           )}
 
           {/* TAB CONTENT: BRANCH MATCHING */}
-          {activeSubTab === 'branch-matching' && (
+          {activeSubTab === 'validation-rules' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
@@ -971,7 +979,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
           )}
 
           {/* TAB CONTENT: SECURITY */}
-          {activeSubTab === 'security' && (
+          {activeSubTab === 'security-auth' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
@@ -1077,7 +1085,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
           )}
 
           {/* TAB CONTENT: ENTRA MANUAL */}
-          {activeSubTab === 'entra-manual' && (
+          {activeSubTab === 'security-auth' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
@@ -1133,7 +1141,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
           )}
 
           {/* TAB CONTENT: AZURE DEVOPS CI/CD */}
-          {activeSubTab === 'azure-devops-cicd' && (
+          {activeSubTab === 'pipelines-cicd' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
@@ -1180,7 +1188,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
           )}
 
           {/* TAB CONTENT: GITHUB ACTIONS CI/CD */}
-          {activeSubTab === 'github-actions-cicd' && (
+          {activeSubTab === 'pipelines-cicd' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
@@ -1227,7 +1235,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
           )}
 
           {/* TAB CONTENT: FAQ */}
-          {activeSubTab === 'faq' && (
+          {activeSubTab === 'faq-roadmap' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
@@ -1386,7 +1394,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
             </div>
           )}
 
-          {activeSubTab === 'validation-sanity' && (
+          {activeSubTab === 'validation-rules' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
@@ -1510,7 +1518,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
             </div>
           )}
 
-          {activeSubTab === 'roadmap' && (
+          {activeSubTab === 'faq-roadmap' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
