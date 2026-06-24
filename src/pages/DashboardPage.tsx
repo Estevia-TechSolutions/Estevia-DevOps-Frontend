@@ -2803,19 +2803,22 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                     >
                                       <Network size={12} style={{ opacity: 0.7, color: 'var(--accent-teal)', flexShrink: 0 }} />
                                       <span>Network: </span>
-                                      <span style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '4px',
-                                        fontSize: '0.65rem',
-                                        fontWeight: 600,
-                                        padding: '2px 8px',
-                                        borderRadius: '20px',
-                                        background: pillBg,
-                                        border: `1px solid ${pillBorder}`,
-                                        color: pillColor,
-                                        cursor: 'help'
-                                      }}>
+                                      <span 
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '4px',
+                                          fontSize: '0.65rem',
+                                          fontWeight: 600,
+                                          padding: '2px 8px',
+                                          borderRadius: '20px',
+                                          background: pillBg,
+                                          border: `1px solid ${pillBorder}`,
+                                          color: pillColor,
+                                          cursor: 'help'
+                                        }}
+                                        title={validation.detail}
+                                      >
                                         {pillIcon}
                                         <span>{validation.message}</span>
                                       </span>
