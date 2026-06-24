@@ -3388,14 +3388,37 @@ function App() {
             setShowAzureTenantId(true);
           }
         } else {
-          alert(data.message || 'Failed to decrypt credentials.');
+          showToast('Load Credentials Failed', data.message || 'Failed to decrypt credentials.', 'error');
         }
       } else {
         const data = await res.json();
-        alert(data.message || 'Error fetching decrypted credentials.');
+        showToast('Load Credentials Error', data.message || 'Error fetching decrypted credentials.', 'error');
       }
     } catch (e: any) {
-      alert(e.message || 'Error occurred while loading saved credentials.');
+      showToast('Load Credentials Error', e.message || 'Error occurred while loading saved credentials.', 'error');
+    }
+  };
+
+  const handleDiscoverAzureEnvCredentials = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/credentials/discover-env?organizationId=${organizationId}`);
+      const data = await res.json();
+      if (res.ok && data.success && data.secrets) {
+        setAzureClientId(data.secrets.clientId || '');
+        setAzureClientSecret(data.secrets.clientSecret || '');
+        setAzureTenantId(data.secrets.tenantId || '');
+        setDecryptedAzureClientId(data.secrets.clientId || '');
+        setDecryptedAzureClientSecret(data.secrets.clientSecret || '');
+        setDecryptedAzureTenantId(data.secrets.tenantId || '');
+        setShowAzureClientId(true);
+        setShowAzureClientSecret(true);
+        setShowAzureTenantId(true);
+        showToast('Credentials Discovered', 'Azure Service Principal credentials auto-discovered from server environment successfully!', 'success');
+      } else {
+        showToast('Discovery Failed', data.message || 'No Azure Service Principal environment variables found on server.', 'error');
+      }
+    } catch (e: any) {
+      showToast('Discovery Error', e.message || 'Error occurred while discovering server credentials.', 'error');
     }
   };
 
@@ -5879,6 +5902,8 @@ function App() {
             testingCredential={testingCredential}
             validationResult={validationResult}
             handleValidateCredential={handleValidateCredential}
+            showToast={showToast}
+            handleDiscoverAzureEnvCredentials={handleDiscoverAzureEnvCredentials}
           />
         )}
 

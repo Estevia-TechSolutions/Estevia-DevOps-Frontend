@@ -100,6 +100,8 @@ interface CredentialsPageProps {
   decryptedAzureClientId: string;
   decryptedAzureClientSecret: string;
   decryptedAzureTenantId: string;
+  showToast: (title: string, message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
+  handleDiscoverAzureEnvCredentials: () => Promise<void>;
 }
 
 type CredTab = 'github' | 'godaddy' | 'azure' | 'keyvault' | 'teams';
@@ -241,8 +243,10 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
   azureClientId, setAzureClientId, azureClientSecret, setAzureClientSecret, azureTenantId, setAzureTenantId,
   showAzureClientId, setShowAzureClientId, showAzureClientSecret, setShowAzureClientSecret, showAzureTenantId, setShowAzureTenantId,
   decryptedAzureClientId, decryptedAzureClientSecret, decryptedAzureTenantId,
+  showToast, handleDiscoverAzureEnvCredentials,
 }) => {
   const [activeTab, setActiveTab] = useState<CredTab>('github');
+  const [azureSubTab, setAzureSubTab] = useState<'auth' | 'scope' | 'pipelines'>('auth');
   const [discoveringWorkspace, setDiscoveringWorkspace] = useState(false);
 
   const handleDiscoverWorkspace = async () => {
@@ -261,12 +265,12 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
       const data = await res.json();
       if (res.ok && data.success) {
         setLogAnalyticsWorkspaceId(data.workspaceId);
-        alert('Successfully discovered and linked Log Analytics Workspace ID: ' + data.workspaceId);
+        showToast('Workspace Discovered', 'Successfully discovered and linked Log Analytics Workspace ID: ' + data.workspaceId, 'success');
       } else {
-        alert('Discovery failed: ' + (data.message || 'Unknown error'));
+        showToast('Discovery Failed', 'Discovery failed: ' + (data.message || 'Unknown error'), 'error');
       }
     } catch (err: any) {
-      alert('Error during workspace discovery: ' + err.message);
+      showToast('Discovery Error', 'Error during workspace discovery: ' + err.message, 'error');
     } finally {
       setDiscoveringWorkspace(false);
     }
@@ -758,345 +762,439 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
             {/* ── AZURE TAB ── */}
             {activeTab === 'azure' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', alignItems: 'start' }}>
-                  <SectionBlock
-                    title="Azure DevOps Personal Access Token"
-                    subtitle="Registers pipelines & triggers builds via Azure DevOps API."
-                    accent="#ca8a04"
-                    status={credentialStatus.azure_devops}
-                    revealShown={showDevopsPat && devopsPat !== ''}
-                    onReveal={() => {
-                      if (devopsPat !== '' && showDevopsPat) { setDevopsPat('••••••••••••••••••••'); setShowDevopsPat(false); }
-                      else { handleLoadSavedCredential('azure_devops'); }
-                    }}
-                    disabledReveal={!canEdit}
-                  >
-                    <div style={{ display: 'grid', gap: '12px' }}>
-                      <PasswordInput value={devopsPat} onChange={setDevopsPat}
-                        show={showDevopsPat} onToggle={() => setShowDevopsPat(!showDevopsPat)}
-                        placeholder="Azure DevOps PAT (Pipeline Scope)" disabled={!canEdit} />
-                      <button className="btn-primary" style={{ width: '100%' }}
-                        onClick={() => handleSaveCredential('azure_devops', { pat: devopsPat }, 'Azure DevOps Pipeline PAT')}
-                        disabled={!canEdit || savingCredentials === 'azure_devops' || !devopsPat || devopsPat === '••••••••••••••••••••' || (!!decryptedDevopsPat && devopsPat === decryptedDevopsPat)}
+                {/* Sleek Amber Pills for Sub-tabs */}
+                <div style={{
+                  display: 'flex',
+                  gap: '8px',
+                  borderBottom: '1px solid var(--glass-border)',
+                  paddingBottom: '12px',
+                  marginBottom: '4px',
+                  flexWrap: 'wrap'
+                }}>
+                  {[
+                    { id: 'auth', label: 'Auth & Access' },
+                    { id: 'scope', label: 'Scope & Resources' },
+                    { id: 'pipelines', label: 'Pipelines & Databases' }
+                  ].map((sub) => {
+                    const isSubActive = azureSubTab === sub.id;
+                    return (
+                      <button
+                        key={sub.id}
+                        type="button"
+                        onClick={() => setAzureSubTab(sub.id as any)}
+                        style={{
+                          padding: '6px 16px',
+                          borderRadius: '20px',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          border: isSubActive ? '1px solid rgba(234, 179, 8, 0.3)' : '1px solid var(--glass-border)',
+                          background: isSubActive ? 'rgba(234, 179, 8, 0.15)' : 'rgba(255, 255, 255, 0.02)',
+                          color: isSubActive ? '#eab308' : 'var(--text-secondary)'
+                        }}
                       >
-                        {savingCredentials === 'azure_devops' ? 'Saving...' : 'Save'}
+                        {sub.label}
                       </button>
-
-                      {credentialStatus.azure_devops && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                          <button 
-                            type="button"
-                            className="btn-secondary"
-                            style={{ 
-                              width: '100%', 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              justifyContent: 'center', 
-                              gap: '6px',
-                              padding: '8px 12px',
-                              fontSize: '0.78rem',
-                              fontWeight: 600,
-                              borderRadius: '8px',
-                              border: '1px solid var(--glass-border)',
-                              background: 'rgba(255,255,255,0.02)',
-                              color: 'var(--text-primary)',
-                              cursor: testingCredential === 'azure_devops' ? 'not-allowed' : 'pointer'
-                            }}
-                            onClick={() => handleValidateCredential('azure_devops')}
-                            disabled={testingCredential === 'azure_devops'}
-                          >
-                            {testingCredential === 'azure_devops' ? (
-                              <>
-                                <Loader size={12} className="spin-anim" />
-                                <span>Testing Connection...</span>
-                              </>
-                            ) : (
-                              <>
-                                <RefreshCw size={12} />
-                                <span>Test Connection</span>
-                              </>
-                            )}
-                          </button>
-                          {validationResult.azure_devops && (
-                            <div style={{ 
-                              padding: '8px 12px', 
-                              borderRadius: '8px', 
-                              fontSize: '0.75rem',
-                              border: `1px solid ${validationResult.azure_devops.success ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
-                              backgroundColor: validationResult.azure_devops.success ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)',
-                              color: validationResult.azure_devops.success ? 'var(--success)' : 'var(--error)',
-                              lineHeight: '1.4'
-                            }}>
-                              {validationResult.azure_devops.success ? '🟢 ' : '🔴 '}
-                              {validationResult.azure_devops.message}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </SectionBlock>
-
-                  <SectionBlock
-                    title="Azure Service Principal Credentials"
-                    subtitle="Powers direct Azure resource metrics collection & container logs."
-                    accent="#ca8a04"
-                    status={credentialStatus.azure}
-                    revealShown={showAzureClientSecret && (azureClientId !== '' || azureClientSecret !== '' || azureTenantId !== '')}
-                    onReveal={() => {
-                      if ((azureClientId !== '' || azureClientSecret !== '' || azureTenantId !== '') && showAzureClientSecret) {
-                        setAzureClientId('••••••••••••••••••••');
-                        setAzureClientSecret('••••••••••••••••••••');
-                        setAzureTenantId('••••••••••••••••••••');
-                        setShowAzureClientId(false);
-                        setShowAzureClientSecret(false);
-                        setShowAzureTenantId(false);
-                      } else {
-                        handleLoadSavedCredential('azure');
-                      }
-                    }}
-                    disabledReveal={!canEdit}
-                  >
-                    <div style={{ display: 'grid', gap: '12px' }}>
-                      <div>
-                        <FieldLabel>Azure Tenant ID</FieldLabel>
-                        <PasswordInput
-                          value={azureTenantId} onChange={setAzureTenantId}
-                          show={showAzureTenantId} onToggle={() => setShowAzureTenantId(!showAzureTenantId)}
-                          placeholder="Tenant ID Guid" disabled={!canEdit}
-                        />
-                      </div>
-                      <div>
-                        <FieldLabel>Azure Client ID</FieldLabel>
-                        <PasswordInput
-                          value={azureClientId} onChange={setAzureClientId}
-                          show={showAzureClientId} onToggle={() => setShowAzureClientId(!showAzureClientId)}
-                          placeholder="App Registration Client ID Guid" disabled={!canEdit}
-                        />
-                      </div>
-                      <div>
-                        <FieldLabel>Azure Client Secret</FieldLabel>
-                        <PasswordInput
-                          value={azureClientSecret} onChange={setAzureClientSecret}
-                          show={showAzureClientSecret} onToggle={() => setShowAzureClientSecret(!showAzureClientSecret)}
-                          placeholder="Client Secret password value" disabled={!canEdit}
-                        />
-                      </div>
-                      <button className="btn-primary" style={{ width: '100%' }}
-                        onClick={() => handleSaveCredential('azure', { clientId: azureClientId, clientSecret: azureClientSecret, tenantId: azureTenantId }, 'Azure Service Principal')}
-                        disabled={
-                          !canEdit || 
-                          savingCredentials === 'azure' || 
-                          !azureClientId || !azureClientSecret || !azureTenantId || 
-                          azureClientId === '••••••••••••••••••••' || 
-                          azureClientSecret === '••••••••••••••••••••' || 
-                          azureTenantId === '••••••••••••••••••••' || 
-                          (!!decryptedAzureClientId && 
-                            azureClientId === decryptedAzureClientId && 
-                            azureClientSecret === decryptedAzureClientSecret && 
-                            azureTenantId === decryptedAzureTenantId)
-                        }
-                      >
-                        {savingCredentials === 'azure' ? 'Saving...' : 'Save Azure Credentials'}
-                      </button>
-
-                      {credentialStatus.azure && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                          <button 
-                            type="button"
-                            className="btn-secondary"
-                            style={{ 
-                              width: '100%', 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              justifyContent: 'center', 
-                              gap: '6px',
-                              padding: '8px 12px',
-                              fontSize: '0.78rem',
-                              fontWeight: 600,
-                              borderRadius: '8px',
-                              border: '1px solid var(--glass-border)',
-                              background: 'rgba(255,255,255,0.02)',
-                              color: 'var(--text-primary)',
-                              cursor: testingCredential === 'azure' ? 'not-allowed' : 'pointer'
-                            }}
-                            onClick={() => handleValidateCredential('azure')}
-                            disabled={testingCredential === 'azure'}
-                          >
-                            {testingCredential === 'azure' ? (
-                              <>
-                                <Loader size={12} className="spin-anim" />
-                                <span>Testing Connection...</span>
-                              </>
-                            ) : (
-                              <>
-                                <RefreshCw size={12} />
-                                <span>Test Connection</span>
-                              </>
-                            )}
-                          </button>
-                          {validationResult.azure && (
-                            <div style={{ 
-                              padding: '8px 12px', 
-                              borderRadius: '8px', 
-                              fontSize: '0.75rem',
-                              border: `1px solid ${validationResult.azure.success ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
-                              backgroundColor: validationResult.azure.success ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)',
-                              color: validationResult.azure.success ? 'var(--success)' : 'var(--error)',
-                              lineHeight: '1.4'
-                            }}>
-                              {validationResult.azure.success ? '🟢 ' : '🔴 '}
-                              {validationResult.azure.message}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </SectionBlock>
+                    );
+                  })}
                 </div>
 
-                <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {azureSubTab === 'auth' && (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', alignItems: 'start' }}>
-                    {/* Azure Infrastructure */}
-                    <SectionBlock title="Infrastructure" subtitle="Azure subscription, resource group, and container registry." accent="#ca8a04">
-                      <div style={{ display: 'grid', gap: '14px' }}>
-                        <div>
-                          <FieldLabel>Azure Subscription ID</FieldLabel>
-                          <input type="text" value={azureSubscriptionId} onChange={e => setAzureSubscriptionId(e.target.value)}
-                            placeholder="a812e8e3-34f9-4773-82ee-6398869533b0" required disabled={!canEdit} />
-                        </div>
-                        <div>
-                          <FieldLabel>Target Resource Group</FieldLabel>
-                          <input type="text" value={azureResourceGroup} onChange={e => setAzureResourceGroup(e.target.value)}
-                            placeholder="Estevia-Prod-RG" required disabled={!canEdit} />
-                        </div>
-                        <div>
-                          <FieldLabel>Azure Container Registry (ACR)</FieldLabel>
-                          <input type="text" list="acr-list" value={azureContainerRegistry}
-                            onChange={e => setAzureContainerRegistry(e.target.value)}
-                            placeholder="esteviacoreregistry.azurecr.io" disabled={!canEdit} />
-                          {(containerRegistries?.length ?? 0) > 0 && (
-                            <datalist id="acr-list">
-                              {containerRegistries.map((cr: any) => <option key={cr.id} value={cr.loginServer}>{cr.name}</option>)}
-                            </datalist>
-                          )}
-                          <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                            Optional. Auto-falls back to <code>esteviacoreregistry.azurecr.io</code>.
-                          </p>
-                        </div>
-                      </div>
-                    </SectionBlock>
+                    <SectionBlock
+                      title="Azure DevOps Personal Access Token"
+                      subtitle="Registers pipelines & triggers builds via Azure DevOps API."
+                      accent="#ca8a04"
+                      status={credentialStatus.azure_devops}
+                      revealShown={showDevopsPat && devopsPat !== ''}
+                      onReveal={() => {
+                        if (devopsPat !== '' && showDevopsPat) { setDevopsPat('••••••••••••••••••••'); setShowDevopsPat(false); }
+                        else { handleLoadSavedCredential('azure_devops'); }
+                      }}
+                      disabledReveal={!canEdit}
+                    >
+                      <div style={{ display: 'grid', gap: '12px' }}>
+                        <PasswordInput value={devopsPat} onChange={setDevopsPat}
+                          show={showDevopsPat} onToggle={() => setShowDevopsPat(!showDevopsPat)}
+                          placeholder="Azure DevOps PAT (Pipeline Scope)" disabled={!canEdit} />
+                        <button className="btn-primary" style={{ width: '100%' }}
+                          onClick={() => handleSaveCredential('azure_devops', { pat: devopsPat }, 'Azure DevOps Pipeline PAT')}
+                          disabled={!canEdit || savingCredentials === 'azure_devops' || !devopsPat || devopsPat === '••••••••••••••••••••' || (!!decryptedDevopsPat && devopsPat === decryptedDevopsPat)}
+                        >
+                          {savingCredentials === 'azure_devops' ? 'Saving...' : 'Save'}
+                        </button>
 
-                    {/* Database Hostnames */}
-                    <SectionBlock title="Database Hostnames" subtitle="Configure hostname values resolved dynamically per environment." accent="#ca8a04">
-                      <div style={{ display: 'grid', gap: '14px' }}>
-                        <div>
-                          <FieldLabel>Dev Database Host</FieldLabel>
-                          <input type="text" value={devDbHost} onChange={e => setDevDbHost(e.target.value)}
-                            placeholder="estevia-dev-db.mysql.database.azure.com" disabled={!canEdit} />
-                        </div>
-                        <div>
-                          <FieldLabel>QA Database Host</FieldLabel>
-                          <input type="text" value={qaDbHost} onChange={e => setQaDbHost(e.target.value)}
-                            placeholder="estevia-qa-db.mysql.database.azure.com" disabled={!canEdit} />
-                        </div>
-                        <div>
-                          <FieldLabel>Prod Database Host</FieldLabel>
-                          <input type="text" value={prodDbHost} onChange={e => setProdDbHost(e.target.value)}
-                            placeholder="estevia-prod-db.mysql.database.azure.com" disabled={!canEdit} />
-                        </div>
-                      </div>
-                    </SectionBlock>
-
-                    {/* Managed Environments */}
-                    <SectionBlock title="Managed Environments" subtitle="Container App Managed Environments for Dev and Prod targets." accent="#ca8a04">
-                      <div style={{ display: 'grid', gap: '14px' }}>
-                        <div>
-                          <FieldLabel>Dev Managed Environment ID</FieldLabel>
-                          <input type="text" value={devManagedEnvId} onChange={e => setDevManagedEnvId(e.target.value)}
-                            placeholder="/subscriptions/.../managedEnvironments/dev-env" disabled={!canEdit} />
-                        </div>
-                        <div>
-                          <FieldLabel>Prod Managed Environment ID</FieldLabel>
-                          <input type="text" value={prodManagedEnvId} onChange={e => setProdManagedEnvId(e.target.value)}
-                            placeholder="/subscriptions/.../managedEnvironments/prod-env" disabled={!canEdit} />
-                        </div>
-                        {canEdit && (
-                          <button
-                            type="button"
-                            onClick={handleDiscoverAzureResources}
-                            disabled={discoveringInfra}
-                            className="btn-primary"
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '8px',
-                              width: '100%',
-                              marginTop: '6px',
-                              padding: '10px 16px',
-                              borderRadius: '8px',
-                              cursor: 'pointer',
-                              fontWeight: 600
-                            }}
-                          >
-                            {discoveringInfra ? (
-                              <>
-                                <Loader size={14} className="spin-anim" />
-                                <span>Auto-discovering...</span>
-                              </>
-                            ) : (
-                              <>
-                                <RefreshCw size={14} />
-                                <span>Auto-Discover Infrastructure</span>
-                              </>
+                        {credentialStatus.azure_devops && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                            <button 
+                              type="button"
+                              className="btn-secondary"
+                              style={{ 
+                                width: '100%', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                gap: '6px',
+                                padding: '8px 12px',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                borderRadius: '8px',
+                                border: '1px solid var(--glass-border)',
+                                background: 'rgba(255,255,255,0.02)',
+                                color: 'var(--text-primary)',
+                                cursor: testingCredential === 'azure_devops' ? 'not-allowed' : 'pointer'
+                              }}
+                              onClick={() => handleValidateCredential('azure_devops')}
+                              disabled={testingCredential === 'azure_devops'}
+                            >
+                              {testingCredential === 'azure_devops' ? (
+                                <>
+                                  <Loader size={12} className="spin-anim" />
+                                  <span>Testing Connection...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCw size={12} />
+                                  <span>Test Connection</span>
+                                </>
+                              )}
+                            </button>
+                            {validationResult.azure_devops && (
+                              <div style={{ 
+                                padding: '8px 12px', 
+                                borderRadius: '8px', 
+                                fontSize: '0.75rem',
+                                border: `1px solid ${validationResult.azure_devops.success ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                                backgroundColor: validationResult.azure_devops.success ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)',
+                                color: validationResult.azure_devops.success ? 'var(--success)' : 'var(--error)',
+                                lineHeight: '1.4'
+                              }}>
+                                {validationResult.azure_devops.success ? '🟢 ' : '🔴 '}
+                                {validationResult.azure_devops.message}
+                              </div>
                             )}
-                          </button>
+                          </div>
                         )}
                       </div>
                     </SectionBlock>
 
-                    {/* Azure DevOps Pipeline */}
-                    <SectionBlock title="DevOps Pipeline Config" subtitle="Org URL, project name, variable group, and service connections." accent="#ca8a04">
-                      <div style={{ display: 'grid', gap: '14px' }}>
+                    <SectionBlock
+                      title="Azure Service Principal Credentials"
+                      subtitle="Powers direct Azure resource metrics collection & container logs."
+                      accent="#ca8a04"
+                      status={credentialStatus.azure}
+                      revealShown={showAzureClientSecret && (azureClientId !== '' || azureClientSecret !== '' || azureTenantId !== '')}
+                      onReveal={() => {
+                        if ((azureClientId !== '' || azureClientSecret !== '' || azureTenantId !== '') && showAzureClientSecret) {
+                          setAzureClientId('••••••••••••••••••••');
+                          setAzureClientSecret('••••••••••••••••••••');
+                          setAzureTenantId('••••••••••••••••••••');
+                          setShowAzureClientId(false);
+                          setShowAzureClientSecret(false);
+                          setShowAzureTenantId(false);
+                        } else {
+                          handleLoadSavedCredential('azure');
+                        }
+                      }}
+                      disabledReveal={!canEdit}
+                    >
+                      <div style={{ display: 'grid', gap: '12px' }}>
                         <div>
-                          <FieldLabel>Azure DevOps Org URL</FieldLabel>
-                          <input type="text" value={azureDevopsOrgUrl} onChange={e => setAzureDevopsOrgUrl(e.target.value)}
-                            placeholder="https://dev.azure.com/esteviatech" required disabled={!canEdit} />
+                          <FieldLabel>Azure Tenant ID</FieldLabel>
+                          <PasswordInput
+                            value={azureTenantId} onChange={setAzureTenantId}
+                            show={showAzureTenantId} onToggle={() => setShowAzureTenantId(!showAzureTenantId)}
+                            placeholder="Tenant ID Guid" disabled={!canEdit}
+                          />
                         </div>
                         <div>
-                          <FieldLabel>Azure DevOps Project Name</FieldLabel>
-                          <input type="text" value={azureDevopsProject} onChange={e => setAzureDevopsProject(e.target.value)}
-                            placeholder="Estevia-Platform" required disabled={!canEdit} />
+                          <FieldLabel>Azure Client ID</FieldLabel>
+                          <PasswordInput
+                            value={azureClientId} onChange={setAzureClientId}
+                            show={showAzureClientId} onToggle={() => setShowAzureClientId(!showAzureClientId)}
+                            placeholder="App Registration Client ID Guid" disabled={!canEdit}
+                          />
                         </div>
                         <div>
-                          <FieldLabel>Pipeline Variable Group</FieldLabel>
-                          <input type="text" value={pipelineVariableGroup} onChange={e => setPipelineVariableGroup(e.target.value)}
-                            placeholder="estevia-frontend-vars" required disabled={!canEdit} />
+                          <FieldLabel>Azure Client Secret</FieldLabel>
+                          <PasswordInput
+                            value={azureClientSecret} onChange={setAzureClientSecret}
+                            show={showAzureClientSecret} onToggle={() => setShowAzureClientSecret(!showAzureClientSecret)}
+                            placeholder="Client Secret password value" disabled={!canEdit}
+                          />
                         </div>
+                        <button className="btn-primary" style={{ width: '100%' }}
+                          onClick={() => handleSaveCredential('azure', { clientId: azureClientId, clientSecret: azureClientSecret, tenantId: azureTenantId }, 'Azure Service Principal')}
+                          disabled={
+                            !canEdit || 
+                            savingCredentials === 'azure' || 
+                            !azureClientId || !azureClientSecret || !azureTenantId || 
+                            azureClientId === '••••••••••••••••••••' || 
+                            azureClientSecret === '••••••••••••••••••••' || 
+                            azureTenantId === '••••••••••••••••••••' || 
+                            (!!decryptedAzureClientId && 
+                              azureClientId === decryptedAzureClientId && 
+                              azureClientSecret === decryptedAzureClientSecret && 
+                              azureTenantId === decryptedAzureTenantId)
+                          }
+                        >
+                          {savingCredentials === 'azure' ? 'Saving...' : 'Save Azure Credentials'}
+                        </button>
+
+                        {canEdit && handleDiscoverAzureEnvCredentials && (
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            style={{
+                              width: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                              padding: '8px 12px',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                              borderRadius: '8px',
+                              border: '1px solid var(--glass-border)',
+                              background: 'rgba(255,255,255,0.02)',
+                              color: 'var(--text-primary)',
+                              cursor: 'pointer'
+                            }}
+                            onClick={handleDiscoverAzureEnvCredentials}
+                          >
+                            <RefreshCw size={12} />
+                            <span>Auto-Discover Credentials</span>
+                          </button>
+                        )}
+
+                        {credentialStatus.azure && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                            <button 
+                              type="button"
+                              className="btn-secondary"
+                              style={{ 
+                                width: '100%', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                gap: '6px',
+                                padding: '8px 12px',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                borderRadius: '8px',
+                                border: '1px solid var(--glass-border)',
+                                background: 'rgba(255,255,255,0.02)',
+                                color: 'var(--text-primary)',
+                                cursor: testingCredential === 'azure' ? 'not-allowed' : 'pointer'
+                              }}
+                              onClick={() => handleValidateCredential('azure')}
+                              disabled={testingCredential === 'azure'}
+                            >
+                              {testingCredential === 'azure' ? (
+                                <>
+                                  <Loader size={12} className="spin-anim" />
+                                  <span>Testing Connection...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCw size={12} />
+                                  <span>Test Connection</span>
+                                </>
+                              )}
+                            </button>
+                            {validationResult.azure && (
+                              <div style={{ 
+                                padding: '8px 12px', 
+                                borderRadius: '8px', 
+                                fontSize: '0.75rem',
+                                border: `1px solid ${validationResult.azure.success ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                                backgroundColor: validationResult.azure.success ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)',
+                                color: validationResult.azure.success ? 'var(--success)' : 'var(--error)',
+                                lineHeight: '1.4'
+                              }}>
+                                {validationResult.azure.success ? '🟢 ' : '🔴 '}
+                                {validationResult.azure.message}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </SectionBlock>
                   </div>
+                )}
 
-                  {loadingMetadata && (
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', textAlign: 'center', margin: 0 }}>
-                      ⟳ Loading Azure metadata for autocomplete suggestions…
-                    </p>
-                  )}
+                {azureSubTab === 'scope' && (
+                  <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', alignItems: 'start' }}>
+                      {/* Azure Infrastructure */}
+                      <SectionBlock title="Infrastructure" subtitle="Azure subscription, resource group, and container registry." accent="#ca8a04">
+                        <div style={{ display: 'grid', gap: '14px' }}>
+                          <div>
+                            <FieldLabel>Azure Subscription ID</FieldLabel>
+                            <input type="text" value={azureSubscriptionId} onChange={e => setAzureSubscriptionId(e.target.value)}
+                              placeholder="a812e8e3-34f9-4773-82ee-6398869533b0" required disabled={!canEdit} />
+                          </div>
+                          <div>
+                            <FieldLabel>Target Resource Group</FieldLabel>
+                            <input type="text" value={azureResourceGroup} onChange={e => setAzureResourceGroup(e.target.value)}
+                              placeholder="Estevia-Prod-RG" required disabled={!canEdit} />
+                          </div>
+                          <div>
+                            <FieldLabel>Azure Container Registry (ACR)</FieldLabel>
+                            <input type="text" list="acr-list" value={azureContainerRegistry}
+                              onChange={e => setAzureContainerRegistry(e.target.value)}
+                              placeholder="esteviacoreregistry.azurecr.io" disabled={!canEdit} />
+                            {(containerRegistries?.length ?? 0) > 0 && (
+                              <datalist id="acr-list">
+                                {containerRegistries.map((cr: any) => <option key={cr.id} value={cr.loginServer}>{cr.name}</option>)}
+                              </datalist>
+                            )}
+                            <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                              Optional. Auto-falls back to <code>esteviacoreregistry.azurecr.io</code>.
+                            </p>
+                          </div>
+                        </div>
+                      </SectionBlock>
 
-                  {settingsMsg && (
-                    <div style={{
-                      padding: '10px 14px', borderRadius: '8px', fontSize: '0.88rem',
-                      color: settingsMsg.type === 'success' ? 'var(--success)' : 'var(--error)',
-                      background: settingsMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-                    }}>
-                      {settingsMsg.text}
+                      {/* Managed Environments */}
+                      <SectionBlock title="Managed Environments" subtitle="Container App Managed Environments for Dev and Prod targets." accent="#ca8a04">
+                        <div style={{ display: 'grid', gap: '14px' }}>
+                          <div>
+                            <FieldLabel>Dev Managed Environment ID</FieldLabel>
+                            <input type="text" value={devManagedEnvId} onChange={e => setDevManagedEnvId(e.target.value)}
+                              placeholder="/subscriptions/.../managedEnvironments/dev-env" disabled={!canEdit} />
+                          </div>
+                          <div>
+                            <FieldLabel>Prod Managed Environment ID</FieldLabel>
+                            <input type="text" value={prodManagedEnvId} onChange={e => setProdManagedEnvId(e.target.value)}
+                              placeholder="/subscriptions/.../managedEnvironments/prod-env" disabled={!canEdit} />
+                          </div>
+                          {canEdit && (
+                            <button
+                              type="button"
+                              onClick={handleDiscoverAzureResources}
+                              disabled={discoveringInfra}
+                              className="btn-primary"
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px',
+                                width: '100%',
+                                marginTop: '6px',
+                                padding: '10px 16px',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 600
+                              }}
+                            >
+                              {discoveringInfra ? (
+                                <>
+                                  <Loader size={14} className="spin-anim" />
+                                  <span>Auto-discovering...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCw size={14} />
+                                  <span>Auto-Discover Infrastructure</span>
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </SectionBlock>
                     </div>
-                  )}
 
-                  <button type="submit" className="btn-primary" disabled={!canEdit || savingSettings} style={{ width: '100%' }}>
-                    {savingSettings ? 'Saving Azure Settings...' : 'Save Azure Settings'}
-                  </button>
-                </form>
+                    {loadingMetadata && (
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', textAlign: 'center', margin: 0 }}>
+                        ⟳ Loading Azure metadata for autocomplete suggestions…
+                      </p>
+                    )}
+
+                    {settingsMsg && (
+                      <div style={{
+                        padding: '10px 14px', borderRadius: '8px', fontSize: '0.88rem',
+                        color: settingsMsg.type === 'success' ? 'var(--success)' : 'var(--error)',
+                        background: settingsMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                      }}>
+                        {settingsMsg.text}
+                      </div>
+                    )}
+
+                    <button type="submit" className="btn-primary" disabled={!canEdit || savingSettings} style={{ width: '100%' }}>
+                      {savingSettings ? 'Saving Azure Settings...' : 'Save Azure Settings'}
+                    </button>
+                  </form>
+                )}
+
+                {azureSubTab === 'pipelines' && (
+                  <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', alignItems: 'start' }}>
+                      {/* Azure DevOps Pipeline */}
+                      <SectionBlock title="DevOps Pipeline Config" subtitle="Org URL, project name, variable group, and service connections." accent="#ca8a04">
+                        <div style={{ display: 'grid', gap: '14px' }}>
+                          <div>
+                            <FieldLabel>Azure DevOps Org URL</FieldLabel>
+                            <input type="text" value={azureDevopsOrgUrl} onChange={e => setAzureDevopsOrgUrl(e.target.value)}
+                              placeholder="https://dev.azure.com/esteviatech" required disabled={!canEdit} />
+                          </div>
+                          <div>
+                            <FieldLabel>Azure DevOps Project Name</FieldLabel>
+                            <input type="text" value={azureDevopsProject} onChange={e => setAzureDevopsProject(e.target.value)}
+                              placeholder="Estevia-Platform" required disabled={!canEdit} />
+                          </div>
+                          <div>
+                            <FieldLabel>Pipeline Variable Group</FieldLabel>
+                            <input type="text" value={pipelineVariableGroup} onChange={e => setPipelineVariableGroup(e.target.value)}
+                              placeholder="estevia-frontend-vars" required disabled={!canEdit} />
+                          </div>
+                        </div>
+                      </SectionBlock>
+
+                      {/* Database Hostnames */}
+                      <SectionBlock title="Database Hostnames" subtitle="Configure hostname values resolved dynamically per environment." accent="#ca8a04">
+                        <div style={{ display: 'grid', gap: '14px' }}>
+                          <div>
+                            <FieldLabel>Dev Database Host</FieldLabel>
+                            <input type="text" value={devDbHost} onChange={e => setDevDbHost(e.target.value)}
+                              placeholder="estevia-dev-db.mysql.database.azure.com" disabled={!canEdit} />
+                          </div>
+                          <div>
+                            <FieldLabel>QA Database Host</FieldLabel>
+                            <input type="text" value={qaDbHost} onChange={e => setQaDbHost(e.target.value)}
+                              placeholder="estevia-qa-db.mysql.database.azure.com" disabled={!canEdit} />
+                          </div>
+                          <div>
+                            <FieldLabel>Prod Database Host</FieldLabel>
+                            <input type="text" value={prodDbHost} onChange={e => setProdDbHost(e.target.value)}
+                              placeholder="estevia-prod-db.mysql.database.azure.com" disabled={!canEdit} />
+                          </div>
+                        </div>
+                      </SectionBlock>
+                    </div>
+
+                    {loadingMetadata && (
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', textAlign: 'center', margin: 0 }}>
+                        ⟳ Loading Azure metadata for autocomplete suggestions…
+                      </p>
+                    )}
+
+                    {settingsMsg && (
+                      <div style={{
+                        padding: '10px 14px', borderRadius: '8px', fontSize: '0.88rem',
+                        color: settingsMsg.type === 'success' ? 'var(--success)' : 'var(--error)',
+                        background: settingsMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                      }}>
+                        {settingsMsg.text}
+                      </div>
+                    )}
+
+                    <button type="submit" className="btn-primary" disabled={!canEdit || savingSettings} style={{ width: '100%' }}>
+                      {savingSettings ? 'Saving Azure Settings...' : 'Save Azure Settings'}
+                    </button>
+                  </form>
+                )}
               </div>
             )}
 

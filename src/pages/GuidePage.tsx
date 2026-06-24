@@ -987,8 +987,8 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                       {
                         provider: 'Azure Cloud',
                         token: 'Entra Active Directory Service Principal',
-                        scopes: ['Contributor or Owner assigned to target Resource Group / Subscription'],
-                        howToGet: "Azure Portal → Entra ID → App Registrations → New Registration. Generate Client Secret under 'Certificates & secrets', and assign the App ID the 'Contributor' role in target resource groups under IAM."
+                        scopes: ['Contributor or Owner assigned to target Resource Group / Subscription', 'Managed Identity (Master Org Fallback)'],
+                        howToGet: "Azure Portal → Entra ID → App Registrations → New Registration. Generate Client Secret under 'Certificates & secrets', and assign the App ID the 'Contributor' role in target resource groups under IAM. Note: For the master organization, the platform automatically falls back to utilizing the server's Managed Identity (DefaultAzureCredential) if no custom SP is configured."
                       },
                       {
                         provider: 'GoDaddy',
