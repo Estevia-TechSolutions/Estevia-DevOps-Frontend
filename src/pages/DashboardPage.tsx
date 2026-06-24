@@ -2211,11 +2211,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 if (!envHealth) {
                                   badgeText = 'Not Scanned';
                                 } else if (!envHealth.ymlHealth?.exists) {
-                                  badgeText = 'Not Found';
-                                  badgeColor = '#ef4444';
-                                  badgeBg = 'rgba(239,68,68,0.1)';
-                                  badgeBorder = 'rgba(239,68,68,0.25)';
-                                  badgeIcon = <AlertCircle size={10} />;
+                                  if (group.type === 'frontend') {
+                                    badgeText = 'Active (Auto)';
+                                    badgeColor = '#10b981';
+                                    badgeBg = 'rgba(16,185,129,0.1)';
+                                    badgeBorder = 'rgba(16,185,129,0.25)';
+                                    badgeIcon = <CheckCircle2 size={10} />;
+                                  } else {
+                                    badgeText = 'Not Found';
+                                    badgeColor = '#ef4444';
+                                    badgeBg = 'rgba(239,68,68,0.1)';
+                                    badgeBorder = 'rgba(239,68,68,0.25)';
+                                    badgeIcon = <AlertCircle size={10} />;
+                                  }
                                 } else if (!envHealth.ymlHealth?.valid) {
                                   badgeText = 'Invalid';
                                   badgeColor = '#ef4444';
@@ -2438,7 +2446,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                   {/* Healthy Badge */}
                   {!isLoading && health && (
-                    health.ymlHealth && health.ymlHealth.exists && health.ymlHealth.valid && health.ymlHealth.warningCount === 0 &&
+                    health.ymlHealth && 
+                    (group.type === 'frontend' && !health.ymlHealth.exists ? true : (health.ymlHealth.exists && health.ymlHealth.valid && health.ymlHealth.warningCount === 0)) &&
                     (group.type !== 'backend' || !health.dockerfileHealth || !health.dockerfileHealth.exists || (health.dockerfileHealth.valid && health.dockerfileHealth.warningCount === 0))
                   ) && (
                     <span 
@@ -3882,21 +3891,39 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                   <span>YAML validation:</span>
                                 </div>
                                 {!health.ymlHealth.exists ? (
-                                  <span style={{
-                                    background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
-                                    border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
-                                    color: theme === 'light' ? '#b91c1c' : '#ef4444',
-                                    padding: '2px 8px',
-                                    borderRadius: '10px',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '5px',
-                                    fontSize: '0.68rem',
-                                    fontWeight: 600
-                                  }}>
-                                    <AlertCircle size={11} />
-                                    <span>Not Found</span>
-                                  </span>
+                                  item.type === 'frontend' ? (
+                                    <span style={{
+                                      background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.12)',
+                                      border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(16, 185, 129, 0.3)',
+                                      color: theme === 'light' ? '#059669' : '#10b981',
+                                      padding: '2px 8px',
+                                      borderRadius: '10px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      fontSize: '0.68rem',
+                                      fontWeight: 600
+                                    }}>
+                                      <CheckCircle2 size={11} />
+                                      <span>GitHub Actions (Active)</span>
+                                    </span>
+                                  ) : (
+                                    <span style={{
+                                      background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                      border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                      color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                      padding: '2px 8px',
+                                      borderRadius: '10px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      fontSize: '0.68rem',
+                                      fontWeight: 600
+                                    }}>
+                                      <AlertCircle size={11} />
+                                      <span>Not Found</span>
+                                    </span>
+                                  )
                                 ) : health.ymlHealth.valid ? (
                                   health.ymlHealth.warningCount > 0 ? (
                                     <span style={{
