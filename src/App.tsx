@@ -1043,6 +1043,7 @@ function App() {
   const [teamsWebhookUrl, setTeamsWebhookUrl] = useState('');
   const [teamsWebhookToken, setTeamsWebhookToken] = useState('');
   const [logAnalyticsWorkspaceId, setLogAnalyticsWorkspaceId] = useState('');
+  const [prodLogAnalyticsWorkspaceId, setProdLogAnalyticsWorkspaceId] = useState('');
   const [azureKeyVaultUrl, setAzureKeyVaultUrl] = useState('');
   const [devDbHost, setDevDbHost] = useState('');
   const [qaDbHost, setQaDbHost] = useState('');
@@ -2638,6 +2639,7 @@ function App() {
         setTeamsWebhookUrl(data.settings.teams_webhook_url || '');
         setTeamsWebhookToken(data.settings.teams_webhook_token || '');
         setLogAnalyticsWorkspaceId(data.settings.log_analytics_workspace_id || '');
+        setProdLogAnalyticsWorkspaceId(data.settings.prod_log_analytics_workspace_id || '');
         setAzureKeyVaultUrl(data.settings.azure_key_vault_url || '');
         setDevDbHost(data.settings.dev_db_host || '');
         setQaDbHost(data.settings.qa_db_host || '');
@@ -2723,6 +2725,7 @@ function App() {
           dockerRegistryServiceConnection,
           teamsWebhookUrl,
           logAnalyticsWorkspaceId,
+          prodLogAnalyticsWorkspaceId,
           azureKeyVaultUrl,
           devDbHost,
           qaDbHost,
@@ -5879,6 +5882,8 @@ function App() {
             teamsWebhookToken={teamsWebhookToken}
             logAnalyticsWorkspaceId={logAnalyticsWorkspaceId}
             setLogAnalyticsWorkspaceId={setLogAnalyticsWorkspaceId}
+            prodLogAnalyticsWorkspaceId={prodLogAnalyticsWorkspaceId}
+            setProdLogAnalyticsWorkspaceId={setProdLogAnalyticsWorkspaceId}
             savingSettings={savingSettings}
             settingsMsg={settingsMsg}
             handleSaveSettings={handleSaveSettings}

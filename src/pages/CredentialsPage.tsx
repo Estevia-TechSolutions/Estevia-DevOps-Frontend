@@ -82,6 +82,8 @@ interface CredentialsPageProps {
   teamsWebhookToken: string;
   logAnalyticsWorkspaceId: string;
   setLogAnalyticsWorkspaceId: (val: string) => void;
+  prodLogAnalyticsWorkspaceId: string;
+  setProdLogAnalyticsWorkspaceId: (val: string) => void;
   testingCredential: string | null;
   validationResult: Record<string, { success: boolean; message: string }>;
   handleValidateCredential: (provider: 'github' | 'godaddy' | 'azure_devops' | 'azure') => void;
@@ -239,6 +241,7 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
   teamsWebhookUrl, setTeamsWebhookUrl,
   teamsWebhookToken,
   logAnalyticsWorkspaceId, setLogAnalyticsWorkspaceId,
+  prodLogAnalyticsWorkspaceId, setProdLogAnalyticsWorkspaceId,
   testingCredential, validationResult, handleValidateCredential,
   azureClientId, setAzureClientId, azureClientSecret, setAzureClientSecret, azureTenantId, setAzureTenantId,
   showAzureClientId, setShowAzureClientId, showAzureClientSecret, setShowAzureClientSecret, showAzureTenantId, setShowAzureTenantId,
@@ -264,8 +267,9 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setLogAnalyticsWorkspaceId(data.workspaceId);
-        showToast('Workspace Discovered', 'Successfully discovered and linked Log Analytics Workspace ID: ' + data.workspaceId, 'success');
+        setLogAnalyticsWorkspaceId(data.workspaceId || '');
+        setProdLogAnalyticsWorkspaceId(data.prodWorkspaceId || '');
+        showToast('Workspaces Discovered', 'Successfully discovered and linked workspaces. Dev/QA: ' + (data.workspaceId || 'None') + ' | Prod: ' + (data.prodWorkspaceId || 'None'), 'success');
       } else {
         showToast('Discovery Failed', 'Discovery failed: ' + (data.message || 'Unknown error'), 'error');
       }
@@ -1225,7 +1229,32 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                     subtitle="Azure Monitor Log Analytics integration is dynamically resolved to query console logs with historical lookbacks."
                     accent="#ca8a04"
                   >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                        <div>
+                          <FieldLabel>Dev/QA Workspace Customer ID</FieldLabel>
+                          <input 
+                            type="text" 
+                            value={logAnalyticsWorkspaceId} 
+                            onChange={e => setLogAnalyticsWorkspaceId(e.target.value)}
+                            placeholder="e.g. 4d206fea-dfe9-4a16-894b-a34adf280a9c" 
+                            disabled={!canEdit} 
+                            style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.8rem' }}
+                          />
+                        </div>
+                        <div>
+                          <FieldLabel>Production Workspace Customer ID</FieldLabel>
+                          <input 
+                            type="text" 
+                            value={prodLogAnalyticsWorkspaceId} 
+                            onChange={e => setProdLogAnalyticsWorkspaceId(e.target.value)}
+                            placeholder="e.g. b1c34476-04fb-42bc-92ab-690795084602" 
+                            disabled={!canEdit} 
+                            style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.8rem' }}
+                          />
+                        </div>
+                      </div>
+
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -1239,10 +1268,10 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                       }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                           <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Integration Status</span>
-                          {logAnalyticsWorkspaceId ? (
+                          {logAnalyticsWorkspaceId || prodLogAnalyticsWorkspaceId ? (
                             <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--success)', boxShadow: '0 0 8px var(--success-glow)' }}></span>
-                              Auto-Discovered & Active
+                              Connected & Active
                             </span>
                           ) : (
                             <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1252,58 +1281,58 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                           )}
                         </div>
 
-                        {logAnalyticsWorkspaceId && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start', minWidth: '220px' }}>
-                            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Workspace Customer ID</span>
-                            <span style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>{logAnalyticsWorkspaceId}</span>
-                          </div>
-                        )}
-
                         {canEdit && (
-                          <button
-                            type="button"
-                            onClick={handleDiscoverWorkspace}
-                            disabled={discoveringWorkspace}
-                            className="btn-primary"
-                            style={{
-                              height: '32px',
-                              padding: '0 16px',
-                              fontSize: '0.78rem',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              cursor: 'pointer',
-                              borderRadius: '6px',
-                              margin: 0
-                            }}
-                          >
-                            {discoveringWorkspace ? (
-                              <>
-                                <Loader size={13} className="spin-anim" />
-                                Discovering…
-                              </>
-                            ) : (
-                              <>
-                                <RefreshCw size={13} />
-                                {logAnalyticsWorkspaceId ? 'Force Sync' : 'Discover Now'}
-                              </>
-                            )}
-                          </button>
+                          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <button
+                              type="button"
+                              onClick={handleDiscoverWorkspace}
+                              disabled={discoveringWorkspace}
+                              className="btn-primary"
+                              style={{
+                                height: '36px',
+                                padding: '0 14px',
+                                fontSize: '0.76rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                cursor: 'pointer',
+                                borderRadius: '6px',
+                                margin: 0
+                              }}
+                            >
+                              {discoveringWorkspace ? (
+                                <>
+                                  <Loader size={13} className="spin-anim" />
+                                  Discovering…
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCw size={13} />
+                                  Discover
+                                </>
+                              )}
+                            </button>
+                            <button
+                              type="submit"
+                              className="btn-primary"
+                              disabled={savingSettings}
+                              style={{
+                                height: '36px',
+                                padding: '0 14px',
+                                fontSize: '0.76rem',
+                                margin: 0
+                              }}
+                            >
+                              {savingSettings ? 'Saving...' : 'Save Settings'}
+                            </button>
+                          </div>
                         )}
                       </div>
 
                       <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-                        {logAnalyticsWorkspaceId ? (
-                          <>
-                            ✓ EvaOps (CloudOps Management & Governance) successfully scanned the Azure Container Apps environment in Resource Group <strong>{azureResourceGroup || 'Estevia-Prod-RG'}</strong> and auto-linked this workspace. Console logs are queryable via KQL in the Container Logs drawer.
-                          </>
-                        ) : (
-                          <>
-                            ⚠️ No workspace discovered yet. Ensure your subscription credentials and Resource Group are configured under the <strong>Azure</strong> tab. Once valid, EvaOps (CloudOps Management & Governance) will auto-discover the linked workspace.
-                          </>
-                        )}
+                        ✓ EvaOps (CloudOps Management & Governance) integrates with multiple Log Analytics Workspaces. Applications are dynamically routed based on environment tags (**Dev/QA** vs **Production**).
                       </p>
-                    </div>
+                    </form>
                   </SectionBlock>
                 </div>
 
