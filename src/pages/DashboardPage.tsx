@@ -2439,7 +2439,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   {/* Healthy Badge */}
                   {!isLoading && health && (
                     health.ymlHealth && health.ymlHealth.exists && health.ymlHealth.valid && health.ymlHealth.warningCount === 0 &&
-                    (group.type !== 'backend' || (health.dockerfileHealth && health.dockerfileHealth.exists && health.dockerfileHealth.valid && health.dockerfileHealth.warningCount === 0))
+                    (group.type !== 'backend' || !health.dockerfileHealth || !health.dockerfileHealth.exists || (health.dockerfileHealth.valid && health.dockerfileHealth.warningCount === 0))
                   ) && (
                     <span 
                       style={{

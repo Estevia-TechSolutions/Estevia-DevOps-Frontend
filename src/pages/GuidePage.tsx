@@ -35,6 +35,25 @@ type TabType = 'getting-started' | 'capabilities' | 'validation-rules' | 'securi
 
 export const GuidePage: React.FC<GuidePageProps> = () => {
   const [activeSubTab, setActiveSubTab] = useState<TabType>('getting-started');
+  const [guideSubTab, setGuideSubTab] = useState<string>('');
+  
+  const isSubTabActive = (subTab: string) => guideSubTab === subTab;
+  
+  const handleTabChange = (tabId: TabType) => {
+    setActiveSubTab(tabId);
+    if (tabId === 'validation-rules') {
+      setGuideSubTab('branch-matching');
+    } else if (tabId === 'security-auth') {
+      setGuideSubTab('security');
+    } else if (tabId === 'pipelines-cicd') {
+      setGuideSubTab('azure-devops-cicd');
+    } else if (tabId === 'faq-roadmap') {
+      setGuideSubTab('faq');
+    } else {
+      setGuideSubTab('');
+    }
+  };
+
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [scopeQuery, setScopeQuery] = useState('');
   const [activeScopeCategory, setActiveScopeCategory] = useState<'all' | 'provisioning' | 'observability' | 'operations' | 'database' | 'security' | 'notifications_cost'>('all');
@@ -473,7 +492,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveSubTab(item.id as TabType)}
+                onClick={() => handleTabChange(item.id as TabType)}
                 style={{
                   width: '100%',
                   display: 'flex',
@@ -847,8 +866,35 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
           )}
 
           {/* TAB CONTENT: BRANCH MATCHING */}
-          {activeSubTab === 'validation-rules' && (
+          {activeSubTab === 'validation-rules' && guideSubTab === 'branch-matching' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Sub-tabs selector */}
+              <div className="tabs-container" style={{ 
+                background: 'rgba(255, 255, 255, 0.02)', 
+                padding: '4px', 
+                borderRadius: '10px', 
+                display: 'inline-flex', 
+                width: 'fit-content',
+                border: '1px solid var(--glass-border)',
+                marginBottom: '10px'
+              }}>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('branch-matching') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('branch-matching')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  Branch Naming Rules
+                </button>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('validation-sanity') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('validation-sanity')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  System Validation & Sanity
+                </button>
+              </div>
               <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
                   Dynamic Branch Resolution Rules
@@ -979,8 +1025,35 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
           )}
 
           {/* TAB CONTENT: SECURITY */}
-          {activeSubTab === 'security-auth' && (
+          {activeSubTab === 'security-auth' && guideSubTab === 'security' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Sub-tabs selector */}
+              <div className="tabs-container" style={{ 
+                background: 'rgba(255, 255, 255, 0.02)', 
+                padding: '4px', 
+                borderRadius: '10px', 
+                display: 'inline-flex', 
+                width: 'fit-content',
+                border: '1px solid var(--glass-border)',
+                marginBottom: '10px'
+              }}>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('security') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('security')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  Security & Scopes
+                </button>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('entra-manual') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('entra-manual')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  Manual Entra ID Setup
+                </button>
+              </div>
               <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
                   Security & Token Permission Matrix
@@ -1085,8 +1158,35 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
           )}
 
           {/* TAB CONTENT: ENTRA MANUAL */}
-          {activeSubTab === 'security-auth' && (
+          {activeSubTab === 'security-auth' && guideSubTab === 'entra-manual' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Sub-tabs selector */}
+              <div className="tabs-container" style={{ 
+                background: 'rgba(255, 255, 255, 0.02)', 
+                padding: '4px', 
+                borderRadius: '10px', 
+                display: 'inline-flex', 
+                width: 'fit-content',
+                border: '1px solid var(--glass-border)',
+                marginBottom: '10px'
+              }}>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('security') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('security')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  Security & Scopes
+                </button>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('entra-manual') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('entra-manual')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  Manual Entra ID Setup
+                </button>
+              </div>
               <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
                   Manual Microsoft Entra ID Integration
@@ -1141,8 +1241,35 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
           )}
 
           {/* TAB CONTENT: AZURE DEVOPS CI/CD */}
-          {activeSubTab === 'pipelines-cicd' && (
+          {activeSubTab === 'pipelines-cicd' && guideSubTab === 'azure-devops-cicd' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Sub-tabs selector */}
+              <div className="tabs-container" style={{ 
+                background: 'rgba(255, 255, 255, 0.02)', 
+                padding: '4px', 
+                borderRadius: '10px', 
+                display: 'inline-flex', 
+                width: 'fit-content',
+                border: '1px solid var(--glass-border)',
+                marginBottom: '10px'
+              }}>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('azure-devops-cicd') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('azure-devops-cicd')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  Azure DevOps CI/CD
+                </button>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('github-actions-cicd') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('github-actions-cicd')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  GitHub Actions CI/CD
+                </button>
+              </div>
               <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
                   Azure DevOps CI/CD Integration Guide
@@ -1188,8 +1315,35 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
           )}
 
           {/* TAB CONTENT: GITHUB ACTIONS CI/CD */}
-          {activeSubTab === 'pipelines-cicd' && (
+          {activeSubTab === 'pipelines-cicd' && guideSubTab === 'github-actions-cicd' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Sub-tabs selector */}
+              <div className="tabs-container" style={{ 
+                background: 'rgba(255, 255, 255, 0.02)', 
+                padding: '4px', 
+                borderRadius: '10px', 
+                display: 'inline-flex', 
+                width: 'fit-content',
+                border: '1px solid var(--glass-border)',
+                marginBottom: '10px'
+              }}>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('azure-devops-cicd') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('azure-devops-cicd')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  Azure DevOps CI/CD
+                </button>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('github-actions-cicd') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('github-actions-cicd')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  GitHub Actions CI/CD
+                </button>
+              </div>
               <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
                   GitHub Actions CI/CD Integration Guide
@@ -1235,8 +1389,35 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
           )}
 
           {/* TAB CONTENT: FAQ */}
-          {activeSubTab === 'faq-roadmap' && (
+          {activeSubTab === 'faq-roadmap' && guideSubTab === 'faq' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Sub-tabs selector */}
+              <div className="tabs-container" style={{ 
+                background: 'rgba(255, 255, 255, 0.02)', 
+                padding: '4px', 
+                borderRadius: '10px', 
+                display: 'inline-flex', 
+                width: 'fit-content',
+                border: '1px solid var(--glass-border)',
+                marginBottom: '10px'
+              }}>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('faq') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('faq')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  Common FAQs
+                </button>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('roadmap') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('roadmap')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  Platform Roadmap
+                </button>
+              </div>
               <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
                   Common FAQs & Troubleshooting
@@ -1394,8 +1575,35 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
             </div>
           )}
 
-          {activeSubTab === 'validation-rules' && (
+          {activeSubTab === 'validation-rules' && guideSubTab === 'validation-sanity' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Sub-tabs selector */}
+              <div className="tabs-container" style={{ 
+                background: 'rgba(255, 255, 255, 0.02)', 
+                padding: '4px', 
+                borderRadius: '10px', 
+                display: 'inline-flex', 
+                width: 'fit-content',
+                border: '1px solid var(--glass-border)',
+                marginBottom: '10px'
+              }}>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('branch-matching') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('branch-matching')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  Branch Naming Rules
+                </button>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('validation-sanity') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('validation-sanity')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  System Validation & Sanity
+                </button>
+              </div>
               <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
                   System Validation &amp; Sanity Audits
@@ -1518,8 +1726,35 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
             </div>
           )}
 
-          {activeSubTab === 'faq-roadmap' && (
+          {activeSubTab === 'faq-roadmap' && guideSubTab === 'roadmap' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Sub-tabs selector */}
+              <div className="tabs-container" style={{ 
+                background: 'rgba(255, 255, 255, 0.02)', 
+                padding: '4px', 
+                borderRadius: '10px', 
+                display: 'inline-flex', 
+                width: 'fit-content',
+                border: '1px solid var(--glass-border)',
+                marginBottom: '10px'
+              }}>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('faq') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('faq')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  Common FAQs
+                </button>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('roadmap') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('roadmap')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  Platform Roadmap
+                </button>
+              </div>
               <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
                   EvaOps Unified Cloud Platform Roadmap
