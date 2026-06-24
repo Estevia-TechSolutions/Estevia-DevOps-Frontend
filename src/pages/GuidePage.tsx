@@ -147,6 +147,13 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
       {
         category: 'observability',
         categoryLabel: 'Observability & Telemetry',
+        isCapability: true,
+        title: 'Multi-Workspace Log Analytics Segregation',
+        text: 'Separates and routes queries dynamically for Dev/QA and Production resources into their respective Log Analytics Workspace Customer IDs based on app tags.'
+      },
+      {
+        category: 'observability',
+        categoryLabel: 'Observability & Telemetry',
         isCapability: false,
         title: 'Log Storage & Retention',
         text: 'Does NOT configure Log Analytics diagnostic settings. These must be pre-set in Azure Portal for ACA log routing.'
@@ -193,6 +200,13 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
         isCapability: true,
         title: 'Categorized Resource Grouping',
         text: 'Groups Azure resources by SWA, ACA, and VM with collapse/expand accordions and count badges.'
+      },
+      {
+        category: 'operations',
+        categoryLabel: 'Operations & Control',
+        isCapability: true,
+        title: 'Granular Network Severity Badges',
+        text: 'Maps app network checks into separate statuses: Verified (Green), Critical/Unresolved (Red), Mismatch (Amber), and Info/Static SWA (Blue) depending on severity.'
       },
       {
         category: 'operations',
@@ -258,6 +272,13 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
         isCapability: true,
         title: 'Outbound Credentials Connection Check',
         text: 'Validates outbound API endpoints and credentials connectivity on GitHub, Azure DevOps, and GoDaddy in real time.'
+      },
+      {
+        category: 'security',
+        categoryLabel: 'Security & Governance',
+        isCapability: true,
+        title: 'Azure Credentials Auto-Save Vaulting',
+        text: 'Auto-discovers and immediately encrypts and saves Azure Service Principal or Managed Identity settings from the host environment to the secure integrations database.'
       },
       {
         category: 'security',
@@ -566,7 +587,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                       }}>Required Setup</span>
                     </h4>
                     <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                      Navigate to the <strong>Credentials</strong> tab. Link your GitHub PAT (with <code>repo</code> write scope), Azure DevOps PAT (with variable group scopes), GoDaddy API Key & Secret, and Azure Active Directory (Entra ID) Service Principal details (Client ID, Client Secret, Tenant ID, and Subscription ID). Save to validate and lock encryption.
+                      Navigate to the <strong>Credentials</strong> tab. Link your GitHub PAT (with <code>repo</code> write scope), Azure DevOps PAT (with variable group scopes), GoDaddy API Key & Secret, and Azure Active Directory (Entra ID) Service Principal details. For Azure, you can simply click **Discover** to automatically extract, encrypt, and save your credentials directly from the host environment to the secure integrations database.
                     </p>
                   </div>
                 </div>
@@ -1401,6 +1422,32 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                       <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
                         Checks the codebase and ARM container definitions for <code>DB_HOST</code>. If DB_HOST maps to an ACA secret reference, it queries the Azure Container Apps <code>listSecrets</code> API to decrypt the reference, validating subnet connectivity and virtual network integration.
                       </span>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: '12px', borderTop: '1px solid var(--glass-border)', paddingTop: '12px' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: '8px' }}>
+                      Network Validation Severity Levels:
+                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', gap: '8px', fontSize: '0.74rem', alignItems: 'flex-start' }}>
+                        <span style={{ color: '#ef4444', fontWeight: 600, minWidth: '70px' }}>[Critical]</span>
+                        <span style={{ color: 'var(--text-secondary)' }}>
+                          Deployment is misconfigured or broken. Triggers if <code>DB_HOST</code> environment variables cannot be located in the backend code, or if compute resources have no resolved virtual networks.
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', fontSize: '0.74rem', alignItems: 'flex-start' }}>
+                        <span style={{ color: '#fbbf24', fontWeight: 600, minWidth: '70px' }}>[Warning]</span>
+                        <span style={{ color: 'var(--text-secondary)' }}>
+                          Environment configuration mismatch or network isolation warning. Triggers if a static SWA connects to a backend running in a different environment tag, or if virtual networks are not peered.
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', fontSize: '0.74rem', alignItems: 'flex-start' }}>
+                        <span style={{ color: '#38bdf8', fontWeight: 600, minWidth: '70px' }}>[Info]</span>
+                        <span style={{ color: 'var(--text-secondary)' }}>
+                          Informational connection notes. Triggers when static web apps (such as marketing, documentation, or landing pages) purposefully run without any backend API bindings configured.
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
