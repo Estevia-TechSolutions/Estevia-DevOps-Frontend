@@ -216,6 +216,84 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [expandedYamlDetails, setExpandedYamlDetails] = React.useState<Record<string, boolean>>({});
   const [expandedDockerDetails, setExpandedDockerDetails] = React.useState<Record<string, boolean>>({});
 
+  const [viewingFileDrawer, setViewingFileDrawer] = React.useState<{
+    appName: string;
+    fileName: string;
+    filePath: string;
+    fileContent: string;
+    loading: boolean;
+    error: string | null;
+  } | null>(null);
+  const [copiedFileCode, setCopiedFileCode] = React.useState<boolean>(false);
+
+  const handleCopyFileCode = (code: string) => {
+    if (!code) return;
+    navigator.clipboard.writeText(code);
+    setCopiedFileCode(true);
+    setTimeout(() => setCopiedFileCode(false), 2000);
+  };
+
+  const handleOpenFileDrawer = async (
+    appName: string,
+    fileName: string,
+    filePath: string,
+    fileType: 'yaml' | 'dockerfile',
+    repoUrl: string,
+    branchName: string,
+    pipelineProvider?: string
+  ) => {
+    const cleanRepo = repoUrl.replace('https://github.com/', '').replace(/\/$/, '');
+    const targetBranch = branchName || 'main';
+
+    setViewingFileDrawer({
+      appName,
+      fileName,
+      filePath,
+      fileContent: '',
+      loading: true,
+      error: null
+    });
+
+    try {
+      const token = localStorage.getItem('devops_token');
+      let url = '';
+      if (fileType === 'yaml') {
+        const providerParam = pipelineProvider ? `&pipelineProvider=${pipelineProvider}` : '';
+        url = `${API_BASE}/apps/get-yml?organizationId=${organizationId}&githubRepo=${encodeURIComponent(cleanRepo)}&branch=${encodeURIComponent(targetBranch)}&filePath=${encodeURIComponent(filePath)}${providerParam}`;
+      } else {
+        url = `${API_BASE}/apps/get-dockerfile?organizationId=${organizationId}&githubRepo=${encodeURIComponent(cleanRepo)}&branch=${encodeURIComponent(targetBranch)}`;
+      }
+
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.exists) {
+        setViewingFileDrawer(prev => {
+          if (!prev || prev.appName !== appName || prev.fileName !== fileName) return prev;
+          return {
+            ...prev,
+            fileContent: data.content,
+            loading: false,
+            error: null
+          };
+        });
+      } else {
+        throw new Error(data.message || `File ${fileName} was not found or could not be retrieved from repository.`);
+      }
+    } catch (err: any) {
+      console.error(`Failed to fetch ${fileName} content:`, err);
+      setViewingFileDrawer(prev => {
+        if (!prev || prev.appName !== appName || prev.fileName !== fileName) return prev;
+        return {
+          ...prev,
+          loading: false,
+          error: err.message || `An error occurred while retrieving ${fileName}.`
+        };
+      });
+    }
+  };
+
   // Compliance state
   const [activeSubTab, setActiveSubTab] = React.useState<'resources' | 'compliance'>('resources');
   const [complianceData, setComplianceData] = React.useState<any | null>(null);
@@ -3929,7 +4007,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                           alignItems: 'center',
                                           gap: '5px',
                                           fontSize: '0.68rem',
-                                          fontWeight: 600
+                                          fontWeight: 600,
+                                          whiteSpace: 'nowrap'
                                         }}>
                                           <AlertCircle size={11} />
                                           <span>{health.ymlHealth.warningCount} warning{health.ymlHealth.warningCount > 1 ? 's' : ''}</span>
@@ -4076,6 +4155,43 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                         ))}
                                       </div>
                                     )}
+                                    
+                                    {health.ymlHealth.exists && (
+                                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px', borderTop: `1px solid ${theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'}`, paddingTop: '6px' }}>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const isGitHubAction = health.ymlHealth.filePath ? health.ymlHealth.filePath.includes('.github') : (item.pipelineId && String(item.pipelineId).startsWith('github-actions:'));
+                                            const provider = isGitHubAction ? 'github_actions' : 'azure_devops';
+                                            handleOpenFileDrawer(
+                                              item.name,
+                                              health.ymlHealth.filePath ? (health.ymlHealth.filePath.split('/').pop() || 'deploy.yml') : (isGitHubAction ? 'deploy.yml' : 'azure-pipelines.yml'),
+                                              health.ymlHealth.filePath || (isGitHubAction ? '.github/workflows/deploy.yml' : 'azure-pipelines.yml'),
+                                              'yaml',
+                                              item.repositoryUrl || group?.repoPath || '',
+                                              item.branch || 'main',
+                                              provider
+                                            );
+                                          }}
+                                          style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            color: 'var(--accent-teal)',
+                                            fontSize: '0.68rem',
+                                            fontWeight: 700,
+                                            cursor: 'pointer',
+                                            textDecoration: 'underline',
+                                            padding: 0,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '3px'
+                                          }}
+                                        >
+                                          <span>View File ➔</span>
+                                        </button>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>
@@ -4140,7 +4256,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                           alignItems: 'center',
                                           gap: '5px',
                                           fontSize: '0.68rem',
-                                          fontWeight: 600
+                                          fontWeight: 600,
+                                          whiteSpace: 'nowrap'
                                         }}>
                                           <AlertCircle size={11} />
                                           <span>{health.dockerfileHealth.warningCount} warning{health.dockerfileHealth.warningCount > 1 ? 's' : ''}</span>
@@ -4281,6 +4398,40 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                             {warn.message || warn}
                                           </div>
                                         ))}
+                                      </div>
+                                    )}
+                                    
+                                    {health.dockerfileHealth.exists && (
+                                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px', borderTop: `1px solid ${theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'}`, paddingTop: '6px' }}>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleOpenFileDrawer(
+                                              item.name,
+                                              'Dockerfile',
+                                              'Dockerfile',
+                                              'dockerfile',
+                                              item.repositoryUrl || group?.repoPath || '',
+                                              item.branch || 'main'
+                                            );
+                                          }}
+                                          style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            color: 'var(--accent-teal)',
+                                            fontSize: '0.68rem',
+                                            fontWeight: 700,
+                                            cursor: 'pointer',
+                                            textDecoration: 'underline',
+                                            padding: 0,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '3px'
+                                          }}
+                                        >
+                                          <span>View File ➔</span>
+                                        </button>
                                       </div>
                                     )}
                                   </div>
@@ -6355,6 +6506,113 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                       )}
                     </div>
                   </>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ─── Valid Pipeline & Dockerfile Viewer Drawer ─── */}
+      {viewingFileDrawer && (
+        <>
+          <div className="drawer-backdrop" onClick={() => setViewingFileDrawer(null)} />
+          <div className="drawer-container" style={{ width: '600px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--divider)', paddingBottom: '16px', marginBottom: '8px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {viewingFileDrawer.fileName.toLowerCase() === 'dockerfile' ? 'Dockerfile Configuration' : 'Pipeline Workflow Configuration'}
+                </h3>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Resource: <strong>{viewingFileDrawer.appName}</strong></span>
+              </div>
+              <button 
+                onClick={() => setViewingFileDrawer(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '1.2rem'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1, minHeight: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-secondary)', flexShrink: 0, flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontWeight: 600 }}>File Path:</span>
+                  <code style={{ background: 'rgba(255,255,255,0.05)', padding: '3px 8px', borderRadius: '4px', color: 'var(--accent-teal)', border: '1px solid rgba(255,255,255,0.05)', fontFamily: 'monospace' }}>
+                    {viewingFileDrawer.filePath}
+                  </code>
+                </div>
+                {!viewingFileDrawer.loading && !viewingFileDrawer.error && viewingFileDrawer.fileContent && (
+                  <button
+                    onClick={() => handleCopyFileCode(viewingFileDrawer.fileContent)}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: '6px',
+                      color: 'var(--text-primary)',
+                      padding: '4px 10px',
+                      fontSize: '0.7rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+                  >
+                    <span>{copiedFileCode ? 'Copied! ✓' : 'Copy Code'}</span>
+                  </button>
+                )}
+              </div>
+
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                {viewingFileDrawer.loading ? (
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+                    <RefreshCw className="spin-anim" size={24} style={{ color: 'var(--accent-teal)' }} />
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Loading configuration from GitHub...</span>
+                  </div>
+                ) : viewingFileDrawer.error ? (
+                  <div style={{ 
+                    flex: 1, 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    gap: '12px',
+                    padding: '24px',
+                    textAlign: 'center',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    background: 'rgba(239, 68, 68, 0.04)',
+                    borderRadius: '8px'
+                  }}>
+                    <AlertCircle size={24} style={{ color: 'var(--error)' }} />
+                    <span style={{ fontSize: '0.8rem', color: '#fca5a5', fontWeight: 600 }}>Error loading file</span>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>{viewingFileDrawer.error}</span>
+                  </div>
+                ) : (
+                  <pre style={{
+                    flex: 1,
+                    background: '#090d16',
+                    border: '1px solid var(--glass-border)',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    color: '#e2e8f0',
+                    fontSize: '0.75rem',
+                    fontFamily: 'monospace',
+                    overflow: 'auto',
+                    whiteSpace: 'pre',
+                    lineHeight: 1.5,
+                    margin: 0
+                  }}>
+                    {viewingFileDrawer.fileContent}
+                  </pre>
                 )}
               </div>
             </div>
