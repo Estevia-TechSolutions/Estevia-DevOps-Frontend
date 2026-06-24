@@ -182,6 +182,35 @@ export const CostPage: React.FC<CostPageProps> = ({
     ? (costTab === 'billing' ? 'billing' : 'breakdown')
     : (costTab === 'schedules' ? 'schedules' : 'recommendations');
 
+  const branchToEnv = (branch: string): 'dev' | 'qa' | 'prod' | null => {
+    const b = branch.toLowerCase().trim();
+    if (b === 'main' || b === 'master' || b === 'prod' || b === 'production' || b === 'release') return 'prod';
+    if (b === 'dev' || b === 'develop' || b === 'development') return 'dev';
+    if (b === 'qa' || b === 'staging' || b === 'test' || b === 'testing') return 'qa';
+    return null;
+  };
+
+  const hasEnvSegment = (n: string, seg: string) =>
+    new RegExp(`-${seg}(-|$)`).test(n);
+
+  const getEnvTag = (item: any): { color: string; bg: string; border: string; label: string } => {
+    const ENV_COLORS: Record<string, { color: string; bg: string; border: string; label: string }> = {
+      dev:  { color: '#60a5fa', bg: 'rgba(96,165,250,0.08)',  border: 'rgba(96,165,250,0.3)',  label: 'DEV'  },
+      qa:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.3)',  label: 'QA'   },
+      prod: { color: '#34d399', bg: 'rgba(52,211,153,0.08)',  border: 'rgba(52,211,153,0.3)',  label: 'PROD' },
+    };
+
+    if (item.branch) {
+      const fromBranch = branchToEnv(item.branch);
+      if (fromBranch) return ENV_COLORS[fromBranch];
+    }
+    const n = item.name.toLowerCase();
+    if (hasEnvSegment(n, 'dev'))  return ENV_COLORS.dev;
+    if (hasEnvSegment(n, 'qa'))   return ENV_COLORS.qa;
+    if (hasEnvSegment(n, 'prod')) return ENV_COLORS.prod;
+    return ENV_COLORS.prod;
+  };
+
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [activePowerDropdown, setActivePowerDropdown] = useState<string | null>(null);
   const [powerDropdownCoords, setPowerDropdownCoords] = useState<{top: number; left: number} | null>(null);
@@ -326,13 +355,12 @@ export const CostPage: React.FC<CostPageProps> = ({
     // Env Filter
     if (envFilter === 'all') return matchesSearch;
     if (envFilter === 'production') {
-      const isProd = item.name.toLowerCase().includes('prod') || 
-                     (!item.name.toLowerCase().includes('dev') && !item.name.toLowerCase().includes('qa'));
-      return matchesSearch && isProd;
+      const tag = getEnvTag(item).label;
+      return matchesSearch && tag === 'PROD';
     }
     if (envFilter === 'test') {
-      const isTest = item.name.toLowerCase().includes('dev') || item.name.toLowerCase().includes('qa');
-      return matchesSearch && isTest;
+      const tag = getEnvTag(item).label;
+      return matchesSearch && (tag === 'DEV' || tag === 'QA');
     }
     if (envFilter === 'stale') {
       const isOrphaned = !item.repositoryUrl && !item.fqdn && 
@@ -1456,165 +1484,166 @@ export const CostPage: React.FC<CostPageProps> = ({
                                    )}
                                  </div>
 
-                                 {/* Second Line: Dev/Test, Stale, and Optimize/Remedied pills */}
-                                 {(item.isTestResource || isOrphaned || activeRec || appliedRec) && (
-                                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginTop: '2px' }}>
-                                     {item.isTestResource && (
-                                       <span style={{
-                                         fontSize: '0.62rem',
-                                         fontWeight: 700,
-                                         textTransform: 'uppercase',
-                                         color: isLight ? '#475569' : '#94a3b8',
-                                         background: isLight ? 'rgba(71, 85, 105, 0.08)' : 'rgba(148, 163, 184, 0.12)',
-                                         padding: '2px 6px',
-                                         borderRadius: '4px',
-                                         border: `1px solid ${isLight ? 'rgba(71, 85, 105, 0.15)' : 'rgba(148, 163, 184, 0.2)'}`
-                                       }}>
-                                         Dev / Test
-                                       </span>
-                                     )}
-                                     {isOrphaned && (
-                                       <span style={{
-                                         fontSize: '0.62rem',
-                                         fontWeight: 700,
-                                         textTransform: 'uppercase',
-                                         color: 'var(--error)',
-                                         background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)',
-                                         padding: '2px 6px',
-                                         borderRadius: '4px',
-                                         border: '1px solid rgba(239, 68, 68, 0.2)'
-                                       }}>
-                                         Stale / Not In Use
-                                       </span>
-                                     )}
-                                     {activeRec && (
-                                       <div className="opt-hover-wrapper" style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                         <Sparkles 
-                                           size={11} 
-                                           style={{ 
-                                             color: '#fbbf24', 
-                                             filter: 'drop-shadow(0 0 3px rgba(251, 191, 36, 0.4))'
-                                           }} 
-                                         />
-                                         <span style={{
-                                           fontSize: '0.62rem',
-                                           fontWeight: 700,
-                                           color: '#fbbf24',
-                                           background: 'rgba(255, 191, 36, 0.08)',
-                                           padding: '2px 6px',
-                                           borderRadius: '4px',
-                                           border: '1px solid rgba(255, 191, 36, 0.18)',
-                                           textTransform: 'uppercase',
-                                           letterSpacing: '0.03em',
-                                           cursor: 'help'
-                                         }}>
-                                           Optimize
-                                         </span>
-                                         <div className="table-opt-hover-card" style={{
-                                           visibility: 'hidden',
-                                           opacity: 0,
-                                           position: 'absolute',
-                                           bottom: '130%',
-                                           left: '0',
-                                           background: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 23, 42, 0.95)',
-                                           backdropFilter: 'blur(16px)',
-                                           WebkitBackdropFilter: 'blur(16px)',
-                                           border: '1px solid var(--glass-border)',
-                                           color: 'var(--text-primary)',
-                                           padding: '12px',
-                                           borderRadius: '8px',
-                                           fontSize: '0.74rem',
-                                           width: '220px',
-                                           boxShadow: '0 10px 25px rgba(0, 0, 0, 0.25)',
-                                           pointerEvents: 'none',
-                                           zIndex: 9999,
-                                           transform: 'translateY(8px)',
-                                           transition: 'all 0.2s ease-in-out',
-                                           whiteSpace: 'normal',
-                                           textAlign: 'left',
-                                           lineHeight: '1.4'
-                                         }}>
-                                           <div style={{ fontWeight: 700, color: '#fbbf24', marginBottom: '4px', textTransform: 'uppercase', fontSize: '0.66rem', letterSpacing: '0.05em' }}>
-                                             Optimization Recommended
-                                           </div>
-                                           <div style={{ color: 'var(--text-primary)', fontWeight: 650, marginBottom: '6px' }}>
-                                             {activeRec.recommendation || activeRec.title}
-                                           </div>
-                                           <div style={{ color: 'var(--text-secondary)', marginBottom: '8px', fontSize: '0.7rem' }}>
-                                             {activeRec.description}
-                                           </div>
-                                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 600 }}>
-                                             <span style={{ color: 'var(--text-muted)' }}>Est. Savings:</span>
-                                             <span style={{ color: 'var(--success)' }}>${activeRec.savings.toFixed(2)}/mo</span>
-                                           </div>
-                                         </div>
-                                       </div>
-                                     )}
-                                     {appliedRec && (
-                                       <div className="opt-hover-wrapper" style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                         <CheckCircle2 
-                                           size={11} 
-                                           style={{ 
-                                             color: 'var(--success)', 
-                                             filter: 'drop-shadow(0 0 3px rgba(16, 185, 129, 0.4))'
-                                           }} 
-                                         />
-                                         <span style={{
-                                           fontSize: '0.62rem',
-                                           fontWeight: 700,
-                                           color: 'var(--success)',
-                                           background: 'rgba(16, 185, 129, 0.08)',
-                                           padding: '2px 6px',
-                                           borderRadius: '4px',
-                                           border: '1px solid rgba(16, 185, 129, 0.18)',
-                                           textTransform: 'uppercase',
-                                           letterSpacing: '0.03em',
-                                           cursor: 'help'
-                                         }}>
-                                           Remedied
-                                         </span>
-                                         <div className="table-opt-hover-card" style={{
-                                           visibility: 'hidden',
-                                           opacity: 0,
-                                           position: 'absolute',
-                                           bottom: '130%',
-                                           left: '0',
-                                           background: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 23, 42, 0.95)',
-                                           backdropFilter: 'blur(16px)',
-                                           WebkitBackdropFilter: 'blur(16px)',
-                                           border: '1px solid var(--glass-border)',
-                                           color: 'var(--text-primary)',
-                                           padding: '12px',
-                                           borderRadius: '8px',
-                                           fontSize: '0.74rem',
-                                           width: '220px',
-                                           boxShadow: '0 10px 25px rgba(0, 0, 0, 0.25)',
-                                           pointerEvents: 'none',
-                                           zIndex: 9999,
-                                           transform: 'translateY(8px)',
-                                           transition: 'all 0.2s ease-in-out',
-                                           whiteSpace: 'normal',
-                                           textAlign: 'left',
-                                           lineHeight: '1.4'
-                                         }}>
-                                           <div style={{ fontWeight: 700, color: 'var(--success)', marginBottom: '4px', textTransform: 'uppercase', fontSize: '0.66rem', letterSpacing: '0.05em' }}>
-                                             Remediation Applied
-                                           </div>
-                                           <div style={{ color: 'var(--text-primary)', fontWeight: 650, marginBottom: '6px' }}>
-                                             {appliedRec.recommendation || appliedRec.title}
-                                           </div>
-                                           <div style={{ color: 'var(--text-secondary)', marginBottom: '8px', fontSize: '0.7rem' }}>
-                                             Optimized & active. Runtime costs are successfully reduced.
-                                           </div>
-                                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 600 }}>
-                                             <span style={{ color: 'var(--text-muted)' }}>Monthly Savings:</span>
-                                             <span style={{ color: 'var(--success)' }}>${appliedRec.savings.toFixed(2)}/mo</span>
-                                           </div>
-                                         </div>
-                                       </div>
-                                     )}
-                                   </div>
-                                 )}
+                                 {/* Second Line: Env Tag, Stale, and Optimize/Remedied pills */}
+                                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginTop: '2px' }}>
+                                    {(() => {
+                                      const tag = getEnvTag(item);
+                                      return (
+                                        <span style={{
+                                          fontSize: '0.62rem',
+                                          fontWeight: 700,
+                                          textTransform: 'uppercase',
+                                          color: tag.color,
+                                          background: tag.bg,
+                                          padding: '2px 6px',
+                                          borderRadius: '4px',
+                                          border: `1px solid ${tag.border}`
+                                        }}>
+                                          {tag.label}
+                                        </span>
+                                      );
+                                    })()}
+                                    {isOrphaned && (
+                                      <span style={{
+                                        fontSize: '0.62rem',
+                                        fontWeight: 700,
+                                        textTransform: 'uppercase',
+                                        color: 'var(--error)',
+                                        background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)',
+                                        padding: '2px 6px',
+                                        borderRadius: '4px',
+                                        border: '1px solid rgba(239, 68, 68, 0.2)'
+                                      }}>
+                                        Stale / Not In Use
+                                      </span>
+                                    )}
+                                    {activeRec && (
+                                      <div className="opt-hover-wrapper" style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                        <Sparkles 
+                                          size={11} 
+                                          style={{ 
+                                            color: '#fbbf24', 
+                                            filter: 'drop-shadow(0 0 3px rgba(251, 191, 36, 0.4))'
+                                          }} 
+                                        />
+                                        <span style={{
+                                          fontSize: '0.62rem',
+                                          fontWeight: 700,
+                                          color: '#fbbf24',
+                                          background: 'rgba(255, 191, 36, 0.08)',
+                                          padding: '2px 6px',
+                                          borderRadius: '4px',
+                                          border: '1px solid rgba(255, 191, 36, 0.18)',
+                                          textTransform: 'uppercase',
+                                          letterSpacing: '0.03em',
+                                          cursor: 'help'
+                                        }}>
+                                          Optimize
+                                        </span>
+                                        <div className="table-opt-hover-card" style={{
+                                          visibility: 'hidden',
+                                          opacity: 0,
+                                          position: 'absolute',
+                                          bottom: '130%',
+                                          left: '0',
+                                          background: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 23, 42, 0.95)',
+                                          backdropFilter: 'blur(16px)',
+                                          WebkitBackdropFilter: 'blur(16px)',
+                                          border: '1px solid var(--glass-border)',
+                                          color: 'var(--text-primary)',
+                                          padding: '12px',
+                                          borderRadius: '8px',
+                                          fontSize: '0.74rem',
+                                          width: '220px',
+                                          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.25)',
+                                          pointerEvents: 'none',
+                                          zIndex: 9999,
+                                          transform: 'translateY(8px)',
+                                          transition: 'all 0.2s ease-in-out',
+                                          whiteSpace: 'normal',
+                                          textAlign: 'left',
+                                          lineHeight: '1.4'
+                                        }}>
+                                          <div style={{ fontWeight: 700, color: '#fbbf24', marginBottom: '4px', textTransform: 'uppercase', fontSize: '0.66rem', letterSpacing: '0.05em' }}>
+                                            Optimization Recommended
+                                          </div>
+                                          <div style={{ color: 'var(--text-primary)', fontWeight: 650, marginBottom: '6px' }}>
+                                            {activeRec.recommendation || activeRec.title}
+                                          </div>
+                                          <div style={{ color: 'var(--text-secondary)', marginBottom: '8px', fontSize: '0.7rem' }}>
+                                            {activeRec.description}
+                                          </div>
+                                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 600 }}>
+                                            <span style={{ color: 'var(--text-muted)' }}>Est. Savings:</span>
+                                            <span style={{ color: 'var(--success)' }}>${activeRec.savings.toFixed(2)}/mo</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                    {appliedRec && (
+                                      <div className="opt-hover-wrapper" style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                        <CheckCircle2 
+                                          size={11} 
+                                          style={{ 
+                                            color: 'var(--success)', 
+                                            filter: 'drop-shadow(0 0 3px rgba(16, 185, 129, 0.4))'
+                                          }} 
+                                        />
+                                        <span style={{
+                                          fontSize: '0.62rem',
+                                          fontWeight: 700,
+                                          color: 'var(--success)',
+                                          background: 'rgba(16, 185, 129, 0.08)',
+                                          padding: '2px 6px',
+                                          borderRadius: '4px',
+                                          border: '1px solid rgba(16, 185, 129, 0.18)',
+                                          textTransform: 'uppercase',
+                                          letterSpacing: '0.03em',
+                                          cursor: 'help'
+                                        }}>
+                                          Remedied
+                                        </span>
+                                        <div className="table-opt-hover-card" style={{
+                                          visibility: 'hidden',
+                                          opacity: 0,
+                                          position: 'absolute',
+                                          bottom: '130%',
+                                          left: '0',
+                                          background: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(15, 23, 42, 0.95)',
+                                          backdropFilter: 'blur(16px)',
+                                          WebkitBackdropFilter: 'blur(16px)',
+                                          border: '1px solid var(--glass-border)',
+                                          color: 'var(--text-primary)',
+                                          padding: '12px',
+                                          borderRadius: '8px',
+                                          fontSize: '0.74rem',
+                                          width: '220px',
+                                          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.25)',
+                                          pointerEvents: 'none',
+                                          zIndex: 9999,
+                                          transform: 'translateY(8px)',
+                                          transition: 'all 0.2s ease-in-out',
+                                          whiteSpace: 'normal',
+                                          textAlign: 'left',
+                                          lineHeight: '1.4'
+                                        }}>
+                                          <div style={{ fontWeight: 700, color: 'var(--success)', marginBottom: '4px', textTransform: 'uppercase', fontSize: '0.66rem', letterSpacing: '0.05em' }}>
+                                            Remediation Applied
+                                          </div>
+                                          <div style={{ color: 'var(--text-primary)', fontWeight: 650, marginBottom: '6px' }}>
+                                            {appliedRec.recommendation || appliedRec.title}
+                                          </div>
+                                          <div style={{ color: 'var(--text-secondary)', marginBottom: '8px', fontSize: '0.7rem' }}>
+                                            Optimized & active. Runtime costs are successfully reduced.
+                                          </div>
+                                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 600 }}>
+                                            <span style={{ color: 'var(--text-muted)' }}>Monthly Savings:</span>
+                                            <span style={{ color: 'var(--success)' }}>${appliedRec.savings.toFixed(2)}/mo</span>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
                                </div>
                               {item.fqdn && (
                                 <div style={{ fontSize: '0.75rem', color: isLight ? '#7c3aed' : '#a78bfa', fontWeight: 400, marginTop: '2px' }}>

@@ -129,7 +129,7 @@ const PREDEFINED_REPOS = [
 
 interface AppResource {
   name: string;
-  type: 'frontend' | 'backend' | 'vm' | 'cluster';
+  type: 'frontend' | 'backend' | 'vm' | 'cluster' | 'database' | 'network' | 'registry' | string;
   location: string;
   hostname: string;
   resourceId: string;
@@ -190,7 +190,7 @@ interface AppGroup {
   label: string;          // prettified display name (e.g. "ProTrack Frontend")
   repoPath: string;       // e.g. "Estevia-TechSolutions/protrack-frontend"
   repoUrl: string;        // full github url
-  type: 'frontend' | 'backend' | 'vm' | 'cluster';
+  type: 'frontend' | 'backend' | 'vm' | 'cluster' | 'database' | 'network' | 'registry' | string;
   envs: AppResource[];    // sorted dev → qa → prod
   pipelineId?: string;    // from any member that has one
   pipelineName?: string;
@@ -5643,11 +5643,11 @@ function App() {
         {/* TAB 1: CLOUD RESOURCE SCANNING */}
         {activeTab === 'scan' && (
           <DashboardPage
-            apps={apps}
+            apps={apps as any}
             scanning={scanning}
             scanProgress={scanProgress}
             scanError={scanError}
-            appGroups={appGroups}
+            appGroups={appGroups as any}
             collapsedScanGroups={collapsedScanGroups}
             setCollapsedScanGroups={setCollapsedScanGroups}
             toggleGroupScan={toggleGroupScan}
@@ -5725,7 +5725,7 @@ function App() {
             branches={branches}
             setBranches={setBranches}
             loadingBranches={loadingBranches}
-            apps={apps}
+            apps={apps as any}
             ymlLoading={ymlLoading}
             ymlError={ymlError}
             setYmlError={setYmlError}
@@ -7180,7 +7180,7 @@ function App() {
           isOpen={!!buildHistoryDrawerApp}
           appName={buildHistoryDrawerApp.name}
           pipelineId={buildHistoryDrawerApp.pipelineId || null}
-          appType={buildHistoryDrawerApp.type}
+          appType={buildHistoryDrawerApp.type as any}
           organizationId={organizationId}
           currentUser={user}
           theme={theme}

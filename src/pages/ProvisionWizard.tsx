@@ -186,7 +186,7 @@ const renderValidationPanel = (
 
 interface AppResource {
   name: string;
-  type: 'frontend' | 'backend' | 'vm' | 'cluster';
+  type: 'frontend' | 'backend' | 'vm' | 'cluster' | 'database' | 'network' | 'registry' | string;
   location: string;
   hostname: string;
   resourceId: string;
