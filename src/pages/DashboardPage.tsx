@@ -213,6 +213,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   const [viewScrapedConfig, setViewScrapedConfig] = React.useState<{ fileName: string; fileContent: string; appName: string; searchedFiles?: string[] } | null>(null);
   const [expandedWarnings, setExpandedWarnings] = React.useState<Record<string, boolean>>({});
+  const [expandedYamlDetails, setExpandedYamlDetails] = React.useState<Record<string, boolean>>({});
+  const [expandedDockerDetails, setExpandedDockerDetails] = React.useState<Record<string, boolean>>({});
 
   // Compliance state
   const [activeSubTab, setActiveSubTab] = React.useState<'resources' | 'compliance'>('resources');
@@ -3870,238 +3872,418 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                             {/* YAML Health Details Card */}
                             {((item.type === 'frontend' || item.type === 'backend') && health && health.ymlHealth) && (
-                              <div style={{
-                                flex: 1,
-                                minWidth: '180px',
-                                padding: '8px 12px',
-                                borderRadius: '10px',
-                                background: theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)',
-                                border: '1px solid var(--glass-border)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: '8px',
-                                boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.03)',
-                                backdropFilter: 'blur(8px)',
-                                WebkitBackdropFilter: 'blur(8px)',
-                                fontSize: '0.72rem'
-                              }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
-                                  <FileText size={11} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
-                                  <span>YAML validation:</span>
-                                </div>
-                                {!health.ymlHealth.exists ? (
-                                  item.type === 'frontend' ? (
-                                    <span style={{
-                                      background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.12)',
-                                      border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(16, 185, 129, 0.3)',
-                                      color: theme === 'light' ? '#059669' : '#10b981',
-                                      padding: '2px 8px',
-                                      borderRadius: '10px',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '5px',
-                                      fontSize: '0.68rem',
-                                      fontWeight: 600
-                                    }}>
-                                      <CheckCircle2 size={11} />
-                                      <span>GitHub Actions (Active)</span>
-                                    </span>
-                                  ) : (
-                                    <span style={{
-                                      background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
-                                      border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
-                                      color: theme === 'light' ? '#b91c1c' : '#ef4444',
-                                      padding: '2px 8px',
-                                      borderRadius: '10px',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '5px',
-                                      fontSize: '0.68rem',
-                                      fontWeight: 600
-                                    }}>
-                                      <AlertCircle size={11} />
-                                      <span>Not Found</span>
-                                    </span>
-                                  )
-                                ) : health.ymlHealth.valid ? (
-                                  health.ymlHealth.warningCount > 0 ? (
-                                    <span style={{
-                                      background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
-                                      border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
-                                      color: theme === 'light' ? '#b45309' : '#fbbf24',
-                                      padding: '2px 8px',
-                                      borderRadius: '10px',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '5px',
-                                      fontSize: '0.68rem',
-                                      fontWeight: 600
-                                    }}>
-                                      <AlertCircle size={11} />
-                                      <span>{health.ymlHealth.warningCount} warning{health.ymlHealth.warningCount > 1 ? 's' : ''}</span>
-                                      {!isViewer && (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); }}
-                                          style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b45309' : '#fbbf24', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
-                                        >
-                                          Fix
-                                        </button>
-                                      )}
-                                    </span>
-                                  ) : (
-                                    <span style={{
-                                      background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(52, 211, 153, 0.12)',
-                                      border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(52, 211, 153, 0.3)',
-                                      color: theme === 'light' ? '#059669' : '#34d399',
-                                      padding: '2px 8px',
-                                      borderRadius: '10px',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '5px',
-                                      fontSize: '0.68rem',
-                                      fontWeight: 600
-                                    }}>
-                                      <ShieldCheck size={11} />
-                                      <span>Valid</span>
-                                    </span>
-                                  )
-                                ) : (
-                                  <span style={{
-                                    background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
-                                    border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
-                                    color: theme === 'light' ? '#b91c1c' : '#ef4444',
-                                    padding: '2px 8px',
-                                    borderRadius: '10px',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '5px',
-                                    fontSize: '0.68rem',
-                                    fontWeight: 600
-                                  }}>
-                                    <AlertCircle size={11} />
-                                    <span>{health.ymlHealth.errors?.length || 0} error{health.ymlHealth.errors?.length > 1 ? 's' : ''}</span>
-                                    {!isViewer && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); }}
-                                        style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b91c1c' : '#ef4444', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
-                                      >
-                                        Fix
-                                      </button>
+                              <div 
+                                style={{
+                                  flex: 1,
+                                  minWidth: '180px',
+                                  padding: '8px 12px',
+                                  borderRadius: '10px',
+                                  background: theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)',
+                                  border: '1px solid var(--glass-border)',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '4px',
+                                  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.03)',
+                                  backdropFilter: 'blur(8px)',
+                                  WebkitBackdropFilter: 'blur(8px)',
+                                  fontSize: '0.72rem',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  userSelect: 'none'
+                                }}
+                                onClick={() => setExpandedYamlDetails(prev => ({ ...prev, [item.name]: !prev[item.name] }))}
+                                onMouseEnter={(e) => e.currentTarget.style.background = theme === 'light' ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.05)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)'}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '8px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+                                    <Terminal size={11} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
+                                    <span>YAML validation:</span>
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    {!health.ymlHealth.exists ? (
+                                      <span style={{
+                                        background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                        border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                        color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                        padding: '2px 8px',
+                                        borderRadius: '10px',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        fontSize: '0.68rem',
+                                        fontWeight: 600
+                                      }}>
+                                        <AlertCircle size={11} />
+                                        <span>Not Found</span>
+                                      </span>
+                                    ) : health.ymlHealth.valid ? (
+                                      health.ymlHealth.warningCount > 0 ? (
+                                        <span style={{
+                                          background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
+                                          border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
+                                          color: theme === 'light' ? '#b45309' : '#fbbf24',
+                                          padding: '2px 8px',
+                                          borderRadius: '10px',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '5px',
+                                          fontSize: '0.68rem',
+                                          fontWeight: 600
+                                        }}>
+                                          <AlertCircle size={11} />
+                                          <span>{health.ymlHealth.warningCount} warning{health.ymlHealth.warningCount > 1 ? 's' : ''}</span>
+                                          {!isViewer && (
+                                            <button
+                                              type="button"
+                                              onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); }}
+                                              style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b45309' : '#fbbf24', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
+                                            >
+                                              Fix
+                                            </button>
+                                          )}
+                                        </span>
+                                      ) : (
+                                        <span style={{
+                                          background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(52, 211, 153, 0.12)',
+                                          border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(52, 211, 153, 0.3)',
+                                          color: theme === 'light' ? '#059669' : '#34d399',
+                                          padding: '2px 8px',
+                                          borderRadius: '10px',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '5px',
+                                          fontSize: '0.68rem',
+                                          fontWeight: 600
+                                        }}>
+                                          <ShieldCheck size={11} />
+                                          <span>Valid</span>
+                                        </span>
+                                      )
+                                    ) : (
+                                      <span style={{
+                                        background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                        border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                        color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                        padding: '2px 8px',
+                                        borderRadius: '10px',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        fontSize: '0.68rem',
+                                        fontWeight: 600
+                                      }}>
+                                        <AlertCircle size={11} />
+                                        <span>{health.ymlHealth.errors?.length || 0} error{health.ymlHealth.errors?.length > 1 ? 's' : ''}</span>
+                                        {!isViewer && (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); }}
+                                            style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b91c1c' : '#ef4444', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
+                                          >
+                                            Fix
+                                          </button>
+                                        )}
+                                      </span>
                                     )}
-                                  </span>
+                                    <ChevronDown 
+                                      size={12} 
+                                      style={{ 
+                                        color: 'var(--text-secondary)',
+                                        transform: expandedYamlDetails[item.name] ? 'rotate(180deg)' : 'rotate(0deg)',
+                                        transition: 'transform 0.2s ease',
+                                        marginLeft: '2px'
+                                      }} 
+                                    />
+                                  </div>
+                                </div>
+
+                                {expandedYamlDetails[item.name] && (
+                                  <div style={{
+                                    marginTop: '8px',
+                                    paddingTop: '8px',
+                                    borderTop: `1px solid ${theme === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '6px',
+                                    fontSize: '0.68rem',
+                                    color: 'var(--text-secondary)'
+                                  }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <span>File Name:</span>
+                                      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                                        {health.ymlHealth.filePath ? (health.ymlHealth.filePath.split('/').pop() || 'Unknown') : 'Unknown'}
+                                      </span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <span>Full Path:</span>
+                                      <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace', opacity: 0.8 }}>
+                                        {health.ymlHealth.filePath || 'Unknown'}
+                                      </span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <span>Validation Status:</span>
+                                      <span style={{ 
+                                        color: !health.ymlHealth.exists 
+                                          ? (theme === 'light' ? '#b91c1c' : '#ef4444') 
+                                          : !health.ymlHealth.valid 
+                                            ? (theme === 'light' ? '#b91c1c' : '#ef4444') 
+                                            : health.ymlHealth.warningCount > 0 
+                                              ? (theme === 'light' ? '#b45309' : '#fbbf24') 
+                                              : (theme === 'light' ? '#059669' : '#34d399'),
+                                        fontWeight: 700 
+                                      }}>
+                                        {!health.ymlHealth.exists 
+                                          ? 'Not Found' 
+                                          : !health.ymlHealth.valid 
+                                            ? 'Failed' 
+                                            : health.ymlHealth.warningCount > 0 
+                                              ? 'Passed with Warnings' 
+                                              : 'Passed'}
+                                      </span>
+                                    </div>
+                                    {health.ymlHealth.errors && health.ymlHealth.errors.length > 0 && (
+                                      <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <span style={{ fontWeight: 600, color: 'var(--error)' }}>Errors:</span>
+                                        {health.ymlHealth.errors.map((err: any, idx: number) => (
+                                          <div key={idx} style={{ 
+                                            background: theme === 'light' ? 'rgba(220, 38, 38, 0.04)' : 'rgba(239, 68, 68, 0.06)',
+                                            borderLeft: '2px solid var(--error)',
+                                            padding: '4px 6px',
+                                            borderRadius: '2px',
+                                            fontFamily: 'monospace',
+                                            fontSize: '0.62rem'
+                                          }}>
+                                            {err.message || err}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {health.ymlHealth.warnings && health.ymlHealth.warnings.length > 0 && (
+                                      <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <span style={{ fontWeight: 600, color: theme === 'light' ? '#b45309' : '#fbbf24' }}>Warnings:</span>
+                                        {health.ymlHealth.warnings.map((warn: any, idx: number) => (
+                                          <div key={idx} style={{ 
+                                            background: theme === 'light' ? 'rgba(245, 158, 11, 0.04)' : 'rgba(245, 158, 11, 0.06)',
+                                            borderLeft: `2px solid ${theme === 'light' ? '#b45309' : '#fbbf24'}`,
+                                            padding: '4px 6px',
+                                            borderRadius: '2px',
+                                            fontFamily: 'monospace',
+                                            fontSize: '0.62rem'
+                                          }}>
+                                            {warn.message || warn}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                             )}
 
                             {/* Dockerfile Health Details Card */}
                             {(item.type === 'backend' && health && health.dockerfileHealth) && (
-                              <div style={{
-                                flex: 1,
-                                minWidth: '180px',
-                                padding: '8px 12px',
-                                borderRadius: '10px',
-                                background: theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)',
-                                border: '1px solid var(--glass-border)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                gap: '8px',
-                                boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.03)',
-                                backdropFilter: 'blur(8px)',
-                                WebkitBackdropFilter: 'blur(8px)',
-                                fontSize: '0.72rem'
-                              }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
-                                  <Terminal size={11} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
-                                  <span>Dockerfile validation:</span>
-                                </div>
-                                {!health.dockerfileHealth.exists ? (
-                                  <span style={{
-                                    background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
-                                    border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
-                                    color: theme === 'light' ? '#b91c1c' : '#ef4444',
-                                    padding: '2px 8px',
-                                    borderRadius: '10px',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '5px',
-                                    fontSize: '0.68rem',
-                                    fontWeight: 600
-                                  }}>
-                                    <AlertCircle size={11} />
-                                    <span>Not Found</span>
-                                  </span>
-                                ) : health.dockerfileHealth.valid ? (
-                                  health.dockerfileHealth.warningCount > 0 ? (
-                                    <span style={{
-                                      background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
-                                      border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
-                                      color: theme === 'light' ? '#b45309' : '#fbbf24',
-                                      padding: '2px 8px',
-                                      borderRadius: '10px',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '5px',
-                                      fontSize: '0.68rem',
-                                      fontWeight: 600
-                                    }}>
-                                      <AlertCircle size={11} />
-                                      <span>{health.dockerfileHealth.warningCount} warning{health.dockerfileHealth.warningCount > 1 ? 's' : ''}</span>
-                                      {!isViewer && (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => { e.stopPropagation(); openDockerfileEditor(item, group); }}
-                                          style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b45309' : '#fbbf24', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
-                                        >
-                                          Fix
-                                        </button>
-                                      )}
-                                    </span>
-                                  ) : (
-                                    <span style={{
-                                      background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(52, 211, 153, 0.12)',
-                                      border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(52, 211, 153, 0.3)',
-                                      color: theme === 'light' ? '#059669' : '#34d399',
-                                      padding: '2px 8px',
-                                      borderRadius: '10px',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '5px',
-                                      fontSize: '0.68rem',
-                                      fontWeight: 600
-                                    }}>
-                                      <ShieldCheck size={11} />
-                                      <span>Valid</span>
-                                    </span>
-                                  )
-                                ) : (
-                                  <span style={{
-                                    background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
-                                    border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
-                                    color: theme === 'light' ? '#b91c1c' : '#ef4444',
-                                    padding: '2px 8px',
-                                    borderRadius: '10px',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '5px',
-                                    fontSize: '0.68rem',
-                                    fontWeight: 600
-                                  }}>
-                                    <AlertCircle size={11} />
-                                    <span>{health.dockerfileHealth.errors?.length || 0} error{health.dockerfileHealth.errors?.length > 1 ? 's' : ''}</span>
-                                    {!isViewer && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => { e.stopPropagation(); openDockerfileEditor(item, group); }}
-                                        style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b91c1c' : '#ef4444', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
-                                      >
-                                        Fix
-                                      </button>
+                              <div 
+                                style={{
+                                  flex: 1,
+                                  minWidth: '180px',
+                                  padding: '8px 12px',
+                                  borderRadius: '10px',
+                                  background: theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)',
+                                  border: '1px solid var(--glass-border)',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '4px',
+                                  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.03)',
+                                  backdropFilter: 'blur(8px)',
+                                  WebkitBackdropFilter: 'blur(8px)',
+                                  fontSize: '0.72rem',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  userSelect: 'none'
+                                }}
+                                onClick={() => setExpandedDockerDetails(prev => ({ ...prev, [item.name]: !prev[item.name] }))}
+                                onMouseEnter={(e) => e.currentTarget.style.background = theme === 'light' ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.05)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)'}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '8px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+                                    <Terminal size={11} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
+                                    <span>Dockerfile validation:</span>
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    {!health.dockerfileHealth.exists ? (
+                                      <span style={{
+                                        background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                        border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                        color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                        padding: '2px 8px',
+                                        borderRadius: '10px',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        fontSize: '0.68rem',
+                                        fontWeight: 600
+                                      }}>
+                                        <AlertCircle size={11} />
+                                        <span>Not Found</span>
+                                      </span>
+                                    ) : health.dockerfileHealth.valid ? (
+                                      health.dockerfileHealth.warningCount > 0 ? (
+                                        <span style={{
+                                          background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
+                                          border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
+                                          color: theme === 'light' ? '#b45309' : '#fbbf24',
+                                          padding: '2px 8px',
+                                          borderRadius: '10px',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '5px',
+                                          fontSize: '0.68rem',
+                                          fontWeight: 600
+                                        }}>
+                                          <AlertCircle size={11} />
+                                          <span>{health.dockerfileHealth.warningCount} warning{health.dockerfileHealth.warningCount > 1 ? 's' : ''}</span>
+                                          {!isViewer && (
+                                            <button
+                                              type="button"
+                                              onClick={(e) => { e.stopPropagation(); openDockerfileEditor(item, group); }}
+                                              style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b45309' : '#fbbf24', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
+                                            >
+                                              Fix
+                                            </button>
+                                          )}
+                                        </span>
+                                      ) : (
+                                        <span style={{
+                                          background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(52, 211, 153, 0.12)',
+                                          border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(52, 211, 153, 0.3)',
+                                          color: theme === 'light' ? '#059669' : '#34d399',
+                                          padding: '2px 8px',
+                                          borderRadius: '10px',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '5px',
+                                          fontSize: '0.68rem',
+                                          fontWeight: 600
+                                        }}>
+                                          <ShieldCheck size={11} />
+                                          <span>Valid</span>
+                                        </span>
+                                      )
+                                    ) : (
+                                      <span style={{
+                                        background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                        border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                        color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                        padding: '2px 8px',
+                                        borderRadius: '10px',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        fontSize: '0.68rem',
+                                        fontWeight: 600
+                                      }}>
+                                        <AlertCircle size={11} />
+                                        <span>{health.dockerfileHealth.errors?.length || 0} error{health.dockerfileHealth.errors?.length > 1 ? 's' : ''}</span>
+                                        {!isViewer && (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); openDockerfileEditor(item, group); }}
+                                            style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b91c1c' : '#ef4444', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
+                                          >
+                                            Fix
+                                          </button>
+                                        )}
+                                      </span>
                                     )}
-                                  </span>
+                                    <ChevronDown 
+                                      size={12} 
+                                      style={{ 
+                                        color: 'var(--text-secondary)',
+                                        transform: expandedDockerDetails[item.name] ? 'rotate(180deg)' : 'rotate(0deg)',
+                                        transition: 'transform 0.2s ease',
+                                        marginLeft: '2px'
+                                      }} 
+                                    />
+                                  </div>
+                                </div>
+
+                                {expandedDockerDetails[item.name] && (
+                                  <div style={{
+                                    marginTop: '8px',
+                                    paddingTop: '8px',
+                                    borderTop: `1px solid ${theme === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '6px',
+                                    fontSize: '0.68rem',
+                                    color: 'var(--text-secondary)'
+                                  }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <span>File Name:</span>
+                                      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Dockerfile</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <span>Full Path:</span>
+                                      <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace', opacity: 0.8 }}>Dockerfile</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <span>Validation Status:</span>
+                                      <span style={{ 
+                                        color: !health.dockerfileHealth.exists 
+                                          ? (theme === 'light' ? '#b91c1c' : '#ef4444') 
+                                          : !health.dockerfileHealth.valid 
+                                            ? (theme === 'light' ? '#b91c1c' : '#ef4444') 
+                                            : health.dockerfileHealth.warningCount > 0 
+                                              ? (theme === 'light' ? '#b45309' : '#fbbf24') 
+                                              : (theme === 'light' ? '#059669' : '#34d399'),
+                                        fontWeight: 700 
+                                      }}>
+                                        {!health.dockerfileHealth.exists 
+                                          ? 'Not Found' 
+                                          : !health.dockerfileHealth.valid 
+                                            ? 'Failed' 
+                                            : health.dockerfileHealth.warningCount > 0 
+                                              ? 'Passed with Warnings' 
+                                              : 'Passed'}
+                                      </span>
+                                    </div>
+                                    {health.dockerfileHealth.errors && health.dockerfileHealth.errors.length > 0 && (
+                                      <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <span style={{ fontWeight: 600, color: 'var(--error)' }}>Errors:</span>
+                                        {health.dockerfileHealth.errors.map((err: any, idx: number) => (
+                                          <div key={idx} style={{ 
+                                            background: theme === 'light' ? 'rgba(220, 38, 38, 0.04)' : 'rgba(239, 68, 68, 0.06)',
+                                            borderLeft: '2px solid var(--error)',
+                                            padding: '4px 6px',
+                                            borderRadius: '2px',
+                                            fontFamily: 'monospace',
+                                            fontSize: '0.62rem'
+                                          }}>
+                                            {err.message || err}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {health.dockerfileHealth.warnings && health.dockerfileHealth.warnings.length > 0 && (
+                                      <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <span style={{ fontWeight: 600, color: theme === 'light' ? '#b45309' : '#fbbf24' }}>Warnings:</span>
+                                        {health.dockerfileHealth.warnings.map((warn: any, idx: number) => (
+                                          <div key={idx} style={{ 
+                                            background: theme === 'light' ? 'rgba(245, 158, 11, 0.04)' : 'rgba(245, 158, 11, 0.06)',
+                                            borderLeft: `2px solid ${theme === 'light' ? '#b45309' : '#fbbf24'}`,
+                                            padding: '4px 6px',
+                                            borderRadius: '2px',
+                                            fontFamily: 'monospace',
+                                            fontSize: '0.62rem'
+                                          }}>
+                                            {warn.message || warn}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                             )}
