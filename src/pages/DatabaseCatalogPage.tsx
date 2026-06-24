@@ -1490,8 +1490,9 @@ mysqli_real_connect($conn, '${selectedDbServer.host}', 'estevia_db_user', $passw
                     ) : (() => {
                       const dbSubnetId = selectedDbServer.delegatedSubnetResourceId || '';
                       const dbVnetId = dbSubnetId ? dbSubnetId.toLowerCase().split('/subnets/')[0] : '';
-                      const dbVnetName = dbSubnetId ? dbSubnetId.split('/virtualNetworks/')[1]?.split('/')[0] : 'Unknown VNet';
+                      const dbVnetName = dbSubnetId ? dbSubnetId.split(/\/virtualnetworks\//i)[1]?.split('/')[0] : 'Unknown VNet';
                       const dbSubnetName = dbSubnetId ? dbSubnetId.split('/subnets/')[1] : 'Unknown Subnet';
+                      console.log(`[VNet Debug] Database Catalog — DB Server: ${selectedDbServer.name} | DB Subnet ID: ${dbSubnetId} | Resolved DB VNet: ${dbVnetName}`);
 
                       // Find all compute resources
                       const computeApps = apps.filter(a => ['backend', 'cluster', 'vm'].includes(a.type));
@@ -1520,8 +1521,9 @@ mysqli_real_connect($conn, '${selectedDbServer.host}', 'estevia_db_user', $passw
 
                               if (compSubnetId) {
                                 const compVnetId = compSubnetId.toLowerCase().split('/subnets/')[0];
-                                const compVnetName = compSubnetId.split('/virtualNetworks/')[1]?.split('/')[0] || 'Compute VNet';
+                                const compVnetName = compSubnetId.split(/\/virtualnetworks\//i)[1]?.split('/')[0] || 'Compute VNet';
                                 const compSubnetName = compSubnetId.split('/subnets/')[1] || 'Subnet';
+                                console.log(`[VNet Debug] Database Catalog — Compute App: ${app.name} | Compute Subnet ID: ${compSubnetId} | Resolved Compute VNet: ${compVnetName}`);
 
                                 if (compVnetId === dbVnetId) {
                                   statusText = 'Same Virtual Network (Direct line-of-sight)';

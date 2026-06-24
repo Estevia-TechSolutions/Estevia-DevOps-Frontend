@@ -930,7 +930,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     if (details.vnetName) return details.vnetName;
     const subnetId = details.vnetSubnetID || details.delegatedSubnetResourceId || details.agentPoolProfiles?.[0]?.vnetSubnetID;
     if (subnetId) {
-      const match = subnetId.split('/virtualNetworks/')[1]?.split('/')[0];
+      const parts = subnetId.split(/\/virtualnetworks\//i);
+      const match = parts[1]?.split('/')[0];
+      console.log(`[VNet Debug] App: ${app.name} | Subnet ID: ${subnetId} | Resolved: ${match}`);
       if (match) return match;
     }
     return null;
@@ -946,6 +948,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     // 1. SWA (frontend) Warning Check
     if (item.type === 'frontend') {
       const configuredBackendUrl = item.azureResourceDetails?.configuredBackendUrl;
+      console.log(`[VNet Debug] SWA: ${item.name} | Configured Backend URL: ${configuredBackendUrl}`);
       if (!configuredBackendUrl) {
         return {
           status: 'unverified',
@@ -1019,6 +1022,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     // 2. ACA (backend) Warning Check
     if (item.type === 'backend') {
       const configuredDbHost = item.azureResourceDetails?.configuredDbHost;
+      console.log(`[VNet Debug] Backend: ${item.name} | Resolved VNet: ${itemVnet} | Configured DB Host: ${configuredDbHost}`);
       if (!configuredDbHost) {
         return {
           status: 'unverified',
@@ -1048,7 +1052,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       if (matchingDb) {
         const dbDetails = matchingDb.azureResourceDetails;
         const dbSubnetId = dbDetails?.delegatedSubnetResourceId || '';
-        const dbVnetName = dbSubnetId.split('/virtualNetworks/')[1]?.split('/')[0];
+        const dbVnetName = dbSubnetId.split(/\/virtualnetworks\//i)[1]?.split('/')[0];
+        console.log(`[VNet Debug] Backend: ${item.name} | DB: ${matchingDb.name} | DB Subnet ID: ${dbSubnetId} | Resolved DB VNet: ${dbVnetName}`);
 
         if (dbVnetName) {
           const isDevVnet = itemVnet.toLowerCase() === 'estevia-dev-vnet';

@@ -2515,6 +2515,7 @@ function App() {
           const cachedData = await cachedRes.json();
           if (cachedData.success && cachedData.apps && cachedData.apps.length > 0) {
             console.log('[DevOps] Instantly loaded cached resources:', cachedData.apps.length);
+            console.log('[DevOps Debug Logs] Cached Apps List JSON String:\n', JSON.stringify(cachedData.apps, null, 2));
             setApps((currentApps) => {
               // Only load cached apps if the live scan hasn't already returned fresh results
               if (currentApps.length === 0) {
@@ -2587,6 +2588,7 @@ function App() {
           const data = await res.json();
           if (data.success && data.apps && data.apps.length > 0) {
             console.log('[DevOps Incremental Polling] Received progressive app updates:', data.apps.length);
+            console.log('[DevOps Debug Logs] Progressive Polled Apps List JSON String:\n', JSON.stringify(data.apps, null, 2));
             setApps(data.apps);
           }
         } catch (e) {
@@ -3214,6 +3216,7 @@ function App() {
       if (data.success) {
         const appsCount = data.apps ? data.apps.length : 0;
         console.log(`[DevOps Scan] [SUCCESS] Discovered ${appsCount} resources.`, data.apps);
+        console.log('[DevOps Debug Logs] Fresh Scan Apps List JSON String:\n', JSON.stringify(data.apps, null, 2));
         if (appsCount === 0 && !buildsOnly) {
           console.warn('[DevOps Scan] [WARN] Scan returned 0 active resources. Check Azure subscription permissions or resource group filters.');
         }
