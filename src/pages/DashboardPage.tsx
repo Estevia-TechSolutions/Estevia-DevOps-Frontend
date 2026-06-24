@@ -32,7 +32,8 @@ import {
   Download,
   Clock,
   Network,
-  FileText
+  FileText,
+  Info
 } from 'lucide-react';
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE || `http://${window.location.hostname}:5005/api`;
@@ -973,7 +974,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const checkNetworkWarnings = (
     item: AppResource,
     group: AppGroup
-  ): { status: 'verified' | 'warning' | 'unverified'; message: string; detail: string; sourceFile?: string; sourceContent?: string; sourceAppName?: string; scrapedSearchedFiles?: string[] } | null => {
+  ): { status: 'verified' | 'warning' | 'unverified' | 'critical' | 'info'; message: string; detail: string; sourceFile?: string; sourceContent?: string; sourceAppName?: string; scrapedSearchedFiles?: string[] } | null => {
     const themeEnv = getEnvTag(item).label; // 'DEV' | 'QA' | 'PROD'
     const itemVnet = getVnetName(item);
 
@@ -986,9 +987,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           ? item.azureResourceDetails.scrapedSearchedFiles.join(', ')
           : 'standard environment & pipeline files';
         return {
-          status: 'unverified',
-          message: 'Unverified',
-          detail: `Could not validate network: Backend API details were not found in the SWA codebase (attempted to read: ${filesList}).`,
+          status: 'info',
+          message: 'Static SWA Only',
+          detail: `This frontend application has no configured backend URL. It may be a static marketing or documentation website.`,
           sourceFile: item.azureResourceDetails?.scrapedSourceFile,
           sourceContent: item.azureResourceDetails?.scrapedSourceContent,
           sourceAppName: item.name,
@@ -1035,7 +1036,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           if (backendValidation && backendValidation.status !== 'verified') {
             return {
               status: backendValidation.status,
-              message: backendValidation.status === 'warning' ? 'Backend Warning' : 'Backend Unverified',
+              message: backendValidation.status === 'warning' ? 'Backend Warning' : backendValidation.status === 'info' ? 'Backend Info' : 'Backend Critical',
               detail: `Network Warning: SWA is connected to backend '${matchingBackend.name}', but this backend has a database connection issue: ${backendValidation.detail}`,
               sourceFile: backendValidation.sourceFile || matchingBackend.azureResourceDetails?.scrapedSourceFile,
               sourceContent: backendValidation.sourceContent || matchingBackend.azureResourceDetails?.scrapedSourceContent,
@@ -1092,8 +1093,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           ? item.azureResourceDetails.scrapedSearchedFiles.join(', ')
           : 'standard environment & pipeline files';
         return {
-          status: 'unverified',
-          message: 'Unverified',
+          status: 'critical',
+          message: 'Critical',
           detail: `Could not validate database network: DB_HOST details were not found in the backend codebase (attempted to read: ${filesList}).`,
           sourceFile: item.azureResourceDetails?.scrapedSourceFile,
           sourceContent: item.azureResourceDetails?.scrapedSourceContent,
@@ -1104,8 +1105,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
       if (!itemVnet) {
         return {
-          status: 'unverified',
-          message: 'Unverified',
+          status: 'critical',
+          message: 'Critical',
           detail: 'Could not validate database network: VNet / VPC details are not resolved for this Container App.',
           sourceFile: item.azureResourceDetails?.scrapedSourceFile,
           sourceContent: item.azureResourceDetails?.scrapedSourceContent,
@@ -2471,36 +2472,110 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   )}
 
                   {/* Network Issues Badge */}
-                  {!isLoading && group.envs.some(app => {
-                    const validation = checkNetworkWarnings(app, group);
-                    return validation && (validation.status === 'warning' || validation.status === 'unverified');
-                  }) && (
-                    <span 
-                      style={{
-                        background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
-                        border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
-                        padding: '3px 8px',
-                        borderRadius: '12px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontSize: '0.74rem',
-                        color: theme === 'light' ? '#b45309' : '#fbbf24',
-                        boxShadow: theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.05)' : '0 0 8px rgba(245, 158, 11, 0.2)',
-                        transition: 'all 0.2s ease',
-                        cursor: 'default'
-                      }}
-                      onMouseOver={(ev) => {
-                        ev.currentTarget.style.transform = 'scale(1.03)';
-                      }}
-                      onMouseOut={(ev) => {
-                        ev.currentTarget.style.transform = 'scale(1)';
-                      }}
-                    >
-                      <Network size={11} style={{ color: theme === 'light' ? '#b45309' : '#fbbf24' }} />
-                      <span>Network Issues</span>
-                    </span>
-                  )}
+                  {(() => {
+                    if (isLoading) return null;
+                    let hasCritical = false;
+                    let hasWarning = false;
+                    let hasInfo = false;
+                    
+                    for (const app of group.envs) {
+                      const validation = checkNetworkWarnings(app, group);
+                      if (validation) {
+                        if (validation.status === 'critical' || validation.status === 'unverified') hasCritical = true;
+                        else if (validation.status === 'warning') hasWarning = true;
+                        else if (validation.status === 'info') hasInfo = true;
+                      }
+                    }
+
+                    if (hasCritical) {
+                      return (
+                        <span 
+                          style={{
+                            background: theme === 'light' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                            border: theme === 'light' ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                            padding: '3px 8px',
+                            borderRadius: '12px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            fontSize: '0.74rem',
+                            color: theme === 'light' ? '#b91c1c' : '#f87171',
+                            boxShadow: theme === 'light' ? '0 1px 3px rgba(239, 68, 68, 0.05)' : '0 0 8px rgba(239, 68, 68, 0.2)',
+                            transition: 'all 0.2s ease',
+                            cursor: 'default'
+                          }}
+                          onMouseOver={(ev) => {
+                            ev.currentTarget.style.transform = 'scale(1.03)';
+                          }}
+                          onMouseOut={(ev) => {
+                            ev.currentTarget.style.transform = 'scale(1)';
+                          }}
+                        >
+                          <AlertCircle size={11} style={{ color: theme === 'light' ? '#b91c1c' : '#f87171' }} />
+                          <span>Critical Network Issue</span>
+                        </span>
+                      );
+                    }
+                    if (hasWarning) {
+                      return (
+                        <span 
+                          style={{
+                            background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
+                            border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
+                            padding: '3px 8px',
+                            borderRadius: '12px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            fontSize: '0.74rem',
+                            color: theme === 'light' ? '#b45309' : '#fbbf24',
+                            boxShadow: theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.05)' : '0 0 8px rgba(245, 158, 11, 0.2)',
+                            transition: 'all 0.2s ease',
+                            cursor: 'default'
+                          }}
+                          onMouseOver={(ev) => {
+                            ev.currentTarget.style.transform = 'scale(1.03)';
+                          }}
+                          onMouseOut={(ev) => {
+                            ev.currentTarget.style.transform = 'scale(1)';
+                          }}
+                        >
+                          <AlertTriangle size={11} style={{ color: theme === 'light' ? '#b45309' : '#fbbf24' }} />
+                          <span>Network Warning</span>
+                        </span>
+                      );
+                    }
+                    if (hasInfo) {
+                      return (
+                        <span 
+                          style={{
+                            background: theme === 'light' ? 'rgba(14, 165, 233, 0.08)' : 'rgba(14, 165, 233, 0.12)',
+                            border: theme === 'light' ? '1px solid rgba(14, 165, 233, 0.25)' : '1px solid rgba(14, 165, 233, 0.3)',
+                            padding: '3px 8px',
+                            borderRadius: '12px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            fontSize: '0.74rem',
+                            color: theme === 'light' ? '#0369a1' : '#38bdf8',
+                            boxShadow: theme === 'light' ? '0 1px 3px rgba(14, 165, 233, 0.05)' : '0 0 8px rgba(14, 165, 233, 0.2)',
+                            transition: 'all 0.2s ease',
+                            cursor: 'default'
+                          }}
+                          onMouseOver={(ev) => {
+                            ev.currentTarget.style.transform = 'scale(1.03)';
+                          }}
+                          onMouseOut={(ev) => {
+                            ev.currentTarget.style.transform = 'scale(1)';
+                          }}
+                        >
+                          <Info size={11} style={{ color: theme === 'light' ? '#0369a1' : '#38bdf8' }} />
+                          <span>Network Info</span>
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
 
                   {/* Scan Error Badge */}
                   {!isLoading && health?.error && (
@@ -3549,12 +3624,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               if (!validation) return null;
                               const pillIcon = validation.status === 'verified' 
                                 ? <ShieldCheck size={11} /> 
-                                : <AlertCircle size={11} />;
+                                : validation.status === 'warning'
+                                  ? <AlertTriangle size={11} />
+                                  : validation.status === 'info'
+                                    ? <Info size={11} />
+                                    : <AlertCircle size={11} />;
                               const pillStyles = validation.status === 'verified'
                                 ? { background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', color: '#10b981' }
                                 : validation.status === 'warning'
                                   ? { background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)', color: '#fbbf24' }
-                                  : { background: 'rgba(220, 38, 38, 0.08)', border: '1px solid rgba(220, 38, 38, 0.25)', color: '#ef4444' };
+                                  : validation.status === 'info'
+                                    ? { background: 'rgba(14, 165, 233, 0.08)', border: '1px solid rgba(14, 165, 233, 0.25)', color: '#38bdf8' }
+                                    : { background: 'rgba(220, 38, 38, 0.08)', border: '1px solid rgba(220, 38, 38, 0.25)', color: '#ef4444' };
 
                               return (
                                 <div style={{
