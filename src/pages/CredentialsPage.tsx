@@ -13,11 +13,11 @@ interface CredentialsPageProps {
   credentialStatus: Record<string, boolean>;
   savingCredentials: string | null;
   credMsg: { type: 'success' | 'error'; text: string } | null;
-  handleLoadSavedCredential: (type: 'github' | 'godaddy' | 'azure_devops') => void;
+  handleLoadSavedCredential: (type: 'github' | 'godaddy' | 'azure_devops' | 'azure') => void;
   handleSaveCredential: (type: string, data: any, label: string) => void;
-
   godaddyKey: string;
   setGodaddyKey: (val: string) => void;
+
   godaddySecret: string;
   setGodaddySecret: (val: string) => void;
   showGodaddyKey: boolean;
@@ -84,7 +84,22 @@ interface CredentialsPageProps {
   setLogAnalyticsWorkspaceId: (val: string) => void;
   testingCredential: string | null;
   validationResult: Record<string, { success: boolean; message: string }>;
-  handleValidateCredential: (provider: 'github' | 'godaddy' | 'azure_devops') => void;
+  handleValidateCredential: (provider: 'github' | 'godaddy' | 'azure_devops' | 'azure') => void;
+  azureClientId: string;
+  setAzureClientId: (val: string) => void;
+  azureClientSecret: string;
+  setAzureClientSecret: (val: string) => void;
+  azureTenantId: string;
+  setAzureTenantId: (val: string) => void;
+  showAzureClientId: boolean;
+  setShowAzureClientId: (val: boolean) => void;
+  showAzureClientSecret: boolean;
+  setShowAzureClientSecret: (val: boolean) => void;
+  showAzureTenantId: boolean;
+  setShowAzureTenantId: (val: boolean) => void;
+  decryptedAzureClientId: string;
+  decryptedAzureClientSecret: string;
+  decryptedAzureTenantId: string;
 }
 
 type CredTab = 'github' | 'godaddy' | 'azure' | 'keyvault' | 'teams';
@@ -223,6 +238,9 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
   teamsWebhookToken,
   logAnalyticsWorkspaceId, setLogAnalyticsWorkspaceId,
   testingCredential, validationResult, handleValidateCredential,
+  azureClientId, setAzureClientId, azureClientSecret, setAzureClientSecret, azureTenantId, setAzureTenantId,
+  showAzureClientId, setShowAzureClientId, showAzureClientSecret, setShowAzureClientSecret, showAzureTenantId, setShowAzureTenantId,
+  decryptedAzureClientId, decryptedAzureClientSecret, decryptedAzureTenantId,
 }) => {
   const [activeTab, setActiveTab] = useState<CredTab>('github');
   const [discoveringWorkspace, setDiscoveringWorkspace] = useState(false);
@@ -811,6 +829,123 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                             }}>
                               {validationResult.azure_devops.success ? '🟢 ' : '🔴 '}
                               {validationResult.azure_devops.message}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </SectionBlock>
+
+                  <SectionBlock
+                    title="Azure Service Principal Credentials"
+                    subtitle="Powers direct Azure resource metrics collection & container logs."
+                    accent="#ca8a04"
+                    status={credentialStatus.azure}
+                    revealShown={showAzureClientSecret && (azureClientId !== '' || azureClientSecret !== '' || azureTenantId !== '')}
+                    onReveal={() => {
+                      if ((azureClientId !== '' || azureClientSecret !== '' || azureTenantId !== '') && showAzureClientSecret) {
+                        setAzureClientId('••••••••••••••••••••');
+                        setAzureClientSecret('••••••••••••••••••••');
+                        setAzureTenantId('••••••••••••••••••••');
+                        setShowAzureClientId(false);
+                        setShowAzureClientSecret(false);
+                        setShowAzureTenantId(false);
+                      } else {
+                        handleLoadSavedCredential('azure');
+                      }
+                    }}
+                    disabledReveal={!canEdit}
+                  >
+                    <div style={{ display: 'grid', gap: '12px' }}>
+                      <div>
+                        <FieldLabel>Azure Tenant ID</FieldLabel>
+                        <PasswordInput
+                          value={azureTenantId} onChange={setAzureTenantId}
+                          show={showAzureTenantId} onToggle={() => setShowAzureTenantId(!showAzureTenantId)}
+                          placeholder="Tenant ID Guid" disabled={!canEdit}
+                        />
+                      </div>
+                      <div>
+                        <FieldLabel>Azure Client ID</FieldLabel>
+                        <PasswordInput
+                          value={azureClientId} onChange={setAzureClientId}
+                          show={showAzureClientId} onToggle={() => setShowAzureClientId(!showAzureClientId)}
+                          placeholder="App Registration Client ID Guid" disabled={!canEdit}
+                        />
+                      </div>
+                      <div>
+                        <FieldLabel>Azure Client Secret</FieldLabel>
+                        <PasswordInput
+                          value={azureClientSecret} onChange={setAzureClientSecret}
+                          show={showAzureClientSecret} onToggle={() => setShowAzureClientSecret(!showAzureClientSecret)}
+                          placeholder="Client Secret password value" disabled={!canEdit}
+                        />
+                      </div>
+                      <button className="btn-primary" style={{ width: '100%' }}
+                        onClick={() => handleSaveCredential('azure', { clientId: azureClientId, clientSecret: azureClientSecret, tenantId: azureTenantId }, 'Azure Service Principal')}
+                        disabled={
+                          !canEdit || 
+                          savingCredentials === 'azure' || 
+                          !azureClientId || !azureClientSecret || !azureTenantId || 
+                          azureClientId === '••••••••••••••••••••' || 
+                          azureClientSecret === '••••••••••••••••••••' || 
+                          azureTenantId === '••••••••••••••••••••' || 
+                          (!!decryptedAzureClientId && 
+                            azureClientId === decryptedAzureClientId && 
+                            azureClientSecret === decryptedAzureClientSecret && 
+                            azureTenantId === decryptedAzureTenantId)
+                        }
+                      >
+                        {savingCredentials === 'azure' ? 'Saving...' : 'Save Azure Credentials'}
+                      </button>
+
+                      {credentialStatus.azure && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                          <button 
+                            type="button"
+                            className="btn-secondary"
+                            style={{ 
+                              width: '100%', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center', 
+                              gap: '6px',
+                              padding: '8px 12px',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                              borderRadius: '8px',
+                              border: '1px solid var(--glass-border)',
+                              background: 'rgba(255,255,255,0.02)',
+                              color: 'var(--text-primary)',
+                              cursor: testingCredential === 'azure' ? 'not-allowed' : 'pointer'
+                            }}
+                            onClick={() => handleValidateCredential('azure')}
+                            disabled={testingCredential === 'azure'}
+                          >
+                            {testingCredential === 'azure' ? (
+                              <>
+                                <Loader size={12} className="spin-anim" />
+                                <span>Testing Connection...</span>
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw size={12} />
+                                <span>Test Connection</span>
+                              </>
+                            )}
+                          </button>
+                          {validationResult.azure && (
+                            <div style={{ 
+                              padding: '8px 12px', 
+                              borderRadius: '8px', 
+                              fontSize: '0.75rem',
+                              border: `1px solid ${validationResult.azure.success ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                              backgroundColor: validationResult.azure.success ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)',
+                              color: validationResult.azure.success ? 'var(--success)' : 'var(--error)',
+                              lineHeight: '1.4'
+                            }}>
+                              {validationResult.azure.success ? '🟢 ' : '🔴 '}
+                              {validationResult.azure.message}
                             </div>
                           )}
                         </div>

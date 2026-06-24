@@ -856,14 +856,23 @@ function App() {
   const [godaddyKey, setGodaddyKey] = useState('');
   const [godaddySecret, setGodaddySecret] = useState('');
   const [devopsPat, setDevopsPat] = useState('');
+  const [azureClientId, setAzureClientId] = useState('');
+  const [azureClientSecret, setAzureClientSecret] = useState('');
+  const [azureTenantId, setAzureTenantId] = useState('');
   const [showGithubToken, setShowGithubToken] = useState(false);
   const [showGodaddyKey, setShowGodaddyKey] = useState(false);
   const [showGodaddySecret, setShowGodaddySecret] = useState(false);
   const [showDevopsPat, setShowDevopsPat] = useState(false);
+  const [showAzureClientId, setShowAzureClientId] = useState(false);
+  const [showAzureClientSecret, setShowAzureClientSecret] = useState(false);
+  const [showAzureTenantId, setShowAzureTenantId] = useState(false);
   const [decryptedGithubToken, setDecryptedGithubToken] = useState('');
   const [decryptedGodaddyKey, setDecryptedGodaddyKey] = useState('');
   const [decryptedGodaddySecret, setDecryptedGodaddySecret] = useState('');
   const [decryptedDevopsPat, setDecryptedDevopsPat] = useState('');
+  const [decryptedAzureClientId, setDecryptedAzureClientId] = useState('');
+  const [decryptedAzureClientSecret, setDecryptedAzureClientSecret] = useState('');
+  const [decryptedAzureTenantId, setDecryptedAzureTenantId] = useState('');
   const [credentialStatus, setCredentialStatus] = useState<Record<string, boolean>>({});
   const [savingCredentials, setSavingCredentials] = useState<string | null>(null);
   const [credMsg, setCredMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -873,7 +882,7 @@ function App() {
   const [testingCredential, setTestingCredential] = useState<string | null>(null);
   const [validationResult, setValidationResult] = useState<Record<string, { success: boolean; message: string }>>({});
 
-  const handleValidateCredential = async (provider: 'github' | 'godaddy' | 'azure_devops') => {
+  const handleValidateCredential = async (provider: 'github' | 'godaddy' | 'azure_devops' | 'azure') => {
     setTestingCredential(provider);
     setValidationResult(prev => {
       const copy = { ...prev };
@@ -2794,6 +2803,11 @@ function App() {
         if (statusMap.azure_devops) {
           setDevopsPat(prev => prev === '' ? '••••••••••••••••••••' : prev);
         }
+        if (statusMap.azure) {
+          setAzureClientId(prev => prev === '' ? '••••••••••••••••••••' : prev);
+          setAzureClientSecret(prev => prev === '' ? '••••••••••••••••••••' : prev);
+          setAzureTenantId(prev => prev === '' ? '••••••••••••••••••••' : prev);
+        }
       }
     } catch (e) {
       console.error('Failed to load credential status:', e);
@@ -3319,6 +3333,14 @@ function App() {
           setDevopsPat('');
           setDecryptedDevopsPat('');
         }
+        if (provider === 'azure') {
+          setAzureClientId('');
+          setAzureClientSecret('');
+          setAzureTenantId('');
+          setDecryptedAzureClientId('');
+          setDecryptedAzureClientSecret('');
+          setDecryptedAzureTenantId('');
+        }
       } else {
         setCredMsg({ type: 'error', text: data.message || 'Failed to save credentials.' });
         showToast('Credentials Save Failed', data.message || `Failed to save ${provider.toUpperCase()} credentials.`, 'error');
@@ -3354,6 +3376,16 @@ function App() {
             setDevopsPat(data.secrets.pat || '');
             setDecryptedDevopsPat(data.secrets.pat || '');
             setShowDevopsPat(true);
+          } else if (provider === 'azure') {
+            setAzureClientId(data.secrets.clientId || '');
+            setAzureClientSecret(data.secrets.clientSecret || '');
+            setAzureTenantId(data.secrets.tenantId || '');
+            setDecryptedAzureClientId(data.secrets.clientId || '');
+            setDecryptedAzureClientSecret(data.secrets.clientSecret || '');
+            setDecryptedAzureTenantId(data.secrets.tenantId || '');
+            setShowAzureClientId(true);
+            setShowAzureClientSecret(true);
+            setShowAzureTenantId(true);
           }
         } else {
           alert(data.message || 'Failed to decrypt credentials.');
@@ -5781,6 +5813,21 @@ function App() {
             showDevopsPat={showDevopsPat}
             setShowDevopsPat={setShowDevopsPat}
             decryptedDevopsPat={decryptedDevopsPat}
+            azureClientId={azureClientId}
+            setAzureClientId={setAzureClientId}
+            azureClientSecret={azureClientSecret}
+            setAzureClientSecret={setAzureClientSecret}
+            azureTenantId={azureTenantId}
+            setAzureTenantId={setAzureTenantId}
+            showAzureClientId={showAzureClientId}
+            setShowAzureClientId={setShowAzureClientId}
+            showAzureClientSecret={showAzureClientSecret}
+            setShowAzureClientSecret={setShowAzureClientSecret}
+            showAzureTenantId={showAzureTenantId}
+            setShowAzureTenantId={setShowAzureTenantId}
+            decryptedAzureClientId={decryptedAzureClientId}
+            decryptedAzureClientSecret={decryptedAzureClientSecret}
+            decryptedAzureTenantId={decryptedAzureTenantId}
             azureSubscriptionId={azureSubscriptionId}
             setAzureSubscriptionId={setAzureSubscriptionId}
             azureResourceGroup={azureResourceGroup}
