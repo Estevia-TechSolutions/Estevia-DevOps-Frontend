@@ -31,7 +31,7 @@ interface GuidePageProps {
   theme?: 'dark' | 'light';
 }
 
-type TabType = 'getting-started' | 'capabilities' | 'branch-matching' | 'security' | 'entra-manual' | 'azure-devops-cicd' | 'github-actions-cicd' | 'faq' | 'roadmap' | 'eva-ai';
+type TabType = 'getting-started' | 'capabilities' | 'branch-matching' | 'security' | 'entra-manual' | 'azure-devops-cicd' | 'github-actions-cicd' | 'validation-sanity' | 'faq' | 'roadmap' | 'eva-ai';
 
 export const GuidePage: React.FC<GuidePageProps> = () => {
   const [activeSubTab, setActiveSubTab] = useState<TabType>('getting-started');
@@ -347,6 +347,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
     { id: 'entra-manual', label: 'Manual Entra ID Setup', icon: Key, desc: 'Manual App Registration guide' },
     { id: 'azure-devops-cicd', label: 'Azure DevOps CI/CD', icon: Globe, desc: 'Azure Pipelines setup & guide' },
     { id: 'github-actions-cicd', label: 'GitHub Actions CI/CD', icon: GitBranch, desc: 'GitHub workflow setup & guide' },
+    { id: 'validation-sanity', label: 'Validation & Sanity', icon: ShieldCheck, desc: 'Network, YAML & Docker checks' },
     { id: 'eva-ai', label: 'Eva AI & Analyst', icon: MessageSquare, desc: 'CloudOps virtual assistant guides' },
     { id: 'faq', label: 'FAQs & Troubleshooting', icon: HelpCircle, desc: 'Common queries & issues' },
     { id: 'roadmap', label: 'Platform Roadmap', icon: Compass, desc: 'AWS & Azure future features' }
@@ -1358,6 +1359,104 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                     <li>The backend triggers automated scaling updates, VM schedule rules, or tier demotions on Azure Resource Manager.</li>
                     <li>All actions are tracked securely in the **Enterprise Audit Trail** with distinct action types (`APPLY_REMEDIATION`, `RESOURCE_POWER_CONTROL`) and user identifiers for unified compliance.</li>
                   </ol>
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {activeSubTab === 'validation-sanity' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                  System Validation &amp; Sanity Audits
+                </h3>
+                <p style={{ margin: '6px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                  EvaOps runs automated, multi-tiered sanity validation routines across your codebase and cloud resource metadata to guarantee deployment integrity.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                
+                {/* 1. Network Connectivity Validation */}
+                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <ShieldCheck size={16} />
+                    Network Connectivity &amp; DB Binding Validation
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                    Ensures your web frontend applications can talk to their respective backend API endpoints, and your backend containers have authorized, private database paths.
+                  </p>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', marginTop: '4px' }}>
+                    <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
+                      <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>SWA-to-Backend Resolution</strong>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
+                        Scans repository env files (e.g. <code>.env.production</code>, <code>.env.deployment</code>) for backend URLs. If repo scanning fails, it queries the Azure ARM Static Web App settings for keys like <code>VITE_API_URL</code> or <code>REACT_APP_API_URL</code>.
+                      </span>
+                    </div>
+                    
+                    <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
+                      <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>ACA-to-Database Resolution</strong>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
+                        Checks the codebase and ARM container definitions for <code>DB_HOST</code>. If DB_HOST maps to an ACA secret reference, it queries the Azure Container Apps <code>listSecrets</code> API to decrypt the reference, validating subnet connectivity and virtual network integration.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Pipeline YAML Validation */}
+                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#f97316', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <GitBranch size={16} />
+                    Pipeline Configuration &amp; Syntax Checker
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                    Automatically analyzes pipeline definition files to discover missing parameters or syntax errors before trigger execution.
+                  </p>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', marginTop: '4px' }}>
+                    <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
+                      <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>Azure Pipelines (YAML)</strong>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
+                        Validates the existence and structural components of <code>azure-pipelines.yml</code>. Checks for required stages, trigger patterns, system variables, variable groups references, and correct service connection bindings.
+                      </span>
+                    </div>
+                    
+                    <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
+                      <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>GitHub Actions (YAML)</strong>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
+                        Analyzes <code>.github/workflows/deploy.yml</code> syntax, identifying missing target environments, invalid permissions blocks, outdated action dependency versions, and incorrect Azure login action secrets setup.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Dockerfile Sanity Validation */}
+                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#0ea5e9', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Terminal size={16} />
+                    Dockerfile Security &amp; Optimization Audits
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                    Inspects your Docker configurations to identify potential vulnerabilities, build bloat, and port configuration issues.
+                  </p>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', marginTop: '4px' }}>
+                    <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
+                      <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>Multi-Stage Optimization</strong>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
+                        Verifies that build tools are separated from the final runtime image layer. Scans for multi-stage builders to minimize container sizes, speeding up deployment times and reducing attack surfaces.
+                      </span>
+                    </div>
+                    
+                    <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
+                      <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>Security &amp; Port Controls</strong>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
+                        Audits for security warnings (e.g. running containers as root users). Inspects <code>EXPOSE</code> instructions to verify that target port mapping matches the Container App ingress profile.
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
               </div>

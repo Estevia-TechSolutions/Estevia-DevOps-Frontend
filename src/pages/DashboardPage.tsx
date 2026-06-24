@@ -31,7 +31,8 @@ import {
   Check,
   Download,
   Clock,
-  Network
+  Network,
+  FileText
 } from 'lucide-react';
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE || `http://${window.location.hostname}:5005/api`;
@@ -209,7 +210,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     return "Waiting for cloud providers to respond... (Almost finished)";
   };
 
-  const [showVpcDetails, setShowVpcDetails] = React.useState<boolean>(false);
   const [viewScrapedConfig, setViewScrapedConfig] = React.useState<{ fileName: string; fileContent: string; appName: string; searchedFiles?: string[] } | null>(null);
   const [expandedWarnings, setExpandedWarnings] = React.useState<Record<string, boolean>>({});
 
@@ -982,10 +982,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       const configuredBackendUrl = item.azureResourceDetails?.configuredBackendUrl;
       console.log(`[VNet Debug] SWA: ${item.name} | Configured Backend URL: ${configuredBackendUrl}`);
       if (!configuredBackendUrl) {
+        const filesList = item.azureResourceDetails?.scrapedSearchedFiles?.length
+          ? item.azureResourceDetails.scrapedSearchedFiles.join(', ')
+          : 'standard environment & pipeline files';
         return {
           status: 'unverified',
           message: 'Unverified',
-          detail: 'Could not validate network: Backend API details were not found in the SWA codebase.',
+          detail: `Could not validate network: Backend API details were not found in the SWA codebase (attempted to read: ${filesList}).`,
           sourceFile: item.azureResourceDetails?.scrapedSourceFile,
           sourceContent: item.azureResourceDetails?.scrapedSourceContent,
           sourceAppName: item.name,
@@ -1085,10 +1088,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       const configuredDbHost = item.azureResourceDetails?.configuredDbHost;
       console.log(`[VNet Debug] Backend: ${item.name} | Resolved VNet: ${itemVnet} | Configured DB Host: ${configuredDbHost}`);
       if (!configuredDbHost) {
+        const filesList = item.azureResourceDetails?.scrapedSearchedFiles?.length
+          ? item.azureResourceDetails.scrapedSearchedFiles.join(', ')
+          : 'standard environment & pipeline files';
         return {
           status: 'unverified',
           message: 'Unverified',
-          detail: 'Could not validate database network: DB_HOST details were not found in the backend codebase.',
+          detail: `Could not validate database network: DB_HOST details were not found in the backend codebase (attempted to read: ${filesList}).`,
           sourceFile: item.azureResourceDetails?.scrapedSourceFile,
           sourceContent: item.azureResourceDetails?.scrapedSourceContent,
           sourceAppName: item.name,
@@ -1821,53 +1827,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   </button>
                 );
               })}
-            </div>
-
-            {/* VPC Toggle Option */}
-            <div 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '6px 12px',
-                borderRadius: '10px',
-                background: theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.03)',
-                border: '1px solid var(--glass-border)',
-                height: '34px',
-                cursor: 'pointer',
-                userSelect: 'none',
-                transition: 'all 0.2s ease'
-              }}
-              onClick={() => setShowVpcDetails(!showVpcDetails)}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.03)'}
-            >
-              <Network size={14} style={{ color: showVpcDetails ? '#f59e0b' : 'var(--text-secondary)' }} />
-              <span style={{ fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Show VNet / VPC</span>
-              <div 
-                style={{
-                  width: '32px',
-                  height: '18px',
-                  borderRadius: '9px',
-                  background: showVpcDetails ? '#f59e0b' : 'rgba(255,255,255,0.1)',
-                  position: 'relative',
-                  transition: 'all 0.2s ease',
-                  marginLeft: '4px'
-                }}
-              >
-                <div 
-                  style={{
-                    width: '12px',
-                    height: '12px',
-                    borderRadius: '50%',
-                    background: '#ffffff',
-                    position: 'absolute',
-                    top: '3px',
-                    left: showVpcDetails ? '17px' : '3px',
-                    transition: 'all 0.2s ease'
-                  }} 
-                />
-              </div>
             </div>
           </div>
 
@@ -3034,490 +2993,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                   </button>
                                 )}
                               </div>
-
-                              {/* VNet and Network Connectivity Card (Premium Glassmorphic Layout) */}
-                              <div style={{
-                                marginTop: '10px',
-                                padding: '8px 12px',
-                                borderRadius: '10px',
-                                background: theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)',
-                                border: '1px solid var(--glass-border)',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '6px',
-                                boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.03)',
-                                backdropFilter: 'blur(8px)',
-                                WebkitBackdropFilter: 'blur(8px)'
-                              }}>
-                                {/* VNet Name Row */}
-                                <div style={{ 
-                                  fontSize: '0.72rem', 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'space-between',
-                                  gap: '8px', 
-                                  fontWeight: 400, 
-                                  color: 'var(--text-secondary)' 
-                                }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <Network size={11} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
-                                    <span>VNet / VPC:</span>
-                                  </div>
-                                  <strong style={{ 
-                                    color: 'var(--text-primary)',
-                                    background: 'rgba(255, 255, 255, 0.06)',
-                                    padding: '2px 6px',
-                                    borderRadius: '4px',
-                                    fontSize: '0.68rem',
-                                    fontWeight: 600,
-                                    border: '1px solid rgba(255, 255, 255, 0.05)'
-                                  }}>
-                                    {getVnetName(item) || 'None (Public Cloud)'}
-                                  </strong>
-                                </div>
-
-                                {/* Network Connection Status Row */}
-                                {(() => {
-                                  const validation = checkNetworkWarnings(item, group);
-                                  if (!validation) return null;
-                                  
-                                  let pillBg = 'rgba(148, 163, 184, 0.08)';
-                                  let pillBorder = 'rgba(148, 163, 184, 0.2)';
-                                  let pillColor = '#94a3b8';
-                                  let pillIcon = <HelpCircle size={10} />;
-
-                                  if (validation.status === 'verified') {
-                                    pillBg = 'rgba(16, 185, 129, 0.08)';
-                                    pillBorder = 'rgba(16, 185, 129, 0.25)';
-                                    pillColor = '#10b981';
-                                    pillIcon = <CheckCircle2 size={10} />;
-                                  } else if (validation.status === 'warning') {
-                                    pillBg = 'rgba(239, 68, 68, 0.08)';
-                                    pillBorder = 'rgba(239, 68, 68, 0.25)';
-                                    pillColor = '#f87171';
-                                    pillIcon = <AlertTriangle size={10} />;
-                                  }
-
-                                  return (
-                                    <>
-                                      <div style={{ 
-                                        fontSize: '0.72rem', 
-                                        display: 'flex', 
-                                        alignItems: 'center', 
-                                        justifyContent: 'space-between',
-                                        gap: '8px', 
-                                        fontWeight: 400, 
-                                        color: 'var(--text-secondary)' 
-                                      }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                          <HelpCircle size={11} style={{ color: pillColor, opacity: 0.8, flexShrink: 0 }} />
-                                          <span>Connectivity:</span>
-                                        </div>
-                                        <span 
-                                          style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: '4px',
-                                            fontSize: '0.65rem',
-                                            fontWeight: 600,
-                                            padding: '2px 8px',
-                                            borderRadius: '20px',
-                                            background: pillBg,
-                                            border: `1px solid ${pillBorder}`,
-                                            color: pillColor,
-                                            cursor: 'help'
-                                          }}
-                                          title={validation.detail}
-                                        >
-                                          {pillIcon}
-                                          <span>{validation.message}</span>
-                                        </span>
-                                      </div>
-                                      
-                                      {validation.status !== 'verified' && (() => {
-                                        const isLt = theme === 'light';
-                                        const isWarn = validation.status === 'warning';
-                                        const toggleColor = isWarn
-                                          ? (isLt ? '#dc2626' : '#fca5a5')
-                                          : (isLt ? '#4b5563' : '#cbd5e1');
-                                        return (
-                                          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2px' }}>
-                                            <button
-                                              onClick={() => setExpandedWarnings(prev => ({ ...prev, [item.name]: !prev[item.name] }))}
-                                              style={{
-                                                background: 'none',
-                                                border: 'none',
-                                                padding: '2px 0px',
-                                                fontSize: '0.62rem',
-                                                color: toggleColor,
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '3px',
-                                                textDecoration: 'underline',
-                                                fontWeight: 500,
-                                                transition: 'opacity 0.2s'
-                                              }}
-                                              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; }}
-                                              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
-                                            >
-                                              <span>{expandedWarnings[item.name] ? 'Hide Resolution Details' : 'View Resolution Details ➔'}</span>
-                                            </button>
-                                          </div>
-                                        );
-                                      })()}
-
-                                      {validation.status !== 'verified' && expandedWarnings[item.name] && (() => {
-                                        const isLt = theme === 'light';
-                                        const isWarn = validation.status === 'warning';
-                                        // Theme-aware colors
-                                        const bannerBg = isWarn
-                                          ? (isLt
-                                            ? 'linear-gradient(135deg, rgba(220,38,38,0.07) 0%, rgba(220,38,38,0.03) 100%)'
-                                            : 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.03) 100%)')
-                                          : (isLt
-                                            ? 'linear-gradient(135deg, rgba(100,116,139,0.07) 0%, rgba(100,116,139,0.03) 100%)'
-                                            : 'linear-gradient(135deg, rgba(148,163,184,0.08) 0%, rgba(148,163,184,0.03) 100%)');
-                                        const bannerBorderLeft = isWarn
-                                          ? (isLt ? '3px solid #dc2626' : '3px solid #f87171')
-                                          : (isLt ? '3px solid #64748b' : '3px solid #94a3b8');
-                                        const bannerEdge = isLt
-                                          ? '1px solid rgba(0,0,0,0.06)'
-                                          : '1px solid rgba(255,255,255,0.02)';
-                                        const bannerText = isWarn
-                                          ? (isLt ? '#991b1b' : '#fca5a5')
-                                          : (isLt ? '#374151' : '#cbd5e1');
-                                        const headerColor = isWarn
-                                          ? (isLt ? '#b91c1c' : '#f87171')
-                                          : (isLt ? '#4b5563' : '#94a3b8');
-                                        const btnBg = isLt ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.08)';
-                                        const btnBgHover = isLt ? 'rgba(0,0,0,0.13)' : 'rgba(255,255,255,0.15)';
-                                        const btnBorder = isLt ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,255,255,0.15)';
-                                        const hasSearchedFiles = validation.scrapedSearchedFiles && validation.scrapedSearchedFiles.length > 0;
-                                        return (
-                                          <div style={{
-                                            fontSize: '0.66rem',
-                                            marginTop: '6px',
-                                            padding: '8px 10px',
-                                            borderRadius: '6px',
-                                            background: bannerBg,
-                                            borderLeft: bannerBorderLeft,
-                                            borderTop: bannerEdge,
-                                            borderRight: bannerEdge,
-                                            borderBottom: bannerEdge,
-                                            color: bannerText,
-                                            lineHeight: 1.45,
-                                            boxShadow: isLt ? '0 2px 8px rgba(0,0,0,0.06)' : '0 4px 12px rgba(0,0,0,0.15)',
-                                            letterSpacing: '0.015em'
-                                          }}>
-                                            {/* Header row: label + "View Scraped Config" button */}
-                                            <div style={{
-                                              fontWeight: 700,
-                                              marginBottom: '3px',
-                                              color: headerColor,
-                                              textTransform: 'uppercase',
-                                              fontSize: '0.62rem',
-                                              letterSpacing: '0.05em',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              justifyContent: 'space-between',
-                                              gap: '4px',
-                                              flexWrap: 'wrap'
-                                            }}>
-                                              <span>⚠️ Network Resolution:</span>
-                                              {(validation.sourceFile || validation.scrapedSearchedFiles) && (
-                                                <button
-                                                  onClick={() => setViewScrapedConfig({
-                                                    fileName: validation.sourceFile || 'No Config File Found',
-                                                    fileContent: validation.sourceContent || '',
-                                                    searchedFiles: validation.scrapedSearchedFiles || [],
-                                                    appName: validation.sourceAppName || item.name
-                                                  })}
-                                                  style={{
-                                                    background: btnBg,
-                                                    border: btnBorder,
-                                                    borderRadius: '4px',
-                                                    padding: '2px 6px',
-                                                    fontSize: '0.58rem',
-                                                    color: 'var(--text-primary)',
-                                                    cursor: 'pointer',
-                                                    textTransform: 'none',
-                                                    fontWeight: 500,
-                                                    display: 'inline-flex',
-                                                    alignItems: 'center',
-                                                    gap: '3px',
-                                                    transition: 'all 0.2s',
-                                                    marginBottom: '2px'
-                                                  }}
-                                                  onMouseEnter={(e) => { e.currentTarget.style.background = btnBgHover; }}
-                                                  onMouseLeave={(e) => { e.currentTarget.style.background = btnBg; }}
-                                                >
-                                                  📄 View Scraped Config
-                                                </button>
-                                              )}
-                                            </div>
-
-                                            {/* Detail message */}
-                                            <div style={{ marginTop: '2px' }}>{validation.detail}</div>
-
-                                            {/* Searched files list — shown when scraping found nothing */}
-                                            {hasSearchedFiles && (
-                                              <div style={{ marginTop: '8px', paddingTop: '6px', borderTop: isLt ? '1px solid rgba(0,0,0,0.07)' : '1px dashed rgba(255,255,255,0.08)' }}>
-                                                <div style={{
-                                                  fontSize: '0.6rem',
-                                                  fontWeight: 700,
-                                                  textTransform: 'uppercase',
-                                                  letterSpacing: '0.06em',
-                                                  color: isLt ? '#6b7280' : '#94a3b8',
-                                                  marginBottom: '5px',
-                                                  display: 'flex',
-                                                  alignItems: 'center',
-                                                  gap: '5px'
-                                                }}>
-                                                  <span>📂</span>
-                                                  <span>Files Searched (none contained the required key):</span>
-                                                </div>
-                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                                                  {validation.scrapedSearchedFiles!.map((f: string) => (
-                                                    <span
-                                                      key={f}
-                                                      style={{
-                                                        fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
-                                                        fontSize: '0.58rem',
-                                                        padding: '2px 7px',
-                                                        borderRadius: '4px',
-                                                        background: isLt ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)',
-                                                        border: isLt ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)',
-                                                        color: isLt ? '#1f2937' : '#e2e8f0',
-                                                        fontWeight: 500,
-                                                        whiteSpace: 'nowrap'
-                                                      }}
-                                                    >
-                                                      {f}
-                                                    </span>
-                                                  ))}
-                                                </div>
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })()}
-                                    </>
-                                  );
-                                })()}
-                              </div>
-
-                              {/* Scan Error Message */}
-                              {!isLoading && health?.error && (
-                                <div style={{ fontSize: '0.72rem', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
-                                  <span style={{ opacity: 0.7, flexShrink: 0 }}>🔍 Scan Status:</span>
-                                  <span style={{
-                                    background: theme === 'light' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.12)',
-                                    border: theme === 'light' ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
-                                    color: theme === 'light' ? '#dc2626' : '#f87171',
-                                    padding: '2px 8px',
-                                    borderRadius: '10px',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '5px',
-                                    fontSize: '0.68rem',
-                                    fontWeight: 600
-                                  }}>
-                                    <AlertCircle size={11} />
-                                    <span>Unavailable: {health.message || 'Check failed'}</span>
-                                  </span>
-                                </div>
-                              )}
-
-                              {/* YAML Health Details */}
-                              {(item.type === 'frontend' || item.type === 'backend') && health?.ymlHealth && (
-                                <div style={{ fontSize: '0.72rem', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
-                                  <span style={{ opacity: 0.7, flexShrink: 0 }}>📄 YAML:</span>
-                                  {!health.ymlHealth.exists ? (
-                                    <span style={{
-                                      background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
-                                      border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
-                                      color: theme === 'light' ? '#b91c1c' : '#ef4444',
-                                      padding: '2px 8px',
-                                      borderRadius: '10px',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '5px',
-                                      fontSize: '0.68rem',
-                                      fontWeight: 600
-                                    }}>
-                                      <AlertCircle size={11} />
-                                      <span>Not Found</span>
-                                    </span>
-                                  ) : health.ymlHealth.valid ? (
-                                    health.ymlHealth.warningCount > 0 ? (
-                                      <span style={{
-                                        background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
-                                        border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
-                                        color: theme === 'light' ? '#b45309' : '#fbbf24',
-                                        padding: '2px 8px',
-                                        borderRadius: '10px',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '5px',
-                                        fontSize: '0.68rem',
-                                        fontWeight: 600
-                                      }}>
-                                        <AlertCircle size={11} />
-                                        <span>{health.ymlHealth.warningCount} warning{health.ymlHealth.warningCount > 1 ? 's' : ''}</span>
-                                        {!isViewer && (
-                                          <button
-                                            type="button"
-                                            onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); }}
-                                            style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b45309' : '#fbbf24', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
-                                          >
-                                            Fix
-                                          </button>
-                                        )}
-                                      </span>
-                                    ) : (
-                                      <span style={{
-                                        background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(52, 211, 153, 0.12)',
-                                        border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(52, 211, 153, 0.3)',
-                                        color: theme === 'light' ? '#059669' : '#34d399',
-                                        padding: '2px 8px',
-                                        borderRadius: '10px',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '5px',
-                                        fontSize: '0.68rem',
-                                        fontWeight: 600
-                                      }}>
-                                        <ShieldCheck size={11} />
-                                        <span>Valid</span>
-                                      </span>
-                                    )
-                                  ) : (
-                                    <span style={{
-                                      background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
-                                      border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
-                                      color: theme === 'light' ? '#b91c1c' : '#ef4444',
-                                      padding: '2px 8px',
-                                      borderRadius: '10px',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '5px',
-                                      fontSize: '0.68rem',
-                                      fontWeight: 600
-                                    }}>
-                                      <AlertCircle size={11} />
-                                      <span>{health.ymlHealth.errors?.length || 0} error{health.ymlHealth.errors?.length > 1 ? 's' : ''}</span>
-                                      {!isViewer && (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); }}
-                                          style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b91c1c' : '#ef4444', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
-                                        >
-                                          Fix
-                                        </button>
-                                      )}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-
-                              {/* Dockerfile Health Details */}
-                              {item.type === 'backend' && health?.dockerfileHealth && (
-                                <div style={{ fontSize: '0.72rem', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
-                                  <span style={{ opacity: 0.7, flexShrink: 0 }}>🐳 Dockerfile:</span>
-                                  {!health.dockerfileHealth.exists ? (
-                                    <span style={{
-                                      background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
-                                      border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
-                                      color: theme === 'light' ? '#b91c1c' : '#ef4444',
-                                      padding: '2px 8px',
-                                      borderRadius: '10px',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '5px',
-                                      fontSize: '0.68rem',
-                                      fontWeight: 600
-                                    }}>
-                                      <AlertCircle size={11} />
-                                      <span>Not Found</span>
-                                    </span>
-                                  ) : health.dockerfileHealth.valid ? (
-                                    health.dockerfileHealth.warningCount > 0 ? (
-                                      <span style={{
-                                        background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
-                                        border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
-                                        color: theme === 'light' ? '#b45309' : '#fbbf24',
-                                        padding: '2px 8px',
-                                        borderRadius: '10px',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '5px',
-                                        fontSize: '0.68rem',
-                                        fontWeight: 600
-                                      }}>
-                                        <AlertCircle size={11} />
-                                        <span>{health.dockerfileHealth.warningCount} warning{health.dockerfileHealth.warningCount > 1 ? 's' : ''}</span>
-                                        {!isViewer && (
-                                          <button
-                                            type="button"
-                                            onClick={(e) => { e.stopPropagation(); openDockerfileEditor(item, group); }}
-                                            style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b45309' : '#fbbf24', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
-                                          >
-                                            Fix
-                                          </button>
-                                        )}
-                                      </span>
-                                    ) : (
-                                      <span style={{
-                                        background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(52, 211, 153, 0.12)',
-                                        border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(52, 211, 153, 0.3)',
-                                        color: theme === 'light' ? '#059669' : '#34d399',
-                                        padding: '2px 8px',
-                                        borderRadius: '10px',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '5px',
-                                        fontSize: '0.68rem',
-                                        fontWeight: 600
-                                      }}>
-                                        <ShieldCheck size={11} />
-                                        <span>Valid</span>
-                                      </span>
-                                    )
-                                  ) : (
-                                    <span style={{
-                                      background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
-                                      border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
-                                      color: theme === 'light' ? '#b91c1c' : '#ef4444',
-                                      padding: '2px 8px',
-                                      borderRadius: '10px',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '5px',
-                                      fontSize: '0.68rem',
-                                      fontWeight: 600
-                                    }}>
-                                      <AlertCircle size={11} />
-                                      <span>{health.dockerfileHealth.errors?.length || 0} error{health.dockerfileHealth.errors?.length > 1 ? 's' : ''}</span>
-                                      {!isViewer && (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => { e.stopPropagation(); openDockerfileEditor(item, group); }}
-                                          style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b91c1c' : '#ef4444', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
-                                        >
-                                          Fix
-                                        </button>
-                                      )}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
                             </div>
-                          </div>
+                            </div>
 
-
-                           {/* Action Buttons & Decluttered controls */}
-                           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            {/* Action Buttons & Decluttered controls (Restructured into Upper Section) */}
+                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                              
                               {/* Glowing status indicator dot */}
                               {(() => {
                                 const statusInfo = getStatusDetails(item.status, item.type);
@@ -3548,486 +3029,978 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 );
                               })()}
 
-                             {/* Primary Browse Link (Only SWAs/ACAs with hostnames) */}
-                            {item.hostname && item.type !== 'vm' && (
-                              <a 
-                                href={item.dnsDetails?.fqdn ? `https://${item.dnsDetails.fqdn}` : `https://${item.hostname}`} 
-                                target="_blank" 
-                                rel="noreferrer" 
-                                className="btn-secondary" 
-                                style={{ padding: '6px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', textDecoration: 'none' }}
-                              >
-                                <Globe size={12} />
-                                Browse
-                              </a>
-                            )}
+                              {/* Primary Browse Link (Only SWAs/ACAs with hostnames) */}
+                              {item.hostname && item.type !== 'vm' && (
+                                <a 
+                                  href={item.dnsDetails?.fqdn ? `https://${item.dnsDetails.fqdn}` : `https://${item.hostname}`} 
+                                  target="_blank" 
+                                  rel="noreferrer" 
+                                  className="btn-secondary" 
+                                  style={{ padding: '6px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', textDecoration: 'none' }}
+                                >
+                                  <Globe size={12} />
+                                  Browse
+                                </a>
+                              )}
 
-                            {/* Blue-Green routing switch for ACA & CNAME swap config for SWA */}
-                            {item.type !== 'vm' && (
-                              item.type === 'backend' ? (
-                                <div style={{ 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  gap: '6px', 
-                                  backgroundColor: 'rgba(255,255,255,0.02)', 
-                                  padding: '3px 6px', 
-                                  borderRadius: '8px', 
-                                  border: '1px solid var(--glass-border)' 
-                                }}>
-                                  <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', padding: '0 4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>B/G Mode:</span>
-                                  <div style={{ display: 'flex', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', padding: '2px' }}>
+                              {/* Blue-Green routing switch for ACA & CNAME swap config for SWA */}
+                              {item.type !== 'vm' && (
+                                item.type === 'backend' ? (
+                                  <div style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '6px', 
+                                    backgroundColor: 'rgba(255,255,255,0.02)', 
+                                    padding: '3px 6px', 
+                                    borderRadius: '8px', 
+                                    border: '1px solid var(--glass-border)' 
+                                  }}>
+                                    <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', padding: '0 4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>B/G Mode:</span>
+                                    <div style={{ display: 'flex', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', padding: '2px' }}>
+                                      <button
+                                        type="button"
+                                        disabled={isViewer}
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          await handleToggleRevisionMode(item.name, 'Single');
+                                        }}
+                                        style={{
+                                          padding: '4px 10px',
+                                          fontSize: '0.66rem',
+                                          fontWeight: 700,
+                                          borderRadius: '4px',
+                                          border: 'none',
+                                          backgroundColor: isViewer ? 'transparent' : (bgModeState[item.name] !== 'Multiple' && item.status !== 'multiple') ? 'var(--accent-purple, #8b5cf6)' : 'transparent',
+                                          color: isViewer ? 'rgba(255,255,255,0.35)' : (bgModeState[item.name] !== 'Multiple' && item.status !== 'multiple') ? '#fff' : 'var(--text-secondary)',
+                                          cursor: isViewer ? 'not-allowed' : 'pointer',
+                                          opacity: isViewer ? 0.35 : 1,
+                                          transition: 'all 0.2s ease'
+                                        }}
+                                      >
+                                        Single
+                                      </button>
+                                      <button
+                                        type="button"
+                                        disabled={isViewer}
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          await handleToggleRevisionMode(item.name, 'Multiple');
+                                          setBgDrawerApp(item);
+                                          fetchRevisions(item);
+                                        }}
+                                        style={{
+                                          padding: '4px 10px',
+                                          fontSize: '0.66rem',
+                                          fontWeight: 700,
+                                          borderRadius: '4px',
+                                          border: 'none',
+                                          backgroundColor: isViewer ? 'transparent' : (bgModeState[item.name] === 'Multiple' || item.status === 'multiple') ? 'var(--accent-purple, #8b5cf6)' : 'transparent',
+                                          color: isViewer ? 'rgba(255,255,255,0.35)' : (bgModeState[item.name] === 'Multiple' || item.status === 'multiple') ? '#fff' : 'var(--text-secondary)',
+                                          cursor: isViewer ? 'not-allowed' : 'pointer',
+                                          opacity: isViewer ? 0.35 : 1,
+                                          transition: 'all 0.2s ease'
+                                        }}
+                                      >
+                                        Multi
+                                      </button>
+                                    </div>
                                     <button
                                       type="button"
-                                      disabled={isViewer}
-                                      onClick={async (e) => {
+                                      className="btn-secondary"
+                                      onClick={(e) => {
                                         e.stopPropagation();
-                                        await handleToggleRevisionMode(item.name, 'Single');
-                                      }}
-                                      style={{
-                                        padding: '4px 10px',
-                                        fontSize: '0.66rem',
-                                        fontWeight: 700,
-                                        borderRadius: '4px',
-                                        border: 'none',
-                                        backgroundColor: isViewer ? 'transparent' : (bgModeState[item.name] !== 'Multiple' && item.status !== 'multiple') ? 'var(--accent-purple, #8b5cf6)' : 'transparent',
-                                        color: isViewer ? 'rgba(255,255,255,0.35)' : (bgModeState[item.name] !== 'Multiple' && item.status !== 'multiple') ? '#fff' : 'var(--text-secondary)',
-                                        cursor: isViewer ? 'not-allowed' : 'pointer',
-                                        opacity: isViewer ? 0.35 : 1,
-                                        transition: 'all 0.2s ease'
-                                      }}
-                                    >
-                                      Single
-                                    </button>
-                                    <button
-                                      type="button"
-                                      disabled={isViewer}
-                                      onClick={async (e) => {
-                                        e.stopPropagation();
-                                        await handleToggleRevisionMode(item.name, 'Multiple');
                                         setBgDrawerApp(item);
                                         fetchRevisions(item);
                                       }}
                                       style={{
-                                        padding: '4px 10px',
-                                        fontSize: '0.66rem',
-                                        fontWeight: 700,
-                                        borderRadius: '4px',
+                                        width: '24px',
+                                        height: '24px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        borderRadius: '6px',
+                                        padding: 0,
                                         border: 'none',
-                                        backgroundColor: isViewer ? 'transparent' : (bgModeState[item.name] === 'Multiple' || item.status === 'multiple') ? 'var(--accent-purple, #8b5cf6)' : 'transparent',
-                                        color: isViewer ? 'rgba(255,255,255,0.35)' : (bgModeState[item.name] === 'Multiple' || item.status === 'multiple') ? '#fff' : 'var(--text-secondary)',
-                                        cursor: isViewer ? 'not-allowed' : 'pointer',
-                                        opacity: isViewer ? 0.35 : 1,
-                                        transition: 'all 0.2s ease'
+                                        background: 'rgba(255, 255, 255, 0.04)',
+                                        cursor: 'pointer'
                                       }}
+                                      title="Configure Traffic Split"
                                     >
-                                      Multi
+                                      <Sliders size={11} style={{ color: 'var(--accent-purple)' }} />
                                     </button>
                                   </div>
+                                ) : (
                                   <button
                                     type="button"
-                                    className="btn-secondary"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setBgDrawerApp(item);
                                       fetchRevisions(item);
                                     }}
                                     style={{
-                                      width: '24px',
-                                      height: '24px',
-                                      display: 'flex',
+                                      display: 'inline-flex',
                                       alignItems: 'center',
-                                      justifyContent: 'center',
-                                      borderRadius: '6px',
-                                      padding: 0,
-                                      border: 'none',
-                                      background: 'rgba(255, 255, 255, 0.04)',
+                                      gap: '6px',
+                                      padding: '5px 12px',
+                                      fontSize: '0.7rem',
+                                      borderRadius: '8px',
+                                      fontWeight: 700,
+                                      backgroundColor: 'rgba(139, 92, 246, 0.08)',
+                                      border: '1px solid rgba(139, 92, 246, 0.2)',
+                                      color: 'var(--accent-purple, #8b5cf6)',
+                                      transition: 'all 0.2s ease',
                                       cursor: 'pointer'
                                     }}
-                                    title="Configure Traffic Split"
                                   >
-                                    <Sliders size={11} style={{ color: 'var(--accent-purple)' }} />
+                                    <GitCompare size={12} />
+                                    Configure B/G Swap
                                   </button>
-                                </div>
-                              ) : (
+                                )
+                              )}
+
+                              {/* Power Controls — Status Dropdown */}
+                              {(() => {
+                                const isCritical = item.name.toLowerCase().includes('evaops') ||
+                                                   item.name.toLowerCase().includes('devops-backend') ||
+                                                   item.name.toLowerCase().includes('devops-frontend');
+                                const isControlling = controllingResource === item.name;
+                                const s = (item.status || '').toLowerCase();
+                                const isStarted = s === 'running' || s === 'deployed';
+                                const isStopped = s === 'stopped' || s === 'sleep' || s === 'offline';
+                                const isOpen = activePowerDropdown === item.name;
+                                const isDisabled = isViewer || isControlling;
+
+                                // Derive button appearance from runtime state
+                                let btnBg = 'rgba(255,255,255,0.02)';
+                                let btnColor = 'var(--text-secondary)';
+                                let btnBorder = 'var(--glass-border, rgba(255,255,255,0.08))';
+                                let btnText = 'Unknown';
+                                let btnIcon = <Square size={10} />;
+
+                                if (isControlling) {
+                                  btnBg = 'rgba(59,130,246,0.08)'; btnColor = '#3b82f6';
+                                  btnBorder = 'rgba(59,130,246,0.2)'; btnText = 'Updating…';
+                                  btnIcon = <RefreshCw size={10} className="spin-anim" />;
+                                } else if (isStarted) {
+                                  btnBg = 'rgba(16,185,129,0.08)'; btnColor = '#10b981';
+                                  btnBorder = 'rgba(16,185,129,0.2)'; btnText = 'Running';
+                                  btnIcon = <Play size={10} fill="#10b981" className="play-pulse-anim" />;
+                                } else if (isStopped) {
+                                  btnBg = 'rgba(239,68,68,0.08)'; btnColor = '#ef4444';
+                                  btnBorder = 'rgba(239,68,68,0.2)'; btnText = 'Stopped';
+                                  btnIcon = <Square size={10} fill="#ef4444" />;
+                                }
+
+                                // Per-action disabled flags
+                                const startDis  = isViewer || isControlling || isStarted  || isCritical;
+                                const restartDis = isViewer || isControlling || isStopped  || isCritical;
+                                const stopDis   = isViewer || isControlling || isStopped  || isCritical;
+
+                                return (
+                                  <div style={{ position: 'relative' }}>
+                                    {/* Trigger button */}
+                                    <button
+                                      type="button"
+                                      disabled={isDisabled}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (isOpen) {
+                                          setActivePowerDropdown(null);
+                                          setPowerDropdownCoords(null);
+                                        } else {
+                                          const rect = e.currentTarget.getBoundingClientRect();
+                                          setPowerDropdownCoords({ top: rect.bottom + 6, left: rect.right - 130 });
+                                          setActivePowerDropdown(item.name);
+                                        }
+                                      }}
+                                      style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                        padding: '6px 12px', borderRadius: '8px',
+                                        backgroundColor: isViewer ? (theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)') : btnBg,
+                                        color: isViewer ? (theme === 'light' ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)') : btnColor,
+                                        border: isViewer ? '1px dashed var(--glass-border)' : `1px solid ${btnBorder}`,
+                                        fontSize: '0.72rem', fontWeight: 700,
+                                        cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        opacity: isViewer ? 0.35 : 1
+                                      }}
+                                    >
+                                      {btnIcon}
+                                      <span>{btnText}</span>
+                                      <ChevronDown size={12} style={{ opacity: isDisabled ? 0.35 : 0.7 }} />
+                                    </button>
+
+                                    {/* Dropdown menu */}
+                                    {isOpen && powerDropdownCoords && (() => {
+                                      const disabledColor = theme === 'light' ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.25)';
+                                      const hoverBgColor = theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)';
+                                      return (
+                                        <>
+                                          {/* Backdrop to close on outside click */}
+                                          <div
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setActivePowerDropdown(null);
+                                              setPowerDropdownCoords(null);
+                                            }}
+                                            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998, cursor: 'default' }}
+                                          />
+                                          <div style={{
+                                            position: 'fixed',
+                                            top: powerDropdownCoords.top,
+                                            left: Math.max(8, powerDropdownCoords.left),
+                                            backgroundColor: 'var(--bg-secondary, #0f172a)',
+                                            border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
+                                            borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                                            zIndex: 9999, minWidth: '130px',
+                                            display: 'flex', flexDirection: 'column',
+                                            padding: '4px 0', overflow: 'hidden'
+                                          }}>
+                                            {/* Start */}
+                                            <button
+                                              type="button"
+                                              disabled={startDis}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setPendingPowerAction({ name: item.name, action: 'start' });
+                                                setActivePowerDropdown(null);
+                                                setPowerDropdownCoords(null);
+                                              }}
+                                              onMouseEnter={(e) => { if (!startDis) e.currentTarget.style.backgroundColor = hoverBgColor; }}
+                                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                              style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                padding: '8px 14px', fontSize: '0.75rem',
+                                                background: 'none', border: 'none', width: '100%', textAlign: 'left',
+                                                color: startDis ? disabledColor : 'var(--text-primary)',
+                                                cursor: startDis ? 'not-allowed' : 'pointer',
+                                                opacity: startDis ? 0.35 : 1
+                                              }}
+                                            >
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <Play size={12} style={{ color: startDis ? disabledColor : '#10b981' }}
+                                                  fill={startDis ? 'none' : '#10b981'} />
+                                                <span>Start</span>
+                                              </div>
+                                              {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
+                                            </button>
+
+                                            {/* Restart */}
+                                            <button
+                                              type="button"
+                                              disabled={restartDis}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setPendingPowerAction({ name: item.name, action: 'restart' });
+                                                setActivePowerDropdown(null);
+                                                setPowerDropdownCoords(null);
+                                              }}
+                                              onMouseEnter={(e) => { if (!restartDis) e.currentTarget.style.backgroundColor = hoverBgColor; }}
+                                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                              style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                padding: '8px 14px', fontSize: '0.75rem',
+                                                background: 'none', border: 'none', width: '100%', textAlign: 'left',
+                                                color: restartDis ? disabledColor : 'var(--text-primary)',
+                                                cursor: restartDis ? 'not-allowed' : 'pointer',
+                                                opacity: restartDis ? 0.35 : 1
+                                              }}
+                                            >
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <RefreshCw size={12} style={{ color: restartDis ? disabledColor : '#3b82f6' }} />
+                                                <span>Restart</span>
+                                              </div>
+                                              {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
+                                            </button>
+
+                                            {/* Stop */}
+                                            <button
+                                              type="button"
+                                              disabled={stopDis}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setPendingPowerAction({ name: item.name, action: 'stop' });
+                                                setActivePowerDropdown(null);
+                                                setPowerDropdownCoords(null);
+                                              }}
+                                              onMouseEnter={(e) => { if (!stopDis) e.currentTarget.style.backgroundColor = hoverBgColor; }}
+                                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                              style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                padding: '8px 14px', fontSize: '0.75rem',
+                                                background: 'none', border: 'none', width: '100%', textAlign: 'left',
+                                                color: stopDis ? disabledColor : 'var(--text-primary)',
+                                                cursor: stopDis ? 'not-allowed' : 'pointer',
+                                                opacity: stopDis ? 0.35 : 1
+                                              }}
+                                            >
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <Square size={12} style={{ color: stopDis ? disabledColor : '#ef4444' }}
+                                                  fill={stopDis ? 'none' : '#ef4444'} />
+                                                <span>Stop</span>
+                                              </div>
+                                              {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
+                                            </button>
+                                          </div>
+                                        </>
+                                      );
+                                    })()}
+                                  </div>
+                                );
+                              })()}
+
+                              {/* Decluttered Actions Dropdown Menu */}
+                              <div style={{ position: 'relative' }}>
                                 <button
                                   type="button"
+                                  className="btn-secondary"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setBgDrawerApp(item);
-                                    fetchRevisions(item);
+                                    if (activeDropdown === item.name) {
+                                      setActiveDropdown(null);
+                                      setDropdownCoords(null);
+                                    } else {
+                                      const rect = e.currentTarget.getBoundingClientRect();
+                                      setDropdownCoords({ top: rect.bottom + 6, left: rect.right - 170 });
+                                      setActiveDropdown(item.name);
+                                    }
                                   }}
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    padding: '5px 12px',
-                                    fontSize: '0.7rem',
-                                    borderRadius: '8px',
-                                    fontWeight: 700,
-                                    backgroundColor: 'rgba(139, 92, 246, 0.08)',
-                                    border: '1px solid rgba(139, 92, 246, 0.2)',
-                                    color: 'var(--accent-purple, #8b5cf6)',
-                                    transition: 'all 0.2s ease',
-                                    cursor: 'pointer'
-                                  }}
+                                  style={{ padding: '6px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                                  title="Operations & Actions"
                                 >
-                                  <GitCompare size={12} />
-                                  Configure B/G Swap
+                                  <MoreVertical size={14} />
                                 </button>
-                              )
-                            )}
+                                
+                                {activeDropdown === item.name && dropdownCoords && (
+                                  <>
+                                    <div 
+                                      onClick={(e) => { e.stopPropagation(); setActiveDropdown(null); setDropdownCoords(null); }}
+                                      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998, cursor: 'default' }}
+                                    />
+                                    <div style={{
+                                      position: 'fixed',
+                                      top: dropdownCoords.top,
+                                      left: Math.max(8, dropdownCoords.left),
+                                      backgroundColor: 'var(--bg-secondary, #0f172a)',
+                                      border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
+                                      borderRadius: '8px',
+                                      boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                                      zIndex: 9999,
+                                      minWidth: '170px',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      padding: '4px 0',
+                                      overflow: 'hidden'
+                                    }}>
+                                      <button 
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); openDnsModal(item); setActiveDropdown(null); setDropdownCoords(null); }}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: 'pointer' }}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                      >
+                                        <Globe size={12} style={{ color: 'var(--accent-purple)' }} />
+                                        <span>DNS Settings</span>
+                                      </button>
 
-                            {/* Power Controls — Status Dropdown */}
+                                      {item.pipelineId ? (
+                                        <a 
+                                          href={(() => {
+                                            const pid = String(item.pipelineId || '');
+                                            if (pid.startsWith('github-actions:')) {
+                                              const repoPath = pid.split(':').slice(1).join(':');
+                                              if (item.pipelineRun?.webUrl) {
+                                                return item.pipelineRun.webUrl;
+                                              }
+                                              return `https://github.com/${repoPath}/actions`;
+                                            }
+                                            if (item.pipelineRun?.webUrl) {
+                                              try {
+                                                const url = new URL(item.pipelineRun.webUrl);
+                                                const parts = url.pathname.split('/');
+                                                const buildIndex = parts.indexOf('_build');
+                                                if (buildIndex !== -1) {
+                                                  const basePath = parts.slice(0, buildIndex + 1).join('/');
+                                                  return `${url.origin}${basePath}?definitionId=${item.pipelineId}`;
+                                                }
+                                              } catch (e) {
+                                                console.warn('Failed to parse webUrl:', e);
+                                              }
+                                            }
+                                            const baseOrg = (azureDevopsOrgUrl || 'https://dev.azure.com/esteviatech').replace(/\/$/, '');
+                                            const baseProj = azureDevopsProject || 'Estevia-Platform';
+                                            return `${baseOrg}/${baseProj}/_build?definitionId=${item.pipelineId}`;
+                                          })()}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', color: 'var(--text-primary)', width: '100%', textDecoration: 'none', boxSizing: 'border-box' }}
+                                          onClick={() => setActiveDropdown(null)}
+                                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+                                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
+                                          <GitBranch size={12} style={{ color: 'var(--accent-teal)' }} />
+                                          <span>View CI/CD Pipeline</span>
+                                        </a>
+                                      ) : (
+                                         <button 
+                                           type="button"
+                                           disabled={isViewer}
+                                           onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); setActiveDropdown(null); }}
+                                           style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: isViewer ? 'not-allowed' : 'pointer', opacity: isViewer ? 0.35 : 1 }}
+                                           onMouseEnter={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
+                                           onMouseLeave={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                         >
+                                           <PlusCircle size={12} style={{ color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--accent-purple)' }} />
+                                           <span>Setup CI/CD</span>
+                                         </button>
+                                      )}
+
+                                      {item.type === 'backend' && onShowLogs && (
+                                        <button 
+                                          type="button"
+                                          onClick={(e) => { e.stopPropagation(); onShowLogs(item.name); setActiveDropdown(null); }}
+                                          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: 'pointer' }}
+                                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
+                                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
+                                          <Terminal size={12} style={{ color: 'var(--accent-blue)' }} />
+                                          <span>View Logs</span>
+                                        </button>
+                                      )}
+
+                                      {onCloneApp && (
+                                        <button 
+                                          type="button"
+                                          disabled={isViewer}
+                                          onClick={(e) => { e.stopPropagation(); onCloneApp(item); setActiveDropdown(null); }}
+                                          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: isViewer ? 'not-allowed' : 'pointer', opacity: isViewer ? 0.35 : 1 }}
+                                          onMouseEnter={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
+                                          onMouseLeave={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                        >
+                                          <GitBranch size={12} style={{ color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--success)' }} />
+                                          <span>Clone App</span>
+                                        </button>
+                                      )}
+
+                                      {item.type !== 'vm' && <div style={{ height: '1px', backgroundColor: 'var(--glass-border)', margin: '4px 0' }} />}
+
+                                      {!isOrphaned && item.type !== 'vm' && (
+                                        <button 
+                                           type="button"
+                                           onClick={(e) => { e.stopPropagation(); handleDeleteApp(item.name, item.type as 'frontend' | 'backend'); setActiveDropdown(null); }}
+                                           disabled={isViewer || deletingAppName === item.name} 
+                                           style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: (isViewer || deletingAppName === item.name) ? 'rgba(255,255,255,0.35)' : 'var(--error)', width: '100%', textAlign: 'left', cursor: (isViewer || deletingAppName === item.name) ? 'not-allowed' : 'pointer', opacity: (isViewer || deletingAppName === item.name) ? 0.35 : 1 }}
+                                           onMouseEnter={(e) => { if (!isViewer && deletingAppName !== item.name) e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.08)'; }}
+                                           onMouseLeave={(e) => { if (!isViewer && deletingAppName !== item.name) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                         >
+                                           <Trash2 size={12} style={{ color: (isViewer || deletingAppName === item.name) ? 'rgba(255,255,255,0.35)' : 'var(--error)' }} />
+                                           <span>Delete app</span>
+                                         </button>
+                                      )}
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+
+                            </div>
+                          </div>
+
+                          {/* Separate Section Divider */}
+                          <hr style={{ border: 'none', borderTop: '1px solid var(--glass-border)', margin: '14px 0 12px 0', opacity: 0.6 }} />
+
+                          {/* Separate Section: Infrastructure & Code Validation */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            
+                            {/* VNet and Network Connectivity Card (Premium Glassmorphic Layout) */}
                             {(() => {
-                              const isCritical = item.name.toLowerCase().includes('evaops') ||
-                                                 item.name.toLowerCase().includes('devops-backend') ||
-                                                 item.name.toLowerCase().includes('devops-frontend');
-                              const isControlling = controllingResource === item.name;
-                              const s = (item.status || '').toLowerCase();
-                              const isStarted = s === 'running' || s === 'deployed';
-                              const isStopped = s === 'stopped' || s === 'sleep' || s === 'offline';
-                              const isOpen = activePowerDropdown === item.name;
-                              const isDisabled = isViewer || isControlling;
-
-                              // Derive button appearance from runtime state
-                              let btnBg = 'rgba(255,255,255,0.02)';
-                              let btnColor = 'var(--text-secondary)';
-                              let btnBorder = 'var(--glass-border, rgba(255,255,255,0.08))';
-                              let btnText = 'Unknown';
-                              let btnIcon = <Square size={10} />;
-
-                              if (isControlling) {
-                                btnBg = 'rgba(59,130,246,0.08)'; btnColor = '#3b82f6';
-                                btnBorder = 'rgba(59,130,246,0.2)'; btnText = 'Updating…';
-                                btnIcon = <RefreshCw size={10} className="spin-anim" />;
-                              } else if (isStarted) {
-                                btnBg = 'rgba(16,185,129,0.08)'; btnColor = '#10b981';
-                                btnBorder = 'rgba(16,185,129,0.2)'; btnText = 'Running';
-                                btnIcon = <Play size={10} fill="#10b981" className="play-pulse-anim" />;
-                              } else if (isStopped) {
-                                btnBg = 'rgba(239,68,68,0.08)'; btnColor = '#ef4444';
-                                btnBorder = 'rgba(239,68,68,0.2)'; btnText = 'Stopped';
-                                btnIcon = <Square size={10} fill="#ef4444" />;
-                              }
-
-                              // Per-action disabled flags
-                              const startDis  = isViewer || isControlling || isStarted  || isCritical;
-                              const restartDis = isViewer || isControlling || isStopped  || isCritical;
-                              const stopDis   = isViewer || isControlling || isStopped  || isCritical;
+                              const validation = checkNetworkWarnings(item, group);
+                              if (!validation) return null;
+                              const pillIcon = validation.status === 'verified' 
+                                ? <ShieldCheck size={11} /> 
+                                : <AlertCircle size={11} />;
+                              const pillStyles = validation.status === 'verified'
+                                ? { background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', color: '#10b981' }
+                                : validation.status === 'warning'
+                                  ? { background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)', color: '#fbbf24' }
+                                  : { background: 'rgba(220, 38, 38, 0.08)', border: '1px solid rgba(220, 38, 38, 0.25)', color: '#ef4444' };
 
                               return (
-                                <div style={{ position: 'relative' }}>
-                                  {/* Trigger button */}
-                                  <button
-                                    type="button"
-                                    disabled={isDisabled}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (isOpen) {
-                                        setActivePowerDropdown(null);
-                                        setPowerDropdownCoords(null);
-                                      } else {
-                                        const rect = e.currentTarget.getBoundingClientRect();
-                                        setPowerDropdownCoords({ top: rect.bottom + 6, left: rect.right - 130 });
-                                        setActivePowerDropdown(item.name);
-                                      }
-                                    }}
-                                    style={{
-                                      display: 'inline-flex', alignItems: 'center', gap: '6px',
-                                      padding: '6px 12px', borderRadius: '8px',
-                                      backgroundColor: isViewer ? (theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)') : btnBg,
-                                      color: isViewer ? (theme === 'light' ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)') : btnColor,
-                                      border: isViewer ? '1px dashed var(--glass-border)' : `1px solid ${btnBorder}`,
-                                      fontSize: '0.72rem', fontWeight: 700,
-                                      cursor: isDisabled ? 'not-allowed' : 'pointer',
-                                      transition: 'all 0.2s ease',
-                                      opacity: isViewer ? 0.35 : 1
-                                    }}
-                                  >
-                                    {btnIcon}
-                                    <span>{btnText}</span>
-                                    <ChevronDown size={12} style={{ opacity: isDisabled ? 0.35 : 0.7 }} />
-                                  </button>
+                                <div style={{
+                                  padding: '8px 12px',
+                                  borderRadius: '10px',
+                                  background: theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)',
+                                  border: '1px solid var(--glass-border)',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '6px',
+                                  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.03)',
+                                  backdropFilter: 'blur(8px)',
+                                  WebkitBackdropFilter: 'blur(8px)'
+                                }}>
+                                  {/* VNet Name Row */}
+                                  <div style={{ 
+                                    fontSize: '0.72rem', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'space-between',
+                                    gap: '8px', 
+                                    fontWeight: 400, 
+                                    color: 'var(--text-secondary)' 
+                                  }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                      <Network size={11} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
+                                      <span>VNet / VPC:</span>
+                                    </div>
+                                    <strong style={{ 
+                                      color: 'var(--text-primary)',
+                                      background: 'rgba(255, 255, 255, 0.06)',
+                                      padding: '2px 6px',
+                                      borderRadius: '4px',
+                                      fontSize: '0.68rem',
+                                      fontWeight: 600,
+                                      border: '1px solid rgba(255, 255, 255, 0.05)'
+                                    }}>
+                                      {getVnetName(item) || 'None (Public Cloud)'}
+                                    </strong>
+                                  </div>
 
-                                  {/* Dropdown menu */}
-                                  {isOpen && powerDropdownCoords && (() => {
-                                    const disabledColor = theme === 'light' ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.25)';
-                                    const hoverBgColor = theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)';
+                                  {/* Network Connection Status Row */}
+                                  <div style={{ 
+                                    fontSize: '0.72rem', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'space-between',
+                                    gap: '8px', 
+                                    fontWeight: 400, 
+                                    color: 'var(--text-secondary)',
+                                    marginTop: '2px'
+                                  }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                      <ShieldCheck size={11} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
+                                      <span>Network Status:</span>
+                                    </div>
+                                    <span style={{
+                                      ...pillStyles,
+                                      padding: '2px 8px',
+                                      borderRadius: '10px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      fontSize: '0.68rem',
+                                      fontWeight: 600
+                                    }}>
+                                      {pillIcon}
+                                      <span>{validation.message}</span>
+                                    </span>
+                                  </div>
+                                  
+                                  {(() => {
+                                    const isLt = theme === 'light';
+                                    const isWarn = validation.status === 'warning';
+                                    const isVerified = validation.status === 'verified';
+                                    
+                                    // Only show expander if there's details or if verified and has a sourceFile
+                                    if (isVerified && !validation.sourceFile) return null;
+                                    
+                                    const toggleColor = isVerified
+                                      ? (isLt ? '#059669' : '#a7f3d0')
+                                      : isWarn
+                                        ? (isLt ? '#dc2626' : '#fca5a5')
+                                        : (isLt ? '#4b5563' : '#cbd5e1');
                                     return (
-                                      <>
-                                        {/* Backdrop to close on outside click */}
-                                        <div
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setActivePowerDropdown(null);
-                                            setPowerDropdownCoords(null);
+                                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2px', alignItems: 'center', gap: '6px' }}>
+                                        {isVerified && (
+                                          <span style={{ fontSize: '0.62rem', color: isLt ? '#059669' : '#34d399', opacity: 0.85, fontWeight: 500 }}>
+                                            via {validation.sourceFile}
+                                          </span>
+                                        )}
+                                        <button
+                                          onClick={() => setExpandedWarnings(prev => ({ ...prev, [item.name]: !prev[item.name] }))}
+                                          style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            padding: '2px 0px',
+                                            fontSize: '0.62rem',
+                                            color: toggleColor,
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '3px',
+                                            textDecoration: 'underline',
+                                            fontWeight: 500,
+                                            transition: 'opacity 0.2s'
                                           }}
-                                          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998, cursor: 'default' }}
-                                        />
+                                          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; }}
+                                          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+                                        >
+                                          <span>{expandedWarnings[item.name] ? 'Hide Verification Details' : 'View Verification Details ➔'}</span>
+                                        </button>
+                                      </div>
+                                    );
+                                  })()}
+
+                                  {expandedWarnings[item.name] && (() => {
+                                    const isLt = theme === 'light';
+                                    const isWarn = validation.status === 'warning';
+                                    const isVerified = validation.status === 'verified';
+                                    // Theme-aware colors
+                                    const bannerBg = isVerified
+                                      ? (isLt
+                                        ? 'linear-gradient(135deg, rgba(16,185,129,0.07) 0%, rgba(16,185,129,0.03) 100%)'
+                                        : 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(16,185,129,0.03) 100%)')
+                                      : isWarn
+                                        ? (isLt
+                                          ? 'linear-gradient(135deg, rgba(220,38,38,0.07) 0%, rgba(220,38,38,0.03) 100%)'
+                                          : 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.03) 100%)')
+                                        : (isLt
+                                          ? 'linear-gradient(135deg, rgba(100,116,139,0.07) 0%, rgba(100,116,139,0.03) 100%)'
+                                          : 'linear-gradient(135deg, rgba(148,163,184,0.08) 0%, rgba(148,163,184,0.03) 100%)');
+                                    
+                                    const bannerBorderLeft = isVerified
+                                      ? (isLt ? '3px solid #059669' : '3px solid #34d399')
+                                      : isWarn
+                                        ? (isLt ? '3px solid #dc2626' : '3px solid #f87171')
+                                        : (isLt ? '3px solid #64748b' : '3px solid #94a3b8');
+                                    const bannerEdge = isLt
+                                      ? '1px solid rgba(0,0,0,0.06)'
+                                      : '1px solid rgba(255,255,255,0.02)';
+                                    const bannerText = isVerified
+                                      ? (isLt ? '#065f46' : '#a7f3d0')
+                                      : isWarn
+                                        ? (isLt ? '#991b1b' : '#fca5a5')
+                                        : (isLt ? '#374151' : '#cbd5e1');
+                                    const headerColor = isVerified
+                                      ? (isLt ? '#047857' : '#34d399')
+                                      : isWarn
+                                        ? (isLt ? '#b91c1c' : '#f87171')
+                                        : (isLt ? '#4b5563' : '#94a3b8');
+                                    const btnBg = isLt ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.08)';
+                                    const btnBgHover = isLt ? 'rgba(0,0,0,0.13)' : 'rgba(255,255,255,0.15)';
+                                    const btnBorder = isLt ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,255,255,0.15)';
+                                    const hasSearchedFiles = validation.scrapedSearchedFiles && validation.scrapedSearchedFiles.length > 0;
+                                    return (
+                                      <div style={{
+                                        fontSize: '0.66rem',
+                                        marginTop: '6px',
+                                        padding: '8px 10px',
+                                        borderRadius: '6px',
+                                        background: bannerBg,
+                                        borderLeft: bannerBorderLeft,
+                                        borderTop: bannerEdge,
+                                        borderRight: bannerEdge,
+                                        borderBottom: bannerEdge,
+                                        color: bannerText,
+                                        lineHeight: 1.45,
+                                        boxShadow: isLt ? '0 2px 8px rgba(0,0,0,0.06)' : '0 4px 12px rgba(0,0,0,0.15)',
+                                        letterSpacing: '0.015em'
+                                      }}>
+                                        {/* Header row: label + "View Scraped Config" button */}
                                         <div style={{
-                                          position: 'fixed',
-                                          top: powerDropdownCoords.top,
-                                          left: Math.max(8, powerDropdownCoords.left),
-                                          backgroundColor: 'var(--bg-secondary, #0f172a)',
-                                          border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
-                                          borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-                                          zIndex: 9999, minWidth: '130px',
-                                          display: 'flex', flexDirection: 'column',
-                                          padding: '4px 0', overflow: 'hidden'
+                                          fontWeight: 700,
+                                          marginBottom: '3px',
+                                          color: headerColor,
+                                          textTransform: 'uppercase',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'space-between',
+                                          gap: '4px',
+                                          flexWrap: 'wrap'
                                         }}>
-                                          {/* Start */}
-                                          <button
-                                            type="button"
-                                            disabled={startDis}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setPendingPowerAction({ name: item.name, action: 'start' });
-                                              setActivePowerDropdown(null);
-                                              setPowerDropdownCoords(null);
-                                            }}
-                                            onMouseEnter={(e) => { if (!startDis) e.currentTarget.style.backgroundColor = hoverBgColor; }}
-                                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                            style={{
-                                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                              padding: '8px 14px', fontSize: '0.75rem',
-                                              background: 'none', border: 'none', width: '100%', textAlign: 'left',
-                                              color: startDis ? disabledColor : 'var(--text-primary)',
-                                              cursor: startDis ? 'not-allowed' : 'pointer',
-                                              opacity: startDis ? 0.35 : 1
-                                            }}
-                                          >
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                              <Play size={12} style={{ color: startDis ? disabledColor : '#10b981' }}
-                                                fill={startDis ? 'none' : '#10b981'} />
-                                              <span>Start</span>
-                                            </div>
-                                            {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
-                                          </button>
-
-                                          {/* Restart */}
-                                          <button
-                                            type="button"
-                                            disabled={restartDis}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setPendingPowerAction({ name: item.name, action: 'restart' });
-                                              setActivePowerDropdown(null);
-                                              setPowerDropdownCoords(null);
-                                            }}
-                                            onMouseEnter={(e) => { if (!restartDis) e.currentTarget.style.backgroundColor = hoverBgColor; }}
-                                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                            style={{
-                                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                              padding: '8px 14px', fontSize: '0.75rem',
-                                              background: 'none', border: 'none', width: '100%', textAlign: 'left',
-                                              color: restartDis ? disabledColor : 'var(--text-primary)',
-                                              cursor: restartDis ? 'not-allowed' : 'pointer',
-                                              opacity: restartDis ? 0.35 : 1
-                                            }}
-                                          >
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                              <RefreshCw size={12} style={{ color: restartDis ? disabledColor : '#3b82f6' }} />
-                                              <span>Restart</span>
-                                            </div>
-                                            {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
-                                          </button>
-
-                                          {/* Stop */}
-                                          <button
-                                            type="button"
-                                            disabled={stopDis}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setPendingPowerAction({ name: item.name, action: 'stop' });
-                                              setActivePowerDropdown(null);
-                                              setPowerDropdownCoords(null);
-                                            }}
-                                            onMouseEnter={(e) => { if (!stopDis) e.currentTarget.style.backgroundColor = hoverBgColor; }}
-                                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                            style={{
-                                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                              padding: '8px 14px', fontSize: '0.75rem',
-                                              background: 'none', border: 'none', width: '100%', textAlign: 'left',
-                                              color: stopDis ? disabledColor : 'var(--text-primary)',
-                                              cursor: stopDis ? 'not-allowed' : 'pointer',
-                                              opacity: stopDis ? 0.35 : 1
-                                            }}
-                                          >
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                              <Square size={12} style={{ color: stopDis ? disabledColor : '#ef4444' }}
-                                                fill={stopDis ? 'none' : '#ef4444'} />
-                                              <span>Stop</span>
-                                            </div>
-                                            {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
-                                          </button>
+                                          <span>{isVerified ? '✅ Network Resolution:' : '⚠️ Network Resolution:'}</span>
+                                          {(validation.sourceFile || validation.scrapedSearchedFiles) && (
+                                            <button
+                                              onClick={() => setViewScrapedConfig({
+                                                fileName: validation.sourceFile || 'unknown file',
+                                                fileContent: validation.sourceContent || 'no content',
+                                                appName: validation.sourceAppName || item.name,
+                                                searchedFiles: validation.scrapedSearchedFiles
+                                              })}
+                                              onMouseEnter={(e) => e.currentTarget.style.background = btnBgHover}
+                                              onMouseLeave={(e) => e.currentTarget.style.background = btnBg}
+                                              style={{
+                                                background: btnBg,
+                                                border: btnBorder,
+                                                color: bannerText,
+                                                padding: '2px 6px',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                fontSize: '0.6rem',
+                                                fontWeight: 700,
+                                                transition: 'all 0.15s ease'
+                                              }}
+                                            >
+                                              View Scraped Config
+                                            </button>
+                                          )}
                                         </div>
-                                      </>
+                                        {/* Error/Warning Detail text */}
+                                        <div style={{ fontWeight: 500 }}>
+                                          {validation.detail}
+                                        </div>
+                                      </div>
                                     );
                                   })()}
                                 </div>
                               );
                             })()}
 
-                            {/* Decluttered Actions Dropdown Menu */}
-                            <div style={{ position: 'relative' }}>
-                              <button
-                                type="button"
-                                className="btn-secondary"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (activeDropdown === item.name) {
-                                    setActiveDropdown(null);
-                                    setDropdownCoords(null);
-                                  } else {
-                                    const rect = e.currentTarget.getBoundingClientRect();
-                                    setDropdownCoords({ top: rect.bottom + 6, left: rect.right - 170 });
-                                    setActiveDropdown(item.name);
-                                  }
-                                }}
-                                style={{ padding: '6px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
-                                title="Operations & Actions"
-                              >
-                                <MoreVertical size={14} />
-                              </button>
-                              
-                              {activeDropdown === item.name && dropdownCoords && (
-                                <>
-                                  <div 
-                                    onClick={(e) => { e.stopPropagation(); setActiveDropdown(null); setDropdownCoords(null); }}
-                                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998, cursor: 'default' }}
-                                  />
-                                  <div style={{
-                                    position: 'fixed',
-                                    top: dropdownCoords.top,
-                                    left: Math.max(8, dropdownCoords.left),
-                                    backgroundColor: 'var(--bg-secondary, #0f172a)',
-                                    border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
-                                    borderRadius: '8px',
-                                    boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-                                    zIndex: 9999,
-                                    minWidth: '170px',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    padding: '4px 0',
-                                    overflow: 'hidden'
+                            {/* YAML Health Details Card */}
+                            {(item.type === 'frontend' || item.type === 'backend') && health?.ymlHealth && (
+                              <div style={{
+                                padding: '8px 12px',
+                                borderRadius: '10px',
+                                background: theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)',
+                                border: '1px solid var(--glass-border)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '8px',
+                                boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.03)',
+                                backdropFilter: 'blur(8px)',
+                                WebkitBackdropFilter: 'blur(8px)',
+                                fontSize: '0.72rem'
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+                                  <FileText size={11} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
+                                  <span>YAML validation:</span>
+                                </div>
+                                {!health.ymlHealth.exists ? (
+                                  <span style={{
+                                    background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                    border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                    color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                    padding: '2px 8px',
+                                    borderRadius: '10px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    fontSize: '0.68rem',
+                                    fontWeight: 600
                                   }}>
-                                    <button 
-                                      type="button"
-                                      onClick={(e) => { e.stopPropagation(); openDnsModal(item); setActiveDropdown(null); setDropdownCoords(null); }}
-                                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: 'pointer' }}
-                                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
-                                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                    >
-                                      <Globe size={12} style={{ color: 'var(--accent-purple)' }} />
-                                      <span>DNS Settings</span>
-                                    </button>
-
-                                    {item.pipelineId ? (
-                                      <a 
-                                        href={(() => {
-                                          const pid = String(item.pipelineId || '');
-                                          if (pid.startsWith('github-actions:')) {
-                                            const repoPath = pid.split(':').slice(1).join(':');
-                                            if (item.pipelineRun?.webUrl) {
-                                              return item.pipelineRun.webUrl;
-                                            }
-                                            return `https://github.com/${repoPath}/actions`;
-                                          }
-                                          if (item.pipelineRun?.webUrl) {
-                                            try {
-                                              const url = new URL(item.pipelineRun.webUrl);
-                                              const parts = url.pathname.split('/');
-                                              const buildIndex = parts.indexOf('_build');
-                                              if (buildIndex !== -1) {
-                                                const basePath = parts.slice(0, buildIndex + 1).join('/');
-                                                return `${url.origin}${basePath}?definitionId=${item.pipelineId}`;
-                                              }
-                                            } catch (e) {
-                                              console.warn('Failed to parse webUrl:', e);
-                                            }
-                                          }
-                                          const baseOrg = (azureDevopsOrgUrl || 'https://dev.azure.com/esteviatech').replace(/\/$/, '');
-                                          const baseProj = azureDevopsProject || 'Estevia-Platform';
-                                          return `${baseOrg}/${baseProj}/_build?definitionId=${item.pipelineId}`;
-                                        })()}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', color: 'var(--text-primary)', width: '100%', textDecoration: 'none', boxSizing: 'border-box' }}
-                                        onClick={() => setActiveDropdown(null)}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                      >
-                                        <GitBranch size={12} style={{ color: 'var(--accent-teal)' }} />
-                                        <span>View CI/CD Pipeline</span>
-                                      </a>
-                                    ) : (
-                                       <button 
-                                         type="button"
-                                         disabled={isViewer}
-                                         onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); setActiveDropdown(null); }}
-                                         style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: isViewer ? 'not-allowed' : 'pointer', opacity: isViewer ? 0.35 : 1 }}
-                                         onMouseEnter={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
-                                         onMouseLeave={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                       >
-                                         <PlusCircle size={12} style={{ color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--accent-purple)' }} />
-                                         <span>Setup CI/CD</span>
-                                       </button>
-                                    )}
-
-                                    {item.type === 'backend' && onShowLogs && (
-                                      <button 
+                                    <AlertCircle size={11} />
+                                    <span>Not Found</span>
+                                  </span>
+                                ) : health.ymlHealth.valid ? (
+                                  health.ymlHealth.warningCount > 0 ? (
+                                    <span style={{
+                                      background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
+                                      border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
+                                      color: theme === 'light' ? '#b45309' : '#fbbf24',
+                                      padding: '2px 8px',
+                                      borderRadius: '10px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      fontSize: '0.68rem',
+                                      fontWeight: 600
+                                    }}>
+                                      <AlertCircle size={11} />
+                                      <span>{health.ymlHealth.warningCount} warning{health.ymlHealth.warningCount > 1 ? 's' : ''}</span>
+                                      {!isViewer && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); }}
+                                          style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b45309' : '#fbbf24', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
+                                        >
+                                          Fix
+                                        </button>
+                                      )}
+                                    </span>
+                                  ) : (
+                                    <span style={{
+                                      background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(52, 211, 153, 0.12)',
+                                      border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(52, 211, 153, 0.3)',
+                                      color: theme === 'light' ? '#059669' : '#34d399',
+                                      padding: '2px 8px',
+                                      borderRadius: '10px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      fontSize: '0.68rem',
+                                      fontWeight: 600
+                                    }}>
+                                      <ShieldCheck size={11} />
+                                      <span>Valid</span>
+                                    </span>
+                                  )
+                                ) : (
+                                  <span style={{
+                                    background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                    border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                    color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                    padding: '2px 8px',
+                                    borderRadius: '10px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    fontSize: '0.68rem',
+                                    fontWeight: 600
+                                  }}>
+                                    <AlertCircle size={11} />
+                                    <span>{health.ymlHealth.errors?.length || 0} error{health.ymlHealth.errors?.length > 1 ? 's' : ''}</span>
+                                    {!isViewer && (
+                                      <button
                                         type="button"
-                                        onClick={(e) => { e.stopPropagation(); onShowLogs(item.name); setActiveDropdown(null); }}
-                                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: 'pointer' }}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); }}
+                                        style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b91c1c' : '#ef4444', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
                                       >
-                                        <Terminal size={12} style={{ color: 'var(--accent-blue)' }} />
-                                        <span>View Logs</span>
+                                        Fix
                                       </button>
                                     )}
+                                  </span>
+                                )}
+                              </div>
+                            )}
 
-                                    {onCloneApp && (
-                                      <button 
+                            {/* Dockerfile Health Details Card */}
+                            {item.type === 'backend' && health?.dockerfileHealth && (
+                              <div style={{
+                                padding: '8px 12px',
+                                borderRadius: '10px',
+                                background: theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)',
+                                border: '1px solid var(--glass-border)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '8px',
+                                boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.03)',
+                                backdropFilter: 'blur(8px)',
+                                WebkitBackdropFilter: 'blur(8px)',
+                                fontSize: '0.72rem'
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+                                  <Terminal size={11} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
+                                  <span>Dockerfile validation:</span>
+                                </div>
+                                {!health.dockerfileHealth.exists ? (
+                                  <span style={{
+                                    background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                    border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                    color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                    padding: '2px 8px',
+                                    borderRadius: '10px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    fontSize: '0.68rem',
+                                    fontWeight: 600
+                                  }}>
+                                    <AlertCircle size={11} />
+                                    <span>Not Found</span>
+                                  </span>
+                                ) : health.dockerfileHealth.valid ? (
+                                  health.dockerfileHealth.warningCount > 0 ? (
+                                    <span style={{
+                                      background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
+                                      border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
+                                      color: theme === 'light' ? '#b45309' : '#fbbf24',
+                                      padding: '2px 8px',
+                                      borderRadius: '10px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      fontSize: '0.68rem',
+                                      fontWeight: 600
+                                    }}>
+                                      <AlertCircle size={11} />
+                                      <span>{health.dockerfileHealth.warningCount} warning{health.dockerfileHealth.warningCount > 1 ? 's' : ''}</span>
+                                      {!isViewer && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => { e.stopPropagation(); openDockerfileEditor(item, group); }}
+                                          style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b45309' : '#fbbf24', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
+                                        >
+                                          Fix
+                                        </button>
+                                      )}
+                                    </span>
+                                  ) : (
+                                    <span style={{
+                                      background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(52, 211, 153, 0.12)',
+                                      border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(52, 211, 153, 0.3)',
+                                      color: theme === 'light' ? '#059669' : '#34d399',
+                                      padding: '2px 8px',
+                                      borderRadius: '10px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      fontSize: '0.68rem',
+                                      fontWeight: 600
+                                    }}>
+                                      <ShieldCheck size={11} />
+                                      <span>Valid</span>
+                                    </span>
+                                  )
+                                ) : (
+                                  <span style={{
+                                    background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                    border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                    color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                    padding: '2px 8px',
+                                    borderRadius: '10px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    fontSize: '0.68rem',
+                                    fontWeight: 600
+                                  }}>
+                                    <AlertCircle size={11} />
+                                    <span>{health.dockerfileHealth.errors?.length || 0} error{health.dockerfileHealth.errors?.length > 1 ? 's' : ''}</span>
+                                    {!isViewer && (
+                                      <button
                                         type="button"
-                                        disabled={isViewer}
-                                        onClick={(e) => { e.stopPropagation(); onCloneApp(item); setActiveDropdown(null); }}
-                                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: isViewer ? 'not-allowed' : 'pointer', opacity: isViewer ? 0.35 : 1 }}
-                                        onMouseEnter={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
-                                        onMouseLeave={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                        onClick={(e) => { e.stopPropagation(); openDockerfileEditor(item, group); }}
+                                        style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b91c1c' : '#ef4444', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
                                       >
-                                        <GitBranch size={12} style={{ color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--success)' }} />
-                                        <span>Clone App</span>
+                                        Fix
                                       </button>
                                     )}
+                                  </span>
+                                )}
+                              </div>
+                            )}
 
-                                    {item.type !== 'vm' && <div style={{ height: '1px', backgroundColor: 'var(--glass-border)', margin: '4px 0' }} />}
-
-                                    {!isOrphaned && item.type !== 'vm' && (
-                                      <button 
-                                         type="button"
-                                         onClick={(e) => { e.stopPropagation(); handleDeleteApp(item.name, item.type as 'frontend' | 'backend'); setActiveDropdown(null); }}
-                                         disabled={isViewer || deletingAppName === item.name} 
-                                         style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: (isViewer || deletingAppName === item.name) ? 'rgba(255,255,255,0.35)' : 'var(--error)', width: '100%', textAlign: 'left', cursor: (isViewer || deletingAppName === item.name) ? 'not-allowed' : 'pointer', opacity: (isViewer || deletingAppName === item.name) ? 0.35 : 1 }}
-                                         onMouseEnter={(e) => { if (!isViewer && deletingAppName !== item.name) e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.08)'; }}
-                                         onMouseLeave={(e) => { if (!isViewer && deletingAppName !== item.name) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                       >
-                                         <Trash2 size={12} style={{ color: (isViewer || deletingAppName === item.name) ? 'rgba(255,255,255,0.35)' : 'var(--error)' }} />
-                                         <span>Delete app</span>
-                                       </button>
-                                    )}
-                                  </div>
-                                </>
-                              )}
-                            </div>
                           </div>
-                        </div>
 
-                        {/* Visual Deployment Pipeline Run Progress (moved below details & actions with a collapsible divider) */}
-                        {item.pipelineId && (item.pipelineRun || !loadedPipelines[item.pipelineId]) && (() => {
-                          const isLight = theme === 'light';
-                          
-                          if (!item.pipelineRun) {
+                          {/* Visual Deployment Pipeline Run Progress (moved below details & actions with a collapsible divider) */}
+                          {item.pipelineId && (item.pipelineRun || !loadedPipelines[item.pipelineId]) && (() => {
+                            const isLight = theme === 'light';
+                            
+                            if (!item.pipelineRun) {
+                              return (
+                                <div style={{ 
+                                  borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`, 
+                                  paddingTop: '12px', 
+                                  marginTop: '8px',
+                                  width: '100%',
+                                  boxSizing: 'border-box'
+                                }}>
+                                  <div style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px',
+                                    padding: '12px 14px',
+                                    borderRadius: '8px', 
+                                    background: isLight 
+                                      ? 'rgba(0,0,0,0.02)' 
+                                      : 'rgba(255,255,255,0.01)', 
+                                    border: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
+                                    color: 'var(--text-secondary)',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 500
+                                  }}>
+                                    <RefreshCw size={12} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
+                                    <span>Loading build information...</span>
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            const isExpanded = expandedBuilds[item.name] ?? isBuildActive(item.pipelineRun);
+                            const runStatus = isBuildActive(item.pipelineRun) ? 'BUILDING' : item.pipelineRun.result || item.pipelineRun.state;
+                            const runStatusColor = getStageColor(item.pipelineRun.result, item.pipelineRun.state);
+                            
                             return (
                               <div style={{ 
                                 borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`, 
@@ -4038,413 +4011,379 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               }}>
                                 <div style={{ 
                                   display: 'flex', 
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  gap: '8px',
-                                  padding: '12px 14px',
+                                  flexDirection: 'column', 
+                                  gap: '6px', 
+                                  width: '100%', 
                                   borderRadius: '8px', 
                                   background: isLight 
-                                    ? 'rgba(0,0,0,0.02)' 
-                                    : 'rgba(255,255,255,0.01)', 
+                                    ? 'linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(243, 244, 246, 0.75) 100%)' 
+                                    : 'linear-gradient(180deg, rgba(30, 41, 59, 0.2) 0%, rgba(15, 23, 42, 0.35) 100%)', 
                                   border: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
-                                  color: 'var(--text-secondary)',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 500
+                                  boxSizing: 'border-box',
+                                  overflow: 'hidden'
                                 }}>
-                                  <RefreshCw size={12} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
-                                  <span>Loading build information...</span>
+                                  {/* Collapsible Header */}
+                                  <div 
+                                    onClick={() => setExpandedBuilds(prev => ({ ...prev, [item.name]: !isExpanded }))}
+                                    style={{
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                      padding: '10px 14px',
+                                      cursor: 'pointer',
+                                      userSelect: 'none',
+                                      background: isExpanded 
+                                        ? (isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)')
+                                        : 'transparent',
+                                      transition: 'background-color 0.2s ease',
+                                      borderBottom: isExpanded ? `1px solid ${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'}` : 'none'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isExpanded ? (isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)') : 'transparent'}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <ChevronRight 
+                                        size={14} 
+                                        style={{ 
+                                          color: 'var(--text-secondary)',
+                                          transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                                          transition: 'transform 0.2s ease'
+                                        }} 
+                                      />
+                                      <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
+                                        BUILD RUN: #{item.pipelineRun.name || item.pipelineRun.id}
+                                      </span>
+                                      {onShowBuildHistory && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            onShowBuildHistory(item);
+                                          }}
+                                          style={{
+                                            background: 'rgba(255,255,255,0.03)',
+                                            border: '1px solid var(--glass-border)',
+                                            borderRadius: '4px',
+                                            color: 'var(--text-secondary)',
+                                            fontSize: '0.64rem',
+                                            padding: '2px 6px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                            marginLeft: '6px'
+                                          }}
+                                          onMouseEnter={(e) => {
+                                            e.currentTarget.style.color = 'var(--text-primary)';
+                                            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)';
+                                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+                                          }}
+                                          onMouseLeave={(e) => {
+                                            e.currentTarget.style.color = 'var(--text-secondary)';
+                                            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
+                                            e.currentTarget.style.borderColor = 'var(--glass-border)';
+                                          }}
+                                          title="View build history & revisions"
+                                        >
+                                          <Clock size={11} />
+                                          <span>History</span>
+                                        </button>
+                                      )}
+                                      <span style={{
+                                        fontSize: '0.64rem',
+                                        fontWeight: 800,
+                                        padding: '2px 6px',
+                                        borderRadius: '4px',
+                                        backgroundColor: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)',
+                                        color: runStatusColor,
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px'
+                                      }}>
+                                        {getStageIcon(item.pipelineRun.result, item.pipelineRun.state)}
+                                        {runStatus}
+                                      </span>
+                                      {item.pipelineRun.result === 'failed' && (
+                                        <span style={{
+                                          fontSize: '0.68rem',
+                                          color: 'var(--error)',
+                                          fontWeight: 600,
+                                          marginLeft: '8px'
+                                        }}>
+                                          (Last build failed)
+                                        </span>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Right side Actions (CI/CD Pipeline Link) */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      {item.pipelineId ? (
+                                        <a 
+                                          href={(() => {
+                                            const pid = String(item.pipelineId || '');
+                                            if (pid.startsWith('github-actions:')) {
+                                              const repoPath = pid.split(':').slice(1).join(':');
+                                              if (item.pipelineRun?.webUrl) {
+                                                return item.pipelineRun.webUrl;
+                                              }
+                                              return `https://github.com/${repoPath}/actions`;
+                                            }
+                                            if (item.pipelineRun?.webUrl) {
+                                              try {
+                                                const url = new URL(item.pipelineRun.webUrl);
+                                                const parts = url.pathname.split('/');
+                                                const buildIndex = parts.indexOf('_build');
+                                                if (buildIndex !== -1) {
+                                                  const basePath = parts.slice(0, buildIndex + 1).join('/');
+                                                  return `${url.origin}${basePath}?definitionId=${item.pipelineId}`;
+                                                }
+                                              } catch (e) {
+                                                console.warn('Failed to parse webUrl:', e);
+                                              }
+                                            }
+                                            const baseOrg = (azureDevopsOrgUrl || 'https://dev.azure.com/esteviatech').replace(/\/$/, '');
+                                            const baseProj = azureDevopsProject || 'Estevia-Platform';
+                                            return `${baseOrg}/${baseProj}/_build?definitionId=${item.pipelineId}`;
+                                          })()}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            gap: '6px', 
+                                            padding: '4px 10px', 
+                                            borderRadius: '6px',
+                                            fontSize: '0.68rem', 
+                                            fontWeight: 600,
+                                            color: 'var(--text-primary)', 
+                                            backgroundColor: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)',
+                                            border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'var(--glass-border)'}`,
+                                            textDecoration: 'none', 
+                                            boxSizing: 'border-box' 
+                                          }}
+                                          onClick={(e) => e.stopPropagation()}
+                                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)'}
+                                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'}
+                                        >
+                                          <GitBranch size={10} style={{ color: 'var(--accent-teal)' }} />
+                                          <span>View CI/CD Pipeline</span>
+                                        </a>
+                                      ) : (
+                                        <button 
+                                          type="button"
+                                          disabled={isViewer}
+                                          onClick={(e) => { 
+                                            e.stopPropagation(); 
+                                            openPipelineModal(item, group); 
+                                          }}
+                                          style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            gap: '6px', 
+                                            padding: '4px 10px', 
+                                            borderRadius: '6px',
+                                            fontSize: '0.68rem', 
+                                            fontWeight: 600,
+                                            background: 'none', 
+                                            color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', 
+                                            backgroundColor: isViewer ? 'transparent' : (isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'),
+                                            border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'var(--glass-border)'}`,
+                                            textAlign: 'left', 
+                                            cursor: isViewer ? 'not-allowed' : 'pointer', 
+                                            opacity: isViewer ? 0.35 : 1 
+                                          }}
+                                          onMouseEnter={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)'; }}
+                                          onMouseLeave={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'; }}
+                                        >
+                                          <PlusCircle size={10} style={{ color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--accent-purple)' }} />
+                                          <span>Setup CI/CD</span>
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Collapsible Content */}
+                                  {isExpanded && (
+                                    <div style={{
+                                      padding: '12px 14px',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: '12px'
+                                    }}>
+                                      {item.pipelineRun.result === 'failed' && (
+                                        <div style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '8px',
+                                          padding: '10px 12px',
+                                          borderRadius: '6px',
+                                          backgroundColor: isLight ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.15)',
+                                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                                          color: isLight ? '#b91c1c' : '#f87171',
+                                          fontSize: '0.72rem',
+                                          fontWeight: 600
+                                        }}>
+                                          <AlertCircle size={14} style={{ color: isLight ? '#b91c1c' : '#f87171', flexShrink: 0 }} />
+                                          <span>Build failed for the last build. Please check step logs below.</span>
+                                        </div>
+                                      )}
+                                      {!item.pipelineRun.stages || item.pipelineRun.stages.length === 0 ? (
+                                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontStyle: 'italic', padding: '6px 0' }}>
+                                          No stages defined for this run.
+                                        </div>
+                                      ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                          {item.pipelineRun.stages.map((stage: any) => {
+                                            const stageColor = getStageColor(stage.result, stage.state);
+                                            const stageStatus = stage.state === 'inProgress' ? 'RUNNING' : stage.result || stage.state;
+                                            
+                                            return (
+                                              <div key={stage.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                {/* Stage Row */}
+                                                <div style={{ 
+                                                  display: 'flex', 
+                                                  alignItems: 'center', 
+                                                  justifyContent: 'space-between',
+                                                  fontSize: '0.74rem',
+                                                  fontWeight: 600,
+                                                  color: 'var(--text-primary)',
+                                                  padding: '4px 6px',
+                                                  borderRadius: '4px',
+                                                  backgroundColor: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)'
+                                                }}>
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    {getStageIcon(stage.result, stage.state)}
+                                                    <span>{stage.displayName || stage.name}</span>
+                                                  </div>
+                                                  <span style={{ fontSize: '0.66rem', fontWeight: 700, color: stageColor }}>
+                                                    {stageStatus.toUpperCase()}
+                                                  </span>
+                                                </div>
+                                                
+                                                {/* Jobs list under this Stage */}
+                                                {stage.jobs && stage.jobs.length > 0 && (
+                                                  <div style={{ 
+                                                    display: 'flex', 
+                                                    flexDirection: 'column', 
+                                                    gap: '6px', 
+                                                    paddingLeft: '16px',
+                                                    borderLeft: `1px dashed ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}` 
+                                                  }}>
+                                                    {stage.jobs.map((job: any) => {
+                                                      const jobColor = getStageColor(job.result, job.state);
+                                                      const jobStatus = job.state === 'inProgress' ? 'RUNNING' : job.result || job.state;
+                                                      
+                                                      return (
+                                                        <div key={job.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                          {/* Job Row */}
+                                                          <div style={{ 
+                                                            display: 'flex', 
+                                                            alignItems: 'center', 
+                                                            justifyContent: 'space-between',
+                                                            fontSize: '0.7rem',
+                                                            color: 'var(--text-secondary)',
+                                                            padding: '3px 6px',
+                                                            borderRadius: '4px'
+                                                          }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                              {getStageIcon(job.result, job.state)}
+                                                              <span style={{ fontWeight: 500 }}>{job.displayName || job.name}</span>
+                                                            </div>
+                                                            <span style={{ fontSize: '0.62rem', fontWeight: 600, color: jobColor }}>
+                                                              {jobStatus.toUpperCase()}
+                                                            </span>
+                                                          </div>
+                                                          
+                                                          {/* Job Tasks (Steps) under this Job */}
+                                                          {job.steps && job.steps.length > 0 && (
+                                                            <div style={{ 
+                                                              display: 'flex', 
+                                                              flexDirection: 'column', 
+                                                              gap: '3px', 
+                                                              paddingLeft: '14px',
+                                                              borderLeft: `1px dotted ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`
+                                                            }}>
+                                                              {job.steps.map((step: any, idx: number) => {
+                                                                const stepColor = getStageColor(step.result, step.state);
+                                                                const stepStatus = step.state === 'inProgress' ? 'RUNNING' : step.result || step.state;
+                                                                
+                                                                // Compute step duration helper
+                                                                const getStepDuration = () => {
+                                                                  if (!step.startTime) return null;
+                                                                  const start = new Date(step.startTime).getTime();
+                                                                  const end = step.finishTime ? new Date(step.finishTime).getTime() : Date.now();
+                                                                  const dur = Math.max(0, Math.floor((end - start) / 1000));
+                                                                  return `${dur}s`;
+                                                                };
+                                                                const dur = getStepDuration();
+                                                                
+                                                                return (
+                                                                  <div 
+                                                                    key={step.id || idx}
+                                                                    onClick={() => setSelectedTaskForModal({
+                                                                      step,
+                                                                      jobName: job.displayName || job.name,
+                                                                      stageName: stage.displayName || stage.name,
+                                                                      buildId: item.pipelineRun?.id
+                                                                    })}
+                                                                    style={{
+                                                                      display: 'flex',
+                                                                      alignItems: 'center',
+                                                                      justifyContent: 'space-between',
+                                                                      padding: '3px 6px',
+                                                                      borderRadius: '4px',
+                                                                      cursor: 'pointer',
+                                                                      userSelect: 'none',
+                                                                      fontSize: '0.68rem',
+                                                                      transition: 'all 0.15s ease',
+                                                                      backgroundColor: 'transparent'
+                                                                    }}
+                                                                    onMouseEnter={(e) => {
+                                                                      e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)';
+                                                                      e.currentTarget.style.color = 'var(--text-primary)';
+                                                                    }}
+                                                                    onMouseLeave={(e) => {
+                                                                      e.currentTarget.style.backgroundColor = 'transparent';
+                                                                      e.currentTarget.style.color = 'var(--text-secondary)';
+                                                                    }}
+                                                                  >
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                      {getStageIcon(step.result, step.state)}
+                                                                      <span style={{ color: 'var(--text-secondary)' }}>{step.displayName || step.name}</span>
+                                                                    </div>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                      <span style={{ fontSize: '0.62rem', fontWeight: 600, color: stepColor }}>
+                                                                        {stepStatus.toUpperCase()}
+                                                                      </span>
+                                                                      {dur && (
+                                                                        <span style={{ fontSize: '0.6rem', color: 'var(--text-muted, #94a3b8)', fontFamily: 'monospace' }}>
+                                                                          ({dur})
+                                                                        </span>
+                                                                      )}
+                                                                    </div>
+                                                                  </div>
+                                                                );
+                                                              })}
+                                                            </div>
+                                                          )}
+                                                        </div>
+                                                      );
+                                                    })}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             );
-                          }
-
-                          const isExpanded = expandedBuilds[item.name] ?? isBuildActive(item.pipelineRun);
-                          const runStatus = isBuildActive(item.pipelineRun) ? 'BUILDING' : item.pipelineRun.result || item.pipelineRun.state;
-                          const runStatusColor = getStageColor(item.pipelineRun.result, item.pipelineRun.state);
-                          
-                          return (
-                            <div style={{ 
-                              borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`, 
-                              paddingTop: '12px', 
-                              marginTop: '8px',
-                              width: '100%',
-                              boxSizing: 'border-box'
-                            }}>
-                              <div style={{ 
-                                display: 'flex', 
-                                flexDirection: 'column', 
-                                gap: '6px', 
-                                width: '100%', 
-                                borderRadius: '8px', 
-                                background: isLight 
-                                  ? 'linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(243, 244, 246, 0.75) 100%)' 
-                                  : 'linear-gradient(180deg, rgba(30, 41, 59, 0.2) 0%, rgba(15, 23, 42, 0.35) 100%)', 
-                                border: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
-                                boxSizing: 'border-box',
-                                overflow: 'hidden'
-                              }}>
-                                {/* Collapsible Header */}
-                                <div 
-                                  onClick={() => setExpandedBuilds(prev => ({ ...prev, [item.name]: !isExpanded }))}
-                                  style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    padding: '10px 14px',
-                                    cursor: 'pointer',
-                                    userSelect: 'none',
-                                    background: isExpanded 
-                                      ? (isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)')
-                                      : 'transparent',
-                                    transition: 'background-color 0.2s ease',
-                                    borderBottom: isExpanded ? `1px solid ${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'}` : 'none'
-                                  }}
-                                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)'}
-                                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isExpanded ? (isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)') : 'transparent'}
-                                >
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <ChevronRight 
-                                      size={14} 
-                                      style={{ 
-                                        color: 'var(--text-secondary)',
-                                        transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                                        transition: 'transform 0.2s ease'
-                                      }} 
-                                    />
-                                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
-                                      BUILD RUN: #{item.pipelineRun.name || item.pipelineRun.id}
-                                    </span>
-                                    {onShowBuildHistory && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          onShowBuildHistory(item);
-                                        }}
-                                        style={{
-                                          background: 'rgba(255,255,255,0.03)',
-                                          border: '1px solid var(--glass-border)',
-                                          borderRadius: '4px',
-                                          color: 'var(--text-secondary)',
-                                          fontSize: '0.64rem',
-                                          padding: '2px 6px',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: '4px',
-                                          cursor: 'pointer',
-                                          transition: 'all 0.2s',
-                                          marginLeft: '6px'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                          e.currentTarget.style.color = 'var(--text-primary)';
-                                          e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)';
-                                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                          e.currentTarget.style.color = 'var(--text-secondary)';
-                                          e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
-                                          e.currentTarget.style.borderColor = 'var(--glass-border)';
-                                        }}
-                                        title="View build history & revisions"
-                                      >
-                                        <Clock size={11} />
-                                        <span>History</span>
-                                      </button>
-                                    )}
-                                    <span style={{
-                                      fontSize: '0.64rem',
-                                      fontWeight: 800,
-                                      padding: '2px 6px',
-                                      borderRadius: '4px',
-                                      backgroundColor: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)',
-                                      color: runStatusColor,
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '4px'
-                                    }}>
-                                      {getStageIcon(item.pipelineRun.result, item.pipelineRun.state)}
-                                      {runStatus}
-                                    </span>
-                                    {item.pipelineRun.result === 'failed' && (
-                                      <span style={{
-                                        fontSize: '0.68rem',
-                                        color: 'var(--error)',
-                                        fontWeight: 600,
-                                        marginLeft: '8px'
-                                      }}>
-                                        (Last build failed)
-                                      </span>
-                                    )}
-                                  </div>
-                                  
-                                  {/* Right side Actions (CI/CD Pipeline Link) */}
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    {item.pipelineId ? (
-                                      <a 
-                                        href={(() => {
-                                          const pid = String(item.pipelineId || '');
-                                          if (pid.startsWith('github-actions:')) {
-                                            const repoPath = pid.split(':').slice(1).join(':');
-                                            if (item.pipelineRun?.webUrl) {
-                                              return item.pipelineRun.webUrl;
-                                            }
-                                            return `https://github.com/${repoPath}/actions`;
-                                          }
-                                          if (item.pipelineRun?.webUrl) {
-                                            try {
-                                              const url = new URL(item.pipelineRun.webUrl);
-                                              const parts = url.pathname.split('/');
-                                              const buildIndex = parts.indexOf('_build');
-                                              if (buildIndex !== -1) {
-                                                const basePath = parts.slice(0, buildIndex + 1).join('/');
-                                                return `${url.origin}${basePath}?definitionId=${item.pipelineId}`;
-                                              }
-                                            } catch (e) {
-                                              console.warn('Failed to parse webUrl:', e);
-                                            }
-                                          }
-                                          const baseOrg = (azureDevopsOrgUrl || 'https://dev.azure.com/esteviatech').replace(/\/$/, '');
-                                          const baseProj = azureDevopsProject || 'Estevia-Platform';
-                                          return `${baseOrg}/${baseProj}/_build?definitionId=${item.pipelineId}`;
-                                        })()}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        style={{ 
-                                          display: 'flex', 
-                                          alignItems: 'center', 
-                                          gap: '6px', 
-                                          padding: '4px 10px', 
-                                          borderRadius: '6px',
-                                          fontSize: '0.68rem', 
-                                          fontWeight: 600,
-                                          color: 'var(--text-primary)', 
-                                          backgroundColor: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)',
-                                          border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'var(--glass-border)'}`,
-                                          textDecoration: 'none', 
-                                          boxSizing: 'border-box' 
-                                        }}
-                                        onClick={(e) => e.stopPropagation()}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'}
-                                      >
-                                        <GitBranch size={10} style={{ color: 'var(--accent-teal)' }} />
-                                        <span>View CI/CD Pipeline</span>
-                                      </a>
-                                    ) : (
-                                      <button 
-                                        type="button"
-                                        disabled={isViewer}
-                                        onClick={(e) => { 
-                                          e.stopPropagation(); 
-                                          openPipelineModal(item, group); 
-                                        }}
-                                        style={{ 
-                                          display: 'flex', 
-                                          alignItems: 'center', 
-                                          gap: '6px', 
-                                          padding: '4px 10px', 
-                                          borderRadius: '6px',
-                                          fontSize: '0.68rem', 
-                                          fontWeight: 600,
-                                          background: 'none', 
-                                          color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', 
-                                          backgroundColor: isViewer ? 'transparent' : (isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'),
-                                          border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'var(--glass-border)'}`,
-                                          textAlign: 'left', 
-                                          cursor: isViewer ? 'not-allowed' : 'pointer', 
-                                          opacity: isViewer ? 0.35 : 1 
-                                        }}
-                                        onMouseEnter={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)'; }}
-                                        onMouseLeave={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'; }}
-                                      >
-                                        <PlusCircle size={10} style={{ color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--accent-purple)' }} />
-                                        <span>Setup CI/CD</span>
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                                
-                                {/* Collapsible Content */}
-                                {isExpanded && (
-                                  <div style={{
-                                    padding: '12px 14px',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '12px'
-                                  }}>
-                                    {item.pipelineRun.result === 'failed' && (
-                                      <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px',
-                                        padding: '10px 12px',
-                                        borderRadius: '6px',
-                                        backgroundColor: isLight ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.15)',
-                                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                                        color: isLight ? '#b91c1c' : '#f87171',
-                                        fontSize: '0.72rem',
-                                        fontWeight: 600
-                                      }}>
-                                        <AlertCircle size={14} style={{ color: isLight ? '#b91c1c' : '#f87171', flexShrink: 0 }} />
-                                        <span>Build failed for the last build. Please check step logs below.</span>
-                                      </div>
-                                    )}
-                                    {!item.pipelineRun.stages || item.pipelineRun.stages.length === 0 ? (
-                                      <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontStyle: 'italic', padding: '6px 0' }}>
-                                        No stages defined for this run.
-                                      </div>
-                                    ) : (
-                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                        {item.pipelineRun.stages.map((stage: any) => {
-                                          const stageColor = getStageColor(stage.result, stage.state);
-                                          const stageStatus = stage.state === 'inProgress' ? 'RUNNING' : stage.result || stage.state;
-                                          
-                                          return (
-                                            <div key={stage.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                              {/* Stage Row */}
-                                              <div style={{ 
-                                                display: 'flex', 
-                                                alignItems: 'center', 
-                                                justifyContent: 'space-between',
-                                                fontSize: '0.74rem',
-                                                fontWeight: 600,
-                                                color: 'var(--text-primary)',
-                                                padding: '4px 6px',
-                                                borderRadius: '4px',
-                                                backgroundColor: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)'
-                                              }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                  {getStageIcon(stage.result, stage.state)}
-                                                  <span>{stage.displayName || stage.name}</span>
-                                                </div>
-                                                <span style={{ fontSize: '0.66rem', fontWeight: 700, color: stageColor }}>
-                                                  {stageStatus.toUpperCase()}
-                                                </span>
-                                              </div>
-                                              
-                                              {/* Jobs list under this Stage */}
-                                              {stage.jobs && stage.jobs.length > 0 && (
-                                                <div style={{ 
-                                                  display: 'flex', 
-                                                  flexDirection: 'column', 
-                                                  gap: '6px', 
-                                                  paddingLeft: '16px',
-                                                  borderLeft: `1px dashed ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}` 
-                                                }}>
-                                                  {stage.jobs.map((job: any) => {
-                                                    const jobColor = getStageColor(job.result, job.state);
-                                                    const jobStatus = job.state === 'inProgress' ? 'RUNNING' : job.result || job.state;
-                                                    
-                                                    return (
-                                                      <div key={job.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                        {/* Job Row */}
-                                                        <div style={{ 
-                                                          display: 'flex', 
-                                                          alignItems: 'center', 
-                                                          justifyContent: 'space-between',
-                                                          fontSize: '0.7rem',
-                                                          color: 'var(--text-secondary)',
-                                                          padding: '3px 6px',
-                                                          borderRadius: '4px'
-                                                        }}>
-                                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                            {getStageIcon(job.result, job.state)}
-                                                            <span style={{ fontWeight: 500 }}>{job.displayName || job.name}</span>
-                                                          </div>
-                                                          <span style={{ fontSize: '0.62rem', fontWeight: 600, color: jobColor }}>
-                                                            {jobStatus.toUpperCase()}
-                                                          </span>
-                                                        </div>
-                                                        
-                                                        {/* Job Tasks (Steps) under this Job */}
-                                                        {job.steps && job.steps.length > 0 && (
-                                                          <div style={{ 
-                                                            display: 'flex', 
-                                                            flexDirection: 'column', 
-                                                            gap: '3px', 
-                                                            paddingLeft: '14px',
-                                                            borderLeft: `1px dotted ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`
-                                                          }}>
-                                                            {job.steps.map((step: any, idx: number) => {
-                                                              const stepColor = getStageColor(step.result, step.state);
-                                                              const stepStatus = step.state === 'inProgress' ? 'RUNNING' : step.result || step.state;
-                                                              
-                                                              // Compute step duration helper
-                                                              const getStepDuration = () => {
-                                                                if (!step.startTime) return null;
-                                                                const start = new Date(step.startTime).getTime();
-                                                                const end = step.finishTime ? new Date(step.finishTime).getTime() : Date.now();
-                                                                const dur = Math.max(0, Math.floor((end - start) / 1000));
-                                                                return `${dur}s`;
-                                                              };
-                                                              const dur = getStepDuration();
-                                                              
-                                                              return (
-                                                                <div 
-                                                                  key={step.id || idx}
-                                                                  onClick={() => setSelectedTaskForModal({
-                                                                    step,
-                                                                    jobName: job.displayName || job.name,
-                                                                    stageName: stage.displayName || stage.name,
-                                                                    buildId: item.pipelineRun?.id
-                                                                  })}
-                                                                  style={{
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    justifyContent: 'space-between',
-                                                                    padding: '3px 6px',
-                                                                    borderRadius: '4px',
-                                                                    cursor: 'pointer',
-                                                                    userSelect: 'none',
-                                                                    fontSize: '0.68rem',
-                                                                    transition: 'all 0.15s ease',
-                                                                    backgroundColor: 'transparent'
-                                                                  }}
-                                                                  onMouseEnter={(e) => {
-                                                                    e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)';
-                                                                    e.currentTarget.style.color = 'var(--text-primary)';
-                                                                  }}
-                                                                  onMouseLeave={(e) => {
-                                                                    e.currentTarget.style.backgroundColor = 'transparent';
-                                                                    e.currentTarget.style.color = 'var(--text-secondary)';
-                                                                  }}
-                                                                >
-                                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                                    {getStageIcon(step.result, step.state)}
-                                                                    <span style={{ color: 'var(--text-secondary)' }}>{step.displayName || step.name}</span>
-                                                                  </div>
-                                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                                    <span style={{ fontSize: '0.62rem', fontWeight: 600, color: stepColor }}>
-                                                                      {stepStatus.toUpperCase()}
-                                                                    </span>
-                                                                    {dur && (
-                                                                      <span style={{ fontSize: '0.6rem', color: 'var(--text-muted, #94a3b8)', fontFamily: 'monospace' }}>
-                                                                        ({dur})
-                                                                      </span>
-                                                                    )}
-                                                                  </div>
-                                                                </div>
-                                                              );
-                                                            })}
-                                                          </div>
-                                                        )}
-                                                      </div>
-                                                    );
-                                                  })}
-                                                </div>
-                                              )}
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
+                          })()}
+                        </div>
                       );
                     })}
                     {(() => {
