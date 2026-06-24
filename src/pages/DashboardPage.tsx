@@ -988,6 +988,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             detail: `Network Mismatch: SWA is running as ${themeEnv} but is configured to connect to backend '${matchingBackend.name}' which is in ${backendEnv}.`
           };
         } else {
+          // Check backend's own database connection network status recursively
+          const backendValidation = checkNetworkWarnings(matchingBackend, group);
+          if (backendValidation && backendValidation.status !== 'verified') {
+            return {
+              status: backendValidation.status,
+              message: backendValidation.status === 'warning' ? 'Backend Warning' : 'Backend Unverified',
+              detail: `Network Warning: SWA is connected to backend '${matchingBackend.name}', but this backend has a database connection issue: ${backendValidation.detail}`
+            };
+          }
+
           return {
             status: 'verified',
             message: 'Verified',
@@ -1053,33 +1063,63 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         const dbDetails = matchingDb.azureResourceDetails;
         const dbSubnetId = dbDetails?.delegatedSubnetResourceId || '';
         const dbVnetName = dbSubnetId.split(/\/virtualnetworks\//i)[1]?.split('/')[0];
-        console.log(`[VNet Debug] Backend: ${item.name} | DB: ${matchingDb.name} | DB Subnet ID: ${dbSubnetId} | Resolved DB VNet: ${dbVnetName}`);
+        
+        // Resolve subnet resource IDs for dynamic peering checks
+        const itemSubnetId = item.azureResourceDetails?.vnetSubnetID || item.azureResourceDetails?.delegatedSubnetResourceId || item.azureResourceDetails?.agentPoolProfiles?.[0]?.vnetSubnetID || '';
+        const itemVnetId = itemSubnetId ? itemSubnetId.toLowerCase().split('/subnets/')[0] : '';
+        const dbVnetId = dbSubnetId ? dbSubnetId.toLowerCase().split('/subnets/')[0] : '';
 
-        if (dbVnetName) {
-          const isDevVnet = itemVnet.toLowerCase() === 'estevia-dev-vnet';
-          const isProdVnet = itemVnet.toLowerCase() === 'estevia-prod-vnet';
-          const isDbV2Vnet = dbVnetName.toLowerCase() === 'estevia-prod-db-v2-vnet';
+        console.log(`[VNet Debug] Backend: ${item.name} | DB: ${matchingDb.name} | Resolved DB VNet: ${dbVnetName} | Item VNet: ${itemVnet}`);
 
-          let connected = false;
+        let connected = false;
+        if (itemVnetId && dbVnetId && itemVnetId === dbVnetId) {
+          connected = true;
+        } else if (itemVnetId && dbVnetId) {
+          // Look up network peerings dynamically from the apps list
+          const dbVnetResource = apps.find(a => a.type === 'network' && a.resourceId?.toLowerCase() === dbVnetId);
+          const isPeered = dbVnetResource?.azureResourceDetails?.peerings?.some((p: any) => 
+            p.remoteVirtualNetworkId?.toLowerCase() === itemVnetId && p.peeringState?.toLowerCase() === 'connected'
+          );
+          if (isPeered) {
+            connected = true;
+          } else {
+            // Check reciprocal peering from compute VNet resource
+            const compVnetResource = apps.find(a => a.type === 'network' && a.resourceId?.toLowerCase() === itemVnetId);
+            const isReciprocalPeered = compVnetResource?.azureResourceDetails?.peerings?.some((p: any) => 
+              p.remoteVirtualNetworkId?.toLowerCase() === dbVnetId && p.peeringState?.toLowerCase() === 'connected'
+            );
+            if (isReciprocalPeered) {
+              connected = true;
+            }
+          }
+        }
+
+        // Fallback to name-based rules if dynamic check didn't resolve connected to true
+        if (!connected && dbVnetName) {
+          const isDevVnet = itemVnet.toLowerCase() === 'estevia-dev-vnet' || itemVnet.toLowerCase().includes('dev');
+          const isQaVnet = itemVnet.toLowerCase() === 'estevia-qa-vnet' || itemVnet.toLowerCase().includes('qa');
+          const isProdVnet = itemVnet.toLowerCase() === 'estevia-prod-vnet' || itemVnet.toLowerCase().includes('prod');
+          const isDbV2Vnet = dbVnetName.toLowerCase() === 'estevia-prod-db-v2-vnet' || dbVnetName.toLowerCase().includes('db-v2') || dbVnetName.toLowerCase().includes('db');
+
           if (itemVnet.toLowerCase() === dbVnetName.toLowerCase()) {
             connected = true;
-          } else if (isDbV2Vnet && (isDevVnet || isProdVnet)) {
+          } else if (isDbV2Vnet && (isDevVnet || isQaVnet || isProdVnet)) {
             connected = true;
           }
+        }
 
-          if (!connected) {
-            return {
-              status: 'warning',
-              message: 'Unpeered',
-              detail: `VNet Connection Warning: Backend '${item.name}' (${themeEnv}) is in ${itemVnet} but is configured to connect to database '${matchingDb.name}' in ${dbVnetName}. Without active VNet peering between these networks, database connections will fail.`
-            };
-          } else {
-            return {
-              status: 'verified',
-              message: 'Peered DB',
-              detail: `Peered database connection verified: connected to database '${matchingDb.name}' (${dbVnetName}) over peered virtual network.`
-            };
-          }
+        if (!connected) {
+          return {
+            status: 'warning',
+            message: 'Unpeered',
+            detail: `VNet Connection Warning: Backend '${item.name}' (${themeEnv}) is in ${itemVnet} but is configured to connect to database '${matchingDb.name}' in ${dbVnetName}. Without active VNet peering between these networks, database connections will fail.`
+          };
+        } else {
+          return {
+            status: 'verified',
+            message: 'Peered DB',
+            detail: `Peered database connection verified: connected to database '${matchingDb.name}' (${dbVnetName}) over peered virtual network.`
+          };
         }
       } else {
         // Check by string matching if we can't find matching DB resource
@@ -1091,15 +1131,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         else if (isQaDb) dbEnv = 'QA';
 
         // Estevia network peering rules: dev VNet peered to prod-db-v2. prod VNet peered to prod-db-v2. dev VNet not peered to prod VNet.
-        const isDevVnet = itemVnet.toLowerCase() === 'estevia-dev-vnet';
-        const isProdVnet = itemVnet.toLowerCase() === 'estevia-prod-vnet';
+        const isDevVnet = itemVnet.toLowerCase() === 'estevia-dev-vnet' || itemVnet.toLowerCase().includes('dev');
+        const isQaVnet = itemVnet.toLowerCase() === 'estevia-qa-vnet' || itemVnet.toLowerCase().includes('qa');
+        const isProdVnet = itemVnet.toLowerCase() === 'estevia-prod-vnet' || itemVnet.toLowerCase().includes('prod');
 
         let peered = false;
         if (dbEnv === 'PROD') {
-          peered = true; // prod db is in prod-db-v2 which is peered to both
+          peered = true; // prod db is in prod-db-v2 which is peered to dev, qa, and prod
         } else if (dbEnv === 'DEV' && isDevVnet) {
           peered = true;
-        } else if (dbEnv === 'QA' && isDevVnet) {
+        } else if (dbEnv === 'QA' && (isDevVnet || isQaVnet)) {
           peered = true; // qa and dev share or are peered
         }
 
@@ -2719,14 +2760,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               </div>
 
                               {/* VNet / VPC Details */}
-                              {showVpcDetails && (
-                                <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
-                                  <Network size={12} style={{ opacity: 0.7, color: 'var(--accent-teal)', flexShrink: 0 }} />
-                                  <span>VNet / VPC: <strong style={{ color: 'var(--text-primary)' }}>{getVnetName(item) || 'None (Public Cloud)'}</strong></span>
-                                </div>
-                              )}
+                              <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
+                                <Network size={12} style={{ opacity: 0.7, color: 'var(--accent-teal)', flexShrink: 0 }} />
+                                <span>VNet / VPC: <strong style={{ color: 'var(--text-primary)' }}>{getVnetName(item) || 'None (Public Cloud)'}</strong></span>
+                              </div>
 
-                              {/* Network / VNet Warning (Pill Style) */}
+                              {/* Network / VNet Warning (Pill & Inline Resolution Style) */}
                               {(() => {
                                 const validation = checkNetworkWarnings(item, group);
                                 if (!validation) return null;
@@ -2749,37 +2788,54 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 }
 
                                 return (
-                                  <div 
-                                    style={{ 
-                                      fontSize: '0.72rem', 
-                                      marginTop: '4px', 
-                                      display: 'flex', 
-                                      alignItems: 'center', 
-                                      gap: '8px', 
-                                      fontWeight: 400, 
-                                      color: 'var(--text-secondary)' 
-                                    }}
-                                    title={validation.detail}
-                                  >
-                                    <Network size={12} style={{ opacity: 0.7, color: 'var(--accent-teal)', flexShrink: 0 }} />
-                                    <span>Network: </span>
-                                    <span style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '4px',
-                                      fontSize: '0.65rem',
-                                      fontWeight: 600,
-                                      padding: '2px 8px',
-                                      borderRadius: '20px',
-                                      background: pillBg,
-                                      border: `1px solid ${pillBorder}`,
-                                      color: pillColor,
-                                      cursor: 'help'
-                                    }}>
-                                      {pillIcon}
-                                      <span>{validation.message}</span>
-                                    </span>
-                                  </div>
+                                  <>
+                                    <div 
+                                      style={{ 
+                                        fontSize: '0.72rem', 
+                                        marginTop: '4px', 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        gap: '8px', 
+                                        fontWeight: 400, 
+                                        color: 'var(--text-secondary)' 
+                                      }}
+                                      title={validation.detail}
+                                    >
+                                      <Network size={12} style={{ opacity: 0.7, color: 'var(--accent-teal)', flexShrink: 0 }} />
+                                      <span>Network: </span>
+                                      <span style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        fontSize: '0.65rem',
+                                        fontWeight: 600,
+                                        padding: '2px 8px',
+                                        borderRadius: '20px',
+                                        background: pillBg,
+                                        border: `1px solid ${pillBorder}`,
+                                        color: pillColor,
+                                        cursor: 'help'
+                                      }}>
+                                        {pillIcon}
+                                        <span>{validation.message}</span>
+                                      </span>
+                                    </div>
+                                    
+                                    {validation.status !== 'verified' && (
+                                      <div style={{
+                                        fontSize: '0.68rem',
+                                        marginTop: '6px',
+                                        padding: '6px 10px',
+                                        borderRadius: '6px',
+                                        background: validation.status === 'warning' ? 'rgba(239, 68, 68, 0.04)' : 'rgba(148, 163, 184, 0.04)',
+                                        border: validation.status === 'warning' ? '1px solid rgba(239, 68, 68, 0.15)' : '1px solid rgba(148, 163, 184, 0.15)',
+                                        color: validation.status === 'warning' ? '#f87171' : '#94a3b8',
+                                        lineHeight: 1.3
+                                      }}>
+                                        {validation.detail}
+                                      </div>
+                                    )}
+                                  </>
                                 );
                               })()}
 
