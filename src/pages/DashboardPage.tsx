@@ -326,41 +326,77 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   } | null>(null);
 
   // Policy Settings States
-  const [disabledRules, setDisabledRules] = React.useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('evaops_disabled_rules');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
+  const [disabledRules, setDisabledRules] = React.useState<string[]>([]);
+  const [ruleSeverities, setRuleSeverities] = React.useState<Record<string, string>>({});
+  const [expandedRuleViolations, setExpandedRuleViolations] = React.useState<Record<string, boolean>>({});
+  const settingsLoadedRef = React.useRef(false);
 
-  const [ruleSeverities, setRuleSeverities] = React.useState<Record<string, string>>(() => {
+  const fetchSettings = async () => {
     try {
-      const saved = localStorage.getItem('evaops_rule_severities');
-      return saved ? JSON.parse(saved) : {};
-    } catch (e) {
-      return {};
+      const token = localStorage.getItem('devops_token');
+      const res = await fetch(`${API_BASE}/apps/compliance/settings?organizationId=${organizationId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setDisabledRules(data.disabledRules || []);
+        setRuleSeverities(data.ruleSeverities || {});
+      }
+    } catch (err) {
+      console.error('Failed to fetch compliance settings:', err);
+      try {
+        const savedRules = localStorage.getItem('evaops_disabled_rules');
+        const savedSeverities = localStorage.getItem('evaops_rule_severities');
+        if (savedRules) setDisabledRules(JSON.parse(savedRules));
+        if (savedSeverities) setRuleSeverities(JSON.parse(savedSeverities));
+      } catch (e) {}
+    } finally {
+      settingsLoadedRef.current = true;
     }
-  });
+  };
+
+  const saveSettings = async (rules: string[], severities: Record<string, string>) => {
+    localStorage.setItem('evaops_disabled_rules', JSON.stringify(rules));
+    localStorage.setItem('evaops_rule_severities', JSON.stringify(severities));
+
+    try {
+      const token = localStorage.getItem('devops_token');
+      await fetch(`${API_BASE}/apps/compliance/settings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          organizationId,
+          disabledRules: rules,
+          ruleSeverities: severities
+        })
+      });
+    } catch (err) {
+      console.error('Failed to save compliance settings to database:', err);
+    }
+  };
+
+  React.useEffect(() => {
+    if (organizationId) {
+      fetchSettings();
+    }
+  }, [organizationId]);
+
+  React.useEffect(() => {
+    if (settingsLoadedRef.current) {
+      saveSettings(disabledRules, ruleSeverities);
+    }
+  }, [disabledRules, ruleSeverities]);
 
   const [policyConfigExpanded, setPolicyConfigExpanded] = React.useState<boolean>(false);
-
-  React.useEffect(() => {
-    localStorage.setItem('evaops_disabled_rules', JSON.stringify(disabledRules));
-  }, [disabledRules]);
-
-  React.useEffect(() => {
-    localStorage.setItem('evaops_rule_severities', JSON.stringify(ruleSeverities));
-  }, [ruleSeverities]);
 
   const fetchCompliance = async () => {
     setLoadingCompliance(true);
     try {
       const token = localStorage.getItem('devops_token');
-      const disabledParam = disabledRules.join(',');
-      const severitiesParam = encodeURIComponent(JSON.stringify(ruleSeverities));
-      const res = await fetch(`${API_BASE}/apps/compliance?organizationId=${organizationId}&disabledRules=${disabledParam}&severities=${severitiesParam}`, {
+      const res = await fetch(`${API_BASE}/apps/compliance?organizationId=${organizationId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -375,10 +411,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   };
 
   React.useEffect(() => {
-    if (activeSubTab === 'compliance') {
+    if (activeSubTab === 'compliance' && organizationId) {
       fetchCompliance();
     }
-  }, [activeSubTab, disabledRules, ruleSeverities]);
+  }, [activeSubTab, disabledRules, ruleSeverities, organizationId]);
 
   const handleRemediate = async (violation: any) => {
     setRemediatingId(violation.suggestionId);
@@ -5296,58 +5332,105 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 {rule.description}
                               </div>
 
-                              {/* Rich details reason explanation */}
-                              {rule.status === 'passed' && (
+                              {/* Policy Status & Analysis Subsection */}
+                              <div style={{
+                                marginTop: '10px',
+                                borderRadius: '8px',
+                                background: rule.status === 'passed' 
+                                  ? 'rgba(16, 185, 129, 0.04)' 
+                                  : rule.status === 'disabled' 
+                                    ? 'rgba(255, 255, 255, 0.02)' 
+                                    : 'rgba(239, 68, 68, 0.04)',
+                                border: `1px solid ${
+                                  rule.status === 'passed' 
+                                    ? 'rgba(16, 185, 129, 0.15)' 
+                                    : rule.status === 'disabled' 
+                                      ? 'var(--glass-border)' 
+                                      : 'rgba(239, 68, 68, 0.15)'
+                                }`,
+                                overflow: 'hidden',
+                                fontSize: '0.72rem',
+                                lineHeight: '1.45'
+                              }}>
+                                {/* Unified Status Row */}
                                 <div style={{
-                                  marginTop: '10px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
                                   padding: '8px 10px',
-                                  borderRadius: '6px',
-                                  background: 'rgba(16, 185, 129, 0.05)',
-                                  border: '1px solid rgba(16, 185, 129, 0.1)',
-                                  fontSize: '0.72rem',
-                                  color: 'rgba(16, 185, 129, 0.85)',
-                                  lineHeight: '1.4'
+                                  color: rule.status === 'passed' 
+                                    ? 'rgba(16, 185, 129, 0.85)' 
+                                    : rule.status === 'disabled' 
+                                      ? 'var(--text-muted)' 
+                                      : '#f87171',
+                                  fontWeight: 600,
+                                  cursor: rule.status === 'failed' && ruleViolations.length > 0 ? 'pointer' : 'default',
+                                  userSelect: 'none'
+                                }}
+                                onClick={() => {
+                                  if (rule.status === 'failed' && ruleViolations.length > 0) {
+                                    setExpandedRuleViolations(prev => ({
+                                      ...prev,
+                                      [rule.id]: !prev[rule.id]
+                                    }));
+                                  }
                                 }}>
-                                  <strong>Compliant:</strong> {COMPLIANT_REASONS[rule.id] || 'All evaluated resources satisfy this governance rule.'}
+                                  {rule.status === 'passed' ? (
+                                    <CheckCircle2 size={13} style={{ color: '#10b981', flexShrink: 0 }} />
+                                  ) : rule.status === 'disabled' ? (
+                                    <HelpCircle size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                                  ) : (
+                                    <AlertCircle size={13} style={{ color: '#ef4444', flexShrink: 0 }} />
+                                  )}
+                                  <span style={{ flex: 1 }}>
+                                    {rule.status === 'passed' 
+                                      ? 'Rule Compliant' 
+                                      : rule.status === 'disabled' 
+                                        ? 'Evaluation Deactivated' 
+                                        : `Violations Detected (${violationCount})`}
+                                  </span>
+                                  {rule.status === 'failed' && ruleViolations.length > 0 && (
+                                    expandedRuleViolations[rule.id] ? (
+                                      <ChevronDown size={12} style={{ color: '#f87171', flexShrink: 0 }} />
+                                    ) : (
+                                      <ChevronRight size={12} style={{ color: '#f87171', flexShrink: 0 }} />
+                                    )
+                                  )}
                                 </div>
-                              )}
 
-                              {rule.status === 'failed' && ruleViolations.length > 0 && (
-                                <div style={{
-                                  marginTop: '10px',
-                                  padding: '8px 10px',
-                                  borderRadius: '6px',
-                                  background: 'rgba(239, 68, 68, 0.04)',
-                                  border: '1px solid rgba(239, 68, 68, 0.1)',
-                                  fontSize: '0.72rem',
-                                  color: '#fca5a5',
-                                  lineHeight: '1.4'
-                                }}>
-                                  <div style={{ fontWeight: 650, marginBottom: '4px', color: '#f87171' }}>Violating Assets:</div>
-                                  <ul style={{ margin: 0, paddingLeft: '14px', listStyleType: 'disc' }}>
-                                    {ruleViolations.map((v: any, vIdx: number) => (
-                                      <li key={vIdx} style={{ marginBottom: '2px' }}>
-                                        <strong style={{ color: 'var(--text-primary)' }}>{v.resourceName}</strong>: {v.message}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
+                                {/* Content block */}
+                                {rule.status === 'passed' && (
+                                  <div style={{ padding: '0 10px 8px 10px', color: 'rgba(16, 185, 129, 0.8)' }}>
+                                    {COMPLIANT_REASONS[rule.id] || 'All evaluated resources satisfy this governance rule.'}
+                                  </div>
+                                )}
 
-                              {rule.status === 'disabled' && (
-                                <div style={{
-                                  marginTop: '10px',
-                                  padding: '8px 10px',
-                                  borderRadius: '6px',
-                                  background: 'rgba(255, 255, 255, 0.02)',
-                                  border: '1px solid var(--glass-border)',
-                                  fontSize: '0.72rem',
-                                  color: 'var(--text-muted)',
-                                  lineHeight: '1.4'
-                                }}>
-                                  Governance check is deactivated in configuration settings.
-                                </div>
-                              )}
+                                {rule.status === 'disabled' && (
+                                  <div style={{ padding: '0 10px 8px 10px', color: 'var(--text-muted)' }}>
+                                    Governance check is deactivated in configuration settings.
+                                  </div>
+                                )}
+
+                                {rule.status === 'failed' && ruleViolations.length > 0 && (
+                                  <div style={{
+                                    maxHeight: expandedRuleViolations[rule.id] ? '200px' : '0',
+                                    opacity: expandedRuleViolations[rule.id] ? 1 : 0,
+                                    overflowY: 'auto',
+                                    transition: 'all 0.25s ease-in-out',
+                                    padding: expandedRuleViolations[rule.id] ? '4px 10px 10px 10px' : '0px 10px',
+                                    background: 'rgba(239, 68, 68, 0.015)',
+                                    borderTop: expandedRuleViolations[rule.id] ? '1px solid rgba(239, 68, 68, 0.08)' : 'none'
+                                  }}>
+                                    <ul style={{ margin: 0, paddingLeft: '14px', listStyleType: 'disc', color: '#fca5a5' }}>
+                                      {ruleViolations.map((v: any, vIdx: number) => (
+                                        <li key={vIdx} style={{ marginBottom: '3px' }}>
+                                          <strong style={{ color: 'var(--text-primary)' }}>{v.resourceName}</strong>: {v.message}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
                             </div>
 
                             {/* Badges footer */}
