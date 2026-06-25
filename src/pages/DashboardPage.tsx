@@ -5327,9 +5327,27 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 )}
                               </div>
                               
-                              {/* Description text */}
-                              <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '8px', lineHeight: '1.45', minHeight: '54px' }}>
-                                {rule.description}
+                              {/* Description & Detail Subsections */}
+                              <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '8px', lineHeight: '1.45', display: 'flex', flexDirection: 'column', gap: '8px', minHeight: '120px' }}>
+                                <div style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{rule.description}</div>
+                                
+                                {rule.rootCause && (
+                                  <div style={{ fontSize: '0.72rem', borderLeft: '2px solid rgba(255, 255, 255, 0.08)', paddingLeft: '8px', color: 'rgba(255, 255, 255, 0.45)', lineHeight: '1.4' }}>
+                                    <strong style={{ color: 'rgba(255, 255, 255, 0.65)' }}>Root Cause:</strong> {rule.rootCause}
+                                  </div>
+                                )}
+                                
+                                {rule.whyImportant && (
+                                  <div style={{ fontSize: '0.72rem', borderLeft: '2px solid rgba(16, 185, 129, 0.35)', paddingLeft: '8px', color: 'rgba(16, 185, 129, 0.75)', lineHeight: '1.4' }}>
+                                    <strong style={{ color: '#10b981' }}>ROI / Benefit:</strong> {rule.whyImportant}
+                                  </div>
+                                )}
+                                
+                                {rule.impactOfFix && (
+                                  <div style={{ fontSize: '0.72rem', borderLeft: '2px solid rgba(59, 130, 246, 0.35)', paddingLeft: '8px', color: 'rgba(59, 130, 246, 0.75)', lineHeight: '1.4' }}>
+                                    <strong style={{ color: '#60a5fa' }}>Impact of Fix:</strong> {rule.impactOfFix}
+                                  </div>
+                                )}
                               </div>
 
                               {/* Policy Status & Analysis Subsection */}
