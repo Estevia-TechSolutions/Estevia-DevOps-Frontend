@@ -5182,73 +5182,88 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   {/* Evaluated Rules Listing */}
                   <div className="glass-panel" style={{ padding: '24px' }}>
                     <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', fontWeight: 700 }}>Evaluated Governance Rules</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                      gap: '16px'
+                    }}>
                       {complianceData && complianceData.rules.map((rule: any) => (
                         <div key={rule.id} style={{
-                          padding: '14px 18px',
+                          padding: '18px',
                           borderRadius: '10px',
                           border: '1px solid var(--glass-border)',
-                          backgroundColor: 'rgba(255,255,255,0.01)',
+                          backgroundColor: 'rgba(255,255,255,0.015)',
                           display: 'flex',
-                          alignItems: 'center',
+                          flexDirection: 'column',
                           justifyContent: 'space-between',
-                          gap: '16px'
+                          gap: '12px',
+                          minHeight: '140px'
                         }}>
                           <div>
-                            <div style={{ fontWeight: 650, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {/* Header Row: Name & Compliant badge */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', width: '100%' }}>
+                              <div style={{ fontWeight: 650, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.88rem', lineHeight: '1.3' }}>
+                                <span style={{
+                                  width: '8px',
+                                  height: '8px',
+                                  borderRadius: '50%',
+                                  backgroundColor: rule.status === 'passed' ? 'var(--success)' : rule.status === 'disabled' ? 'var(--text-muted)' : 'var(--error)',
+                                  flexShrink: 0
+                                }} />
+                                <span>{rule.name}</span>
+                              </div>
                               <span style={{
-                                width: '8px',
-                                height: '8px',
-                                borderRadius: '50%',
-                                backgroundColor: rule.status === 'passed' ? 'var(--success)' : rule.status === 'disabled' ? 'var(--text-muted)' : 'var(--error)'
-                              }} />
-                              {rule.name}
-                            </div>
-                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '4px' }}>{rule.description}</div>
-                            
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
-                              {/* Severity Badge */}
-                              <span style={{
-                                fontSize: '0.62rem',
+                                fontSize: '0.64rem',
                                 fontWeight: 700,
                                 textTransform: 'uppercase',
-                                color: rule.severity === 'critical' ? '#ef4444' : rule.severity === 'high' ? '#f59e0b' : rule.severity === 'medium' ? '#3b82f6' : '#94a3b8',
-                                backgroundColor: rule.severity === 'critical' ? 'rgba(239,68,68,0.1)' : rule.severity === 'high' ? 'rgba(245,158,11,0.1)' : rule.severity === 'medium' ? 'rgba(59,130,246,0.1)' : 'rgba(148,163,184,0.1)',
-                                border: `1px solid ${rule.severity === 'critical' ? 'rgba(239,68,68,0.2)' : rule.severity === 'high' ? 'rgba(245,158,11,0.2)' : rule.severity === 'medium' ? 'rgba(59,130,246,0.2)' : 'rgba(148,163,184,0.2)'}`,
+                                color: rule.status === 'passed' ? '#10b981' : rule.status === 'disabled' ? 'var(--text-muted)' : '#ef4444',
+                                backgroundColor: rule.status === 'passed' ? 'rgba(16,185,129,0.1)' : rule.status === 'disabled' ? 'rgba(255,255,255,0.03)' : 'rgba(239,68,68,0.1)',
+                                padding: '2px 8px',
+                                borderRadius: '6px',
+                                border: rule.status === 'passed' ? '1px solid rgba(16,185,129,0.2)' : rule.status === 'disabled' ? '1px solid var(--glass-border)' : '1px solid rgba(239,68,68,0.2)',
+                                flexShrink: 0
+                              }}>
+                                {rule.status === 'passed' ? 'Compliant' : rule.status === 'disabled' ? 'Disabled' : 'Non-Compliant'}
+                              </span>
+                            </div>
+                            
+                            {/* Description text */}
+                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '8px', lineHeight: '1.45' }}>
+                              {rule.description}
+                            </div>
+                          </div>
+
+                          {/* Badges footer */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
+                            {/* Severity Badge */}
+                            <span style={{
+                              fontSize: '0.6rem',
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              color: rule.severity === 'critical' ? '#ef4444' : rule.severity === 'high' ? '#f59e0b' : rule.severity === 'medium' ? '#3b82f6' : '#94a3b8',
+                              backgroundColor: rule.severity === 'critical' ? 'rgba(239,68,68,0.1)' : rule.severity === 'high' ? 'rgba(245,158,11,0.1)' : rule.severity === 'medium' ? 'rgba(59,130,246,0.1)' : 'rgba(148,163,184,0.1)',
+                              border: `1px solid ${rule.severity === 'critical' ? 'rgba(239,68,68,0.2)' : rule.severity === 'high' ? 'rgba(245,158,11,0.2)' : rule.severity === 'medium' ? 'rgba(59,130,246,0.2)' : 'rgba(148,163,184,0.2)'}`,
+                              padding: '1px 5px',
+                              borderRadius: '4px'
+                            }}>
+                              {rule.severity}
+                            </span>
+                            
+                            {/* Regulatory Standards */}
+                            {rule.standards && rule.standards.map((std: string) => (
+                              <span key={std} style={{
+                                fontSize: '0.6rem',
+                                fontWeight: 600,
+                                color: 'var(--accent-teal)',
+                                backgroundColor: 'rgba(20,184,166,0.1)',
+                                border: '1px solid rgba(20,184,166,0.2)',
                                 padding: '1px 5px',
                                 borderRadius: '4px'
                               }}>
-                                {rule.severity}
+                                {std}
                               </span>
-                              
-                              {/* Regulatory Standards */}
-                              {rule.standards && rule.standards.map((std: string) => (
-                                <span key={std} style={{
-                                  fontSize: '0.62rem',
-                                  fontWeight: 600,
-                                  color: 'var(--accent-teal)',
-                                  backgroundColor: 'rgba(20,184,166,0.1)',
-                                  border: '1px solid rgba(20,184,166,0.2)',
-                                  padding: '1px 5px',
-                                  borderRadius: '4px'
-                                }}>
-                                  {std}
-                                </span>
-                              ))}
-                            </div>
+                            ))}
                           </div>
-                          <span style={{
-                            fontSize: '0.68rem',
-                            fontWeight: 700,
-                            textTransform: 'uppercase',
-                            color: rule.status === 'passed' ? '#10b981' : rule.status === 'disabled' ? 'var(--text-muted)' : '#ef4444',
-                            backgroundColor: rule.status === 'passed' ? 'rgba(16,185,129,0.1)' : rule.status === 'disabled' ? 'rgba(255,255,255,0.03)' : 'rgba(239,68,68,0.1)',
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            border: rule.status === 'passed' ? '1px solid rgba(16,185,129,0.2)' : rule.status === 'disabled' ? '1px solid var(--glass-border)' : '1px solid rgba(239,68,68,0.2)'
-                          }}>
-                            {rule.status === 'passed' ? 'Compliant' : rule.status === 'disabled' ? 'Disabled' : 'Non-Compliant'}
-                          </span>
                         </div>
                       ))}
                     </div>
