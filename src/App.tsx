@@ -2716,6 +2716,7 @@ function App() {
         // ── License fields ────────────────────────────────────────────────
         if (data.settings.license_tier) setLicenseTier(data.settings.license_tier);
         if (data.settings.operator_seats_limit != null) setOperatorSeatsLimit(data.settings.operator_seats_limit);
+        if (data.settings.currentWriteUsers != null) setCurrentWriteUsers(data.settings.currentWriteUsers);
         if (data.settings.downgrade_pending) setDowngradeComplianceDebt({ pending: true });
         // ─────────────────────────────────────────────────────────────────
         
