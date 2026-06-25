@@ -313,11 +313,42 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     left: number;
   } | null>(null);
 
+  // Policy Settings States
+  const [disabledRules, setDisabledRules] = React.useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('evaops_disabled_rules');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const [ruleSeverities, setRuleSeverities] = React.useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('evaops_rule_severities');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  const [policyConfigExpanded, setPolicyConfigExpanded] = React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    localStorage.setItem('evaops_disabled_rules', JSON.stringify(disabledRules));
+  }, [disabledRules]);
+
+  React.useEffect(() => {
+    localStorage.setItem('evaops_rule_severities', JSON.stringify(ruleSeverities));
+  }, [ruleSeverities]);
+
   const fetchCompliance = async () => {
     setLoadingCompliance(true);
     try {
       const token = localStorage.getItem('devops_token');
-      const res = await fetch(`${API_BASE}/apps/compliance?organizationId=${organizationId}`, {
+      const disabledParam = disabledRules.join(',');
+      const severitiesParam = encodeURIComponent(JSON.stringify(ruleSeverities));
+      const res = await fetch(`${API_BASE}/apps/compliance?organizationId=${organizationId}&disabledRules=${disabledParam}&severities=${severitiesParam}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -335,7 +366,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     if (activeSubTab === 'compliance') {
       fetchCompliance();
     }
-  }, [activeSubTab]);
+  }, [activeSubTab, disabledRules, ruleSeverities]);
 
   const handleRemediate = async (violation: any) => {
     setRemediatingId(violation.suggestionId);
@@ -3057,39 +3088,63 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               </div>
                             </div>
                             </div>
-
-                            {/* Action Buttons & Decluttered controls (Restructured into Upper Section) */}
-                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            
+                            {(() => {
+                              const statusInfo = getStatusDetails(item.status, item.type);
+                              const isLight = theme === 'light';
                               
-                              {/* Glowing status indicator dot */}
-                              {(() => {
-                                const statusInfo = getStatusDetails(item.status, item.type);
-                                return (
-                                  <div style={{ 
-                                    display: 'inline-flex', 
-                                    alignItems: 'center', 
-                                    gap: '6px', 
-                                    padding: '3px 8px', 
-                                    borderRadius: '4px',
-                                    backgroundColor: 'rgba(255,255,255,0.02)',
-                                    border: '1px solid var(--glass-border)',
-                                    position: 'absolute',
-                                    top: '8px',
-                                    right: '8px',
-                                    zIndex: 5
-                                  }} title={`Status: ${statusInfo.label}`}>
-                                    <span style={{
-                                      width: '6px',
-                                      height: '6px',
-                                      borderRadius: '50%',
-                                      backgroundColor: statusInfo.color,
-                                      boxShadow: `0 0 6px ${statusInfo.glow}`,
-                                      display: 'inline-block'
-                                    }} />
-                                    <span style={{ fontSize: '0.62rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{statusInfo.label}</span>
-                                  </div>
-                                );
-                              })()}
+                              let pillBg = '#1e293b';
+                              let pillBorder = '#334155';
+                              let pillText = '#94a3b8';
+                              
+                              if (statusInfo.color === '#10b981') {
+                                pillBg = isLight ? '#d1fae5' : '#064e3b';
+                                pillBorder = isLight ? '#10b981' : '#059669';
+                                pillText = isLight ? '#065f46' : '#a7f3d0';
+                              } else if (statusInfo.color === '#ef4444') {
+                                pillBg = isLight ? '#fee2e2' : '#7f1d1d';
+                                pillBorder = isLight ? '#ef4444' : '#dc2626';
+                                pillText = isLight ? '#991b1b' : '#fca5a5';
+                              } else {
+                                pillBg = isLight ? '#fef3c7' : '#78350f';
+                                pillBorder = isLight ? '#f59e0b' : '#d97706';
+                                pillText = isLight ? '#78350f' : '#fde68a';
+                              }
+
+                              return (
+                                <div style={{ 
+                                  display: 'inline-flex', 
+                                  alignItems: 'center', 
+                                  gap: '6px', 
+                                  padding: '4px 10px', 
+                                  borderRadius: '6px',
+                                  backgroundColor: pillBg,
+                                  border: `1px solid ${pillBorder}`,
+                                  alignSelf: 'center',
+                                  flexShrink: 0
+                                }} title={`Status: ${statusInfo.label}`}>
+                                  <span style={{
+                                    width: '6px',
+                                    height: '6px',
+                                    borderRadius: '50%',
+                                    backgroundColor: statusInfo.color,
+                                    boxShadow: `0 0 6px ${statusInfo.color}`,
+                                    display: 'inline-block'
+                                  }} />
+                                  <span style={{ 
+                                    fontSize: '0.68rem', 
+                                    color: pillText, 
+                                    fontWeight: 700, 
+                                    textTransform: 'uppercase', 
+                                    letterSpacing: '0.05em' 
+                                  }}>{statusInfo.label}</span>
+                                </div>
+                              );
+                            })()}
+                          </div>
+
+                          {/* Action Buttons & Decluttered controls (Restructured into Upper Section) */}
+                          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
 
                               {/* Primary Browse Link (Only SWAs/ACAs with hostnames) */}
                               {item.hostname && item.type !== 'vm' && (
@@ -3564,7 +3619,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 )}
                               </div>
 
-                            </div>
                           </div>
                           </div> {/* End Block 1 */}
 
@@ -4883,6 +4937,169 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 </div>
               ) : (
                 <>
+                  {/* Export and Policy Settings Header Row */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                       <button
+                         type="button"
+                         className="btn-secondary"
+                         onClick={() => setPolicyConfigExpanded(!policyConfigExpanded)}
+                         style={{
+                           padding: '8px 16px',
+                           fontSize: '0.82rem',
+                           borderRadius: '8px',
+                           display: 'flex',
+                           alignItems: 'center',
+                           gap: '6px'
+                         }}
+                       >
+                         <Sliders size={14} />
+                         <span>{policyConfigExpanded ? 'Hide Policy Settings' : 'Configure Policy Rules'}</span>
+                       </button>
+                    </div>
+                    
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => {
+                        if (!complianceData) return;
+                        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(complianceData, null, 2));
+                        const downloadAnchor = document.createElement('a');
+                        downloadAnchor.setAttribute("href", dataStr);
+                        downloadAnchor.setAttribute("download", `evaops-governance-audit-${organizationId}-${new Date().toISOString().split('T')[0]}.json`);
+                        document.body.appendChild(downloadAnchor);
+                        downloadAnchor.click();
+                        downloadAnchor.remove();
+                      }}
+                      style={{
+                        padding: '8px 16px',
+                        fontSize: '0.82rem',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        borderColor: 'var(--accent-teal)',
+                        color: 'var(--accent-teal)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Download size={14} />
+                      <span>Export Audit Report</span>
+                    </button>
+                  </div>
+
+                  {/* Collapsible Policy Configuration Panel */}
+                  {policyConfigExpanded && (
+                    <div className="glass-panel" style={{
+                      padding: '20px',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '16px'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Governance Policy Rules Manager</h4>
+                          <p style={{ margin: '4px 0 0 0', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                            Customize active compliance rules and adjust severity thresholds for your organization.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          onClick={() => {
+                            setDisabledRules([]);
+                            setRuleSeverities({});
+                          }}
+                          style={{ padding: '4px 10px', fontSize: '0.7rem', borderRadius: '6px' }}
+                        >
+                          Reset Defaults
+                        </button>
+                      </div>
+
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                        gap: '12px'
+                      }}>
+                        {[
+                          { id: 'tagging', name: 'Required Resource Tagging', desc: 'Enforces presence of enterprise tagging standards (Environment, Owner, CostCenter).' },
+                          { id: 'residency', name: 'Data Region Residency Lock', desc: 'Verifies all hosted assets reside within approved sovereign geo boundaries (US-only).' },
+                          { id: 'tls', name: 'MySQL SSL/TLS Enforcement', desc: 'Checks if databases enforce secure transport (SSL/TLS v1.2+) settings.' },
+                          { id: 'network-security', name: 'VM Inbound Port Security', desc: 'Flags public SSH/RDP ports open directly to the internet.' },
+                          { id: 'https-only', name: 'HTTPS-Only Ingress Enforcement', desc: 'Ensures container apps disable insecure HTTP ingress.' },
+                          { id: 'containment', name: 'Branch-to-Network Isolation', desc: 'Prevents development branches from deploying to production network resources.' },
+                          { id: 'registry-auth', name: 'Container Registry Security', desc: 'Ensures container images are pulled only from verified registries.' },
+                          { id: 'secrets-expiry', name: 'Key Vault Secrets Expiry Check', desc: 'Monitors Key Vault credentials and alerts before they expire.' },
+                          { id: 'shadow-it', name: 'Orphaned Resource Scan (Shadow IT)', desc: 'Identifies untracked resources running in Azure not listed in the DevOps catalog.' }
+                        ].map(r => {
+                          const isEnabled = !disabledRules.includes(r.id);
+                          const severity = ruleSeverities[r.id] || (r.id === 'tls' || r.id === 'network-security' ? 'critical' : r.id === 'tagging' ? 'low' : r.id === 'https-only' || r.id === 'registry-auth' ? 'medium' : 'high');
+                          
+                          return (
+                            <div key={r.id} style={{
+                              padding: '12px',
+                              borderRadius: '8px',
+                              background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255, 255, 255, 0.01)',
+                              border: '1px solid var(--glass-border)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justifyContent: 'space-between',
+                              gap: '8px'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer', margin: 0, userSelect: 'none' }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={isEnabled}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setDisabledRules(prev => prev.filter(x => x !== r.id));
+                                      } else {
+                                        setDisabledRules(prev => [...prev, r.id]);
+                                      }
+                                    }}
+                                    style={{ accentColor: 'var(--accent-purple)', cursor: 'pointer' }}
+                                  />
+                                  <span>{r.name}</span>
+                                </label>
+                              </div>
+                              <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', minHeight: '32px' }}>{r.desc}</p>
+                              
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '4px' }}>
+                                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Severity Level:</span>
+                                <select
+                                  value={severity}
+                                  disabled={!isEnabled}
+                                  onChange={(e) => {
+                                    setRuleSeverities(prev => ({ ...prev, [r.id]: e.target.value }));
+                                  }}
+                                  style={{
+                                    padding: '3px 6px',
+                                    fontSize: '0.72rem',
+                                    borderRadius: '6px',
+                                    border: '1px solid var(--glass-border)',
+                                    background: 'var(--bg-primary)',
+                                    color: isEnabled ? 'var(--text-primary)' : 'var(--text-muted)',
+                                    outline: 'none',
+                                    cursor: isEnabled ? 'pointer' : 'not-allowed'
+                                  }}
+                                >
+                                  <option value="critical">Critical</option>
+                                  <option value="high">High</option>
+                                  <option value="medium">Medium</option>
+                                  <option value="low">Low</option>
+                                </select>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Compliance Overview Dashboard */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
                     
@@ -4983,23 +5200,54 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 width: '8px',
                                 height: '8px',
                                 borderRadius: '50%',
-                                backgroundColor: rule.status === 'passed' ? 'var(--success)' : 'var(--error)'
+                                backgroundColor: rule.status === 'passed' ? 'var(--success)' : rule.status === 'disabled' ? 'var(--text-muted)' : 'var(--error)'
                               }} />
                               {rule.name}
                             </div>
                             <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '4px' }}>{rule.description}</div>
+                            
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
+                              {/* Severity Badge */}
+                              <span style={{
+                                fontSize: '0.62rem',
+                                fontWeight: 700,
+                                textTransform: 'uppercase',
+                                color: rule.severity === 'critical' ? '#ef4444' : rule.severity === 'high' ? '#f59e0b' : rule.severity === 'medium' ? '#3b82f6' : '#94a3b8',
+                                backgroundColor: rule.severity === 'critical' ? 'rgba(239,68,68,0.1)' : rule.severity === 'high' ? 'rgba(245,158,11,0.1)' : rule.severity === 'medium' ? 'rgba(59,130,246,0.1)' : 'rgba(148,163,184,0.1)',
+                                border: `1px solid ${rule.severity === 'critical' ? 'rgba(239,68,68,0.2)' : rule.severity === 'high' ? 'rgba(245,158,11,0.2)' : rule.severity === 'medium' ? 'rgba(59,130,246,0.2)' : 'rgba(148,163,184,0.2)'}`,
+                                padding: '1px 5px',
+                                borderRadius: '4px'
+                              }}>
+                                {rule.severity}
+                              </span>
+                              
+                              {/* Regulatory Standards */}
+                              {rule.standards && rule.standards.map((std: string) => (
+                                <span key={std} style={{
+                                  fontSize: '0.62rem',
+                                  fontWeight: 600,
+                                  color: 'var(--accent-teal)',
+                                  backgroundColor: 'rgba(20,184,166,0.1)',
+                                  border: '1px solid rgba(20,184,166,0.2)',
+                                  padding: '1px 5px',
+                                  borderRadius: '4px'
+                                }}>
+                                  {std}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                           <span style={{
                             fontSize: '0.68rem',
                             fontWeight: 700,
                             textTransform: 'uppercase',
-                            color: rule.status === 'passed' ? '#10b981' : '#ef4444',
-                            backgroundColor: rule.status === 'passed' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                            color: rule.status === 'passed' ? '#10b981' : rule.status === 'disabled' ? 'var(--text-muted)' : '#ef4444',
+                            backgroundColor: rule.status === 'passed' ? 'rgba(16,185,129,0.1)' : rule.status === 'disabled' ? 'rgba(255,255,255,0.03)' : 'rgba(239,68,68,0.1)',
                             padding: '3px 8px',
                             borderRadius: '6px',
-                            border: rule.status === 'passed' ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(239,68,68,0.2)'
+                            border: rule.status === 'passed' ? '1px solid rgba(16,185,129,0.2)' : rule.status === 'disabled' ? '1px solid var(--glass-border)' : '1px solid rgba(239,68,68,0.2)'
                           }}>
-                            {rule.status === 'passed' ? 'Compliant' : 'Non-Compliant'}
+                            {rule.status === 'passed' ? 'Compliant' : rule.status === 'disabled' ? 'Disabled' : 'Non-Compliant'}
                           </span>
                         </div>
                       ))}
@@ -5095,6 +5343,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             <option value="tagging" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Required Tagging</option>
                             <option value="residency" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Region Residency</option>
                             <option value="tls" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>SSL/TLS Security</option>
+                            <option value="network-security" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>VM Port Security</option>
+                            <option value="https-only" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>HTTPS-Only Ingress</option>
+                            <option value="containment" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Branch Isolation</option>
+                            <option value="registry-auth" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Registry Security</option>
+                            <option value="secrets-expiry" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Secret Expiry</option>
+                            <option value="shadow-it" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Shadow IT Scan</option>
                           </select>
                         </div>
 
@@ -5238,6 +5492,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                   checked={isAllPageSelected}
                                   onChange={handleSelectAll}
                                   style={{ width: '15px', height: '15px', accentColor: 'var(--accent-purple)' }}
+                                  id="select-all-remediable"
                                 />
                                 <span>Select All Remediable on Page</span>
                               </label>
@@ -5261,6 +5516,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                       background: 'var(--accent-purple)',
                                       borderColor: 'var(--accent-purple-glow)'
                                     }}
+                                    id="batch-remediate-btn"
                                   >
                                     {batchRemediating ? (
                                       <RefreshCw size={12} className="spin-anim" />
@@ -5302,7 +5558,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                       display: 'flex',
                                       flexDirection: 'column',
                                       justifyContent: 'space-between',
-                                      minHeight: '200px',
+                                      minHeight: '220px',
                                       boxShadow: isSelected ? '0 0 16px rgba(139,92,246,0.1)' : 'none',
                                       transition: 'all 0.25s ease'
                                     }}
@@ -5310,7 +5566,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                     <div>
                                       {/* Header Row: Checkbox, Rule Tag, Resource Name */}
                                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '10px' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0, width: '100%' }}>
                                           <span style={{
                                             fontSize: '0.58rem',
                                             fontWeight: 700,
@@ -5324,12 +5580,43 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                           }}>
                                             {v.ruleName}
                                           </span>
+                                          
+                                          {/* Severity and Standards */}
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginTop: '2px' }}>
+                                            <span style={{
+                                              fontSize: '0.52rem',
+                                              fontWeight: 800,
+                                              textTransform: 'uppercase',
+                                              color: v.severity === 'critical' ? '#ef4444' : v.severity === 'high' ? '#f59e0b' : v.severity === 'medium' ? '#3b82f6' : '#94a3b8',
+                                              backgroundColor: v.severity === 'critical' ? 'rgba(239,68,68,0.12)' : v.severity === 'high' ? 'rgba(245,158,11,0.12)' : v.severity === 'medium' ? 'rgba(59,130,246,0.12)' : 'rgba(148,163,184,0.12)',
+                                              border: `1px solid ${v.severity === 'critical' ? 'rgba(239,68,68,0.25)' : v.severity === 'high' ? 'rgba(245,158,11,0.25)' : v.severity === 'medium' ? 'rgba(59,130,246,0.25)' : 'rgba(148,163,184,0.25)'}`,
+                                              padding: '1px 4px',
+                                              borderRadius: '3px'
+                                            }}>
+                                              {v.severity}
+                                            </span>
+                                            {v.standards && v.standards.map((std: string) => (
+                                              <span key={std} style={{
+                                                fontSize: '0.52rem',
+                                                fontWeight: 650,
+                                                color: 'var(--accent-teal)',
+                                                backgroundColor: 'rgba(20,184,166,0.08)',
+                                                border: '1px solid rgba(20,184,166,0.15)',
+                                                padding: '1px 4px',
+                                                borderRadius: '3px'
+                                              }}>
+                                                {std.split(' ')[0]}
+                                              </span>
+                                            ))}
+                                          </div>
+
                                           <strong style={{
                                             color: 'var(--text-primary)',
-                                            fontSize: '0.88rem',
+                                            fontSize: '0.86rem',
                                             overflow: 'hidden',
                                             textOverflow: 'ellipsis',
-                                            whiteSpace: 'nowrap'
+                                            whiteSpace: 'nowrap',
+                                            marginTop: '6px'
                                           }}>
                                             {v.resourceName}
                                           </strong>
@@ -5460,6 +5747,61 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         </div>
                       );
                     })()}
+                  </div>
+
+                  {/* SOC 2 Compliance Audit Trail terminal logs block */}
+                  <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                        <Terminal size={18} style={{ color: 'var(--accent-purple)' }} />
+                        <span>SOC 2 Compliance & Governance Audit Trail</span>
+                      </h3>
+                      <span style={{
+                        fontSize: '0.62rem',
+                        fontWeight: 800,
+                        color: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        border: '1px solid rgba(16, 185, 129, 0.2)',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        letterSpacing: '0.05em',
+                        textTransform: 'uppercase'
+                      }}>
+                        Live Audit Stream Online
+                      </span>
+                    </div>
+
+                    <div style={{
+                      backgroundColor: '#05070c',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '8px',
+                      padding: '16px',
+                      fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, Courier, monospace',
+                      fontSize: '0.78rem',
+                      lineHeight: '1.6',
+                      color: '#a7f3d0',
+                      maxHeight: '260px',
+                      overflowY: 'auto',
+                      boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.8)'
+                    }}>
+                      {complianceData && complianceData.auditLogs && complianceData.auditLogs.length > 0 ? (
+                        complianceData.auditLogs.map((log: any) => {
+                          const dateStr = new Date(log.created_at).toLocaleString();
+                          return (
+                            <div key={log.id} style={{ marginBottom: '8px', borderBottom: '1px dashed rgba(16, 185, 129, 0.1)', paddingBottom: '6px' }}>
+                              <span style={{ color: 'rgba(16, 185, 129, 0.6)', marginRight: '8px' }}>[{dateStr}]</span>
+                              <span style={{ color: 'var(--accent-blue)', marginRight: '8px' }}>actor: {log.actor_email}</span>
+                              <span style={{ color: 'var(--accent-purple)', fontWeight: 'bold', marginRight: '8px' }}>[{log.action_type}]</span>
+                              <span style={{ color: '#e2e8f0' }}>Target: {log.target} | {log.details}</span>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '20px 0' }}>
+                          No compliance events logged in current evaluation window.
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </>
               )}
