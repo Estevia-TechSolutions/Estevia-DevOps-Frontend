@@ -1,5 +1,5 @@
 import React from 'react';
-import { Crown, ShieldAlert, AlertTriangle, Check, ShieldCheck, Zap } from 'lucide-react';
+import { Crown, ShieldAlert, AlertTriangle, Check, ShieldCheck, Zap, CreditCard } from 'lucide-react';
 
 interface SettingsPageProps {
   azureSubscriptionId: string;
@@ -52,6 +52,21 @@ const TIER_LABELS: Record<string, { label: string; color: string; bg: string; bo
   sovereign:  { label: 'Sovereign',  color: '#fbbf24', bg: 'rgba(251,191,36,0.06)',   border: 'rgba(251,191,36,0.2)',   glow: 'rgba(251,191,36,0.1)'   },
 };
 
+const PRICING_DETAILS: Record<string, { baseUSD: number; seatUSD: number }> = {
+  growth: {
+    baseUSD: 1000,
+    seatUSD: 40,
+  },
+  enterprise: {
+    baseUSD: 2000,
+    seatUSD: 90,
+  },
+  sovereign: {
+    baseUSD: 4000,
+    seatUSD: 30,
+  },
+};
+
 export const SettingsPage: React.FC<SettingsPageProps> = ({
   savingSettings,
   settingsMsg,
@@ -76,11 +91,38 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const activeTier = pendingLicenseTier ?? licenseTier;
   const currentTierInfo = TIER_LABELS[licenseTier] ?? TIER_LABELS.growth;
 
+  const [usdToInrRate, setUsdToInrRate] = React.useState<number>(94.43);
+
+  React.useEffect(() => {
+    let active = true;
+    const fetchRate = async () => {
+      try {
+        const res = await fetch('https://open.er-api.com/v6/latest/USD');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.rates && typeof data.rates.INR === 'number') {
+            if (active) {
+              setUsdToInrRate(data.rates.INR);
+              console.log('[SettingsPage] Live USD to INR rate loaded:', data.rates.INR);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[SettingsPage] Failed to fetch live USD to INR rate, using baseline 94.43:', err);
+      }
+    };
+    fetchRate();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const tiers = [
     {
       id: 'growth',
       name: 'Growth',
-      price: '$600',
+      price: '$1,000',
+      priceINR: `₹${Math.round(1000 * usdToInrRate).toLocaleString()}`,
       period: '/mo',
       color: '#60a5fa',
       features: [
@@ -94,7 +136,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     {
       id: 'enterprise',
       name: 'Enterprise Governance',
-      price: '$1,800',
+      price: '$2,000',
+      priceINR: `₹${Math.round(2000 * usdToInrRate).toLocaleString()}`,
       period: '/mo',
       color: '#c084fc',
       features: [
@@ -109,8 +152,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     {
       id: 'sovereign',
       name: 'Sovereign Compliance',
-      price: 'Custom',
-      period: '',
+      price: '$4,000',
+      priceINR: `₹${Math.round(4000 * usdToInrRate).toLocaleString()}`,
+      period: '/mo',
       color: '#fbbf24',
       features: [
         'Unlimited Environments',
@@ -289,9 +333,17 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   </p>
 
                   {/* Pricing Display */}
-                  <div style={{ display: 'flex', alignItems: 'baseline', marginBottom: '24px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '16px' }}>
-                    <span style={{ fontSize: '2rem', fontWeight: 900, color: tier.color }}>{tier.price}</span>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginLeft: '4px' }}>{tier.period}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', marginBottom: '24px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline' }}>
+                      <span style={{ fontSize: '2rem', fontWeight: 900, color: tier.color }}>{tier.price}</span>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginLeft: '4px' }}>{tier.period}</span>
+                    </div>
+                    {tier.priceINR && (
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <CreditCard size={12} style={{ color: tier.color, flexShrink: 0 }} />
+                        <span>Approx. {tier.priceINR}{tier.period}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Feature Lists */}
@@ -371,6 +423,70 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
                     Limit configuration changes apply to active billing cycles immediately.
                   </span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Projected Billing Estimate Card */}
+          <div className="glass-panel" style={{
+            background: 'rgba(255,255,255,0.015)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: '12px',
+            padding: '24px',
+            marginBottom: '28px',
+            animation: 'fade-in-anim 0.3s ease-out',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
+          }}>
+            <h4 style={{ margin: '0 0 16px 0', fontSize: '0.94rem', fontWeight: 750, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <CreditCard size={16} style={{ color: TIER_LABELS[activeTier]?.color ?? '#60a5fa' }} />
+              Projected Monthly Cost Projection
+            </h4>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  <span>Base Platform Cost ({TIER_LABELS[activeTier]?.label}):</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                    ${(PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth).baseUSD.toLocaleString()} <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>(₹{Math.round((PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth).baseUSD * usdToInrRate).toLocaleString()})</span>
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  <span>Seat Allocation Cost ({operatorSeatsLimit} seats @ ${(PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth).seatUSD}/seat):</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                    ${((PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth).seatUSD * operatorSeatsLimit).toLocaleString()} <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>(₹{Math.round((PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth).seatUSD * operatorSeatsLimit * usdToInrRate).toLocaleString()})</span>
+                  </span>
+                </div>
+                <div style={{ height: '1px', background: 'var(--glass-border)', margin: '4px 0' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  <span>Total Projected Cost:</span>
+                  <span style={{ color: TIER_LABELS[activeTier]?.color ?? '#60a5fa' }}>
+                    ${((PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth).baseUSD + (PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth).seatUSD * operatorSeatsLimit).toLocaleString()} /mo <span style={{ fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-secondary)' }}>(₹{Math.round(((PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth).baseUSD + (PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth).seatUSD * operatorSeatsLimit) * usdToInrRate).toLocaleString()} /mo)</span>
+                  </span>
+                </div>
+              </div>
+
+              <div style={{
+                background: 'rgba(255,255,255,0.01)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                gap: '4px'
+              }}>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Exchange Rate Source
+                </div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', display: 'inline-block' }} />
+                  1 USD = {usdToInrRate.toFixed(2)} INR
+                </div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
+                  Live exchange rates fetched from er-api.com. Baseline rate is 94.43 INR.
                 </div>
               </div>
 
