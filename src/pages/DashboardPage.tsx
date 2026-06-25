@@ -5328,7 +5328,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               </div>
                               
                               {/* Description text */}
-                              <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '8px', lineHeight: '1.45' }}>
+                              <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '8px', lineHeight: '1.45', minHeight: '54px' }}>
                                 {rule.description}
                               </div>
 

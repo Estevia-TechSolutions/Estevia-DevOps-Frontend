@@ -84,6 +84,13 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
   const [scopeQuery, setScopeQuery] = useState('');
   const [activeScopeCategory, setActiveScopeCategory] = useState<'all' | 'provisioning' | 'observability' | 'operations' | 'database' | 'security' | 'notifications_cost'>('all');
   const [teamsGuideOpen, setTeamsGuideOpen] = useState(false);
+  const [expandedCapIndex, setExpandedCapIndex] = useState<number | null>(null);
+  const [expandedExclIndex, setExpandedExclIndex] = useState<number | null>(null);
+
+  React.useEffect(() => {
+    setExpandedCapIndex(null);
+    setExpandedExclIndex(null);
+  }, [activeScopeCategory, scopeQuery]);
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
@@ -878,33 +885,73 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                     Automated Capabilities ({filteredCapabilities.length})
                   </h4>
                   {filteredCapabilities.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {filteredCapabilities.map((item, idx) => (
-                        <div key={idx} className="scope-card">
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '8px',
-                            background: 'rgba(16, 185, 129, 0.08)',
-                            border: '1px solid rgba(16, 185, 129, 0.15)',
-                            flexShrink: 0,
-                            marginTop: '2px'
-                          }}>
-                            {renderScopeIcon(item.icon, item.isCapability)}
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <strong style={{ color: 'var(--text-primary)', fontSize: '0.84rem', display: 'block', marginBottom: '4px' }}>
-                              {item.title}
-                            </strong>
-                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', lineHeight: '1.4', display: 'block' }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      gap: '12px',
+                      maxHeight: '500px',
+                      overflowY: 'auto',
+                      paddingRight: '6px'
+                    }}>
+                      {filteredCapabilities.map((item, idx) => {
+                        const isExpanded = expandedCapIndex === idx;
+                        return (
+                          <div 
+                            key={idx} 
+                            className="scope-card"
+                            style={{
+                              cursor: 'pointer',
+                              flexDirection: 'column',
+                              alignItems: 'stretch',
+                              gap: '8px',
+                              padding: '12px 16px',
+                              backgroundColor: isExpanded ? 'rgba(16, 185, 129, 0.04)' : undefined,
+                              borderColor: isExpanded ? 'rgba(16, 185, 129, 0.25)' : undefined,
+                              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+                            }}
+                            onClick={() => setExpandedCapIndex(isExpanded ? null : idx)}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', width: '100%' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '32px',
+                                  height: '32px',
+                                  borderRadius: '8px',
+                                  background: 'rgba(16, 185, 129, 0.08)',
+                                  border: '1px solid rgba(16, 185, 129, 0.15)',
+                                  flexShrink: 0
+                                }}>
+                                  {renderScopeIcon(item.icon, item.isCapability)}
+                                </div>
+                                <strong style={{ color: 'var(--text-primary)', fontSize: '0.84rem' }}>
+                                  {item.title}
+                                </strong>
+                              </div>
+                              {isExpanded ? (
+                                <ChevronUp size={14} style={{ color: 'rgba(16, 185, 129, 0.8)', flexShrink: 0 }} />
+                              ) : (
+                                <ChevronDown size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                              )}
+                            </div>
+                            
+                            <div style={{
+                              maxHeight: isExpanded ? '150px' : '0',
+                              opacity: isExpanded ? 1 : 0,
+                              overflow: 'hidden',
+                              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                              fontSize: '0.80rem',
+                              lineHeight: '1.45',
+                              color: 'var(--text-secondary)',
+                              paddingLeft: '44px'
+                            }}>
                               {item.text}
-                            </span>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div style={{ padding: '24px', textAlign: 'center', borderRadius: '12px', border: '1px dashed var(--glass-border)', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
@@ -920,33 +967,73 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                     Out-of-Scope Exclusions ({filteredBoundaries.length})
                   </h4>
                   {filteredBoundaries.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {filteredBoundaries.map((item, idx) => (
-                        <div key={idx} className="scope-card">
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '8px',
-                            background: 'rgba(239, 68, 68, 0.08)',
-                            border: '1px solid rgba(239, 68, 68, 0.15)',
-                            flexShrink: 0,
-                            marginTop: '2px'
-                          }}>
-                            {renderScopeIcon(item.icon, item.isCapability)}
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <strong style={{ color: 'var(--text-primary)', fontSize: '0.84rem', display: 'block', marginBottom: '4px' }}>
-                              {item.title}
-                            </strong>
-                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', lineHeight: '1.4', display: 'block' }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      gap: '12px',
+                      maxHeight: '500px',
+                      overflowY: 'auto',
+                      paddingRight: '6px'
+                    }}>
+                      {filteredBoundaries.map((item, idx) => {
+                        const isExpanded = expandedExclIndex === idx;
+                        return (
+                          <div 
+                            key={idx} 
+                            className="scope-card"
+                            style={{
+                              cursor: 'pointer',
+                              flexDirection: 'column',
+                              alignItems: 'stretch',
+                              gap: '8px',
+                              padding: '12px 16px',
+                              backgroundColor: isExpanded ? 'rgba(239, 68, 68, 0.04)' : undefined,
+                              borderColor: isExpanded ? 'rgba(239, 68, 68, 0.25)' : undefined,
+                              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+                            }}
+                            onClick={() => setExpandedExclIndex(isExpanded ? null : idx)}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', width: '100%' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '32px',
+                                  height: '32px',
+                                  borderRadius: '8px',
+                                  background: 'rgba(239, 68, 68, 0.08)',
+                                  border: '1px solid rgba(239, 68, 68, 0.15)',
+                                  flexShrink: 0
+                                }}>
+                                  {renderScopeIcon(item.icon, item.isCapability)}
+                                </div>
+                                <strong style={{ color: 'var(--text-primary)', fontSize: '0.84rem' }}>
+                                  {item.title}
+                                </strong>
+                              </div>
+                              {isExpanded ? (
+                                <ChevronUp size={14} style={{ color: 'rgba(239, 68, 68, 0.8)', flexShrink: 0 }} />
+                              ) : (
+                                <ChevronDown size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                              )}
+                            </div>
+                            
+                            <div style={{
+                              maxHeight: isExpanded ? '150px' : '0',
+                              opacity: isExpanded ? 1 : 0,
+                              overflow: 'hidden',
+                              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                              fontSize: '0.80rem',
+                              lineHeight: '1.45',
+                              color: 'var(--text-secondary)',
+                              paddingLeft: '44px'
+                            }}>
                               {item.text}
-                            </span>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div style={{ padding: '24px', textAlign: 'center', borderRadius: '12px', border: '1px dashed var(--glass-border)', color: 'var(--text-muted)', fontSize: '0.82rem' }}>
