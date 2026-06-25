@@ -69,7 +69,7 @@ interface CredentialsPageProps {
   discoveringInfra: boolean;
   handleDiscoverAzureResources: () => void;
   savingSettings: boolean;
-  settingsMsg: { type: 'success' | 'error'; text: string } | null;
+  settingsMsg: { type: 'success' | 'error' | 'warning'; text: string } | null;
   handleSaveSettings: (e: React.FormEvent) => void;
   containerRegistries: any[];
   serviceConnections: { arm: any[]; docker: any[] };
@@ -604,8 +604,8 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                         {settingsMsg && (
                           <div style={{
                             padding: '10px 14px', borderRadius: '8px', fontSize: '0.88rem',
-                            color: settingsMsg.type === 'success' ? 'var(--success)' : 'var(--error)',
-                            background: settingsMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                            color: settingsMsg.type === 'success' ? 'var(--success)' : settingsMsg.type === 'warning' ? 'var(--warning)' : 'var(--error)',
+                            background: settingsMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : settingsMsg.type === 'warning' ? 'rgba(251,191,36,0.1)' : 'rgba(239,68,68,0.1)',
                           }}>
                             {settingsMsg.text}
                           </div>
@@ -734,8 +734,8 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                         {settingsMsg && (
                           <div style={{
                             padding: '10px 14px', borderRadius: '8px', fontSize: '0.88rem',
-                            color: settingsMsg.type === 'success' ? 'var(--success)' : 'var(--error)',
-                            background: settingsMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                            color: settingsMsg.type === 'success' ? 'var(--success)' : settingsMsg.type === 'warning' ? 'var(--warning)' : 'var(--error)',
+                            background: settingsMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : settingsMsg.type === 'warning' ? 'rgba(251,191,36,0.1)' : 'rgba(239,68,68,0.1)',
                           }}>
                             {settingsMsg.text}
                           </div>
@@ -1119,8 +1119,8 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                     {settingsMsg && (
                       <div style={{
                         padding: '10px 14px', borderRadius: '8px', fontSize: '0.88rem',
-                        color: settingsMsg.type === 'success' ? 'var(--success)' : 'var(--error)',
-                        background: settingsMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                        color: settingsMsg.type === 'success' ? 'var(--success)' : settingsMsg.type === 'warning' ? 'var(--warning)' : 'var(--error)',
+                        background: settingsMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : settingsMsg.type === 'warning' ? 'rgba(251,191,36,0.1)' : 'rgba(239,68,68,0.1)',
                       }}>
                         {settingsMsg.text}
                       </div>
@@ -1187,8 +1187,8 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                     {settingsMsg && (
                       <div style={{
                         padding: '10px 14px', borderRadius: '8px', fontSize: '0.88rem',
-                        color: settingsMsg.type === 'success' ? 'var(--success)' : 'var(--error)',
-                        background: settingsMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                        color: settingsMsg.type === 'success' ? 'var(--success)' : settingsMsg.type === 'warning' ? 'var(--warning)' : 'var(--error)',
+                        background: settingsMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : settingsMsg.type === 'warning' ? 'rgba(251,191,36,0.1)' : 'rgba(239,68,68,0.1)',
                       }}>
                         {settingsMsg.text}
                       </div>
@@ -1440,7 +1440,7 @@ interface TeamsConfigPanelProps {
   teamsWebhookToken: string;
   handleSaveSettings: (e: React.FormEvent) => void;
   savingSettings: boolean;
-  settingsMsg: { type: 'success' | 'error'; text: string } | null;
+  settingsMsg: { type: 'success' | 'error' | 'warning'; text: string } | null;
   canEdit: boolean;
   API_BASE: string;
 }
@@ -1720,9 +1720,9 @@ const TeamsConfigPanel: React.FC<TeamsConfigPanelProps> = ({
       {settingsMsg && (
         <div style={{
           padding: '12px 16px', borderRadius: '8px', fontSize: '0.84rem',
-          background: settingsMsg.type === 'success' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
-          border: `1px solid ${settingsMsg.type === 'success' ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`,
-          color: settingsMsg.type === 'success' ? 'var(--success)' : 'var(--danger)',
+          background: settingsMsg.type === 'success' ? 'rgba(34,197,94,0.08)' : settingsMsg.type === 'warning' ? 'rgba(251,191,36,0.08)' : 'rgba(239,68,68,0.08)',
+          border: `1px solid ${settingsMsg.type === 'success' ? 'rgba(34,197,94,0.25)' : settingsMsg.type === 'warning' ? 'rgba(251,191,36,0.25)' : 'rgba(239,68,68,0.25)'}`,
+          color: settingsMsg.type === 'success' ? 'var(--success)' : settingsMsg.type === 'warning' ? 'var(--warning)' : 'var(--danger)',
           marginTop: '10px'
         }}>
           {settingsMsg.text}

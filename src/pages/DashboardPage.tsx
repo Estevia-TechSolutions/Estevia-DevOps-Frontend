@@ -66,6 +66,7 @@ interface AppResource {
   resourceId: string;
   status: string;
   repositoryUrl: string;
+  license_frozen?: number;
   dnsDetails?: {
     subdomain?: string;
     domain?: string;
@@ -160,6 +161,7 @@ interface DashboardPageProps {
   refreshHealthForRepo?: (repo: string) => void;
   livePipelineRuns: Record<number | string, any>;
   setLivePipelineRuns: React.Dispatch<React.SetStateAction<Record<number | string, any>>>;
+  licenseTier?: string;
 }
 
 const isBuildActive = (run: any) => {
@@ -211,10 +213,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   onShowBuildHistory,
   refreshHealthForRepo,
   livePipelineRuns,
-  setLivePipelineRuns
+  setLivePipelineRuns,
+  licenseTier = 'growth',
 }) => {
   const isViewer = currentUser?.role === 'viewer';
   const organizationId = currentUser?.organization_id || 'estevia';
+
+  // ── License-tier enforcement helpers ───────────────────────────────
+  const GROWTH_ALLOWED_RULES = new Set(['tagging', 'tls', 'network-security']);
+  const isRuleLockedByTier = (ruleId: string) =>
+    licenseTier === 'growth' && !GROWTH_ALLOWED_RULES.has(ruleId);
+  const tierLimits: Record<string, number> = { growth: 5, enterprise: 25, sovereign: Infinity };
+  const licenseLimit = tierLimits[licenseTier] || 5;
+  const isEnvLimitReached = apps.length >= licenseLimit;
+  // ──────────────────────────────────────────────────────────────
 
   const getScanProgressMessage = (progress: number) => {
     if (progress < 40) return "Querying Azure resource groups...";
@@ -2941,7 +2953,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             flexDirection: 'column',
                             gap: '12px',
                             width: '100%',
-                            boxSizing: 'border-box'
+                            boxSizing: 'border-box',
+                            position: 'relative'
                           }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', width: '100%' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '280px' }}>
@@ -2976,6 +2989,23 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                  )}
                                  <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)' }}>{item.name}</span>
                                  
+                                 {item.license_frozen === 1 && (
+                                   <span style={{
+                                     fontSize: '0.62rem',
+                                     fontWeight: 700,
+                                     textTransform: 'uppercase',
+                                     color: '#ef4444',
+                                     background: 'rgba(239, 68, 68, 0.12)',
+                                     padding: '2px 6px',
+                                     borderRadius: '4px',
+                                     border: '1px solid rgba(239, 68, 68, 0.3)',
+                                     display: 'inline-flex',
+                                     alignItems: 'center'
+                                   }} title="Environment frozen. Decommission or upgrade to manage.">
+                                     🔒 FROZEN
+                                   </span>
+                                 )}
+
                                 {item.isTestResource && (
                                   <span style={{
                                     fontSize: '0.62rem',
@@ -3161,6 +3191,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                               return (
                                 <div style={{ 
+                                  position: 'absolute',
+                                  top: '-10px',
+                                  right: '16px',
                                   display: 'inline-flex', 
                                   alignItems: 'center', 
                                   gap: '6px', 
@@ -3168,8 +3201,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                   borderRadius: '6px',
                                   backgroundColor: pillBg,
                                   border: `1px solid ${pillBorder}`,
-                                  alignSelf: 'center',
-                                  flexShrink: 0
+                                  zIndex: 10
                                 }} title={`Status: ${statusInfo.label}`}>
                                   <span style={{
                                     width: '6px',
@@ -3224,7 +3256,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                     <div style={{ display: 'flex', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', padding: '2px' }}>
                                       <button
                                         type="button"
-                                        disabled={isViewer}
+                                        disabled={isViewer || item.license_frozen === 1}
                                         onClick={async (e) => {
                                           e.stopPropagation();
                                           await handleToggleRevisionMode(item.name, 'Single');
@@ -3235,18 +3267,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                           fontWeight: 700,
                                           borderRadius: '4px',
                                           border: 'none',
-                                          backgroundColor: isViewer ? 'transparent' : (bgModeState[item.name] !== 'Multiple' && item.status !== 'multiple') ? 'var(--accent-purple, #8b5cf6)' : 'transparent',
-                                          color: isViewer ? 'rgba(255,255,255,0.35)' : (bgModeState[item.name] !== 'Multiple' && item.status !== 'multiple') ? '#fff' : 'var(--text-secondary)',
-                                          cursor: isViewer ? 'not-allowed' : 'pointer',
-                                          opacity: isViewer ? 0.35 : 1,
+                                          backgroundColor: (isViewer || item.license_frozen === 1) ? 'transparent' : (bgModeState[item.name] !== 'Multiple' && item.status !== 'multiple') ? 'var(--accent-purple, #8b5cf6)' : 'transparent',
+                                          color: (isViewer || item.license_frozen === 1) ? 'rgba(255,255,255,0.35)' : (bgModeState[item.name] !== 'Multiple' && item.status !== 'multiple') ? '#fff' : 'var(--text-secondary)',
+                                          cursor: (isViewer || item.license_frozen === 1) ? 'not-allowed' : 'pointer',
+                                          opacity: (isViewer || item.license_frozen === 1) ? 0.35 : 1,
                                           transition: 'all 0.2s ease'
                                         }}
+                                        title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
                                       >
                                         Single
                                       </button>
                                       <button
                                         type="button"
-                                        disabled={isViewer}
+                                        disabled={isViewer || item.license_frozen === 1}
                                         onClick={async (e) => {
                                           e.stopPropagation();
                                           await handleToggleRevisionMode(item.name, 'Multiple');
@@ -3259,12 +3292,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                           fontWeight: 700,
                                           borderRadius: '4px',
                                           border: 'none',
-                                          backgroundColor: isViewer ? 'transparent' : (bgModeState[item.name] === 'Multiple' || item.status === 'multiple') ? 'var(--accent-purple, #8b5cf6)' : 'transparent',
-                                          color: isViewer ? 'rgba(255,255,255,0.35)' : (bgModeState[item.name] === 'Multiple' || item.status === 'multiple') ? '#fff' : 'var(--text-secondary)',
-                                          cursor: isViewer ? 'not-allowed' : 'pointer',
-                                          opacity: isViewer ? 0.35 : 1,
+                                          backgroundColor: (isViewer || item.license_frozen === 1) ? 'transparent' : (bgModeState[item.name] === 'Multiple' || item.status === 'multiple') ? 'var(--accent-purple, #8b5cf6)' : 'transparent',
+                                          color: (isViewer || item.license_frozen === 1) ? 'rgba(255,255,255,0.35)' : (bgModeState[item.name] === 'Multiple' || item.status === 'multiple') ? '#fff' : 'var(--text-secondary)',
+                                          cursor: (isViewer || item.license_frozen === 1) ? 'not-allowed' : 'pointer',
+                                          opacity: (isViewer || item.license_frozen === 1) ? 0.35 : 1,
                                           transition: 'all 0.2s ease'
                                         }}
+                                        title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
                                       >
                                         Multi
                                       </button>
@@ -3272,6 +3306,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                     <button
                                       type="button"
                                       className="btn-secondary"
+                                      disabled={item.license_frozen === 1}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setBgDrawerApp(item);
@@ -3286,17 +3321,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                         borderRadius: '6px',
                                         padding: 0,
                                         border: 'none',
-                                        background: 'rgba(255, 255, 255, 0.04)',
-                                        cursor: 'pointer'
+                                        background: item.license_frozen === 1 ? 'rgba(255, 255, 255, 0.01)' : 'rgba(255, 255, 255, 0.04)',
+                                        cursor: item.license_frozen === 1 ? 'not-allowed' : 'pointer',
+                                        opacity: item.license_frozen === 1 ? 0.35 : 1
                                       }}
-                                      title="Configure Traffic Split"
+                                      title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : "Configure Traffic Split"}
                                     >
-                                      <Sliders size={11} style={{ color: 'var(--accent-purple)' }} />
+                                      <Sliders size={11} style={{ color: item.license_frozen === 1 ? 'rgba(255,255,255,0.25)' : 'var(--accent-purple)' }} />
                                     </button>
                                   </div>
                                 ) : (
                                   <button
                                     type="button"
+                                    disabled={item.license_frozen === 1}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setBgDrawerApp(item);
@@ -3310,12 +3347,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                       fontSize: '0.7rem',
                                       borderRadius: '8px',
                                       fontWeight: 700,
-                                      backgroundColor: 'rgba(139, 92, 246, 0.08)',
-                                      border: '1px solid rgba(139, 92, 246, 0.2)',
-                                      color: 'var(--accent-purple, #8b5cf6)',
+                                      backgroundColor: item.license_frozen === 1 ? 'rgba(255,255,255,0.01)' : 'rgba(139, 92, 246, 0.08)',
+                                      border: item.license_frozen === 1 ? '1px dashed var(--glass-border)' : '1px solid rgba(139, 92, 246, 0.2)',
+                                      color: item.license_frozen === 1 ? 'var(--text-muted)' : 'var(--accent-purple, #8b5cf6)',
                                       transition: 'all 0.2s ease',
-                                      cursor: 'pointer'
+                                      cursor: item.license_frozen === 1 ? 'not-allowed' : 'pointer',
+                                      opacity: item.license_frozen === 1 ? 0.35 : 1
                                     }}
+                                    title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : "Configure B/G Swap"}
                                   >
                                     <GitCompare size={12} />
                                     Configure B/G Swap
@@ -3333,7 +3372,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 const isStarted = s === 'running' || s === 'deployed';
                                 const isStopped = s === 'stopped' || s === 'sleep' || s === 'offline';
                                 const isOpen = activePowerDropdown === item.name;
-                                const isDisabled = isViewer || isControlling;
+                                const isDisabled = isViewer || isControlling || item.license_frozen === 1;
 
                                 // Derive button appearance from runtime state
                                 let btnBg = 'rgba(255,255,255,0.02)';
@@ -3346,20 +3385,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                   btnBg = 'rgba(59,130,246,0.08)'; btnColor = '#3b82f6';
                                   btnBorder = 'rgba(59,130,246,0.2)'; btnText = 'Updating…';
                                   btnIcon = <RefreshCw size={10} className="spin-anim" />;
-                                } else if (isStarted) {
+                                  } else if (isStarted) {
                                   btnBg = 'rgba(16,185,129,0.08)'; btnColor = '#10b981';
                                   btnBorder = 'rgba(16,185,129,0.2)'; btnText = 'Running';
                                   btnIcon = <Play size={10} fill="#10b981" className="play-pulse-anim" />;
-                                } else if (isStopped) {
+                                  } else if (isStopped) {
                                   btnBg = 'rgba(239,68,68,0.08)'; btnColor = '#ef4444';
                                   btnBorder = 'rgba(239,68,68,0.2)'; btnText = 'Stopped';
                                   btnIcon = <Square size={10} fill="#ef4444" />;
                                 }
 
                                 // Per-action disabled flags
-                                const startDis  = isViewer || isControlling || isStarted  || isCritical;
-                                const restartDis = isViewer || isControlling || isStopped  || isCritical;
-                                const stopDis   = isViewer || isControlling || isStopped  || isCritical;
+                                const startDis  = isViewer || isControlling || isStarted  || isCritical || item.license_frozen === 1;
+                                const restartDis = isViewer || isControlling || isStopped  || isCritical || item.license_frozen === 1;
+                                const stopDis   = isViewer || isControlling || isStopped  || isCritical || item.license_frozen === 1;
 
                                 return (
                                   <div style={{ position: 'relative' }}>
@@ -3381,14 +3420,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                       style={{
                                         display: 'inline-flex', alignItems: 'center', gap: '6px',
                                         padding: '6px 12px', borderRadius: '8px',
-                                        backgroundColor: isViewer ? (theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)') : btnBg,
-                                        color: isViewer ? (theme === 'light' ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)') : btnColor,
-                                        border: isViewer ? '1px dashed var(--glass-border)' : `1px solid ${btnBorder}`,
+                                        backgroundColor: (isViewer || item.license_frozen === 1) ? (theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)') : btnBg,
+                                        color: (isViewer || item.license_frozen === 1) ? (theme === 'light' ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)') : btnColor,
+                                        border: (isViewer || item.license_frozen === 1) ? '1px dashed var(--glass-border)' : `1px solid ${btnBorder}`,
                                         fontSize: '0.72rem', fontWeight: 700,
                                         cursor: isDisabled ? 'not-allowed' : 'pointer',
                                         transition: 'all 0.2s ease',
-                                        opacity: isViewer ? 0.35 : 1
+                                        opacity: (isViewer || item.license_frozen === 1) ? 0.35 : 1
                                       }}
+                                      title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
                                     >
                                       {btnIcon}
                                       <span>{btnText}</span>
@@ -3557,20 +3597,22 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                       padding: '4px 0',
                                       overflow: 'hidden'
                                     }}>
-                                      <button 
-                                        type="button"
-                                        onClick={(e) => { e.stopPropagation(); openDnsModal(item); setActiveDropdown(null); setDropdownCoords(null); }}
-                                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: 'pointer' }}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                      >
-                                        <Globe size={12} style={{ color: 'var(--accent-purple)' }} />
-                                        <span>DNS Settings</span>
-                                      </button>
+                                       <button 
+                                         type="button"
+                                         disabled={item.license_frozen === 1}
+                                         onClick={(e) => { e.stopPropagation(); openDnsModal(item); setActiveDropdown(null); setDropdownCoords(null); }}
+                                         style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: item.license_frozen === 1 ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: item.license_frozen === 1 ? 'not-allowed' : 'pointer', opacity: item.license_frozen === 1 ? 0.35 : 1 }}
+                                         title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
+                                         onMouseEnter={(e) => { if (item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
+                                         onMouseLeave={(e) => { if (item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                       >
+                                         <Globe size={12} style={{ color: item.license_frozen === 1 ? 'rgba(255,255,255,0.25)' : 'var(--accent-purple)' }} />
+                                         <span>DNS Settings</span>
+                                       </button>
 
                                       {item.pipelineId ? (
                                         <a 
-                                          href={(() => {
+                                          href={item.license_frozen === 1 ? undefined : (() => {
                                             const pid = String(item.pipelineId || '');
                                             if (pid.startsWith('github-actions:')) {
                                               const repoPath = pid.split(':').slice(1).join(':');
@@ -3598,24 +3640,26 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                           })()}
                                           target="_blank"
                                           rel="noreferrer"
-                                          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', color: 'var(--text-primary)', width: '100%', textDecoration: 'none', boxSizing: 'border-box' }}
+                                          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', color: item.license_frozen === 1 ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textDecoration: 'none', boxSizing: 'border-box', pointerEvents: item.license_frozen === 1 ? 'none' : 'auto', opacity: item.license_frozen === 1 ? 0.35 : 1 }}
+                                          title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
                                           onClick={() => setActiveDropdown(null)}
-                                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
-                                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                          onMouseEnter={(e) => { if (item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
+                                          onMouseLeave={(e) => { if (item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'transparent'; }}
                                         >
-                                          <GitBranch size={12} style={{ color: 'var(--accent-teal)' }} />
+                                          <GitBranch size={12} style={{ color: item.license_frozen === 1 ? 'rgba(255,255,255,0.25)' : 'var(--accent-teal)' }} />
                                           <span>View CI/CD Pipeline</span>
                                         </a>
                                       ) : (
                                          <button 
                                            type="button"
-                                           disabled={isViewer}
+                                           disabled={isViewer || item.license_frozen === 1}
                                            onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); setActiveDropdown(null); }}
-                                           style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: isViewer ? 'not-allowed' : 'pointer', opacity: isViewer ? 0.35 : 1 }}
-                                           onMouseEnter={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
-                                           onMouseLeave={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                           style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: (isViewer || item.license_frozen === 1) ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: (isViewer || item.license_frozen === 1) ? 'not-allowed' : 'pointer', opacity: (isViewer || item.license_frozen === 1) ? 0.35 : 1 }}
+                                           title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
+                                           onMouseEnter={(e) => { if (!isViewer && item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
+                                           onMouseLeave={(e) => { if (!isViewer && item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'transparent'; }}
                                          >
-                                           <PlusCircle size={12} style={{ color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--accent-purple)' }} />
+                                           <PlusCircle size={12} style={{ color: (isViewer || item.license_frozen === 1) ? 'rgba(255,255,255,0.25)' : 'var(--accent-purple)' }} />
                                            <span>Setup CI/CD</span>
                                          </button>
                                       )}
@@ -3623,12 +3667,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                       {item.type === 'backend' && onShowLogs && (
                                         <button 
                                           type="button"
+                                          disabled={item.license_frozen === 1}
                                           onClick={(e) => { e.stopPropagation(); onShowLogs(item.name); setActiveDropdown(null); }}
-                                          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: 'pointer' }}
-                                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'}
-                                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: item.license_frozen === 1 ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: item.license_frozen === 1 ? 'not-allowed' : 'pointer', opacity: item.license_frozen === 1 ? 0.35 : 1 }}
+                                          title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
+                                          onMouseEnter={(e) => { if (item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)' }}
+                                          onMouseLeave={(e) => { if (item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'transparent' }}
                                         >
-                                          <Terminal size={12} style={{ color: 'var(--accent-blue)' }} />
+                                          <Terminal size={12} style={{ color: item.license_frozen === 1 ? 'rgba(255,255,255,0.25)' : 'var(--accent-blue)' }} />
                                           <span>View Logs</span>
                                         </button>
                                       )}
@@ -3636,13 +3682,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                       {onCloneApp && (
                                         <button 
                                           type="button"
-                                          disabled={isViewer}
+                                          disabled={isViewer || item.license_frozen === 1}
                                           onClick={(e) => { e.stopPropagation(); onCloneApp(item); setActiveDropdown(null); }}
-                                          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: isViewer ? 'not-allowed' : 'pointer', opacity: isViewer ? 0.35 : 1 }}
-                                          onMouseEnter={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
-                                          onMouseLeave={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: (isViewer || item.license_frozen === 1) ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: (isViewer || item.license_frozen === 1) ? 'not-allowed' : 'pointer', opacity: (isViewer || item.license_frozen === 1) ? 0.35 : 1 }}
+                                          title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
+                                          onMouseEnter={(e) => { if (!isViewer && item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
+                                          onMouseLeave={(e) => { if (!isViewer && item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'transparent'; }}
                                         >
-                                          <GitBranch size={12} style={{ color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--success)' }} />
+                                          <GitBranch size={12} style={{ color: (isViewer || item.license_frozen === 1) ? 'rgba(255,255,255,0.25)' : 'var(--success)' }} />
                                           <span>Clone App</span>
                                         </button>
                                       )}
@@ -4539,6 +4586,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                       <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
                                         BUILD RUN: #{item.pipelineRun.name || item.pipelineRun.id}
                                       </span>
+                                      {item.pipelineRun.startTime && (
+                                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                                          ({new Date(item.pipelineRun.startTime).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })})
+                                        </span>
+                                      )}
                                       {onShowBuildHistory && (
                                         <button
                                           type="button"
@@ -4931,7 +4983,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                <button 
                                  className="btn-secondary" 
-                                 disabled={isViewer}
+                                 disabled={isViewer || isEnvLimitReached}
                                  onClick={() => onDeployBranch(group.repoPath, branch.name, group.type as 'frontend' | 'backend')}
                                  style={{ 
                                    padding: '6px 12px', 
@@ -4940,24 +4992,25 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                    alignItems: 'center', 
                                    justifyContent: 'center', 
                                    gap: '6px',
-                                   borderColor: isViewer ? 'var(--glass-border)' : unlinkedStyle.color,
-                                   color: isViewer ? 'var(--text-muted)' : 'var(--text-primary)',
-                                   background: isViewer ? 'rgba(255,255,255,0.01)' : (theme === 'light' ? 'rgba(239, 68, 68, 0.03)' : 'rgba(239, 68, 68, 0.05)'),
-                                   cursor: isViewer ? 'not-allowed' : 'pointer',
-                                   opacity: isViewer ? 0.6 : 1
+                                   borderColor: (isViewer || isEnvLimitReached) ? 'var(--glass-border)' : unlinkedStyle.color,
+                                   color: (isViewer || isEnvLimitReached) ? 'var(--text-muted)' : 'var(--text-primary)',
+                                   background: (isViewer || isEnvLimitReached) ? 'rgba(255,255,255,0.01)' : (theme === 'light' ? 'rgba(239, 68, 68, 0.03)' : 'rgba(239, 68, 68, 0.05)'),
+                                   cursor: (isViewer || isEnvLimitReached) ? 'not-allowed' : 'pointer',
+                                   opacity: (isViewer || isEnvLimitReached) ? 0.6 : 1
                                  }}
+                                 title={isEnvLimitReached ? `Environment cap (${licenseLimit}) reached for your ${licenseTier.toUpperCase()} tier. Upgrade subscription to provision more.` : undefined}
                                  onMouseEnter={(e) => {
-                                   if (isViewer) return;
+                                   if (isViewer || isEnvLimitReached) return;
                                    e.currentTarget.style.background = theme === 'light' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.15)';
                                    e.currentTarget.style.boxShadow = `0 0 8px ${theme === 'light' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.4)'}`;
                                  }}
                                  onMouseLeave={(e) => {
-                                   if (isViewer) return;
+                                   if (isViewer || isEnvLimitReached) return;
                                    e.currentTarget.style.background = theme === 'light' ? 'rgba(239, 68, 68, 0.03)' : 'rgba(239, 68, 68, 0.05)';
                                    e.currentTarget.style.boxShadow = 'none';
                                  }}
                                >
-                                 <PlusCircle size={12} style={{ color: isViewer ? 'var(--text-muted)' : unlinkedStyle.color }} />
+                                 <PlusCircle size={12} style={{ color: (isViewer || isEnvLimitReached) ? 'var(--text-muted)' : unlinkedStyle.color }} />
                                  Provision Branch
                                </button>
                             </div>
@@ -5083,25 +5136,31 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                           { id: 'secrets-expiry', name: 'Key Vault Secrets Expiry Check', desc: 'Monitors Key Vault credentials and alerts before they expire.' },
                           { id: 'shadow-it', name: 'Orphaned Resource Scan (Shadow IT)', desc: 'Identifies untracked resources running in Azure not listed in the DevOps catalog.' }
                         ].map(r => {
-                          const isEnabled = !disabledRules.includes(r.id);
+                          const isLocked = isRuleLockedByTier(r.id);
+                          const isEnabled = !isLocked && !disabledRules.includes(r.id);
                           const severity = ruleSeverities[r.id] || (r.id === 'tls' || r.id === 'network-security' ? 'critical' : r.id === 'tagging' ? 'low' : r.id === 'https-only' || r.id === 'registry-auth' ? 'medium' : 'high');
                           
                           return (
-                            <div key={r.id} style={{
-                              padding: '12px',
-                              borderRadius: '8px',
-                              background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255, 255, 255, 0.01)',
-                              border: '1px solid var(--glass-border)',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              justifyContent: 'space-between',
-                              gap: '8px'
-                            }}>
+                            <div key={r.id} 
+                              title={isLocked ? "Requires Enterprise or Sovereign subscription" : undefined}
+                              style={{
+                                padding: '12px',
+                                borderRadius: '8px',
+                                background: theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255, 255, 255, 0.01)',
+                                border: '1px solid var(--glass-border)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'space-between',
+                                gap: '8px',
+                                opacity: isLocked ? 0.5 : 1
+                              }}
+                            >
                               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer', margin: 0, userSelect: 'none' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', cursor: isLocked ? 'not-allowed' : 'pointer', margin: 0, userSelect: 'none' }}>
                                   <input
                                     type="checkbox"
                                     checked={isEnabled}
+                                    disabled={isLocked}
                                     onChange={(e) => {
                                       if (e.target.checked) {
                                         setDisabledRules(prev => prev.filter(x => x !== r.id));
@@ -5109,9 +5168,25 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                         setDisabledRules(prev => [...prev, r.id]);
                                       }
                                     }}
-                                    style={{ accentColor: 'var(--accent-purple)', cursor: 'pointer' }}
+                                    style={{ accentColor: 'var(--accent-purple)', cursor: isLocked ? 'not-allowed' : 'pointer' }}
                                   />
                                   <span>{r.name}</span>
+                                  {isLocked && (
+                                    <span style={{
+                                      fontSize: '0.62rem',
+                                      padding: '2px 6px',
+                                      borderRadius: '4px',
+                                      background: 'rgba(239, 68, 68, 0.1)',
+                                      color: '#EF4444',
+                                      border: '1px solid rgba(239, 68, 68, 0.2)',
+                                      marginLeft: '6px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      fontWeight: 600
+                                    }}>
+                                      🔒 Enterprise
+                                    </span>
+                                  )}
                                 </label>
                               </div>
                               <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', minHeight: '32px' }}>{r.desc}</p>
@@ -5120,7 +5195,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Severity Level:</span>
                                 <select
                                   value={severity}
-                                  disabled={!isEnabled}
+                                  disabled={isLocked || !isEnabled}
                                   onChange={(e) => {
                                     setRuleSeverities(prev => ({ ...prev, [r.id]: e.target.value }));
                                   }}
@@ -5130,9 +5205,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                     borderRadius: '6px',
                                     border: '1px solid var(--glass-border)',
                                     background: 'var(--bg-primary)',
-                                    color: isEnabled ? 'var(--text-primary)' : 'var(--text-muted)',
+                                    color: (isEnabled && !isLocked) ? 'var(--text-primary)' : 'var(--text-muted)',
                                     outline: 'none',
-                                    cursor: isEnabled ? 'pointer' : 'not-allowed'
+                                    cursor: (isEnabled && !isLocked) ? 'pointer' : 'not-allowed'
                                   }}
                                 >
                                   <option value="critical">Critical</option>

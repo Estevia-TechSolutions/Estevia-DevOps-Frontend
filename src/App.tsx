@@ -135,6 +135,7 @@ interface AppResource {
   resourceId: string;
   status: string;
   repositoryUrl: string;
+  license_frozen?: number;
   branch?: string;
   dnsDetails?: {
     subdomain?: string;
@@ -1032,7 +1033,7 @@ function App() {
   const [pipelineVariableGroup, setPipelineVariableGroup] = useState('');
   const [githubOwner, setGithubOwner] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
-  const [settingsMsg, setSettingsMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [settingsMsg, setSettingsMsg] = useState<{ type: 'success' | 'error' | 'warning', text: string } | null>(null);
 
   // New Organization Settings State Columns
   const [azureContainerRegistry, setAzureContainerRegistry] = useState('');
@@ -1593,6 +1594,23 @@ function App() {
     return localStorage.getItem('devops_requires_onboarding') === 'true';
   });
 
+  // ── License Enforcement States ────────────────────────────────────────────
+  const [licenseTier, setLicenseTier] = useState<string>('growth');
+  const [operatorSeatsLimit, setOperatorSeatsLimit] = useState<number>(10);
+  const [currentWriteUsers, setCurrentWriteUsers] = useState<number>(0);
+  const [downgradeComplianceDebt, setDowngradeComplianceDebt] = useState<object | null>(null);
+  const [overSeatLimitWarning, setOverSeatLimitWarning] = useState<boolean>(false);
+  const [downgradeImpactData, setDowngradeImpactData] = useState<any>(null);
+  const [showDowngradeModal, setShowDowngradeModal] = useState<boolean>(false);
+  const [downgradeConfirmInput, setDowngradeConfirmInput] = useState<string>('');
+  const [pendingLicenseTier, setPendingLicenseTier] = useState<string | null>(null);
+  // ── Credential Gate States ─────────────────────────────────────────────────
+  const [requiresCredentialSetup, setRequiresCredentialSetup] = useState<boolean>(false);
+  const [missingCredentials, setMissingCredentials] = useState<{
+    azure: boolean; github: boolean; azureDevops: boolean; godaddy: boolean;
+  }>({ azure: false, github: false, azureDevops: false, godaddy: false });
+  // ── End License / Credential Gate States ──────────────────────────────────
+
   // Onboarding Wizard States
   const [onboardStep, setOnboardStep] = useState(1);
   const [onboardOrgName, setOnboardOrgName] = useState('');
@@ -1876,6 +1894,22 @@ function App() {
         setToken(data.token);
         setUser(data.user);
         setRequiresOnboarding(data.requiresOnboarding);
+        // ── Credential Gate: re-evaluate on every login ───────────────────
+        if (data.organization?.id) {
+          try {
+            const statusRes = await window.fetch(`${API_BASE}/org/status`, {
+              headers: { Authorization: `Bearer ${data.token}` }
+            });
+            const statusData = await statusRes.json();
+            if (statusData.credentialGate && !statusData.credentialGate.isComplete && statusData.onboardingComplete) {
+              setRequiresCredentialSetup(true);
+              setMissingCredentials(statusData.credentialGate.missing);
+            } else {
+              setRequiresCredentialSetup(false);
+            }
+          } catch (_) { /* non-fatal */ }
+        }
+        // ─────────────────────────────────────────────────────────────────
       } else {
         throw new Error(data.error || data.message || 'Failed to exchange authorization code.');
       }
@@ -1914,6 +1948,22 @@ function App() {
         setToken(data.token);
         setUser(data.user);
         setRequiresOnboarding(data.requiresOnboarding);
+        // ── Credential Gate: re-evaluate on every login ───────────────────
+        if (data.organization?.id) {
+          try {
+            const statusRes = await window.fetch(`${API_BASE}/org/status`, {
+              headers: { Authorization: `Bearer ${data.token}` }
+            });
+            const statusData = await statusRes.json();
+            if (statusData.credentialGate && !statusData.credentialGate.isComplete && statusData.onboardingComplete) {
+              setRequiresCredentialSetup(true);
+              setMissingCredentials(statusData.credentialGate.missing);
+            } else {
+              setRequiresCredentialSetup(false);
+            }
+          } catch (_) { /* non-fatal */ }
+        }
+        // ─────────────────────────────────────────────────────────────────
         setShowDevOverrideForm(false);
       } else {
         throw new Error(data.error || 'Developer Override login failed.');
@@ -1953,6 +2003,22 @@ function App() {
         setToken(data.token);
         setUser(data.user);
         setRequiresOnboarding(data.requiresOnboarding);
+        // ── Credential Gate: re-evaluate on every login ───────────────────
+        if (data.organization?.id) {
+          try {
+            const statusRes = await window.fetch(`${API_BASE}/org/status`, {
+              headers: { Authorization: `Bearer ${data.token}` }
+            });
+            const statusData = await statusRes.json();
+            if (statusData.credentialGate && !statusData.credentialGate.isComplete && statusData.onboardingComplete) {
+              setRequiresCredentialSetup(true);
+              setMissingCredentials(statusData.credentialGate.missing);
+            } else {
+              setRequiresCredentialSetup(false);
+            }
+          } catch (_) { /* non-fatal */ }
+        }
+        // ─────────────────────────────────────────────────────────────────
         setShowAdminOverrideForm(false);
       } else {
         throw new Error(data.error || 'Admin Override authentication failed.');
@@ -2646,6 +2712,12 @@ function App() {
         setProdDbHost(data.settings.prod_db_host || '');
         setDevManagedEnvId(data.settings.dev_managed_env_id || '');
         setProdManagedEnvId(data.settings.prod_managed_env_id || '');
+
+        // ── License fields ────────────────────────────────────────────────
+        if (data.settings.license_tier) setLicenseTier(data.settings.license_tier);
+        if (data.settings.operator_seats_limit != null) setOperatorSeatsLimit(data.settings.operator_seats_limit);
+        if (data.settings.downgrade_pending) setDowngradeComplianceDebt({ pending: true });
+        // ─────────────────────────────────────────────────────────────────
         
         // Auto-configure default inputs
         setDomainInput(data.settings.default_dns_domain || import.meta.env.VITE_DEFAULT_DOMAIN || '');
@@ -2708,9 +2780,30 @@ function App() {
     setSavingSettings(true);
     setSettingsMsg(null);
     try {
+      // ── Downgrade detection: show impact modal before saving ───────────
+      const tierRank: Record<string, number> = { growth: 1, enterprise: 2, sovereign: 3 };
+      const isDowngrade = pendingLicenseTier !== null &&
+        (tierRank[pendingLicenseTier] ?? 0) < (tierRank[licenseTier] ?? 0);
+
+      if (isDowngrade && !showDowngradeModal) {
+        // First click: fetch impact and show modal — don't save yet
+        try {
+          const impactRes = await fetch(
+            `${API_BASE}/apps/downgrade-impact?targetTier=${pendingLicenseTier}&organizationId=${organizationId}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          const impactData = await impactRes.json();
+          setDowngradeImpactData(impactData);
+        } catch (_) {}
+        setShowDowngradeModal(true);
+        setSavingSettings(false);
+        return;
+      }
+      // ─────────────────────────────────────────────────────────────────
+
       const res = await fetch(`${API_BASE}/apps/organization-settings`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           organizationId: organizationId,
           azureSubscriptionId,
@@ -2731,14 +2824,58 @@ function App() {
           qaDbHost,
           prodDbHost,
           devManagedEnvId,
-          prodManagedEnvId
+          prodManagedEnvId,
+          // License fields
+          licenseTier: pendingLicenseTier ?? licenseTier,
+          operatorSeatsLimit,
+          downgradeConfirmToken: isDowngrade ? downgradeConfirmInput : undefined
         })
       });
       const data = await res.json();
+
+      // ── Handle 207 Over-Seat-Limit response ───────────────────────────
+      if (res.status === 207 && data.overSeatLimit) {
+        setOverSeatLimitWarning(true);
+        setCurrentWriteUsers(data.currentWriteUsers ?? currentWriteUsers);
+        setSettingsMsg({ type: 'warning', text: data.message });
+        fetchOrgSettings();
+        setSavingSettings(false);
+        return;
+      }
+      // ─────────────────────────────────────────────────────────────────
+
       if (data.success) {
+        // ── Handle downgrade + compliance debt ────────────────────────
+        if (data.downgraded && data.complianceDebt) {
+          setDowngradeComplianceDebt(data.complianceDebt);
+          if (pendingLicenseTier) setLicenseTier(pendingLicenseTier);
+        }
+        setPendingLicenseTier(null);
+        setShowDowngradeModal(false);
+        setDowngradeConfirmInput('');
+        setOverSeatLimitWarning(false);
+        // ─────────────────────────────────────────────────────────────
+
         setSettingsMsg({ type: 'success', text: 'Organization settings updated successfully!' });
         fetchOrgSettings();
         fetchGithubRepos();
+
+        // ── Re-evaluate credential gate on every save ─────────────────
+        if (token) {
+          try {
+            const statusRes = await window.fetch(`${API_BASE}/org/status`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            const statusData = await statusRes.json();
+            if (statusData.credentialGate?.isComplete) {
+              setRequiresCredentialSetup(false);
+            } else if (statusData.credentialGate && !statusData.credentialGate.isComplete && statusData.onboardingComplete) {
+              setRequiresCredentialSetup(true);
+              setMissingCredentials(statusData.credentialGate.missing);
+            }
+          } catch (_) { /* non-fatal */ }
+        }
+        // ─────────────────────────────────────────────────────────────
       } else {
         setSettingsMsg({ type: 'error', text: data.message || 'Failed to update settings.' });
       }
@@ -5401,6 +5538,94 @@ function App() {
 
             </div>
           </div>
+        ) : requiresCredentialSetup ? (
+          /* ── Credential Gate Screen ─────────────────────────────────────── */
+          <div style={{ maxWidth: '680px', margin: '60px auto', padding: '0 20px' }}>
+            <div className="glass-panel" style={{
+              padding: '40px',
+              border: '1px solid rgba(239,68,68,0.3)',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, rgba(239,68,68,0.06) 0%, rgba(15,23,42,0.95) 100%)',
+              boxShadow: '0 0 40px rgba(239,68,68,0.08)'
+            }}>
+              <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+                <div style={{
+                  width: '64px', height: '64px', borderRadius: '50%', margin: '0 auto 16px',
+                  background: 'rgba(239,68,68,0.1)', border: '2px solid rgba(239,68,68,0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px'
+                }}>🔐</div>
+                <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text-primary)' }}>
+                  Action Required — Incomplete Integration Setup
+                </h2>
+                <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  Your workspace is missing critical credentials needed to operate EvaOps.
+                  Set up the missing integrations below to unlock full platform access.
+                </p>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+                {([
+                  { key: 'azure',       label: 'Azure Service Principal',  icon: '☁️' },
+                  { key: 'github',      label: 'GitHub Platform Token',     icon: '🐙' },
+                  { key: 'azureDevops', label: 'Azure DevOps PAT',          icon: '🔧' },
+                  { key: 'godaddy',     label: 'GoDaddy Domain API Keys',   icon: '🌐' },
+                ] as const).map(({ key, label, icon }) => {
+                  const isMissing = missingCredentials[key];
+                  const canSetup = user?.role === 'owner' || user?.role === 'admin';
+                  return (
+                    <div key={key} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '14px 18px', borderRadius: '10px',
+                      background: isMissing ? 'rgba(239,68,68,0.05)' : 'rgba(34,197,94,0.05)',
+                      border: `1px solid ${isMissing ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)'}`,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '20px' }}>{icon}</span>
+                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{label}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{
+                          fontSize: '0.75rem', fontWeight: 700, padding: '3px 10px', borderRadius: '20px',
+                          background: isMissing ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.15)',
+                          color: isMissing ? '#f87171' : '#4ade80',
+                          border: `1px solid ${isMissing ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'}`,
+                        }}>
+                          {isMissing ? '● Missing' : '✓ Connected'}
+                        </span>
+                        {isMissing && canSetup && (
+                          <button
+                            onClick={() => setActiveTab('credentials' as any)}
+                            style={{
+                              fontSize: '0.78rem', fontWeight: 600, padding: '4px 12px', borderRadius: '6px',
+                              background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)',
+                              color: '#a5b4fc', cursor: 'pointer',
+                            }}
+                          >Set up →</button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {(user?.role === 'owner' || user?.role === 'admin') ? (
+                <button
+                  onClick={() => setActiveTab('credentials' as any)}
+                  className="btn-primary"
+                  style={{ width: '100%', padding: '14px', fontSize: '0.95rem', borderRadius: '10px', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
+                  🔑  Go to Settings → Credentials
+                </button>
+              ) : (
+                <div style={{
+                  padding: '14px 18px', borderRadius: '10px',
+                  background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)',
+                  fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.6
+                }}>
+                  ℹ️  Contact your <strong>Owner</strong> or <strong>Admin</strong> to complete the credential setup.
+                </div>
+              )}
+            </div>
+          </div>
+          /* ── End Credential Gate Screen ─────────────────────────────────── */
         ) : (
           <>
             {/* Unified DevOps Control Centre & Navigation Panel */}
