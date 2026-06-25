@@ -152,7 +152,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
         { cap: 'Manage Cost Sleep Scheduler rules', owner: true, admin: true, contributor: false, viewer: false },
         { cap: 'Map Key Vault secrets to Variable Groups', owner: true, admin: true, contributor: false, viewer: false },
         { cap: 'View enterprise security audit trails', owner: true, admin: true, contributor: false, viewer: false },
-        { cap: 'View decrypted secrets & configure org settings', owner: true, admin: false, contributor: false, viewer: false }
+        { cap: 'View decrypted secrets & configure org settings', owner: true, admin: true, contributor: false, viewer: false }
       ]
     }
   ];

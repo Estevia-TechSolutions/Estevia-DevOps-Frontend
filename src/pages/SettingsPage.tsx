@@ -81,7 +81,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   userRole,
   organizationId,
 }) => {
-  const isOwner = userRole === 'owner';
+  const isOwner = userRole === 'owner' || userRole === 'admin';
   const tierInfo = TIER_LABELS[licenseTier] ?? TIER_LABELS.growth;
 
   return (
@@ -227,7 +227,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
           </div>
         ) : (
           <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
-            Only the <strong>Organization Owner</strong> can change subscription tier or seat limits.
+            Only the <strong>Organization Owner</strong> or <strong>Administrator</strong> can change subscription tier or seat limits.
           </div>
         )}
       </div>
