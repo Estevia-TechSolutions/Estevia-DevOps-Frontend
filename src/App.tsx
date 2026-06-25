@@ -454,7 +454,7 @@ function App() {
 
   const fetch = authFetch;
 
-  const [activeTab, setActiveTab] = useState<'scan' | 'provision' | 'credentials' | 'cost' | 'optimization' | 'databases' | 'guide' | 'users' | 'events'>('scan');
+  const [activeTab, setActiveTab] = useState<'scan' | 'provision' | 'credentials' | 'cost' | 'optimization' | 'databases' | 'guide' | 'users' | 'events' | 'settings'>('scan');
   const [organizationId, setOrganizationId] = useState<string>(() => {
     return localStorage.getItem('devops_organization_id') || new URLSearchParams(window.location.search).get('org') || 'estevia';
   });
@@ -5775,6 +5775,16 @@ function App() {
                       </div>
                     </button>
                   )}
+                  {(user?.role === 'owner' || user?.role === 'admin') && (
+                    <button className={`premium-tab-btn ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
+                      <Settings size={16} />
+                      <span>Settings</span>
+                      <div className="menu-hover-card">
+                        <div className="menu-hover-card-title"><Settings size={12} /> Settings</div>
+                        <div className="menu-hover-card-desc">Configure subscription licensing, operator seat limits, Azure settings, and manage compliance downgrades.</div>
+                      </div>
+                    </button>
+                  )}
                   <button className={`premium-tab-btn ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')}>
                     <Activity size={16} />
                     <span>Events Feed</span>
@@ -6245,6 +6255,53 @@ function App() {
               API_BASE={API_BASE}
             />
           </div>
+        )}
+
+        {/* TAB 9: ORGANIZATION SETTINGS */}
+        {activeTab === 'settings' && (user?.role === 'owner' || user?.role === 'admin') && (
+          <SettingsPage
+            azureSubscriptionId={azureSubscriptionId}
+            setAzureSubscriptionId={setAzureSubscriptionId}
+            azureResourceGroup={azureResourceGroup}
+            setAzureResourceGroup={setAzureResourceGroup}
+            defaultDnsDomain={defaultDnsDomain}
+            setDefaultDnsDomain={setDefaultDnsDomain}
+            azureDevopsOrgUrl={azureDevopsOrgUrl}
+            setAzureDevopsOrgUrl={setAzureDevopsOrgUrl}
+            azureDevopsProject={azureDevopsProject}
+            setAzureDevopsProject={setAzureDevopsProject}
+            pipelineVariableGroup={pipelineVariableGroup}
+            setPipelineVariableGroup={setPipelineVariableGroup}
+            githubOwner={githubOwner}
+            setGithubOwner={setGithubOwner}
+            azureContainerRegistry={azureContainerRegistry}
+            setAzureContainerRegistry={setAzureContainerRegistry}
+            azureDevopsServiceConnection={azureDevopsServiceConnection}
+            setAzureDevopsServiceConnection={setAzureDevopsServiceConnection}
+            dockerRegistryServiceConnection={dockerRegistryServiceConnection}
+            setDockerRegistryServiceConnection={setDockerRegistryServiceConnection}
+            savingSettings={savingSettings}
+            settingsMsg={settingsMsg}
+            handleSaveSettings={handleSaveSettings}
+            containerRegistries={containerRegistries}
+            serviceConnections={serviceConnections}
+            loadingMetadata={loadingMetadata}
+            licenseTier={licenseTier}
+            operatorSeatsLimit={operatorSeatsLimit}
+            currentWriteUsers={currentWriteUsers}
+            overSeatLimitWarning={overSeatLimitWarning}
+            downgradeComplianceDebt={downgradeComplianceDebt}
+            downgradeImpactData={downgradeImpactData}
+            showDowngradeModal={showDowngradeModal}
+            setShowDowngradeModal={setShowDowngradeModal}
+            downgradeConfirmInput={downgradeConfirmInput}
+            setDowngradeConfirmInput={setDowngradeConfirmInput}
+            pendingLicenseTier={pendingLicenseTier}
+            setPendingLicenseTier={setPendingLicenseTier}
+            setOperatorSeatsLimit={setOperatorSeatsLimit}
+            userRole={user?.role}
+            organizationId={organizationId}
+          />
         )}
 
         {/* TAB 6: USER GUIDE */}
