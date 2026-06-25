@@ -34,6 +34,31 @@ interface GuidePageProps {
 
 type TabType = 'getting-started' | 'capabilities' | 'validation-rules' | 'security-auth' | 'pipelines-cicd' | 'eva-ai' | 'faq-roadmap';
 
+const renderScopeIcon = (iconName?: string, isCapability?: boolean) => {
+  const size = 16;
+  const color = isCapability ? 'var(--success)' : 'var(--error)';
+  
+  switch (iconName) {
+    case 'server': return <Server size={size} style={{ color }} />;
+    case 'globe': return <Globe size={size} style={{ color }} />;
+    case 'lock': return <Lock size={size} style={{ color }} />;
+    case 'key': return <Key size={size} style={{ color }} />;
+    case 'shield': return <ShieldCheck size={size} style={{ color }} />;
+    case 'database': return <Database size={size} style={{ color }} />;
+    case 'activity': return <Activity size={size} style={{ color }} />;
+    case 'bell': return <Bell size={size} style={{ color }} />;
+    case 'terminal': return <Terminal size={size} style={{ color }} />;
+    case 'git': return <GitBranch size={size} style={{ color }} />;
+    case 'info': return <Info size={size} style={{ color }} />;
+    case 'compass': return <Compass size={size} style={{ color }} />;
+    case 'cpu': return <Cpu size={size} style={{ color }} />;
+    case 'search': return <Search size={size} style={{ color }} />;
+    case 'file-code': return <FileCode size={size} style={{ color }} />;
+    case 'layout': return <Layout size={size} style={{ color }} />;
+    default: return isCapability ? <CheckCircle2 size={size} style={{ color }} /> : <XCircle size={size} style={{ color }} />;
+  }
+};
+
 export const GuidePage: React.FC<GuidePageProps> = () => {
   const [activeSubTab, setActiveSubTab] = useState<TabType>('getting-started');
   const [guideSubTab, setGuideSubTab] = useState<string>('');
@@ -58,6 +83,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [scopeQuery, setScopeQuery] = useState('');
   const [activeScopeCategory, setActiveScopeCategory] = useState<'all' | 'provisioning' | 'observability' | 'operations' | 'database' | 'security' | 'notifications_cost'>('all');
+  const [teamsGuideOpen, setTeamsGuideOpen] = useState(false);
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
@@ -70,56 +96,64 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
         categoryLabel: 'Provisioning',
         isCapability: true,
         title: 'AKS Cluster Auto-Discovery & Scan',
-        text: 'Discovers active Azure Kubernetes Service (AKS) clusters inside resource groups. Validates node pools, system namespaces, ingress configuration, and bootstrap states.'
+        text: 'Discovers active Azure Kubernetes Service (AKS) clusters inside resource groups. Validates node pools, system namespaces, ingress configuration, and bootstrap states.',
+        icon: 'server'
       },
       {
         category: 'provisioning',
         categoryLabel: 'Provisioning',
         isCapability: true,
         title: 'Auto-Discovery Crawling',
-        text: 'Queries Azure APIs to find all active Static Web Apps and Container Apps.'
+        text: 'Queries Azure APIs to find all active Static Web Apps and Container Apps.',
+        icon: 'compass'
       },
       {
         category: 'provisioning',
         categoryLabel: 'Provisioning',
         isCapability: true,
         title: 'Automated DNS Provisioning',
-        text: 'Updates GoDaddy DNS records and completes domain SSL verification.'
+        text: 'Updates GoDaddy DNS records and completes domain SSL verification.',
+        icon: 'globe'
       },
       {
         category: 'provisioning',
         categoryLabel: 'Provisioning',
         isCapability: true,
         title: 'Git Pipeline Seeding',
-        text: 'Generates and commits custom azure-pipelines.yml or GitHub Actions deploy.yml configurations directly to GitHub.'
+        text: 'Generates and commits custom azure-pipelines.yml or GitHub Actions deploy.yml configurations directly to GitHub.',
+        icon: 'git'
       },
       {
         category: 'provisioning',
         categoryLabel: 'Provisioning',
         isCapability: true,
         title: 'Secret Sync Automation',
-        text: 'Pulls deployment tokens from Azure and configures Azure DevOps variable groups.'
+        text: 'Pulls deployment tokens from Azure and configures Azure DevOps variable groups.',
+        icon: 'key'
       },
       {
         category: 'provisioning',
         categoryLabel: 'Provisioning',
         isCapability: false,
         title: 'Base Infrastructure',
-        text: 'Does NOT create Resource Groups, Virtual Networks (VNets), VPNs, or VPN Gateways. These must exist beforehand.'
+        text: 'Does NOT create Resource Groups, Virtual Networks (VNets), VPNs, or VPN Gateways. These must exist beforehand.',
+        icon: 'server'
       },
       {
         category: 'provisioning',
         categoryLabel: 'Provisioning',
         isCapability: false,
         title: 'Custom IaC Templates',
-        text: 'Does NOT generate general Terraform or ARM/Bicep templates for resources outside SWAs/Container Apps.'
+        text: 'Does NOT generate general Terraform or ARM/Bicep templates for resources outside SWAs/Container Apps.',
+        icon: 'file-code'
       },
       {
         category: 'provisioning',
         categoryLabel: 'Provisioning',
         isCapability: false,
         title: 'MySQL Server Hosting',
-        text: 'Does NOT provision MySQL Flexible Server instances. An active database host must already exist.'
+        text: 'Does NOT provision MySQL Flexible Server instances. An active database host must already exist.',
+        icon: 'database'
       },
 
       {
@@ -127,56 +161,64 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
         categoryLabel: 'Observability & Telemetry',
         isCapability: true,
         title: 'Build Telemetry Dashboard',
-        text: 'Tracks pipeline run stages, durations, and results in real time with a collapsible visualizer.'
+        text: 'Tracks pipeline run stages, durations, and results in real time with a collapsible visualizer.',
+        icon: 'activity'
       },
       {
         category: 'observability',
         categoryLabel: 'Observability & Telemetry',
         isCapability: true,
         title: 'Live Log Tailing & Metrics',
-        text: 'Tails Container App console logs in real time and streams actual CPU/Memory metrics polled directly from Azure Monitor.'
+        text: 'Tails Container App console logs in real time and streams actual CPU/Memory metrics polled directly from Azure Monitor.',
+        icon: 'terminal'
       },
       {
         category: 'observability',
         categoryLabel: 'Observability & Telemetry',
         isCapability: true,
         title: 'Active Telemetry Polling',
-        text: 'Background polling updates active builds and stage status tree dynamically every 5 seconds.'
+        text: 'Background polling updates active builds and stage status tree dynamically every 5 seconds.',
+        icon: 'activity'
       },
       {
         category: 'observability',
         categoryLabel: 'Observability & Telemetry',
         isCapability: true,
         title: 'Interactive Log Proxy',
-        text: 'Streams raw console logs from Azure DevOps pipelines directly into a terminal overlay.'
+        text: 'Streams raw console logs from Azure DevOps pipelines directly into a terminal overlay.',
+        icon: 'terminal'
       },
       {
         category: 'observability',
         categoryLabel: 'Observability & Telemetry',
         isCapability: true,
         title: 'System Events Stream',
-        text: 'Tracks and displays a dynamic log of recent operations, migration histories, and system status logs.'
+        text: 'Tracks and displays a dynamic log of recent operations, migration histories, and system status logs.',
+        icon: 'activity'
       },
       {
         category: 'observability',
         categoryLabel: 'Observability & Telemetry',
         isCapability: true,
         title: 'Monospace Log Downloads',
-        text: 'Allows downloading of raw, monospaced application and pipeline logs directly from the UI drawer.'
+        text: 'Allows downloading of raw, monospaced application and pipeline logs directly from the UI drawer.',
+        icon: 'file-code'
       },
       {
         category: 'observability',
         categoryLabel: 'Observability & Telemetry',
         isCapability: true,
         title: 'Multi-Workspace Log Analytics Segregation',
-        text: 'Separates and routes queries dynamically for Dev/QA and Production resources into their respective Log Analytics Workspace Customer IDs based on app tags.'
+        text: 'Separates and routes queries dynamically for Dev/QA and Production resources into their respective Log Analytics Workspace Customer IDs based on app tags.',
+        icon: 'server'
       },
       {
         category: 'observability',
         categoryLabel: 'Observability & Telemetry',
         isCapability: false,
         title: 'Log Storage & Retention',
-        text: 'Does NOT configure Log Analytics diagnostic settings. These must be pre-set in Azure Portal for ACA log routing.'
+        text: 'Does NOT configure Log Analytics diagnostic settings. These must be pre-set in Azure Portal for ACA log routing.',
+        icon: 'database'
       },
 
       {
@@ -184,63 +226,72 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
         categoryLabel: 'Operations & Control',
         isCapability: true,
         title: 'Search & Tag Filter Bar',
-        text: 'Allows real-time searching and filtering of apps and resources by tags, status, type, and name.'
+        text: 'Allows real-time searching and filtering of apps and resources by tags, status, type, and name.',
+        icon: 'search'
       },
       {
         category: 'operations',
         categoryLabel: 'Operations & Control',
         isCapability: true,
         title: 'Floating Notification Toasts',
-        text: 'Streams real-time toast alerts for background tasks, operation statuses, and webhook integrations.'
+        text: 'Streams real-time toast alerts for background tasks, operation statuses, and webhook integrations.',
+        icon: 'bell'
       },
       {
         category: 'operations',
         categoryLabel: 'Operations & Control',
         isCapability: true,
         title: 'Blue-Green Revision Control',
-        text: 'Provides visual traffic splitting controls across revisions of active Container Apps.'
+        text: 'Provides visual traffic splitting controls across revisions of active Container Apps.',
+        icon: 'git'
       },
       {
         category: 'operations',
         categoryLabel: 'Operations & Control',
         isCapability: true,
         title: 'VM Power Controls',
-        text: 'Directly initiates start, stop, and restart controls on target cloud VMs with safety confirmation alerts.'
+        text: 'Directly initiates start, stop, and restart controls on target cloud VMs with safety confirmation alerts.',
+        icon: 'cpu'
       },
       {
         category: 'operations',
         categoryLabel: 'Operations & Control',
         isCapability: true,
         title: 'Glassmorphic Power Confirmations',
-        text: 'Prompts users with confirmation modals before starting, stopping, or restarting resources.'
+        text: 'Prompts users with confirmation modals before starting, stopping, or restarting resources.',
+        icon: 'info'
       },
       {
         category: 'operations',
         categoryLabel: 'Operations & Control',
         isCapability: true,
         title: 'Categorized Resource Grouping',
-        text: 'Groups Azure resources by SWA, ACA, and VM with collapse/expand accordions and count badges.'
+        text: 'Groups Azure resources by SWA, ACA, and VM with collapse/expand accordions and count badges.',
+        icon: 'layout'
       },
       {
         category: 'operations',
         categoryLabel: 'Operations & Control',
         isCapability: true,
         title: 'Granular Network Severity Badges',
-        text: 'Maps app network checks into separate statuses: Verified (Green), Critical/Unresolved (Red), Mismatch (Amber), and Info/Static SWA (Blue) depending on severity.'
+        text: 'Maps app network checks into separate statuses: Verified (Green), Critical/Unresolved (Red), Mismatch (Amber), and Info/Static SWA (Blue) depending on severity.',
+        icon: 'shield'
       },
       {
         category: 'operations',
         categoryLabel: 'Operations & Control',
         isCapability: false,
         title: 'Webhook Delivery Guarantees',
-        text: 'Teams MessageCards are best-effort HTTP POSTs. No retry queue or dead-letter mechanism is implemented.'
+        text: 'Teams MessageCards are best-effort HTTP POSTs. No retry queue or dead-letter mechanism is implemented.',
+        icon: 'bell'
       },
       {
         category: 'operations',
         categoryLabel: 'Operations & Control',
         isCapability: false,
         title: 'DNS Propagation',
-        text: 'Subject to GoDaddy API and global DNS TTL replication delays, typically 2–10 minutes.'
+        text: 'Subject to GoDaddy API and global DNS TTL replication delays, typically 2–10 minutes.',
+        icon: 'globe'
       },
 
       {
@@ -248,28 +299,32 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
         categoryLabel: 'Database Hub',
         isCapability: true,
         title: 'DB Schema Compare & Wizard',
-        text: 'Analyzes differences between MySQL structures and executes migration scripts via a step-by-step wizard.'
+        text: 'Analyzes differences between MySQL structures and executes migration scripts via a step-by-step wizard.',
+        icon: 'database'
       },
       {
         category: 'database',
         categoryLabel: 'Database Hub',
         isCapability: true,
         title: 'ERD Database Visualizer',
-        text: 'Queries schema relationships to draw dynamic visual Entity-Relationship diagrams.'
+        text: 'Queries schema relationships to draw dynamic visual Entity-Relationship diagrams.',
+        icon: 'layout'
       },
       {
         category: 'database',
         categoryLabel: 'Database Hub',
         isCapability: false,
         title: 'Non-MySQL Databases',
-        text: 'The Database Hub exclusively supports MySQL. PostgreSQL, MSSQL, Cosmos DB, and other engines are not supported.'
+        text: 'The Database Hub exclusively supports MySQL. PostgreSQL, MSSQL, Cosmos DB, and other engines are not supported.',
+        icon: 'database'
       },
       {
         category: 'database',
         categoryLabel: 'Database Hub',
         isCapability: false,
         title: 'Data Migrations',
-        text: 'Executes DDL schema SQL only. DML operations (row inserts, updates, deletes) must be run outside the platform.'
+        text: 'Executes DDL schema SQL only. DML operations (row inserts, updates, deletes) must be run outside the platform.',
+        icon: 'database'
       },
 
       {
@@ -277,49 +332,72 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
         categoryLabel: 'Security & Governance',
         isCapability: true,
         title: 'Key Vault Secrets Mapping',
-        text: 'Syncs Azure Key Vault configurations directly to Azure DevOps Variable Groups.'
+        text: 'Syncs Azure Key Vault configurations directly to Azure DevOps Variable Groups.',
+        icon: 'lock'
       },
       {
         category: 'security',
         categoryLabel: 'Security & Governance',
         isCapability: true,
         title: 'Enterprise Audit Trail Logs',
-        text: 'Maintains tamper-proof activity logs tracking SQL queries, domain bindings, and pipeline creation.'
+        text: 'Maintains tamper-proof activity logs tracking SQL queries, domain bindings, and pipeline creation.',
+        icon: 'file-code'
       },
       {
         category: 'security',
         categoryLabel: 'Security & Governance',
         isCapability: true,
         title: 'Outbound Credentials Connection Check',
-        text: 'Validates outbound API endpoints and credentials connectivity on GitHub, Azure DevOps, and GoDaddy in real time.'
+        text: 'Validates outbound API endpoints and credentials connectivity on GitHub, Azure DevOps, and GoDaddy in real time.',
+        icon: 'key'
       },
       {
         category: 'security',
         categoryLabel: 'Security & Governance',
         isCapability: true,
         title: 'Azure Credentials Auto-Save Vaulting',
-        text: 'Auto-discovers and immediately encrypts and saves Azure Service Principal or Managed Identity settings from the host environment to the secure integrations database.'
+        text: 'Auto-discovers and immediately encrypts and saves Azure Service Principal or Managed Identity settings from the host environment to the secure integrations database.',
+        icon: 'lock'
+      },
+      {
+        category: 'security',
+        categoryLabel: 'Security & Governance',
+        isCapability: true,
+        title: '9-Point Governance Assessor',
+        text: 'Runs automated continuous compliance audits across subscription resources, databases, branch policies, and Key Vault variables.',
+        icon: 'shield'
+      },
+      {
+        category: 'security',
+        categoryLabel: 'Security & Governance',
+        isCapability: true,
+        title: 'Auto-Remediation Controls Engine',
+        text: 'Automatically applies fixes such as rolling expired credentials, closing open administration ports, and registering orphaned assets in the platform registry.',
+        icon: 'cpu'
       },
       {
         category: 'security',
         categoryLabel: 'Security & Governance',
         isCapability: false,
         title: 'Directory User Creation',
-        text: 'Does NOT write users to Microsoft Entra ID. It only syncs existing directory members and assigns platform roles.'
+        text: 'Does NOT write users to Microsoft Entra ID. It only syncs existing directory members and assigns platform roles.',
+        icon: 'info'
       },
       {
         category: 'security',
         categoryLabel: 'Security & Governance',
         isCapability: false,
         title: 'Repository Policies',
-        text: 'PR merge rules, branch protection, and GitHub team permissions must be configured directly on GitHub.'
+        text: 'PR merge rules, branch protection, and GitHub team permissions must be configured directly on GitHub.',
+        icon: 'git'
       },
       {
         category: 'security',
         categoryLabel: 'Security & Governance',
         isCapability: false,
         title: 'Azure Service Connections',
-        text: 'ARM and Docker registry service connections must be pre-registered in Azure DevOps Project Settings.'
+        text: 'ARM and Docker registry service connections must be pre-registered in Azure DevOps Project Settings.',
+        icon: 'server'
       },
 
       {
@@ -327,42 +405,48 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
         categoryLabel: 'Notifications & Cost',
         isCapability: true,
         title: 'Cost Sleep Scheduler',
-        text: 'Scales container app replicas down to 0 during off-work hours to optimize subscription costs.'
+        text: 'Scales container app replicas down to 0 during off-work hours to optimize subscription costs.',
+        icon: 'activity'
       },
       {
         category: 'notifications_cost',
         categoryLabel: 'Notifications & Cost',
         isCapability: true,
         title: 'Lifecycle Event Alerts',
-        text: 'Delivers real-time Microsoft Teams MessageCard notifications for CI/CD builds, sleep scheduler transitions, DB migrations, environment clones, and role changes.'
+        text: 'Delivers real-time Microsoft Teams MessageCard notifications for CI/CD builds, sleep scheduler transitions, DB migrations, environment clones, and role changes.',
+        icon: 'bell'
       },
       {
         category: 'notifications_cost',
         categoryLabel: 'Notifications & Cost',
         isCapability: true,
         title: 'Azure DevOps Webhook Receiver',
-        text: 'A unique per-org endpoint receives Azure DevOps Service Hook payloads and routes formatted alerts to Teams channels.'
+        text: 'A unique per-org endpoint receives Azure DevOps Service Hook payloads and routes formatted alerts to Teams channels.',
+        icon: 'compass'
       },
       {
         category: 'notifications_cost',
         categoryLabel: 'Notifications & Cost',
         isCapability: true,
         title: 'Historical Log Lookbacks',
-        text: 'Queries Azure Log Analytics in real time for ACA console logs with selectable time ranges: Live (5m), 1h, 12h, 24h.'
+        text: 'Queries Azure Log Analytics in real time for ACA console logs with selectable time ranges: Live (5m), 1h, 12h, 24h.',
+        icon: 'terminal'
       },
       {
         category: 'notifications_cost',
         categoryLabel: 'Notifications & Cost',
         isCapability: false,
         title: 'Horizontal Auto-scaling Rules',
-        text: 'Does NOT configure Azure auto-scale rules or KEDA trigger definitions. Sleep Scheduler only adjusts replica floor/ceiling.'
+        text: 'Does NOT configure Azure auto-scale rules or KEDA trigger definitions. Sleep Scheduler only adjusts replica floor/ceiling.',
+        icon: 'cpu'
       },
       {
         category: 'notifications_cost',
         categoryLabel: 'Notifications & Cost',
         isCapability: false,
         title: 'Cost Forecasting',
-        text: 'Budget alerts and cost anomaly detection are advisory only and sourced from Azure Cost Management APIs — no enforcement.'
+        text: 'Budget alerts and cost anomaly detection are advisory only and sourced from Azure Cost Management APIs — no enforcement.',
+        icon: 'activity'
       }
     ];
   }, []);
@@ -796,7 +880,21 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                   {filteredCapabilities.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {filteredCapabilities.map((item, idx) => (
-                        <div key={idx} className="scope-card" style={{ borderLeft: '3px solid var(--success)' }}>
+                        <div key={idx} className="scope-card">
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            background: 'rgba(16, 185, 129, 0.08)',
+                            border: '1px solid rgba(16, 185, 129, 0.15)',
+                            flexShrink: 0,
+                            marginTop: '2px'
+                          }}>
+                            {renderScopeIcon(item.icon, item.isCapability)}
+                          </div>
                           <div style={{ flex: 1 }}>
                             <strong style={{ color: 'var(--text-primary)', fontSize: '0.84rem', display: 'block', marginBottom: '4px' }}>
                               {item.title}
@@ -824,7 +922,21 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                   {filteredBoundaries.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {filteredBoundaries.map((item, idx) => (
-                        <div key={idx} className="scope-card" style={{ borderLeft: '3px solid var(--error)' }}>
+                        <div key={idx} className="scope-card">
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            background: 'rgba(239, 68, 68, 0.08)',
+                            border: '1px solid rgba(239, 68, 68, 0.15)',
+                            flexShrink: 0,
+                            marginTop: '2px'
+                          }}>
+                            {renderScopeIcon(item.icon, item.isCapability)}
+                          </div>
                           <div style={{ flex: 1 }}>
                             <strong style={{ color: 'var(--text-primary)', fontSize: '0.84rem', display: 'block', marginBottom: '4px' }}>
                               {item.title}
@@ -845,21 +957,55 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
 
               </div>
 
-              {/* Teams Setup Info Banner */}
+              {/* Teams Setup Accordion */}
               <div style={{
-                display: 'flex', gap: '14px', padding: '18px 20px', borderRadius: '12px',
-                background: 'rgba(98,100,167,0.05)', border: '1px solid rgba(98,100,167,0.15)',
-                alignItems: 'flex-start', marginTop: '12px'
+                borderRadius: '12px',
+                background: 'rgba(98,100,167,0.05)',
+                border: '1px solid rgba(98,100,167,0.15)',
+                marginTop: '12px',
+                overflow: 'hidden',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
               }}>
-                <MessageSquare size={18} style={{ color: '#6264a7', flexShrink: 0, marginTop: '2px' }} />
-                <div>
-                  <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '6px', fontSize: '0.86rem' }}>Setting up Microsoft Teams Notifications</strong>
-                  <ol style={{ margin: 0, paddingLeft: '18px', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.7' }}>
-                    <li>In Microsoft Teams, open the target channel → <strong>⋯ More options → Connectors → Incoming Webhook → Configure</strong>. Copy the generated webhook URL.</li>
-                    <li>In EvaOps, go to <strong>Credentials → MS Teams</strong>. Paste the webhook URL and click <strong>Test Connection</strong> to verify delivery.</li>
-                    <li>Click <strong>Save Settings</strong>. EvaOps auto-generates a unique per-org <strong>Azure DevOps Receiver Endpoint URL</strong>.</li>
-                    <li>In Azure DevOps, go to <strong>Project Settings → Service Hooks → + Create Subscription → Web Hooks → Build completed</strong>. Paste the receiver URL and save.</li>
-                    <li>For historical ACA logs, navigate to <strong>Azure Portal → Log Analytics Workspaces → Overview → Workspace ID</strong>. Paste it in the <strong>Log Analytics Workspace</strong> field and save.</li>
+                <button
+                  onClick={() => setTeamsGuideOpen(!teamsGuideOpen)}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '16px 20px',
+                    background: 'transparent',
+                    border: 'none',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                    <MessageSquare size={18} style={{ color: '#6264a7', flexShrink: 0 }} />
+                    <strong style={{ color: 'var(--text-primary)', fontSize: '0.88rem' }}>
+                      Setting up Microsoft Teams Notifications Guide
+                    </strong>
+                  </div>
+                  {teamsGuideOpen ? (
+                    <ChevronUp size={16} style={{ color: 'var(--text-secondary)' }} />
+                  ) : (
+                    <ChevronDown size={16} style={{ color: 'var(--text-secondary)' }} />
+                  )}
+                </button>
+                <div style={{
+                  maxHeight: teamsGuideOpen ? '1000px' : '0',
+                  opacity: teamsGuideOpen ? 1 : 0,
+                  overflow: 'hidden',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  padding: teamsGuideOpen ? '0 20px 20px 54px' : '0 20px'
+                }}>
+                  <ol style={{ margin: 0, paddingLeft: '0', listStyleType: 'decimal', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.7' }}>
+                    <li style={{ marginBottom: '8px' }}>In Microsoft Teams, open the target channel → <strong>⋯ More options → Connectors → Incoming Webhook → Configure</strong>. Copy the generated webhook URL.</li>
+                    <li style={{ marginBottom: '8px' }}>In EvaOps, go to <strong>Credentials → MS Teams</strong>. Paste the webhook URL and click <strong>Test Connection</strong> to verify delivery.</li>
+                    <li style={{ marginBottom: '8px' }}>Click <strong>Save Settings</strong>. EvaOps auto-generates a unique per-org <strong>Azure DevOps Receiver Endpoint URL</strong>.</li>
+                    <li style={{ marginBottom: '8px' }}>In Azure DevOps, go to <strong>Project Settings → Service Hooks → + Create Subscription → Web Hooks → Build completed</strong>. Paste the receiver URL and save.</li>
+                    <li style={{ marginBottom: '8px' }}>For historical ACA logs, navigate to <strong>Azure Portal → Log Analytics Workspaces → Overview → Workspace ID</strong>. Paste it in the <strong>Log Analytics Workspace</strong> field and save.</li>
                   </ol>
                 </div>
               </div>

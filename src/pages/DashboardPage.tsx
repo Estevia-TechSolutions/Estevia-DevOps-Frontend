@@ -168,6 +168,18 @@ const isBuildActive = (run: any) => {
   return s === 'inprogress' || s === 'running' || s === 'canceling' || s === 'cancelling' || s === 'notstarted' || s === 'queued';
 };
 
+const COMPLIANT_REASONS: Record<string, string> = {
+  tagging: "All active subscription resources are properly tagged with Environment, Owner, and CostCenter.",
+  residency: "All resources reside within approved US-only sovereign regional boundaries.",
+  tls: "All checked MySQL database instances enforce secure transport (SSL/TLS v1.2+).",
+  'network-security': "All checked VM network interfaces block public inbound SSH (port 22) and RDP (port 3389) access.",
+  'https-only': "All checked Container App ingress configurations enforce HTTPS and disable insecure HTTP connections.",
+  containment: "All branch deployments match their expected network boundary (no staging-to-prod network leakage).",
+  'registry-auth': "All active container apps pull images from trusted, authenticated registries.",
+  'secrets-expiry': "All mapped credentials/secrets have safe expiration windows (not expiring in the next 30 days).",
+  'shadow-it': "No unregistered or orphaned resources found running in the subscription."
+};
+
 export const DashboardPage: React.FC<DashboardPageProps> = ({
   apps,
   scanning,
@@ -5187,90 +5199,196 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                       gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
                       gap: '16px'
                     }}>
-                      {complianceData && complianceData.rules.map((rule: any) => (
-                        <div key={rule.id} style={{
-                          padding: '18px',
-                          borderRadius: '10px',
-                          border: '1px solid var(--glass-border)',
-                          backgroundColor: 'rgba(255,255,255,0.015)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'space-between',
-                          gap: '12px',
-                          minHeight: '140px'
-                        }}>
-                          <div>
-                            {/* Header Row: Name & Compliant badge */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', width: '100%' }}>
-                              <div style={{ fontWeight: 650, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.88rem', lineHeight: '1.3' }}>
-                                <span style={{
-                                  width: '8px',
-                                  height: '8px',
-                                  borderRadius: '50%',
-                                  backgroundColor: rule.status === 'passed' ? 'var(--success)' : rule.status === 'disabled' ? 'var(--text-muted)' : 'var(--error)',
-                                  flexShrink: 0
-                                }} />
-                                <span>{rule.name}</span>
+                      {complianceData && complianceData.rules.map((rule: any) => {
+                        const ruleViolations = complianceData?.violations?.filter((v: any) => v.ruleId === rule.id) || [];
+                        const violationCount = ruleViolations.length;
+
+                        return (
+                          <div key={rule.id} style={{
+                            padding: '18px',
+                            borderRadius: '10px',
+                            border: '1px solid var(--glass-border)',
+                            backgroundColor: 'rgba(255,255,255,0.015)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            gap: '12px',
+                            minHeight: '140px'
+                          }}>
+                            <div>
+                              {/* Header Row: Name & Compliant badge */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', width: '100%' }}>
+                                <div style={{ fontWeight: 650, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.88rem', lineHeight: '1.3' }}>
+                                  <span style={{
+                                    width: '8px',
+                                    height: '8px',
+                                    borderRadius: '50%',
+                                    backgroundColor: rule.status === 'passed' ? 'var(--success)' : rule.status === 'disabled' ? 'var(--text-muted)' : 'var(--error)',
+                                    flexShrink: 0
+                                  }} />
+                                  <span>{rule.name}</span>
+                                </div>
+                                
+                                {rule.status === 'passed' ? (
+                                  <span style={{
+                                    fontSize: '0.64rem',
+                                    fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                    color: '#10b981',
+                                    backgroundColor: 'rgba(16,185,129,0.1)',
+                                    padding: '2px 8px',
+                                    borderRadius: '6px',
+                                    border: '1px solid rgba(16,185,129,0.2)',
+                                    flexShrink: 0
+                                  }}>
+                                    Compliant
+                                  </span>
+                                ) : rule.status === 'disabled' ? (
+                                  <span style={{
+                                    fontSize: '0.64rem',
+                                    fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                    color: 'var(--text-muted)',
+                                    backgroundColor: 'rgba(255,255,255,0.03)',
+                                    padding: '2px 8px',
+                                    borderRadius: '6px',
+                                    border: '1px solid var(--glass-border)',
+                                    flexShrink: 0
+                                  }}>
+                                    Disabled
+                                  </span>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      setComplianceFilterRule(rule.id);
+                                      setCompliancePage(1);
+                                      const element = document.getElementById('governance-violations-panel');
+                                      if (element) {
+                                        element.scrollIntoView({ behavior: 'smooth' });
+                                      }
+                                    }}
+                                    className="interactive-violation-badge"
+                                    style={{
+                                      cursor: 'pointer',
+                                      fontSize: '0.64rem',
+                                      fontWeight: 700,
+                                      textTransform: 'uppercase',
+                                      color: '#ef4444',
+                                      backgroundColor: 'rgba(239,68,68,0.15)',
+                                      padding: '2px 8px',
+                                      borderRadius: '6px',
+                                      border: '1px solid rgba(239,68,68,0.35)',
+                                      flexShrink: 0,
+                                      outline: 'none',
+                                      transition: 'all 0.2s ease',
+                                      display: 'inline-flex',
+                                      alignItems: 'center'
+                                    }}
+                                    title="Click to filter violations list below for this rule"
+                                  >
+                                    Non-Compliant ({violationCount} {violationCount === 1 ? 'Issue' : 'Issues'})
+                                  </button>
+                                )}
                               </div>
+                              
+                              {/* Description text */}
+                              <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '8px', lineHeight: '1.45' }}>
+                                {rule.description}
+                              </div>
+
+                              {/* Rich details reason explanation */}
+                              {rule.status === 'passed' && (
+                                <div style={{
+                                  marginTop: '10px',
+                                  padding: '8px 10px',
+                                  borderRadius: '6px',
+                                  background: 'rgba(16, 185, 129, 0.05)',
+                                  border: '1px solid rgba(16, 185, 129, 0.1)',
+                                  fontSize: '0.72rem',
+                                  color: 'rgba(16, 185, 129, 0.85)',
+                                  lineHeight: '1.4'
+                                }}>
+                                  <strong>Compliant:</strong> {COMPLIANT_REASONS[rule.id] || 'All evaluated resources satisfy this governance rule.'}
+                                </div>
+                              )}
+
+                              {rule.status === 'failed' && ruleViolations.length > 0 && (
+                                <div style={{
+                                  marginTop: '10px',
+                                  padding: '8px 10px',
+                                  borderRadius: '6px',
+                                  background: 'rgba(239, 68, 68, 0.04)',
+                                  border: '1px solid rgba(239, 68, 68, 0.1)',
+                                  fontSize: '0.72rem',
+                                  color: '#fca5a5',
+                                  lineHeight: '1.4'
+                                }}>
+                                  <div style={{ fontWeight: 650, marginBottom: '4px', color: '#f87171' }}>Violating Assets:</div>
+                                  <ul style={{ margin: 0, paddingLeft: '14px', listStyleType: 'disc' }}>
+                                    {ruleViolations.map((v: any, vIdx: number) => (
+                                      <li key={vIdx} style={{ marginBottom: '2px' }}>
+                                        <strong style={{ color: 'var(--text-primary)' }}>{v.resourceName}</strong>: {v.message}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {rule.status === 'disabled' && (
+                                <div style={{
+                                  marginTop: '10px',
+                                  padding: '8px 10px',
+                                  borderRadius: '6px',
+                                  background: 'rgba(255, 255, 255, 0.02)',
+                                  border: '1px solid var(--glass-border)',
+                                  fontSize: '0.72rem',
+                                  color: 'var(--text-muted)',
+                                  lineHeight: '1.4'
+                                }}>
+                                  Governance check is deactivated in configuration settings.
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Badges footer */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
+                              {/* Severity Badge */}
                               <span style={{
-                                fontSize: '0.64rem',
+                                fontSize: '0.6rem',
                                 fontWeight: 700,
                                 textTransform: 'uppercase',
-                                color: rule.status === 'passed' ? '#10b981' : rule.status === 'disabled' ? 'var(--text-muted)' : '#ef4444',
-                                backgroundColor: rule.status === 'passed' ? 'rgba(16,185,129,0.1)' : rule.status === 'disabled' ? 'rgba(255,255,255,0.03)' : 'rgba(239,68,68,0.1)',
-                                padding: '2px 8px',
-                                borderRadius: '6px',
-                                border: rule.status === 'passed' ? '1px solid rgba(16,185,129,0.2)' : rule.status === 'disabled' ? '1px solid var(--glass-border)' : '1px solid rgba(239,68,68,0.2)',
-                                flexShrink: 0
-                              }}>
-                                {rule.status === 'passed' ? 'Compliant' : rule.status === 'disabled' ? 'Disabled' : 'Non-Compliant'}
-                              </span>
-                            </div>
-                            
-                            {/* Description text */}
-                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '8px', lineHeight: '1.45' }}>
-                              {rule.description}
-                            </div>
-                          </div>
-
-                          {/* Badges footer */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
-                            {/* Severity Badge */}
-                            <span style={{
-                              fontSize: '0.6rem',
-                              fontWeight: 700,
-                              textTransform: 'uppercase',
-                              color: rule.severity === 'critical' ? '#ef4444' : rule.severity === 'high' ? '#f59e0b' : rule.severity === 'medium' ? '#3b82f6' : '#94a3b8',
-                              backgroundColor: rule.severity === 'critical' ? 'rgba(239,68,68,0.1)' : rule.severity === 'high' ? 'rgba(245,158,11,0.1)' : rule.severity === 'medium' ? 'rgba(59,130,246,0.1)' : 'rgba(148,163,184,0.1)',
-                              border: `1px solid ${rule.severity === 'critical' ? 'rgba(239,68,68,0.2)' : rule.severity === 'high' ? 'rgba(245,158,11,0.2)' : rule.severity === 'medium' ? 'rgba(59,130,246,0.2)' : 'rgba(148,163,184,0.2)'}`,
-                              padding: '1px 5px',
-                              borderRadius: '4px'
-                            }}>
-                              {rule.severity}
-                            </span>
-                            
-                            {/* Regulatory Standards */}
-                            {rule.standards && rule.standards.map((std: string) => (
-                              <span key={std} style={{
-                                fontSize: '0.6rem',
-                                fontWeight: 600,
-                                color: 'var(--accent-teal)',
-                                backgroundColor: 'rgba(20,184,166,0.1)',
-                                border: '1px solid rgba(20,184,166,0.2)',
+                                color: rule.severity === 'critical' ? '#ef4444' : rule.severity === 'high' ? '#f59e0b' : rule.severity === 'medium' ? '#3b82f6' : '#94a3b8',
+                                backgroundColor: rule.severity === 'critical' ? 'rgba(239,68,68,0.1)' : rule.severity === 'high' ? 'rgba(245,158,11,0.1)' : rule.severity === 'medium' ? 'rgba(59,130,246,0.1)' : 'rgba(148,163,184,0.1)',
+                                border: `1px solid ${rule.severity === 'critical' ? 'rgba(239,68,68,0.2)' : rule.severity === 'high' ? 'rgba(245,158,11,0.2)' : rule.severity === 'medium' ? 'rgba(59,130,246,0.2)' : 'rgba(148,163,184,0.2)'}`,
                                 padding: '1px 5px',
                                 borderRadius: '4px'
                               }}>
-                                {std}
+                                {rule.severity}
                               </span>
-                            ))}
+                              
+                              {/* Regulatory Standards */}
+                              {rule.standards && rule.standards.map((std: string) => (
+                                <span key={std} style={{
+                                  fontSize: '0.6rem',
+                                  fontWeight: 600,
+                                  color: 'var(--accent-teal)',
+                                  backgroundColor: 'rgba(20,184,166,0.1)',
+                                  border: '1px solid rgba(20,184,166,0.2)',
+                                  padding: '1px 5px',
+                                  borderRadius: '4px'
+                                }}>
+                                  {std}
+                                </span>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 
                   {/* Violations Details & Remediation */}
-                  <div className="glass-panel" style={{ padding: '24px' }}>
+                  <div id="governance-violations-panel" className="glass-panel" style={{ padding: '24px' }}>
                     <div style={{
                       display: 'flex',
                       flexDirection: 'column',
