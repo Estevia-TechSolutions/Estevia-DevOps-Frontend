@@ -877,7 +877,9 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                 display: 'inline-flex', 
                 width: 'fit-content',
                 border: '1px solid var(--glass-border)',
-                marginBottom: '10px'
+                marginBottom: '10px',
+                flexWrap: 'wrap',
+                gap: '4px'
               }}>
                 <button 
                   type="button"
@@ -894,6 +896,14 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                   style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
                 >
                   Network &amp; Branch Rules
+                </button>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('governance-rules') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('governance-rules')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  Governance &amp; Compliance Policy
                 </button>
                 <button 
                   type="button"
@@ -1076,7 +1086,174 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                 </div>
               )}
 
-              {/* 3. Pipeline YAML Validation Subtab */}
+              {/* 3. Governance & Compliance Policy Rules Subtab */}
+              {guideSubTab === 'governance-rules' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                      Governance &amp; Compliance Policy Rules (9-Point Check Engine)
+                    </h3>
+                    <p style={{ margin: '6px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                      Detailed reference guide for the compliance rules evaluated dynamically by the EvaOps security assessor.
+                    </p>
+                  </div>
+
+                  <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                    The EvaOps Governance engine automatically validates your subscription resources against security frameworks. Each check is mapped to regulatory standards and supports custom severity overrides.
+                  </p>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {[
+                      {
+                        num: 1,
+                        name: "Required Resource Tagging",
+                        standards: ["ISO 27001", "SOC 2"],
+                        severity: "Low",
+                        desc: "Scans resources for required organizational metadata tags: 'Environment', 'Owner', and 'CostCenter'. Helps enforce tracking and resource cost allocation.",
+                        remediation: "Adds missing default tag fields directly to resource metadata with 'Unassigned' values."
+                      },
+                      {
+                        num: 2,
+                        name: "Data Region Residency Lock",
+                        standards: ["GDPR", "SOC 2"],
+                        severity: "High",
+                        desc: "Audits resources to confirm they are deployed strictly within designated corporate geographic limits (e.g. US regions only). Flags any resource residing outside the residency lock boundary.",
+                        remediation: "Flags violation for manual reallocation (autonomous cross-region migration is not initiated automatically)."
+                      },
+                      {
+                        num: 3,
+                        name: "MySQL SSL/TLS Enforcement",
+                        standards: ["PCI-DSS", "ISO 27001"],
+                        severity: "Critical",
+                        desc: "Checks that MySQL Flexible Server connections enforce encrypted SSL/TLS transport. Insecure, unencrypted database bindings are blocked.",
+                        remediation: "Updates the database connection string profile config to force secure TLS transit."
+                      },
+                      {
+                        num: 4,
+                        name: "VM Network Security Check",
+                        standards: ["CIS Benchmark", "SOC 2"],
+                        severity: "Critical",
+                        desc: "Flags virtual machines (VMs) with remote administration ports (SSH 22, RDP 3389) open directly to the public internet.",
+                        remediation: "Updates Network Security Group (NSG) rules to restrict access and block public access to ports 22/3389."
+                      },
+                      {
+                        num: 5,
+                        name: "HTTPS-Only Ingress Check",
+                        standards: ["PCI-DSS", "SOC 2"],
+                        severity: "High",
+                        desc: "Audits Container Apps (ACA) to verify they enforce HTTPS-only traffic. Web applications accepting unencrypted HTTP requests are flagged.",
+                        remediation: "Modifies ingress settings on target Container Apps to disable 'Allow Insecure' and force HTTP redirection to HTTPS."
+                      },
+                      {
+                        num: 6,
+                        name: "Branch-to-Network Isolation Containment Check",
+                        standards: ["ISO 27001", "SOC 2"],
+                        severity: "Medium",
+                        desc: "Cross-checks deployment branch name headers with peered virtual network names. Prevents development or staging branches from accessing production networks, and vice-versa.",
+                        remediation: "Triggers environment parameter alignment to match appropriate VNet bindings."
+                      },
+                      {
+                        num: 7,
+                        name: "Container Registry Security Check",
+                        standards: ["CIS Benchmark", "ISO 27001"],
+                        severity: "High",
+                        desc: "Verifies Container App image definitions. Flags applications downloading container layers from unauthenticated public registries rather than private, secure enterprise registries (e.g. Azure Container Registry).",
+                        remediation: "Rotates container pulls to map through private registry authentication credentials."
+                      },
+                      {
+                        num: 8,
+                        name: "Key Vault Secrets Expiration Check",
+                        standards: ["ISO 27001", "SOC 2"],
+                        severity: "Medium",
+                        desc: "Audits Key Vault secrets and checks if any certificates, credentials, or API tokens are already expired or expire within 30 days.",
+                        remediation: "Extends secret expiration date configurations and notifies administrative endpoints via webhook."
+                      },
+                      {
+                        num: 9,
+                        name: "Orphaned Resource Scan (Shadow IT)",
+                        standards: ["CIS Benchmark", "SOC 2"],
+                        severity: "Critical",
+                        desc: "Compares running Azure subscription resources with the registered EvaOps catalog. Unregistered active resources are flagged as 'Shadow IT'.",
+                        remediation: "Registers the unregistered application record directly into the catalog database to bring it under governance."
+                      }
+                    ].map((rule) => (
+                      <div className="glass-panel" key={rule.num} style={{
+                        padding: '20px',
+                        borderRadius: '12px',
+                        border: '1px solid var(--glass-border)',
+                        background: 'rgba(255, 255, 255, 0.01)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '6px',
+                              background: 'rgba(255, 255, 255, 0.03)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: '700',
+                              color: 'var(--accent-purple)',
+                              fontSize: '0.85rem'
+                            }}>
+                              {rule.num}
+                            </div>
+                            <span style={{ fontSize: '0.94rem', fontWeight: 650, color: 'var(--text-primary)' }}>{rule.name}</span>
+                          </div>
+                          
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {/* Standards Badges */}
+                            {rule.standards.map((std, sIdx) => (
+                              <span key={sIdx} style={{
+                                fontSize: '0.7rem',
+                                padding: '2px 8px',
+                                borderRadius: '8px',
+                                background: 'rgba(139, 92, 246, 0.1)',
+                                color: 'var(--text-primary)',
+                                border: '1px solid rgba(139, 92, 246, 0.25)',
+                                fontWeight: 600
+                              }}>{std}</span>
+                            ))}
+                            {/* Severity Badge */}
+                            <span style={{
+                              fontSize: '0.7rem',
+                              padding: '2px 8px',
+                              borderRadius: '8px',
+                              background: rule.severity === 'Critical' ? 'rgba(239, 68, 68, 0.1)' : rule.severity === 'High' ? 'rgba(249, 115, 22, 0.1)' : rule.severity === 'Medium' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+                              color: rule.severity === 'Critical' ? '#ef4444' : rule.severity === 'High' ? '#f97316' : rule.severity === 'Medium' ? '#f59e0b' : '#3b82f6',
+                              border: `1px solid ${rule.severity === 'Critical' ? 'rgba(239, 68, 68, 0.25)' : rule.severity === 'High' ? 'rgba(249, 115, 22, 0.25)' : rule.severity === 'Medium' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(59, 130, 246, 0.25)'}`,
+                              fontWeight: 700
+                            }}>{rule.severity}</span>
+                          </div>
+                        </div>
+                        
+                        <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                          {rule.desc}
+                        </p>
+                        
+                        <div style={{
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          background: 'rgba(16, 185, 129, 0.03)',
+                          border: '1px solid rgba(16, 185, 129, 0.12)',
+                          fontSize: '0.78rem',
+                          color: 'var(--text-secondary)',
+                          lineHeight: '1.4'
+                        }}>
+                          <strong style={{ color: '#10b981', display: 'block', marginBottom: '2px' }}>Remediation Control:</strong>
+                          {rule.remediation}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 4. Pipeline YAML Validation Subtab */}
               {guideSubTab === 'yml-validation' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
@@ -1113,7 +1290,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                 </div>
               )}
 
-              {/* 4. Dockerfile Validation Subtab */}
+              {/* 5. Dockerfile Validation Subtab */}
               {guideSubTab === 'docker-validation' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
