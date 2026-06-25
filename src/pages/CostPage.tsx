@@ -21,7 +21,8 @@ import {
   MessageSquare,
   Send,
   X,
-  Activity
+  Activity,
+  Network
 } from 'lucide-react';
 import { SleepScheduler } from '../components/cost/SleepScheduler';
 
@@ -186,6 +187,49 @@ export const CostPage: React.FC<CostPageProps> = ({
     if (b === 'main' || b === 'master' || b === 'prod' || b === 'production' || b === 'release') return 'prod';
     if (b === 'dev' || b === 'develop' || b === 'development') return 'dev';
     if (b === 'qa' || b === 'staging' || b === 'test' || b === 'testing') return 'qa';
+    return null;
+  };
+
+  const getVnetName = (item: any): string | null => {
+    if (item.type === 'frontend') {
+      const configuredBackendUrl = item.azureResourceDetails?.configuredBackendUrl;
+      if (configuredBackendUrl) {
+        let host = '';
+        try {
+          const urlObj = new URL(configuredBackendUrl);
+          host = urlObj.hostname;
+        } catch (e) {
+          host = configuredBackendUrl.replace(/^https?:\/\//i, '').split('/')[0];
+        }
+        const allBackends = detailedCosts.filter(a => a.type === 'backend');
+        const matchingBackend = allBackends.find(b => {
+          const bHost = b.hostname || b.azureResourceDetails?.hostname || '';
+          const bDns = b.fqdn || '';
+          return (
+            bHost.toLowerCase().includes(host.toLowerCase()) ||
+            bDns.toLowerCase().includes(host.toLowerCase()) ||
+            host.toLowerCase().includes(b.name.toLowerCase())
+          );
+        });
+        if (matchingBackend) {
+          const backendVnet = getVnetName(matchingBackend);
+          if (backendVnet) {
+            return `None (Public SWA) → Talks to Backend VNet: ${backendVnet}`;
+          }
+        }
+      }
+      return 'None (Public Cloud)';
+    }
+
+    const details = item.azureResourceDetails;
+    if (!details) return null;
+    if (details.vnetName) return details.vnetName;
+    const subnetId = details.vnetSubnetID || details.delegatedSubnetResourceId || details.agentPoolProfiles?.[0]?.vnetSubnetID;
+    if (subnetId) {
+      const parts = subnetId.split(/\/virtualnetworks\//i);
+      const match = parts[1]?.split('/')[0];
+      if (match) return match;
+    }
     return null;
   };
 
@@ -1653,6 +1697,21 @@ export const CostPage: React.FC<CostPageProps> = ({
                                     <GitBranch size={12} />
                                     {item.repositoryUrl.replace('https://github.com/', '')}
                                   </a>
+                                </div>
+                              )}
+                              {getVnetName(item) && (
+                                <div style={{ 
+                                  fontSize: '0.72rem', 
+                                  marginTop: '4px', 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  gap: '4px', 
+                                  color: 'var(--text-secondary)',
+                                  fontWeight: 400
+                                }}>
+                                  <Network size={12} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
+                                  <span>VNet/VPC:</span>
+                                  <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{getVnetName(item)}</strong>
                                 </div>
                               )}
                             </td>

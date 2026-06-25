@@ -24,7 +24,8 @@ import {
   Database,
   Activity,
   PlusCircle,
-  Compass
+  Compass,
+  AlertTriangle
 } from 'lucide-react';
 
 interface GuidePageProps {
@@ -865,8 +866,8 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
             </div>
           )}
 
-          {/* TAB CONTENT: BRANCH MATCHING */}
-          {activeSubTab === 'validation-rules' && guideSubTab === 'branch-matching' && (
+          {/* TAB CONTENT: VALIDATION & RULES */}
+          {activeSubTab === 'validation-rules' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               {/* Sub-tabs selector */}
               <div className="tabs-container" style={{ 
@@ -888,139 +889,266 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                 </button>
                 <button 
                   type="button"
-                  className={`tab-btn tab-btn-cost ${isSubTabActive('validation-sanity') ? 'active' : ''}`}
-                  onClick={() => setGuideSubTab('validation-sanity')}
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('network-validation') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('network-validation')}
                   style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
                 >
-                  System Validation & Sanity
+                  Network &amp; Branch Rules
+                </button>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('yml-validation') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('yml-validation')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  Pipeline YAML Rules
+                </button>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('docker-validation') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('docker-validation')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  Dockerfile Rules
                 </button>
               </div>
-              <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-                  Dynamic Branch Resolution Rules
-                </h3>
-                <p style={{ margin: '6px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
-                  Understand how EvaOps dynamically scans, matches, and resolves repository branch names across environments.
-                </p>
-              </div>
 
-              <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                EvaOps automatically matches repository branches to environment pipelines. The system queries GitHub APIs to fetch all available branches, then resolves the target branch using a priority-based matching candidate list.
-              </p>
+              {/* 1. Branch Naming Rules Subtab */}
+              {guideSubTab === 'branch-matching' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                      Dynamic Branch Resolution Rules
+                    </h3>
+                    <p style={{ margin: '6px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                      Understand how EvaOps dynamically scans, matches, and resolves repository branch names across environments.
+                    </p>
+                  </div>
 
-              {/* Candidates Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px' }}>
-                {[
-                  {
-                    env: 'Development',
-                    icon: Cpu,
-                    color: 'var(--accent-purple)',
-                    candidates: ['dev', 'development', 'dev-main', 'dev-master'],
-                    desc: 'Suffixes: -dev, -development'
-                  },
-                  {
-                    env: 'QA & Staging',
-                    icon: Server,
-                    color: 'var(--accent-teal)',
-                    candidates: ['qa', 'test', 'testing', 'staging'],
-                    desc: 'Suffixes: -qa, -test, -testing, -staging'
-                  },
-                  {
-                    env: 'Production',
-                    icon: ShieldCheck,
-                    color: 'var(--success)',
-                    candidates: ['main', 'master', 'prod', 'production', 'release'],
-                    desc: 'Suffixes: -prod, -production, -release, -main, -master, or bare name'
-                  }
-                ].map((item, idx) => {
-                  const Icon = item.icon;
-                  return (
-                    <div className="glass-panel" key={idx} style={{
-                      padding: '20px',
-                      borderRadius: '12px',
-                      border: '1px solid var(--glass-border)',
-                      background: 'rgba(255, 255, 255, 0.01)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '12px'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '8px',
-                          background: `rgba(255, 255, 255, 0.03)`,
+                  <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                    EvaOps automatically matches repository branches to environment pipelines. The system queries GitHub APIs to fetch all available branches, then resolves the target branch using a priority-based matching candidate list.
+                  </p>
+
+                  {/* Candidates Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px' }}>
+                    {[
+                      {
+                        env: 'Development',
+                        icon: Cpu,
+                        color: 'var(--accent-purple)',
+                        candidates: ['dev', 'development', 'dev-main', 'dev-master'],
+                        desc: 'Suffixes: -dev, -development'
+                      },
+                      {
+                        env: 'QA & Staging',
+                        icon: Server,
+                        color: 'var(--accent-teal)',
+                        candidates: ['qa', 'test', 'testing', 'staging'],
+                        desc: 'Suffixes: -qa, -test, -testing, -staging'
+                      },
+                      {
+                        env: 'Production',
+                        icon: ShieldCheck,
+                        color: 'var(--success)',
+                        candidates: ['main', 'master', 'prod', 'production', 'release'],
+                        desc: 'Suffixes: -prod, -production, -release, -main, -master, or bare name'
+                      }
+                    ].map((item, idx) => {
+                      const Icon = item.icon;
+                      return (
+                        <div className="glass-panel" key={idx} style={{
+                          padding: '20px',
+                          borderRadius: '12px',
+                          border: '1px solid var(--glass-border)',
+                          background: 'rgba(255, 255, 255, 0.01)',
                           display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: item.color
+                          flexDirection: 'column',
+                          gap: '12px'
                         }}>
-                          <Icon size={16} />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '8px',
+                              background: `rgba(255, 255, 255, 0.03)`,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: item.color
+                            }}>
+                              <Icon size={16} />
+                            </div>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 650, color: 'var(--text-primary)' }}>{item.env} Candidates</span>
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {item.candidates.map((c, i) => (
+                              <code key={i} style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                {c}
+                              </code>
+                            ))}
+                          </div>
+                          <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+                            {item.desc}
+                          </span>
                         </div>
-                        <span style={{ fontSize: '0.9rem', fontWeight: 650, color: 'var(--text-primary)' }}>{item.env}</span>
+                      );
+                    })}
+                  </div>
+
+                  <div className="glass-panel" style={{
+                    padding: '16px',
+                    display: 'flex',
+                    gap: '12px',
+                    background: 'rgba(59, 130, 246, 0.04)',
+                    border: '1px solid rgba(59, 130, 246, 0.15)'
+                  }}>
+                    <Info size={18} style={{ color: 'var(--accent-blue)', flexShrink: 0, marginTop: '2px' }} />
+                    <div>
+                      <strong style={{ color: 'var(--text-primary)', fontSize: '0.84rem', display: 'block', marginBottom: '4px' }}>
+                        Smart Fallback Logic
+                      </strong>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                        If none of the candidate branches are found in the remote repository, the system falls back to the repository's designated default branch (e.g. <code>main</code> or <code>master</code>). If no default branch is reported, it falls back to the first candidate of that environment category (e.g. <code>dev</code> for dev, <code>qa</code> for QA/Staging, and <code>main</code> for production).
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 2. Network & Branch Rules Subtab */}
+              {guideSubTab === 'network-validation' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                      Network Peering &amp; Branch-VNet Mismatch Checks
+                    </h3>
+                    <p style={{ margin: '6px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                      Ensures SWA backend connectivity, ACA DB private peering, and flags environment/branch network alignment anomalies.
+                    </p>
+                  </div>
+
+                  <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <ShieldCheck size={16} />
+                      SWA &amp; Container App Connectivity Audits
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                      Ensures your web frontend applications can talk to their respective backend API endpoints, and your backend containers have peered, private database access paths.
+                    </p>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', marginTop: '4px' }}>
+                      <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
+                        <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>SWA-to-Backend Resolution</strong>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
+                          Scans repository env files (e.g. <code>.env.production</code>, <code>.env.deployment</code>) for backend URLs. If repo scanning fails, it queries the Azure ARM Static Web App settings for keys like <code>VITE_API_URL</code> or <code>REACT_APP_API_URL</code>.
+                        </span>
                       </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                        {item.candidates.map((cand, cidx) => (
-                          <code key={cidx} style={{
-                            background: 'rgba(255, 255, 255, 0.04)',
-                            border: '1px solid var(--glass-border)',
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            color: 'var(--text-primary)',
-                            fontSize: '0.76rem'
-                          }}>
-                            {cand}
-                          </code>
-                        ))}
-                      </div>
-                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                        {item.desc}
+                      
+                      <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
+                        <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>ACA-to-Database Resolution</strong>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
+                          Checks the codebase and ARM container definitions for <code>DB_HOST</code>. If DB_HOST maps to an ACA secret reference, it queries the Azure Container Apps <code>listSecrets</code> API to decrypt the reference, validating subnet connectivity and virtual network integration.
+                        </span>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
 
-              {/* Behavior highlights */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '8px' }}>
-                <div style={{
-                  display: 'flex',
-                  gap: '12px',
-                  padding: '16px',
-                  borderRadius: '12px',
-                  background: 'rgba(16, 185, 129, 0.04)',
-                  border: '1px solid rgba(16, 185, 129, 0.15)'
-                }}>
-                  <CheckCircle2 size={18} style={{ color: 'var(--success)', flexShrink: 0, marginTop: '2px' }} />
-                  <div>
-                    <strong style={{ color: 'var(--text-primary)', fontSize: '0.84rem', display: 'block', marginBottom: '4px' }}>
-                      Exact Casing Preservation (Git Ref Safety)
-                    </strong>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                      Git reference paths (e.g. <code>refs/heads/...</code>) are case-sensitive. While our candidate matching is case-insensitive (e.g. matching <code>PROD</code> or <code>prod</code>), the resolved branch name preserves the exact casing from the remote Git repository. This avoids checkout errors on case-sensitive build agents.
-                    </span>
+                  <div className="glass-panel" style={{
+                    padding: '16px',
+                    display: 'flex',
+                    gap: '12px',
+                    background: 'rgba(245, 158, 11, 0.04)',
+                    border: '1px solid rgba(245, 158, 11, 0.15)'
+                  }}>
+                    <AlertTriangle size={18} style={{ color: '#fbbf24', flexShrink: 0, marginTop: '2px' }} />
+                    <div>
+                      <strong style={{ color: 'var(--text-primary)', fontSize: '0.84rem', display: 'block', marginBottom: '4px' }}>
+                        Governance: Branch/VNet Mismatch Validation
+                      </strong>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.5', display: 'block' }}>
+                        EvaOps enforces environment containment. If a production branch (e.g. <code>main</code>, <code>master</code>, <code>prod</code>) is deployed into a non-production virtual network (e.g. dev/qa VNets) OR if a dev/qa branch is deployed into a production virtual network, the system raises an amber <strong>Branch Mismatch</strong> warning.
+                      </span>
+                      <span style={{ fontSize: '0.76rem', color: 'var(--text-muted, #94a3b8)', marginTop: '6px', display: 'block', fontStyle: 'italic' }}>
+                        Note: This verification relies strictly on naming pattern matches (checking for keywords like <code>prod</code>, <code>dev</code>, <code>qa</code>, <code>test</code>, <code>staging</code> inside branch names and VNet names). If your network resources or Git branches do not follow these standard naming conventions, mismatch detections will not function correctly.
+                      </span>
+                    </div>
                   </div>
                 </div>
+              )}
 
-                <div style={{
-                  display: 'flex',
-                  gap: '12px',
-                  padding: '16px',
-                  borderRadius: '12px',
-                  background: 'rgba(59, 130, 246, 0.04)',
-                  border: '1px solid rgba(59, 130, 246, 0.15)'
-                }}>
-                  <Info size={18} style={{ color: 'var(--accent-blue)', flexShrink: 0, marginTop: '2px' }} />
-                  <div>
-                    <strong style={{ color: 'var(--text-primary)', fontSize: '0.84rem', display: 'block', marginBottom: '4px' }}>
-                      Smart Fallback Logic
-                    </strong>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                      If none of the candidate branches are found in the remote repository, the system falls back to the repository's designated default branch (e.g. <code>main</code> or <code>master</code>). If no default branch is reported, it falls back to the first candidate of that environment category (e.g. <code>dev</code> for dev, <code>qa</code> for QA/Staging, and <code>main</code> for production).
-                    </span>
+              {/* 3. Pipeline YAML Validation Subtab */}
+              {guideSubTab === 'yml-validation' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                      Pipeline Configuration &amp; Syntax Checker
+                    </h3>
+                    <p style={{ margin: '6px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                      Automatically analyzes pipeline definition files to discover missing parameters or syntax errors before trigger execution.
+                    </p>
+                  </div>
+
+                  <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#f97316', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <GitBranch size={16} />
+                      Azure Pipelines &amp; GitHub Actions Audits
+                    </h4>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', marginTop: '4px' }}>
+                      <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
+                        <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>Azure Pipelines (YAML)</strong>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
+                          Validates the existence and structural components of <code>azure-pipelines.yml</code>. Checks for required stages, trigger patterns, system variables, variable groups references, and correct service connection bindings.
+                        </span>
+                      </div>
+                      
+                      <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
+                        <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>GitHub Actions (YAML)</strong>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
+                          Analyzes <code>.github/workflows/deploy.yml</code> syntax, identifying missing target environments, invalid permissions blocks, outdated action dependency versions, and incorrect Azure login action secrets setup.
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* 4. Dockerfile Validation Subtab */}
+              {guideSubTab === 'docker-validation' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                      Dockerfile Security &amp; Optimization Audits
+                    </h3>
+                    <p style={{ margin: '6px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                      Inspects your Docker configurations to identify potential vulnerabilities, build bloat, and port configuration issues.
+                    </p>
+                  </div>
+
+                  <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#0ea5e9', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Terminal size={16} />
+                      Container Build Optimization &amp; Standards
+                    </h4>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', marginTop: '4px' }}>
+                      <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
+                        <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>Multi-Stage Optimization</strong>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
+                          Verifies that build tools are separated from the final runtime image layer. Scans for multi-stage builders to minimize container sizes, speeding up deployment times and reducing attack surfaces.
+                        </span>
+                      </div>
+                      
+                      <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
+                        <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>Security &amp; Port Controls</strong>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
+                          Audits for security warnings (e.g. running containers as root users). Inspects <code>EXPOSE</code> instructions to verify that target port mapping matches the Container App ingress profile.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1575,156 +1703,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
             </div>
           )}
 
-          {activeSubTab === 'validation-rules' && guideSubTab === 'validation-sanity' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              {/* Sub-tabs selector */}
-              <div className="tabs-container" style={{ 
-                background: 'rgba(255, 255, 255, 0.02)', 
-                padding: '4px', 
-                borderRadius: '10px', 
-                display: 'inline-flex', 
-                width: 'fit-content',
-                border: '1px solid var(--glass-border)',
-                marginBottom: '10px'
-              }}>
-                <button 
-                  type="button"
-                  className={`tab-btn tab-btn-cost ${isSubTabActive('branch-matching') ? 'active' : ''}`}
-                  onClick={() => setGuideSubTab('branch-matching')}
-                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
-                >
-                  Branch Naming Rules
-                </button>
-                <button 
-                  type="button"
-                  className={`tab-btn tab-btn-cost ${isSubTabActive('validation-sanity') ? 'active' : ''}`}
-                  onClick={() => setGuideSubTab('validation-sanity')}
-                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
-                >
-                  System Validation & Sanity
-                </button>
-              </div>
-              <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-                  System Validation &amp; Sanity Audits
-                </h3>
-                <p style={{ margin: '6px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
-                  EvaOps runs automated, multi-tiered sanity validation routines across your codebase and cloud resource metadata to guarantee deployment integrity.
-                </p>
-              </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                
-                {/* 1. Network Connectivity Validation */}
-                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <ShieldCheck size={16} />
-                    Network Connectivity &amp; DB Binding Validation
-                  </h4>
-                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                    Ensures your web frontend applications can talk to their respective backend API endpoints, and your backend containers have authorized, private database paths.
-                  </p>
-                  
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', marginTop: '4px' }}>
-                    <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
-                      <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>SWA-to-Backend Resolution</strong>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
-                        Scans repository env files (e.g. <code>.env.production</code>, <code>.env.deployment</code>) for backend URLs. If repo scanning fails, it queries the Azure ARM Static Web App settings for keys like <code>VITE_API_URL</code> or <code>REACT_APP_API_URL</code>.
-                      </span>
-                    </div>
-                    
-                    <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
-                      <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>ACA-to-Database Resolution</strong>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
-                        Checks the codebase and ARM container definitions for <code>DB_HOST</code>. If DB_HOST maps to an ACA secret reference, it queries the Azure Container Apps <code>listSecrets</code> API to decrypt the reference, validating subnet connectivity and virtual network integration.
-                      </span>
-                    </div>
-                  </div>
-
-                  <div style={{ marginTop: '12px', borderTop: '1px solid var(--glass-border)', paddingTop: '12px' }}>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: '8px' }}>
-                      Network Validation Severity Levels:
-                    </span>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div style={{ display: 'flex', gap: '8px', fontSize: '0.74rem', alignItems: 'flex-start' }}>
-                        <span style={{ color: '#ef4444', fontWeight: 600, minWidth: '70px' }}>[Critical]</span>
-                        <span style={{ color: 'var(--text-secondary)' }}>
-                          Deployment is misconfigured or broken. Triggers if <code>DB_HOST</code> environment variables cannot be located in the backend code, or if compute resources have no resolved virtual networks.
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', gap: '8px', fontSize: '0.74rem', alignItems: 'flex-start' }}>
-                        <span style={{ color: '#fbbf24', fontWeight: 600, minWidth: '70px' }}>[Warning]</span>
-                        <span style={{ color: 'var(--text-secondary)' }}>
-                          Environment configuration mismatch or network isolation warning. Triggers if a static SWA connects to a backend running in a different environment tag, or if virtual networks are not peered.
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', gap: '8px', fontSize: '0.74rem', alignItems: 'flex-start' }}>
-                        <span style={{ color: '#38bdf8', fontWeight: 600, minWidth: '70px' }}>[Info]</span>
-                        <span style={{ color: 'var(--text-secondary)' }}>
-                          Informational connection notes. Triggers when static web apps (such as marketing, documentation, or landing pages) purposefully run without any backend API bindings configured.
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. Pipeline YAML Validation */}
-                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#f97316', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <GitBranch size={16} />
-                    Pipeline Configuration &amp; Syntax Checker
-                  </h4>
-                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                    Automatically analyzes pipeline definition files to discover missing parameters or syntax errors before trigger execution.
-                  </p>
-                  
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', marginTop: '4px' }}>
-                    <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
-                      <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>Azure Pipelines (YAML)</strong>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
-                        Validates the existence and structural components of <code>azure-pipelines.yml</code>. Checks for required stages, trigger patterns, system variables, variable groups references, and correct service connection bindings.
-                      </span>
-                    </div>
-                    
-                    <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
-                      <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>GitHub Actions (YAML)</strong>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
-                        Analyzes <code>.github/workflows/deploy.yml</code> syntax, identifying missing target environments, invalid permissions blocks, outdated action dependency versions, and incorrect Azure login action secrets setup.
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. Dockerfile Sanity Validation */}
-                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#0ea5e9', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Terminal size={16} />
-                    Dockerfile Security &amp; Optimization Audits
-                  </h4>
-                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                    Inspects your Docker configurations to identify potential vulnerabilities, build bloat, and port configuration issues.
-                  </p>
-                  
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', marginTop: '4px' }}>
-                    <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
-                      <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>Multi-Stage Optimization</strong>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
-                        Verifies that build tools are separated from the final runtime image layer. Scans for multi-stage builders to minimize container sizes, speeding up deployment times and reducing attack surfaces.
-                      </span>
-                    </div>
-                    
-                    <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
-                      <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>Security &amp; Port Controls</strong>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
-                        Audits for security warnings (e.g. running containers as root users). Inspects <code>EXPOSE</code> instructions to verify that target port mapping matches the Container App ingress profile.
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          )}
 
           {activeSubTab === 'faq-roadmap' && guideSubTab === 'roadmap' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>

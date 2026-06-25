@@ -33,7 +33,8 @@ import {
   Clock,
   Network,
   FileText,
-  Info
+  Info,
+  Activity
 } from 'lucide-react';
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE || `http://${window.location.hostname}:5005/api`;
@@ -502,9 +503,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     };
   }, []);
 
-  // Active dashboard tab state ('swa' | 'aca' | 'vm' | 'cluster' | 'yaml' | 'docker')
-  const [activeDashboardTab, setActiveDashboardTab] = React.useState<'swa' | 'aca' | 'vm' | 'cluster' | 'yaml' | 'docker'>('swa');
-  const [hoveredTab, setHoveredTab] = React.useState<'swa' | 'aca' | 'vm' | 'cluster' | 'yaml' | 'docker' | null>(null);
+  // Active dashboard tab state ('swa' | 'aca' | 'vm' | 'cluster')
+  const [activeDashboardTab, setActiveDashboardTab] = React.useState<'swa' | 'aca' | 'vm' | 'cluster'>('swa');
+  const [hoveredTab, setHoveredTab] = React.useState<'swa' | 'aca' | 'vm' | 'cluster' | null>(null);
   const [hoveredEnv, setHoveredEnv] = React.useState<string | null>(null);
   // Fixed-position tooltip data for the group header "X Environments" hover
   const [groupTooltipData, setGroupTooltipData] = React.useState<{
@@ -1051,12 +1052,117 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     return null;
   };
 
+  const resolveBranchName = (app: AppResource) => {
+    // If the app already has an explicit branch, use it to determine env
+    if (app.branch) {
+      const fromBranch = branchToEnv(app.branch);
+      if (fromBranch) {
+        const n = app.name.toLowerCase();
+        let envType: 'dev' | 'qa' | 'prod' = fromBranch;
+        const candidates = {
+          dev: ['dev', 'development', 'dev-main', 'dev-master'],
+          qa: ['qa', 'test', 'testing', 'staging'],
+          prod: ['main', 'master', 'prod', 'production', 'release']
+        };
+        const candidateList = candidates[envType];
+        const availableBranches = app.branches || [];
+        const matched = availableBranches.find(b => candidateList.includes(b.name.toLowerCase()));
+        return matched?.name || app.branch;
+      }
+    }
+
+    const n = app.name.toLowerCase();
+    
+    let envType: 'dev' | 'qa' | 'prod' = 'prod';
+    if (hasEnvSegment(n, 'dev') || hasEnvSegment(n, 'development')) envType = 'dev';
+    else if (hasEnvSegment(n, 'qa') || hasEnvSegment(n, 'staging') || hasEnvSegment(n, 'test') || hasEnvSegment(n, 'testing')) envType = 'qa';
+    
+    const candidates = {
+      dev: ['dev', 'development', 'dev-main', 'dev-master'],
+      qa: ['qa', 'test', 'testing', 'staging'],
+      prod: ['main', 'master', 'prod', 'production', 'release']
+    };
+    
+    const candidateList = candidates[envType];
+    const availableBranches = app.branches || [];
+    
+    const matchedCandidate = candidateList.find((cand: string) => 
+      availableBranches.some(b => b.name.toLowerCase() === cand)
+    );
+    
+    if (matchedCandidate) {
+      return availableBranches.find(b => b.name.toLowerCase() === matchedCandidate)!.name;
+    }
+    
+    const defaultBranch = availableBranches.find(b => (b as any).default || (b as any).isDefault || b.protected);
+    return defaultBranch ? defaultBranch.name : candidateList[0];
+  };
+
   const checkNetworkWarnings = (
     item: AppResource,
     group: AppGroup
   ): { status: 'verified' | 'warning' | 'unverified' | 'critical' | 'info'; message: string; detail: string; sourceFile?: string; sourceContent?: string; sourceAppName?: string; scrapedSearchedFiles?: string[] } | null => {
     const themeEnv = getEnvTag(item).label; // 'DEV' | 'QA' | 'PROD'
     const itemVnet = getVnetName(item);
+
+    // Dynamic Branch/VNet Mismatch Check (Two-way validation)
+    const activeBranch = resolveBranchName(item);
+    if (activeBranch && itemVnet) {
+      const branchLower = activeBranch.toLowerCase();
+      const vnetLower = itemVnet.toLowerCase();
+      
+      // Heuristics for branch environment
+      let branchEnv: 'prod' | 'non-prod' | null = null;
+      if (
+        branchLower === 'main' ||
+        branchLower === 'master' ||
+        branchLower === 'prod' ||
+        branchLower === 'production' ||
+        branchLower === 'release' ||
+        branchLower.startsWith('release/')
+      ) {
+        branchEnv = 'prod';
+      } else if (
+        branchLower === 'dev' ||
+        branchLower === 'develop' ||
+        branchLower === 'development' ||
+        branchLower === 'qa' ||
+        branchLower === 'staging' ||
+        branchLower === 'test' ||
+        branchLower === 'testing' ||
+        branchLower.startsWith('dev/') ||
+        branchLower.startsWith('qa/') ||
+        branchLower.startsWith('feature/') ||
+        branchLower.startsWith('bugfix/') ||
+        branchLower.startsWith('hotfix/')
+      ) {
+        branchEnv = 'non-prod';
+      }
+
+      // VNet heuristics
+      let vnetEnv: 'prod' | 'non-prod' | null = null;
+      if (vnetLower.includes('prod') || vnetLower.includes('production')) {
+        vnetEnv = 'prod';
+      } else if (
+        vnetLower.includes('dev') ||
+        vnetLower.includes('qa') ||
+        vnetLower.includes('test') ||
+        vnetLower.includes('staging')
+      ) {
+        vnetEnv = 'non-prod';
+      }
+
+      if (branchEnv && vnetEnv && branchEnv !== vnetEnv) {
+        return {
+          status: 'warning',
+          message: 'Branch Mismatch',
+          detail: `Branch/Network Mismatch Warning: Active branch '${activeBranch}' (${branchEnv === 'prod' ? 'Production' : 'Non-Production'}) is deployed to network '${itemVnet}' (${vnetEnv === 'prod' ? 'Production' : 'Non-Production'}). This configuration is high-risk.`,
+          sourceFile: item.azureResourceDetails?.scrapedSourceFile,
+          sourceContent: item.azureResourceDetails?.scrapedSourceContent,
+          sourceAppName: item.name
+        };
+      }
+    }
 
     // 1. SWA (frontend) Warning Check
     if (item.type === 'frontend') {
@@ -1320,51 +1426,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     return null;
   };
 
-  const resolveBranchName = (app: AppResource) => {
-    // If the app already has an explicit branch, use it to determine env
-    if (app.branch) {
-      const fromBranch = branchToEnv(app.branch);
-      if (fromBranch) {
-        const n = app.name.toLowerCase();
-        let envType: 'dev' | 'qa' | 'prod' = fromBranch;
-        const candidates = {
-          dev: ['dev', 'development', 'dev-main', 'dev-master'],
-          qa: ['qa', 'test', 'testing', 'staging'],
-          prod: ['main', 'master', 'prod', 'production', 'release']
-        };
-        const candidateList = candidates[envType];
-        const availableBranches = app.branches || [];
-        const matched = availableBranches.find(b => candidateList.includes(b.name.toLowerCase()));
-        return matched?.name || app.branch;
-      }
-    }
 
-    const n = app.name.toLowerCase();
-    
-    let envType: 'dev' | 'qa' | 'prod' = 'prod';
-    if (hasEnvSegment(n, 'dev') || hasEnvSegment(n, 'development')) envType = 'dev';
-    else if (hasEnvSegment(n, 'qa') || hasEnvSegment(n, 'staging') || hasEnvSegment(n, 'test') || hasEnvSegment(n, 'testing')) envType = 'qa';
-    
-    const candidates = {
-      dev: ['dev', 'development', 'dev-main', 'dev-master'],
-      qa: ['qa', 'test', 'testing', 'staging'],
-      prod: ['main', 'master', 'prod', 'production', 'release']
-    };
-    
-    const candidateList = candidates[envType];
-    const availableBranches = app.branches || [];
-    
-    const matchedCandidate = candidateList.find((cand: string) => 
-      availableBranches.some(b => b.name.toLowerCase() === cand)
-    );
-    
-    if (matchedCandidate) {
-      return availableBranches.find(b => b.name.toLowerCase() === matchedCandidate)!.name;
-    }
-    
-    const defaultBranch = availableBranches.find(b => (b as any).default || (b as any).isDefault || b.protected);
-    return defaultBranch ? defaultBranch.name : candidateList[0];
-  };
 
 
   // Auto-switch tabs and auto-expand/collapse accordions based on active builds (concurrent-safe)
@@ -1968,30 +2030,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 colorRaw: '#f59e0b',
                 bg: 'rgba(245,158,11,0.12)',
                 glow: 'rgba(245,158,11,0.4)'
-              },
-              {
-                key: 'yaml' as const,
-                label: 'Pipelines',
-                shortLabel: 'YAML',
-                description: 'Azure DevOps pipeline YAML health — review and fix pipeline configurations, triggers, variables, and stage definitions across all repositories.',
-                groups: yamlGroups,
-                icon: <GitBranch size={16} />,
-                color: '#f97316',
-                colorRaw: '#f97316',
-                bg: 'rgba(249,115,22,0.12)',
-                glow: 'rgba(249,115,22,0.4)'
-              },
-              {
-                key: 'docker' as const,
-                label: 'Docker Images',
-                shortLabel: 'Docker',
-                description: 'Dockerfile health — validate and edit Dockerfile configurations for all container-deployed backend services.',
-                groups: dockerGroups,
-                icon: <Terminal size={16} />,
-                color: '#0ea5e9',
-                colorRaw: '#0ea5e9',
-                bg: 'rgba(14,165,233,0.12)',
-                glow: 'rgba(14,165,233,0.4)'
               }
             ];
 
@@ -2208,191 +2246,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                       e.stopPropagation();
                       if (firstEnv) openDockerfileEditor(firstEnv, group);
                     };
-
-                    // ── YAML / Docker compact view ──────────────────────────────────────────
-                    if (activeTab === 'yaml' || activeTab === 'docker') {
-                      const isLt = theme === 'light';
-                      const isYaml = activeTab === 'yaml';
-                      const tabAccent = isYaml ? '#f97316' : '#0ea5e9';
-                      const tabAccentBg = isYaml ? 'rgba(249,115,22,0.1)' : 'rgba(14,165,233,0.1)';
-                      const tabAccentGlow = isYaml ? '0 0 10px rgba(249,115,22,0.4)' : '0 0 10px rgba(14,165,233,0.4)';
-
-                      return (
-                        <div key={group.key} className="glass-panel" style={{ padding: '0', position: 'relative', overflow: 'hidden' }}>
-                          {/* Left accent strip */}
-                          <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', backgroundColor: tabAccent, boxShadow: tabAccentGlow }} />
-
-                          {/* Group Header */}
-                          <div style={{ padding: '16px 20px 14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', borderBottom: '1px solid var(--glass-border)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              <div style={{ width: '30px', height: '30px', borderRadius: '8px', backgroundColor: tabAccentBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                {isYaml ? <GitBranch size={15} style={{ color: tabAccent }} /> : <Terminal size={15} style={{ color: tabAccent }} />}
-                              </div>
-                              <div>
-                                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                  {group.label}
-                                  <span style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '2px 7px', borderRadius: '8px', backgroundColor: isYaml ? 'rgba(249,115,22,0.12)' : 'rgba(14,165,233,0.12)', color: tabAccent, border: `1px solid ${tabAccent}25` }}>
-                                    {isYaml ? 'YAML' : 'Docker'}
-                                  </span>
-                                </div>
-                                {group.repoPath && (
-                                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                    <GitBranch size={10} style={{ opacity: 0.6 }} />
-                                    <span style={{ fontFamily: 'monospace' }}>{group.repoPath}</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            {/* Action button */}
-                            <button
-                              type="button"
-                              disabled={isViewer || !firstEnv}
-                              onClick={isYaml ? handleFixYml : handleFixDockerfile}
-                              style={{
-                                display: 'flex', alignItems: 'center', gap: '6px',
-                                padding: '6px 14px', borderRadius: '8px',
-                                fontSize: '0.75rem', fontWeight: 600,
-                                background: isViewer ? 'transparent' : tabAccentBg,
-                                color: isViewer ? 'var(--text-secondary)' : tabAccent,
-                                border: `1px solid ${isViewer ? 'var(--glass-border)' : `${tabAccent}40`}`,
-                                cursor: isViewer ? 'not-allowed' : 'pointer',
-                                opacity: isViewer ? 0.5 : 1,
-                                transition: 'all 0.2s'
-                              }}
-                              onMouseEnter={(e) => { if (!isViewer) e.currentTarget.style.background = isYaml ? 'rgba(249,115,22,0.18)' : 'rgba(14,165,233,0.18)'; }}
-                              onMouseLeave={(e) => { if (!isViewer) e.currentTarget.style.background = tabAccentBg; }}
-                            >
-                              {isYaml ? <GitBranch size={13} /> : <Terminal size={13} />}
-                              <span>{isYaml ? 'Edit Pipeline YAML' : 'Edit Dockerfile'}</span>
-                            </button>
-                          </div>
-
-                          {/* Per-env health rows */}
-                          <div style={{ padding: '10px 20px 14px 24px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            {group.envs.map((env, idx) => {
-                              const envTag = getEnvTag(env);
-                              const envHealth = ymlHealthMap?.[group.key];
-                              const envLoading = ymlHealthLoading?.[group.key];
-
-                              // Build the status badge
-                              let badgeText = '';
-                              let badgeColor = '#94a3b8';
-                              let badgeBg = 'rgba(148,163,184,0.1)';
-                              let badgeBorder = 'rgba(148,163,184,0.25)';
-                              let badgeIcon: React.ReactNode = <HelpCircle size={10} />;
-
-                              if (envLoading) {
-                                badgeText = 'Loading...';
-                                badgeColor = 'var(--accent-purple)';
-                                badgeBg = 'rgba(139,92,246,0.1)';
-                                badgeBorder = 'rgba(139,92,246,0.25)';
-                                badgeIcon = <RefreshCw size={10} className="spin-anim" />;
-                              } else if (isYaml) {
-                                if (!envHealth) {
-                                  badgeText = 'Not Scanned';
-                                } else if (!envHealth.ymlHealth?.exists) {
-                                  if (group.type === 'frontend') {
-                                    badgeText = 'Active (Auto)';
-                                    badgeColor = '#10b981';
-                                    badgeBg = 'rgba(16,185,129,0.1)';
-                                    badgeBorder = 'rgba(16,185,129,0.25)';
-                                    badgeIcon = <CheckCircle2 size={10} />;
-                                  } else {
-                                    badgeText = 'Not Found';
-                                    badgeColor = '#ef4444';
-                                    badgeBg = 'rgba(239,68,68,0.1)';
-                                    badgeBorder = 'rgba(239,68,68,0.25)';
-                                    badgeIcon = <AlertCircle size={10} />;
-                                  }
-                                } else if (!envHealth.ymlHealth?.valid) {
-                                  badgeText = 'Invalid';
-                                  badgeColor = '#ef4444';
-                                  badgeBg = 'rgba(239,68,68,0.1)';
-                                  badgeBorder = 'rgba(239,68,68,0.25)';
-                                  badgeIcon = <AlertCircle size={10} />;
-                                } else if ((envHealth.ymlHealth?.warningCount || 0) > 0) {
-                                  badgeText = `${envHealth.ymlHealth.warningCount} Warning${envHealth.ymlHealth.warningCount > 1 ? 's' : ''}`;
-                                  badgeColor = '#f59e0b';
-                                  badgeBg = 'rgba(245,158,11,0.1)';
-                                  badgeBorder = 'rgba(245,158,11,0.25)';
-                                  badgeIcon = <AlertTriangle size={10} />;
-                                } else {
-                                  badgeText = 'Valid';
-                                  badgeColor = '#10b981';
-                                  badgeBg = 'rgba(16,185,129,0.1)';
-                                  badgeBorder = 'rgba(16,185,129,0.25)';
-                                  badgeIcon = <CheckCircle2 size={10} />;
-                                }
-                              } else {
-                                // Docker tab
-                                if (!envHealth) {
-                                  badgeText = 'Not Scanned';
-                                } else if (!envHealth.dockerfileExists) {
-                                  badgeText = 'Not Found';
-                                  badgeColor = '#ef4444';
-                                  badgeBg = 'rgba(239,68,68,0.1)';
-                                  badgeBorder = 'rgba(239,68,68,0.25)';
-                                  badgeIcon = <AlertCircle size={10} />;
-                                } else if (!envHealth.dockerfileValid) {
-                                  badgeText = 'Invalid';
-                                  badgeColor = '#ef4444';
-                                  badgeBg = 'rgba(239,68,68,0.1)';
-                                  badgeBorder = 'rgba(239,68,68,0.25)';
-                                  badgeIcon = <AlertCircle size={10} />;
-                                } else if ((envHealth.dockerfileWarnings?.length || 0) > 0) {
-                                  badgeText = `${envHealth.dockerfileWarnings.length} Warning${envHealth.dockerfileWarnings.length > 1 ? 's' : ''}`;
-                                  badgeColor = '#f59e0b';
-                                  badgeBg = 'rgba(245,158,11,0.1)';
-                                  badgeBorder = 'rgba(245,158,11,0.25)';
-                                  badgeIcon = <AlertTriangle size={10} />;
-                                } else {
-                                  badgeText = 'Valid';
-                                  badgeColor = '#10b981';
-                                  badgeBg = 'rgba(16,185,129,0.1)';
-                                  badgeBorder = 'rgba(16,185,129,0.25)';
-                                  badgeIcon = <CheckCircle2 size={10} />;
-                                }
-                              }
-
-                              return (
-                                <div
-                                  key={env.name}
-                                  style={{
-                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                    padding: '7px 10px', borderRadius: '8px',
-                                    background: isLt ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)',
-                                    border: `1px solid ${isLt ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}`,
-                                    gap: '10px',
-                                    transition: 'background 0.15s'
-                                  }}
-                                >
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                                    <span style={{
-                                      fontSize: '0.58rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px',
-                                      color: envTag.color, background: envTag.bg, border: `1px solid ${envTag.border}`,
-                                      flexShrink: 0
-                                    }}>{envTag.label}</span>
-                                    <span style={{ fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                      {env.name}
-                                    </span>
-                                  </div>
-                                  <span style={{
-                                    display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                    fontSize: '0.64rem', fontWeight: 700,
-                                    padding: '3px 9px', borderRadius: '20px',
-                                    background: badgeBg, border: `1px solid ${badgeBorder}`, color: badgeColor,
-                                    flexShrink: 0, whiteSpace: 'nowrap'
-                                  }}>
-                                    {badgeIcon}
-                                    {badgeText}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    }
 
                     // ── Standard SWA / ACA / VM card accordion ──────────────────────────────
                     return (
@@ -2998,8 +2851,21 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             position: 'relative'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', width: '100%' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '280px' }}>
+                          {/* Block 1: Basic Info Block */}
+                          <div style={{
+                            background: theme === 'light' ? 'rgba(255, 255, 255, 0.45)' : 'rgba(255, 255, 255, 0.03)',
+                            border: '1px solid var(--glass-border)',
+                            borderRadius: '12px',
+                            padding: '16px',
+                            boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '12px',
+                            width: '100%',
+                            boxSizing: 'border-box'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', width: '100%' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '280px' }}>
                             {/* Env Tag */}
                             <span style={{
                               fontSize: '0.68rem',
@@ -3700,12 +3566,32 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                             </div>
                           </div>
+                          </div> {/* End Block 1 */}
 
-                          {/* Separate Section Divider */}
-                          <hr style={{ border: 'none', borderTop: '1px solid var(--glass-border)', margin: '14px 0 12px 0', opacity: 0.6 }} />
+                          {/* Block 2: Security & Code Sanity Block */}
+                          {item.type !== 'vm' && (
+                            <div style={{
+                              background: theme === 'light'
+                                ? 'linear-gradient(135deg, rgba(20, 184, 166, 0.04) 0%, rgba(20, 184, 166, 0.01) 100%)'
+                                : 'linear-gradient(135deg, rgba(20, 184, 166, 0.05) 0%, rgba(20, 184, 166, 0.01) 100%)',
+                              border: theme === 'light' ? '1px solid rgba(20, 184, 166, 0.18)' : '1px solid rgba(20, 184, 166, 0.15)',
+                              borderRadius: '12px',
+                              padding: '16px',
+                              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '12px',
+                              width: '100%',
+                              boxSizing: 'border-box'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                                <ShieldCheck size={14} style={{ color: 'var(--accent-teal)' }} />
+                                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                  Security & Code Sanity scan
+                                </span>
+                              </div>
 
-                          {/* Separate Section: Infrastructure & Code Validation */}
-                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%' }}>
+                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%' }}>
                             
                             {/* VNet and Network Connectivity Card (Premium Glassmorphic Layout) */}
                             {(() => {
@@ -3791,7 +3677,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                       alignItems: 'center',
                                       gap: '5px',
                                       fontSize: '0.68rem',
-                                      fontWeight: 600
+                                      fontWeight: 600,
+                                      whiteSpace: 'nowrap'
                                     }}>
                                       {pillIcon}
                                       <span>{validation.message}</span>
@@ -4440,17 +4327,38 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             )}
 
                           </div>
+                          </div>
+                          )} {/* End Block 2 */}
 
-                          {/* Visual Deployment Pipeline Run Progress (moved below details & actions with a collapsible divider) */}
-                          {item.pipelineId && (item.pipelineRun || !loadedPipelines[item.pipelineId]) && (() => {
+                          {/* Block 3: Continuous Integration Telemetry Block */}
+                          {item.pipelineId && (item.pipelineRun || !loadedPipelines[item.pipelineId]) && (
+                            <div style={{
+                              background: theme === 'light'
+                                ? 'rgba(15, 23, 42, 0.02)'
+                                : 'rgba(15, 23, 42, 0.15)',
+                              border: theme === 'light' ? '1px solid rgba(15, 23, 42, 0.06)' : '1px solid rgba(15, 23, 42, 0.25)',
+                              borderRadius: '12px',
+                              padding: '16px',
+                              boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.02)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '10px',
+                              width: '100%',
+                              boxSizing: 'border-box'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                                <Activity size={14} style={{ color: 'var(--accent-purple)' }} />
+                                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                  Continuous Integration Telemetry
+                                </span>
+                              </div>
+
+                              {(() => {
                             const isLight = theme === 'light';
                             
                             if (!item.pipelineRun) {
                               return (
                                 <div style={{ 
-                                  borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`, 
-                                  paddingTop: '12px', 
-                                  marginTop: '8px',
                                   width: '100%',
                                   boxSizing: 'border-box'
                                 }}>
@@ -4482,9 +4390,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                             
                             return (
                               <div style={{ 
-                                borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`, 
-                                paddingTop: '12px', 
-                                marginTop: '8px',
                                 width: '100%',
                                 boxSizing: 'border-box'
                               }}>
@@ -4862,6 +4767,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               </div>
                             );
                           })()}
+                          </div>
+                        )} {/* End Block 3 */}
                         </div>
                       );
                     })}
