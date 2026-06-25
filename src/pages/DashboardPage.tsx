@@ -3141,7 +3141,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 </div>
                               );
                             })()}
-                          </div>
+                            </div> {/* End Header Row */}
 
                           {/* Action Buttons & Decluttered controls (Restructured into Upper Section) */}
                           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
