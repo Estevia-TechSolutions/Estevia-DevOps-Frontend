@@ -1,17 +1,17 @@
 import React from 'react';
-import { 
-  RefreshCw, 
-  Search, 
-  AlertCircle, 
-  ExternalLink, 
-  GitBranch, 
-  Globe, 
-  Trash2, 
-  PlusCircle, 
-  Server, 
-  ChevronRight, 
-  ChevronDown, 
-  CheckCircle2, 
+import {
+  RefreshCw,
+  Search,
+  AlertCircle,
+  ExternalLink,
+  GitBranch,
+  Globe,
+  Trash2,
+  PlusCircle,
+  Server,
+  ChevronRight,
+  ChevronDown,
+  CheckCircle2,
   AlertTriangle,
   HelpCircle,
   Building2,
@@ -40,7 +40,7 @@ import {
 const API_BASE = (import.meta as any).env?.VITE_API_BASE || `http://${window.location.hostname}:5005/api`;
 
 
-const Github = ({ size = 12, ...props }: { size?: number; [key: string]: any }) => (
+const Github = ({ size = 12, ...props }: { size?: number;[key: string]: any }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width={size}
@@ -361,7 +361,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         const savedSeverities = localStorage.getItem('evaops_rule_severities');
         if (savedRules) setDisabledRules(JSON.parse(savedRules));
         if (savedSeverities) setRuleSeverities(JSON.parse(savedSeverities));
-      } catch (e) {}
+      } catch (e) { }
     } finally {
       settingsLoadedRef.current = true;
     }
@@ -470,7 +470,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   const handleBatchRemediate = async () => {
     if (selectedViolationIds.length === 0) return;
-    
+
     const violationsToRemediate = (complianceData?.violations || []).filter(
       (v: any) => selectedViolationIds.includes(v.suggestionId) && v.remediable
     );
@@ -522,17 +522,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     }
   };
 
-  const [activeStageInfo, setActiveStageInfo] = React.useState<{appName: string, stageId: string} | null>(null);
+  const [activeStageInfo, setActiveStageInfo] = React.useState<{ appName: string, stageId: string } | null>(null);
   const [selectedJobForModal, setSelectedJobForModal] = React.useState<any | null>(null);
   const [expandedBuilds, setExpandedBuilds] = React.useState<Record<string, boolean>>({});
   const [selectedTaskForModal, setSelectedTaskForModal] = React.useState<any | null>(null);
 
   // Secondary actions dropdown state
   const [activeDropdown, setActiveDropdown] = React.useState<string | null>(null);
-  const [dropdownCoords, setDropdownCoords] = React.useState<{top: number; left: number} | null>(null);
+  const [dropdownCoords, setDropdownCoords] = React.useState<{ top: number; left: number } | null>(null);
   // Power controls dropdown state
   const [activePowerDropdown, setActivePowerDropdown] = React.useState<string | null>(null);
-  const [powerDropdownCoords, setPowerDropdownCoords] = React.useState<{top: number; left: number} | null>(null);
+  const [powerDropdownCoords, setPowerDropdownCoords] = React.useState<{ top: number; left: number } | null>(null);
 
   // Blue-Green Drawer state
   const [bgDrawerApp, setBgDrawerApp] = React.useState<AppResource | null>(null);
@@ -645,8 +645,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         const type = isSuccess ? 'success' : 'error';
 
         // Find the app name associated with this build ID
-        const app = apps.find(a => a.pipelineRun?.id === runId) || 
-                    apps.find(a => a.pipelineId && livePipelineRunsRef.current[`pid-${a.pipelineId}`]?.id === runId);
+        const app = apps.find(a => a.pipelineRun?.id === runId) ||
+          apps.find(a => a.pipelineId && livePipelineRunsRef.current[`pid-${a.pipelineId}`]?.id === runId);
         const appName = app ? app.name : `Build #${currentRun.name}`;
 
         if (onBuildTransition) {
@@ -759,7 +759,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             // Also update the pid- key so localAppGroups shows the fresh timeline
             if (build.pipelineId) updates[`pid-${build.pipelineId}`] = data.pipelineRun;
             setLivePipelineRuns(prev => ({ ...prev, ...updates }));
-            
+
             // If the task modal is open for a task under this build, update selectedTaskForModal!
             if (selectedTaskForModal && selectedTaskForModal.buildId === build.buildId) {
               setSelectedTaskForModal((prevModal: any) => {
@@ -839,7 +839,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           }
           const data = await res.json();
           console.log(`[DevOps Discovery] Latest build response for app ${app.name}:`, data);
-          
+
           setLoadedPipelines(prev => ({ ...prev, [pipelineId]: true }));
 
           if (!data.success || !data.pipelineRun) {
@@ -901,8 +901,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     }
 
     const { buildId, step } = selectedTaskForModal;
-    const isSameTask = prevTaskRef.current && 
-      prevTaskRef.current.id === step.id && 
+    const isSameTask = prevTaskRef.current &&
+      prevTaskRef.current.id === step.id &&
       prevTaskRef.current.buildId === buildId;
 
     // If it's a completed task and we already successfully fetched it, don't refetch
@@ -1000,7 +1000,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   const handleSaveTrafficSplit = async () => {
     if (!bgDrawerApp) return;
-    
+
     const total = revisions.reduce((sum, rev) => sum + (parseInt(rev.trafficWeight) || 0), 0);
     if (total !== 100) {
       alert(`Total traffic split weight must equal 100%. Current sum: ${total}%`);
@@ -1163,28 +1163,28 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     }
 
     const n = app.name.toLowerCase();
-    
+
     let envType: 'dev' | 'qa' | 'prod' = 'prod';
     if (hasEnvSegment(n, 'dev') || hasEnvSegment(n, 'development')) envType = 'dev';
     else if (hasEnvSegment(n, 'qa') || hasEnvSegment(n, 'staging') || hasEnvSegment(n, 'test') || hasEnvSegment(n, 'testing')) envType = 'qa';
-    
+
     const candidates = {
       dev: ['dev', 'development', 'dev-main', 'dev-master'],
       qa: ['qa', 'test', 'testing', 'staging'],
       prod: ['main', 'master', 'prod', 'production', 'release']
     };
-    
+
     const candidateList = candidates[envType];
     const availableBranches = app.branches || [];
-    
-    const matchedCandidate = candidateList.find((cand: string) => 
+
+    const matchedCandidate = candidateList.find((cand: string) =>
       availableBranches.some(b => b.name.toLowerCase() === cand)
     );
-    
+
     if (matchedCandidate) {
       return availableBranches.find(b => b.name.toLowerCase() === matchedCandidate)!.name;
     }
-    
+
     const defaultBranch = availableBranches.find(b => (b as any).default || (b as any).isDefault || b.protected);
     return defaultBranch ? defaultBranch.name : candidateList[0];
   };
@@ -1201,7 +1201,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     if (activeBranch && itemVnet) {
       const branchLower = activeBranch.toLowerCase();
       const vnetLower = itemVnet.toLowerCase();
-      
+
       // Heuristics for branch environment
       let branchEnv: 'prod' | 'non-prod' | null = null;
       if (
@@ -1334,7 +1334,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         // Mismatch check by string matching
         const isDevUrl = host.includes('dev') || host.includes('localhost') || host.includes('127.0.0.1');
         const isQaUrl = host.includes('qa') || host.includes('staging') || host.includes('test');
-        
+
         let urlEnv: 'DEV' | 'QA' | 'PROD' = 'PROD';
         if (isDevUrl) urlEnv = 'DEV';
         else if (isQaUrl) urlEnv = 'QA';
@@ -1405,7 +1405,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         const dbDetails = matchingDb.azureResourceDetails;
         const dbSubnetId = dbDetails?.delegatedSubnetResourceId || '';
         const dbVnetName = dbSubnetId.split(/\/virtualnetworks\//i)[1]?.split('/')[0];
-        
+
         // Resolve subnet resource IDs for dynamic peering checks
         const itemSubnetId = item.azureResourceDetails?.vnetSubnetID || item.azureResourceDetails?.delegatedSubnetResourceId || item.azureResourceDetails?.agentPoolProfiles?.[0]?.vnetSubnetID || '';
         const itemVnetId = itemSubnetId ? itemSubnetId.toLowerCase().split('/subnets/')[0] : '';
@@ -1419,7 +1419,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         } else if (itemVnetId && dbVnetId) {
           // Look up network peerings dynamically from the apps list
           const dbVnetResource = apps.find(a => a.type === 'network' && a.resourceId?.toLowerCase() === dbVnetId);
-          const isPeered = dbVnetResource?.azureResourceDetails?.peerings?.some((p: any) => 
+          const isPeered = dbVnetResource?.azureResourceDetails?.peerings?.some((p: any) =>
             p.remoteVirtualNetworkId?.toLowerCase() === itemVnetId && p.peeringState?.toLowerCase() === 'connected'
           );
           if (isPeered) {
@@ -1427,7 +1427,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           } else {
             // Check reciprocal peering from compute VNet resource
             const compVnetResource = apps.find(a => a.type === 'network' && a.resourceId?.toLowerCase() === itemVnetId);
-            const isReciprocalPeered = compVnetResource?.azureResourceDetails?.peerings?.some((p: any) => 
+            const isReciprocalPeered = compVnetResource?.azureResourceDetails?.peerings?.some((p: any) =>
               p.remoteVirtualNetworkId?.toLowerCase() === dbVnetId && p.peeringState?.toLowerCase() === 'connected'
             );
             if (isReciprocalPeered) {
@@ -1473,7 +1473,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         // Check by string matching if we can't find matching DB resource
         const isDevDb = configuredDbHost.includes('dev') || configuredDbHost.includes('local');
         const isQaDb = configuredDbHost.includes('qa') || configuredDbHost.includes('staging') || configuredDbHost.includes('test');
-        
+
         let dbEnv: 'DEV' | 'QA' | 'PROD' = 'PROD';
         if (isDevDb) dbEnv = 'DEV';
         else if (isQaDb) dbEnv = 'QA';
@@ -1555,7 +1555,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         else if (firstGroup.type === 'backend') matchedTab = 'aca';
         else if (firstGroup.type === 'vm') matchedTab = 'vm';
         else if (firstGroup.type === 'cluster') matchedTab = 'cluster';
-        
+
         if (matchedTab) {
           setActiveDashboardTab(matchedTab);
         }
@@ -1660,9 +1660,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   };
 
   const ENV_COLORS: Record<string, { color: string; bg: string; border: string; label: string }> = {
-    dev:  { color: '#60a5fa', bg: 'rgba(96,165,250,0.08)',  border: 'rgba(96,165,250,0.3)',  label: 'DEV'  },
-    qa:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.3)',  label: 'QA'   },
-    prod: { color: '#34d399', bg: 'rgba(52,211,153,0.08)',  border: 'rgba(52,211,153,0.3)',  label: 'PROD' },
+    dev: { color: '#60a5fa', bg: 'rgba(96,165,250,0.08)', border: 'rgba(96,165,250,0.3)', label: 'DEV' },
+    qa: { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', label: 'QA' },
+    prod: { color: '#34d399', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.3)', label: 'PROD' },
   };
 
   const getEnvTag = (app: AppResource): { color: string; bg: string; border: string; label: string } => {
@@ -1673,8 +1673,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     }
     // Fallback: derive env from ACA resource name suffix
     const n = app.name.toLowerCase();
-    if (hasEnvSegment(n, 'dev'))  return ENV_COLORS.dev;
-    if (hasEnvSegment(n, 'qa'))   return ENV_COLORS.qa;
+    if (hasEnvSegment(n, 'dev')) return ENV_COLORS.dev;
+    if (hasEnvSegment(n, 'qa')) return ENV_COLORS.qa;
     if (hasEnvSegment(n, 'prod')) return ENV_COLORS.prod;
     // No recognised env suffix → treat as production
     return ENV_COLORS.prod;
@@ -1685,7 +1685,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     return localAppGroups.map(group => {
       const filteredEnvs = group.envs.filter(app => {
         // Search filter: matches app name, repo path, group label or repo url
-        const matchesSearch = searchQuery.trim() === '' || 
+        const matchesSearch = searchQuery.trim() === '' ||
           app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           (group.label && group.label.toLowerCase().includes(searchQuery.toLowerCase())) ||
           (group.repoPath && group.repoPath.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -1721,8 +1721,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
     if (effectiveEnv === 'dev') {
       return {
-        background: isLight 
-          ? 'linear-gradient(135deg, rgba(219, 234, 254, 0.95) 0%, rgba(239, 246, 255, 0.99) 100%)' 
+        background: isLight
+          ? 'linear-gradient(135deg, rgba(219, 234, 254, 0.95) 0%, rgba(239, 246, 255, 0.99) 100%)'
           : 'linear-gradient(135deg, rgba(96, 165, 250, 0.22) 0%, rgba(59, 130, 246, 0.05) 100%)',
         border: isLight ? 'rgba(96, 165, 250, 0.45)' : 'rgba(96, 165, 250, 0.35)',
         color: '#60a5fa'
@@ -1730,8 +1730,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     }
     if (effectiveEnv === 'qa') {
       return {
-        background: isLight 
-          ? 'linear-gradient(135deg, rgba(254, 243, 199, 0.95) 0%, rgba(255, 251, 235, 0.99) 100%)' 
+        background: isLight
+          ? 'linear-gradient(135deg, rgba(254, 243, 199, 0.95) 0%, rgba(255, 251, 235, 0.99) 100%)'
           : 'linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.05) 100%)',
         border: isLight ? 'rgba(245, 158, 11, 0.45)' : 'rgba(245, 158, 11, 0.35)',
         color: '#f59e0b'
@@ -1739,8 +1739,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     }
     // prod (default)
     return {
-      background: isLight 
-        ? 'linear-gradient(135deg, rgba(209, 250, 229, 0.95) 0%, rgba(240, 253, 250, 0.99) 100%)' 
+      background: isLight
+        ? 'linear-gradient(135deg, rgba(209, 250, 229, 0.95) 0%, rgba(240, 253, 250, 0.99) 100%)'
         : 'linear-gradient(135deg, rgba(52, 211, 153, 0.2) 0%, rgba(16, 185, 129, 0.05) 100%)',
       border: isLight ? 'rgba(52, 211, 153, 0.45)' : 'rgba(52, 211, 153, 0.35)',
       color: '#34d399'
@@ -1750,8 +1750,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const getUnlinkedCardStyles = (theme: 'dark' | 'light') => {
     const isLight = theme === 'light';
     return {
-      background: isLight 
-        ? 'linear-gradient(135deg, rgba(254, 226, 226, 0.95) 0%, rgba(254, 242, 242, 0.99) 100%)' 
+      background: isLight
+        ? 'linear-gradient(135deg, rgba(254, 226, 226, 0.95) 0%, rgba(254, 242, 242, 0.99) 100%)'
         : 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.05) 100%)',
       border: isLight ? 'rgba(239, 68, 68, 0.45)' : 'rgba(239, 68, 68, 0.35)',
       color: isLight ? '#dc2626' : '#ef4444'
@@ -1827,21 +1827,21 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               const range = stage.limit - prevLimit;
               const segmentProgress = Math.min(100, Math.max(0, ((scanProgress - prevLimit) / range) * 100));
               return (
-                <div 
-                  key={idx} 
-                  style={{ 
-                    flex: 1, 
-                    height: '8px', 
-                    backgroundColor: 'rgba(255, 255, 255, 0.08)', 
-                    borderRadius: '4px', 
+                <div
+                  key={idx}
+                  style={{
+                    flex: 1,
+                    height: '8px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                    borderRadius: '4px',
                     overflow: 'hidden',
                     position: 'relative'
                   }}
                   title={`${stage.label}: ${Math.round(segmentProgress)}%`}
                 >
-                  <div style={{ 
-                    width: `${segmentProgress}%`, 
-                    height: '100%', 
+                  <div style={{
+                    width: `${segmentProgress}%`,
+                    height: '100%',
                     backgroundColor: segmentProgress > 0 ? 'var(--accent-purple)' : 'transparent',
                     boxShadow: segmentProgress > 0 ? '0 0 10px var(--accent-purple-glow)' : 'none',
                     transition: 'width 0.15s ease-out'
@@ -1938,3096 +1938,3096 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           {activeSubTab === 'resources' ? (
             <>
               {/* Glassmorphic Search & Filter Bar */}
-          <div className="glass-panel" style={{
-            padding: '16px 20px',
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '16px',
-            flexWrap: 'wrap'
-          }}>
-            {/* Search Input wrapper */}
-            <div style={{ position: 'relative', flex: '1 1 300px' }}>
-              <Search size={18} style={{
-                position: 'absolute',
-                left: '14px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: 'var(--text-secondary)',
-                pointerEvents: 'none'
-              }} />
-              <input
-                type="text"
-                placeholder="Search by name, repository, or key..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  paddingLeft: '44px',
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--glass-border)',
-                  color: 'var(--text-primary)',
-                  borderRadius: '10px',
-                  fontSize: '0.9rem',
-                  height: '42px',
-                  width: '100%'
-                }}
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  style={{
+              <div className="glass-panel" style={{
+                padding: '16px 20px',
+                marginBottom: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px',
+                flexWrap: 'wrap'
+              }}>
+                {/* Search Input wrapper */}
+                <div style={{ position: 'relative', flex: '1 1 300px' }}>
+                  <Search size={18} style={{
                     position: 'absolute',
-                    right: '12px',
+                    left: '14px',
                     top: '50%',
                     transform: 'translateY(-50%)',
-                    background: 'transparent',
-                    border: 'none',
                     color: 'var(--text-secondary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '4px',
-                    borderRadius: '4px'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
-                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
-                >
-                  <X size={16} />
-                </button>
-              )}
-            </div>
-
-            {/* Env Filter Buttons */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.03)',
-              padding: '4px',
-              borderRadius: '10px',
-              border: '1px solid var(--glass-border)'
-            }}>
-              {(['all', 'dev', 'qa', 'prod'] as const).map((env) => {
-                const isActive = selectedEnvFilter === env;
-                // Env color styles for active filter
-                const activeColor = env === 'dev' ? '#60a5fa' 
-                                  : env === 'qa' ? '#f59e0b'
-                                  : env === 'prod' ? '#34d399'
-                                  : 'var(--accent-purple)';
-                const activeBg = env === 'dev' ? 'rgba(96,165,250,0.15)'
-                               : env === 'qa' ? 'rgba(245,158,11,0.15)'
-                               : env === 'prod' ? 'rgba(52,211,153,0.15)'
-                               : 'rgba(139,92,246,0.15)';
-                const activeBorder = env === 'dev' ? 'rgba(96,165,250,0.3)'
-                                  : env === 'qa' ? 'rgba(245,158,11,0.3)'
-                                  : env === 'prod' ? 'rgba(52,211,153,0.3)'
-                                  : 'rgba(139,92,246,0.3)';
-
-                return (
-                  <button
-                    key={env}
-                    type="button"
-                    onClick={() => setSelectedEnvFilter(env)}
+                    pointerEvents: 'none'
+                  }} />
+                  <input
+                    type="text"
+                    placeholder="Search by name, repository, or key..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     style={{
-                      padding: '8px 16px',
-                      borderRadius: '8px',
-                      border: isActive ? `1px solid ${activeBorder}` : '1px solid transparent',
-                      background: isActive ? activeBg : 'transparent',
-                      color: isActive ? activeColor : 'var(--text-secondary)',
-                      fontWeight: isActive ? 600 : 500,
-                      fontSize: '0.78rem',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      height: '34px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      transition: 'all 0.2s ease'
+                      paddingLeft: '44px',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--glass-border)',
+                      color: 'var(--text-primary)',
+                      borderRadius: '10px',
+                      fontSize: '0.9rem',
+                      height: '42px',
+                      width: '100%'
                     }}
-                    onMouseEnter={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.color = 'var(--text-primary)';
-                        e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.color = 'var(--text-secondary)';
-                        e.currentTarget.style.background = 'transparent';
-                      }
-                    }}
-                  >
-                    {env}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {(() => {
-            if (filteredAppGroups.length === 0) {
-              return (
-                <div className="glass-panel" style={{ padding: '60px', textAlign: 'center', marginTop: '10px' }}>
-                  <Search size={48} style={{ color: 'var(--text-secondary)', marginBottom: '16px' }} />
-                  <h3>No resources match your filters</h3>
-                  <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
-                    Try refining your search query or changing the environment tag filter.
-                  </p>
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      style={{
+                        position: 'absolute',
+                        right: '12px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-secondary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '4px',
+                        borderRadius: '4px'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
                 </div>
-              );
-            }
 
-            const swaGroups = filteredAppGroups.filter(g => g.type === 'frontend');
-            const acaGroups = filteredAppGroups.filter(g => g.type === 'backend');
-            const vmGroups = filteredAppGroups.filter(g => g.type === 'vm');
-            // YAML tab: all groups that have yaml health data (swa + aca)
-            const yamlGroups = filteredAppGroups.filter(g => g.type === 'frontend' || g.type === 'backend');
-            // Docker tab: backend (ACA) groups only — Dockerfiles belong to container apps
-            const dockerGroups = filteredAppGroups.filter(g => g.type === 'backend');
-
-            const allCategories = [
-              {
-                key: 'swa' as const,
-                label: 'Static Web Apps',
-                shortLabel: 'SWA',
-                description: 'Azure Static Web Apps — host frontend SPAs and static sites with global CDN, SSL, and custom domains.',
-                groups: swaGroups,
-                icon: <Globe size={16} />,
-                color: 'var(--accent-purple)',
-                colorRaw: '#8b5cf6',
-                bg: 'rgba(139,92,246,0.12)',
-                glow: 'rgba(139,92,246,0.4)'
-              },
-              {
-                key: 'aca' as const,
-                label: 'Container Apps',
-                shortLabel: 'ACA',
-                description: 'Azure Container Apps — serverless containers with automatic scaling, zero-downtime blue/green deployments, and traffic splitting.',
-                groups: acaGroups,
-                icon: <Cpu size={16} />,
-                color: 'var(--accent-teal)',
-                colorRaw: '#14b8a6',
-                bg: 'rgba(20,184,166,0.12)',
-                glow: 'rgba(20,184,166,0.4)'
-              },
-              {
-                key: 'vm' as const,
-                label: 'Virtual Machines',
-                shortLabel: 'VM',
-                description: 'Azure Virtual Machines — full IaaS compute instances with SSH access, custom OS, and on-demand start/stop power controls.',
-                groups: vmGroups,
-                icon: <Server size={16} />,
-                color: '#f59e0b',
-                colorRaw: '#f59e0b',
-                bg: 'rgba(245,158,11,0.12)',
-                glow: 'rgba(245,158,11,0.4)'
-              }
-            ];
-
-            const visibleCategories = allCategories.filter(c => c.groups.length > 0);
-            // Default to first visible tab if activeDashboardTab not visible
-            const activeTab = visibleCategories.find(c => c.key === activeDashboardTab) ? activeDashboardTab : (visibleCategories[0]?.key ?? 'swa');
-            const activeCategory = visibleCategories.find(c => c.key === activeTab);
-
-            return (
-              <>
-                {/* ── Tab Navigation Bar ── */}
+                {/* Env Filter Buttons */}
                 <div style={{
                   display: 'flex',
-                  gap: '4px',
-                  padding: '6px',
-                  marginBottom: '20px',
-                  background: theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)',
-                  borderRadius: '14px',
-                  border: '1px solid var(--glass-border)',
-                  position: 'relative'
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.03)',
+                  padding: '4px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--glass-border)'
                 }}>
-                  {visibleCategories.map(cat => {
-                    const isActive = cat.key === activeTab;
-                    const catHasActiveBuild = cat.groups.some(g => g.envs.some(e => e.pipelineRun && isBuildActive(e.pipelineRun)));
-                    const runningCount = cat.groups.reduce((sum, g) => sum + g.envs.filter(e => (e.status || '').toLowerCase() === 'running' || (e.status || '').toLowerCase() === 'deployed').length, 0);
-                    const stoppedCount = cat.groups.reduce((sum, g) => sum + g.envs.filter(e => (e.status || '').toLowerCase() === 'stopped' || (e.status || '').toLowerCase() === 'sleep').length, 0);
-                    const totalEnvs = cat.groups.reduce((sum, g) => sum + g.envs.length, 0);
+                  {(['all', 'dev', 'qa', 'prod'] as const).map((env) => {
+                    const isActive = selectedEnvFilter === env;
+                    // Env color styles for active filter
+                    const activeColor = env === 'dev' ? '#60a5fa'
+                      : env === 'qa' ? '#f59e0b'
+                        : env === 'prod' ? '#34d399'
+                          : 'var(--accent-purple)';
+                    const activeBg = env === 'dev' ? 'rgba(96,165,250,0.15)'
+                      : env === 'qa' ? 'rgba(245,158,11,0.15)'
+                        : env === 'prod' ? 'rgba(52,211,153,0.15)'
+                          : 'rgba(139,92,246,0.15)';
+                    const activeBorder = env === 'dev' ? 'rgba(96,165,250,0.3)'
+                      : env === 'qa' ? 'rgba(245,158,11,0.3)'
+                        : env === 'prod' ? 'rgba(52,211,153,0.3)'
+                          : 'rgba(139,92,246,0.3)';
 
                     return (
-                      <div
-                        key={cat.key}
-                        style={{ position: 'relative', flex: 1 }}
-                        onMouseEnter={() => setHoveredTab(cat.key)}
-                        onMouseLeave={() => setHoveredTab(null)}
+                      <button
+                        key={env}
+                        type="button"
+                        onClick={() => setSelectedEnvFilter(env)}
+                        style={{
+                          padding: '8px 16px',
+                          borderRadius: '8px',
+                          border: isActive ? `1px solid ${activeBorder}` : '1px solid transparent',
+                          background: isActive ? activeBg : 'transparent',
+                          color: isActive ? activeColor : 'var(--text-secondary)',
+                          fontWeight: isActive ? 600 : 500,
+                          fontSize: '0.78rem',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          height: '34px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isActive) {
+                            e.currentTarget.style.color = 'var(--text-primary)';
+                            e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isActive) {
+                            e.currentTarget.style.color = 'var(--text-secondary)';
+                            e.currentTarget.style.background = 'transparent';
+                          }
+                        }}
                       >
-                        <button
-                          type="button"
-                          onClick={() => setActiveDashboardTab(cat.key)}
-                          style={{
-                            width: '100%',
-                            padding: '10px 16px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '8px',
-                            borderRadius: '10px',
-                            border: isActive ? `1px solid ${cat.color}50` : '1px solid transparent',
-                            background: isActive
-                              ? (theme === 'light' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.07)')
-                              : 'transparent',
-                            boxShadow: isActive ? `0 2px 12px ${cat.glow}30, inset 0 1px 0 rgba(255,255,255,0.1)` : 'none',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            color: isActive ? cat.color : 'var(--text-secondary)',
-                            fontWeight: isActive ? 700 : 500,
-                            fontSize: '0.84rem',
-                            letterSpacing: '0.01em',
-                            position: 'relative',
-                            overflow: 'hidden'
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!isActive) {
-                              e.currentTarget.style.background = theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)';
-                              e.currentTarget.style.color = 'var(--text-primary)';
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!isActive) {
-                              e.currentTarget.style.background = 'transparent';
-                              e.currentTarget.style.color = 'var(--text-secondary)';
-                            }
-                          }}
-                        >
-                          {/* Tab icon */}
-                          <span style={{ opacity: isActive ? 1 : 0.65 }}>{cat.icon}</span>
-
-                          {/* Tab label */}
-                          <span>{cat.shortLabel}</span>
-
-                          {/* Resources count badge */}
-                          <span style={{
-                            fontSize: '0.62rem',
-                            fontWeight: 700,
-                            backgroundColor: isActive ? cat.bg : 'rgba(148,163,184,0.15)',
-                            color: isActive ? cat.color : 'var(--text-secondary)',
-                            padding: '1px 7px',
-                            borderRadius: '10px',
-                            border: isActive ? `1px solid ${cat.colorRaw}30` : '1px solid transparent',
-                            transition: 'all 0.2s ease'
-                          }}>
-                            {cat.groups.length}
-                          </span>
-
-                          {/* Pulsing build-in-progress indicator */}
-                          {catHasActiveBuild && (
-                            <span style={{
-                              width: '7px',
-                              height: '7px',
-                              borderRadius: '50%',
-                              backgroundColor: '#10b981',
-                              boxShadow: '0 0 6px rgba(16,185,129,0.8)',
-                              display: 'inline-block',
-                              flexShrink: 0
-                            }} className="play-pulse-anim" title="Active build in progress" />
-                          )}
-                        </button>
-
-                        {/* Hover Tooltip */}
-                        {hoveredTab === cat.key && (
-                          <div style={{
-                            position: 'absolute',
-                            top: 'calc(100% + 8px)',
-                            left: '50%',
-                            transform: 'translateX(-50%)',
-                            zIndex: 9000,
-                            background: '#090d16',
-                            border: '1px solid rgba(255, 255, 255, 0.15)',
-                            borderRadius: '10px',
-                            padding: '12px 14px',
-                            minWidth: '220px',
-                            boxShadow: '0 8px 30px rgba(0,0,0,0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)',
-                            pointerEvents: 'none',
-                            color: '#e2e8f0'
-                          }}>
-                            {/* Arrow */}
-                            <div style={{
-                              position: 'absolute',
-                              top: '-5px',
-                              left: '50%',
-                              transform: 'translateX(-50%)',
-                              width: '10px',
-                              height: '10px',
-                              background: '#090d16',
-                              border: '1px solid rgba(255, 255, 255, 0.15)',
-                              borderBottom: 'none',
-                              borderRight: 'none',
-                              rotate: '45deg'
-                            }} />
-                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: cat.color, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              {cat.icon} {cat.label} ({cat.shortLabel})
-                            </div>
-                            <div style={{ fontSize: '0.7rem', color: '#cbd5e1', lineHeight: 1.5, marginBottom: '8px' }}>
-                              {cat.description}
-                            </div>
-                            <div style={{ display: 'flex', gap: '10px', paddingTop: '6px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', fontWeight: 600, color: '#34d399' }}>
-                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#34d399', display: 'inline-block' }} />
-                                {runningCount} Running
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', fontWeight: 600, color: '#f87171' }}>
-                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#f87171', display: 'inline-block' }} />
-                                {stoppedCount} Stopped
-                              </div>
-                              {totalEnvs - runningCount - stoppedCount > 0 && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', fontWeight: 600, color: '#94a3b8' }}>
-                                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#94a3b8', display: 'inline-block' }} />
-                                  {totalEnvs - runningCount - stoppedCount} Other
-                                </div>
-                              )}
-                            </div>
-                            {catHasActiveBuild && (
-                              <div style={{ marginTop: '6px', padding: '4px 8px', background: 'rgba(16,185,129,0.1)', borderRadius: '6px', border: '1px solid rgba(16,185,129,0.25)', fontSize: '0.66rem', fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }} className="play-pulse-anim" />
-                                Active build in progress
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                        {env}
+                      </button>
                     );
                   })}
                 </div>
-
-                {/* ── Active Tab Description Banner ── */}
-                {activeCategory && (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    padding: '10px 16px',
-                    marginBottom: '16px',
-                    borderRadius: '10px',
-                    background: activeCategory.bg,
-                    border: `1px solid ${activeCategory.colorRaw}25`,
-                    fontSize: '0.74rem',
-                    color: 'var(--text-secondary)',
-                    lineHeight: 1.5
-                  }}>
-                    <span style={{ color: activeCategory.color, flexShrink: 0 }}>{activeCategory.icon}</span>
-                    <span><strong style={{ color: activeCategory.color }}>{activeCategory.label} ({activeCategory.shortLabel}):</strong> {activeCategory.description}</span>
-                  </div>
-                )}
-
-                {/* ── Active Tab Groups ── */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {(activeCategory?.groups ?? []).map((group) => {
-                    const accentColor = group.type === 'vm' ? '#f59e0b' : (group.type === 'frontend' ? 'var(--accent-purple)' : 'var(--accent-teal)');
-                    const accentBg = group.type === 'vm' ? 'rgba(245,158,11,0.1)' : (group.type === 'frontend' ? 'rgba(139,92,246,0.1)' : 'rgba(20,184,166,0.1)');
-                    const accentGlow = group.type === 'vm' ? '0 0 10px rgba(245,158,11,0.4)' : (group.type === 'frontend' ? '0 0 10px var(--accent-purple-glow)' : '0 0 10px var(--accent-teal-glow)');
-
-                    const isCollapsed = collapsedScanGroups[group.key] !== false;
-                    const groupHasActiveDeployment = group.envs.some(app => !!(app.pipelineRun && isBuildActive(app.pipelineRun)));
-
-                    const health = ymlHealthMap?.[group.key];
-                    const isLoading = ymlHealthLoading?.[group.key];
-                    const firstEnv = group.envs?.[0];
-
-                    const handleFixYml = (e: React.MouseEvent) => {
-                      e.stopPropagation();
-                      if (firstEnv) openPipelineModal(firstEnv, group);
-                    };
-
-                    const handleFixDockerfile = (e: React.MouseEvent) => {
-                      e.stopPropagation();
-                      if (firstEnv) openDockerfileEditor(firstEnv, group);
-                    };
-
-                    // ── Standard SWA / ACA / VM card accordion ──────────────────────────────
-                    return (
-                      <div key={group.key} className="glass-panel" style={{ padding: '0', position: 'relative', overflow: 'hidden' }}>
-              {/* Left accent strip */}
-              <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', backgroundColor: accentColor, boxShadow: accentGlow }} />
-
-              {/* Group Header */}
-              <div 
-                onClick={() => toggleGroupScan(group.key)}
-                style={{ 
-                  padding: '20px 24px 14px 28px', 
-                  borderBottom: isCollapsed ? 'none' : '1px solid var(--glass-border)', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between', 
-                  flexWrap: 'wrap', 
-                  gap: '10px',
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                  transition: 'background-color 0.2s ease'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div style={{ 
-                    width: '32px', 
-                    height: '32px', 
-                    borderRadius: '8px', 
-                    backgroundColor: accentBg, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)'
-                  }}>
-                    {group.type === 'frontend' ? (
-                      <Globe size={16} style={{ color: 'var(--accent-purple)' }} />
-                    ) : group.type === 'vm' ? (
-                      <Server size={16} style={{ color: '#f59e0b' }} />
-                    ) : (
-                      <Cpu size={16} style={{ color: 'var(--accent-teal)' }} />
-                    )}
-                  </div>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
-                      {group.label}
-                      <span style={{ 
-                        fontSize: '0.62rem', 
-                        fontWeight: 700, 
-                        textTransform: 'uppercase', 
-                        letterSpacing: '0.04em',
-                        backgroundColor: getBadgeBgColor(group.type),
-                        color: getBadgeTextColor(group.type),
-                        padding: '2px 8px',
-                        borderRadius: '10px',
-                        border: '1px solid ' + (group.type === 'frontend' ? 'rgba(59, 130, 246, 0.2)' : group.type === 'vm' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)')
-                      }}>
-                        {group.type === 'frontend' ? 'SWA' : group.type === 'vm' ? 'VM' : 'ACA'}
-                      </span>
-                    </h3>
-                    {group.repoPath && (
-                      <p style={{ margin: '4px 0 0 0', fontSize: '0.74rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <GitBranch size={12} />
-                        {group.repoPath}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  {groupHasActiveDeployment && (
-                    <span style={{ 
-                      fontSize: '0.68rem', 
-                      fontWeight: 700,
-                      color: 'var(--accent-purple)', 
-                      background: 'rgba(139, 92, 246, 0.12)',
-                      border: '1px solid rgba(139, 92, 246, 0.3)',
-                      padding: '3px 8px',
-                      borderRadius: '12px',
-                      display: 'inline-flex', 
-                      alignItems: 'center', 
-                      gap: '6px',
-                      boxShadow: '0 0 8px rgba(139, 92, 246, 0.2)'
-                    }}>
-                      <RefreshCw size={10} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
-                      BUILD IN PROGRESS
-                    </span>
-                  )}
-
-                  {/* Health check loading spinner */}
-                  {isLoading && (
-                    <span style={{
-                      background: theme === 'light' ? 'rgba(59, 130, 246, 0.08)' : 'rgba(96, 165, 250, 0.12)',
-                      border: theme === 'light' ? '1px solid rgba(59, 130, 246, 0.25)' : '1px solid rgba(96, 165, 250, 0.35)',
-                      padding: '3px 8px',
-                      borderRadius: '12px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      fontSize: '0.74rem',
-                      color: theme === 'light' ? '#2563eb' : '#60a5fa',
-                      fontWeight: 600,
-                      boxShadow: theme === 'light' ? '0 1px 3px rgba(59, 130, 246, 0.05)' : '0 0 8px rgba(96, 165, 250, 0.25)',
-                      transition: 'all 0.2s ease',
-                      cursor: 'default'
-                    }}>
-                      <RefreshCw size={10} className="spin-anim" style={{ marginRight: '6px', color: theme === 'light' ? '#2563eb' : '#60a5fa' }} />
-                      Checking health...
-                    </span>
-                  )}
-
-                  {/* Default Pending Badge */}
-                  {!isLoading && !health && group.repoPath && group.type !== 'vm' && (
-                    <span 
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        border: '1px solid var(--glass-border)',
-                        padding: '3px 8px',
-                        borderRadius: '12px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontSize: '0.74rem',
-                        color: 'var(--text-secondary)',
-                        fontWeight: 600,
-                        cursor: 'default'
-                      }}
-                    >
-                      <Clock size={11} style={{ color: 'var(--text-secondary)' }} />
-                      <span>Health scan pending</span>
-                    </span>
-                  )}
-
-                  {/* Healthy Badge */}
-                  {!isLoading && health && (
-                    health.ymlHealth && 
-                    (group.type === 'frontend' && !health.ymlHealth.exists ? true : (health.ymlHealth.exists && health.ymlHealth.valid && health.ymlHealth.warningCount === 0)) &&
-                    (group.type !== 'backend' || !health.dockerfileHealth || !health.dockerfileHealth.exists || (health.dockerfileHealth.valid && health.dockerfileHealth.warningCount === 0))
-                  ) && (
-                    <span 
-                      style={{
-                        background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(52, 211, 153, 0.12)',
-                        border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(52, 211, 153, 0.3)',
-                        padding: '3px 8px',
-                        borderRadius: '12px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        fontSize: '0.74rem',
-                        color: theme === 'light' ? '#059669' : '#34d399',
-                        fontWeight: 600,
-                        boxShadow: theme === 'light' ? '0 1px 3px rgba(16, 185, 129, 0.05)' : '0 0 8px rgba(52, 211, 153, 0.25)',
-                        transition: 'all 0.2s ease',
-                        cursor: 'default'
-                      }}
-                      onMouseOver={(ev) => {
-                        ev.currentTarget.style.transform = 'scale(1.03)';
-                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 2px 6px rgba(16, 185, 129, 0.1)' : '0 0 12px rgba(52, 211, 153, 0.4)';
-                      }}
-                      onMouseOut={(ev) => {
-                        ev.currentTarget.style.transform = 'scale(1)';
-                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 1px 3px rgba(16, 185, 129, 0.05)' : '0 0 8px rgba(52, 211, 153, 0.25)';
-                      }}
-                    >
-                      <ShieldCheck size={11} style={{ color: theme === 'light' ? '#059669' : '#34d399' }} />
-                      <span>Healthy</span>
-                    </span >
-                  )}
-
-                  {/* Network Issues Badge */}
-                  {(() => {
-                    if (isLoading) return null;
-                    let hasCritical = false;
-                    let hasWarning = false;
-                    let hasInfo = false;
-                    
-                    for (const app of group.envs) {
-                      const validation = checkNetworkWarnings(app, group);
-                      if (validation) {
-                        if (validation.status === 'critical' || validation.status === 'unverified') hasCritical = true;
-                        else if (validation.status === 'warning') hasWarning = true;
-                        else if (validation.status === 'info') hasInfo = true;
-                      }
-                    }
-
-                    if (hasCritical) {
-                      return (
-                        <span 
-                          style={{
-                            background: theme === 'light' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.12)',
-                            border: theme === 'light' ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
-                            padding: '3px 8px',
-                            borderRadius: '12px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            fontSize: '0.74rem',
-                            color: theme === 'light' ? '#b91c1c' : '#f87171',
-                            boxShadow: theme === 'light' ? '0 1px 3px rgba(239, 68, 68, 0.05)' : '0 0 8px rgba(239, 68, 68, 0.2)',
-                            transition: 'all 0.2s ease',
-                            cursor: 'default'
-                          }}
-                          onMouseOver={(ev) => {
-                            ev.currentTarget.style.transform = 'scale(1.03)';
-                          }}
-                          onMouseOut={(ev) => {
-                            ev.currentTarget.style.transform = 'scale(1)';
-                          }}
-                        >
-                          <AlertCircle size={11} style={{ color: theme === 'light' ? '#b91c1c' : '#f87171' }} />
-                          <span>Critical Network Issue</span>
-                        </span>
-                      );
-                    }
-                    if (hasWarning) {
-                      return (
-                        <span 
-                          style={{
-                            background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
-                            border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
-                            padding: '3px 8px',
-                            borderRadius: '12px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            fontSize: '0.74rem',
-                            color: theme === 'light' ? '#b45309' : '#fbbf24',
-                            boxShadow: theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.05)' : '0 0 8px rgba(245, 158, 11, 0.2)',
-                            transition: 'all 0.2s ease',
-                            cursor: 'default'
-                          }}
-                          onMouseOver={(ev) => {
-                            ev.currentTarget.style.transform = 'scale(1.03)';
-                          }}
-                          onMouseOut={(ev) => {
-                            ev.currentTarget.style.transform = 'scale(1)';
-                          }}
-                        >
-                          <AlertTriangle size={11} style={{ color: theme === 'light' ? '#b45309' : '#fbbf24' }} />
-                          <span>Network Warning</span>
-                        </span>
-                      );
-                    }
-                    if (hasInfo) {
-                      return (
-                        <span 
-                          style={{
-                            background: theme === 'light' ? 'rgba(14, 165, 233, 0.08)' : 'rgba(14, 165, 233, 0.12)',
-                            border: theme === 'light' ? '1px solid rgba(14, 165, 233, 0.25)' : '1px solid rgba(14, 165, 233, 0.3)',
-                            padding: '3px 8px',
-                            borderRadius: '12px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            fontSize: '0.74rem',
-                            color: theme === 'light' ? '#0369a1' : '#38bdf8',
-                            boxShadow: theme === 'light' ? '0 1px 3px rgba(14, 165, 233, 0.05)' : '0 0 8px rgba(14, 165, 233, 0.2)',
-                            transition: 'all 0.2s ease',
-                            cursor: 'default'
-                          }}
-                          onMouseOver={(ev) => {
-                            ev.currentTarget.style.transform = 'scale(1.03)';
-                          }}
-                          onMouseOut={(ev) => {
-                            ev.currentTarget.style.transform = 'scale(1)';
-                          }}
-                        >
-                          <Info size={11} style={{ color: theme === 'light' ? '#0369a1' : '#38bdf8' }} />
-                          <span>Network Info</span>
-                        </span>
-                      );
-                    }
-                    return null;
-                  })()}
-
-                  {/* Scan Error Badge */}
-                  {!isLoading && health?.error && (
-                    <span 
-                      onMouseEnter={(e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        setHoveredErrorTooltipData({
-                          groupKey: group.key,
-                          errorMessage: health.message || 'Check failed',
-                          top: rect.top - 8,
-                          left: rect.left + rect.width / 2
-                        });
-                      }}
-                      onMouseLeave={() => setHoveredErrorTooltipData(null)}
-                      style={{
-                        position: 'relative',
-                        background: theme === 'light' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.12)',
-                        border: theme === 'light' ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
-                        padding: '3px 8px',
-                        borderRadius: '12px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontSize: '0.74rem',
-                        color: theme === 'light' ? '#dc2626' : '#f87171',
-                        fontWeight: 600,
-                        boxShadow: theme === 'light' ? '0 1px 3px rgba(239, 68, 68, 0.05)' : '0 0 8px rgba(239, 68, 68, 0.2)',
-                        transition: 'all 0.2s ease',
-                        cursor: 'default'
-                      }}
-                      onMouseOver={(ev) => {
-                        ev.currentTarget.style.transform = 'scale(1.03)';
-                      }}
-                      onMouseOut={(ev) => {
-                        ev.currentTarget.style.transform = 'scale(1)';
-                      }}
-                    >
-                      <AlertCircle size={11} />
-                      <span>
-                        {health.message?.toLowerCase().includes('abort') || health.message?.toLowerCase().includes('timeout')
-                          ? 'Cannot check (request timed out)'
-                          : `Cannot check (${health.message || 'Check failed'})`}
-                      </span>
-                      {refreshHealthForRepo && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            refreshHealthForRepo(firstEnv?.repositoryUrl || group.repoUrl || '');
-                          }}
-                          style={{
-                            background: 'rgba(255, 255, 255, 0.08)',
-                            border: '1px solid var(--glass-border)',
-                            color: theme === 'light' ? '#dc2626' : '#f87171',
-                            borderRadius: '4px',
-                            padding: '1px 6px',
-                            fontSize: '0.65rem',
-                            cursor: 'pointer',
-                            marginLeft: '8px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '3px',
-                            transition: 'all 0.2s'
-                          }}
-                          onMouseOver={(ev) => {
-                            ev.stopPropagation();
-                            ev.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
-                          }}
-                          onMouseOut={(ev) => {
-                            ev.stopPropagation();
-                            ev.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                          }}
-                        >
-                          <RefreshCw size={10} />
-                          Retry
-                        </button>
-                      )}
-                    </span>
-                  )}
-
-                  {/* YAML Issues Badge */}
-                  {!isLoading && health?.ymlHealth && health.ymlHealth.exists && !health.ymlHealth.valid && (
-                    <span 
-                      style={{
-                        background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
-                        border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
-                        padding: '3px 8px',
-                        borderRadius: '12px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontSize: '0.74rem',
-                        color: theme === 'light' ? '#b91c1c' : '#ef4444',
-                        boxShadow: theme === 'light' ? '0 1px 3px rgba(220, 38, 38, 0.05)' : '0 0 8px rgba(239, 68, 68, 0.2)',
-                        transition: 'all 0.2s ease',
-                        cursor: 'default'
-                      }}
-                      onMouseOver={(ev) => {
-                        ev.currentTarget.style.transform = 'scale(1.03)';
-                      }}
-                      onMouseOut={(ev) => {
-                        ev.currentTarget.style.transform = 'scale(1)';
-                      }}
-                    >
-                      <AlertCircle size={11} />
-                      <span>YAML Issues</span>
-                      {!isViewer && (
-                        <button
-                          onClick={handleFixYml}
-                          style={{
-                            background: theme === 'light' ? 'rgba(220, 38, 38, 0.15)' : 'rgba(239, 68, 68, 0.2)',
-                            border: 'none',
-                            borderRadius: '4px',
-                            color: theme === 'light' ? '#b91c1c' : '#ef4444',
-                            fontSize: '0.68rem',
-                            fontWeight: 700,
-                            padding: '1px 5px',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            transition: 'all 0.15s ease'
-                          }}
-                          onMouseOver={(ev) => {
-                            ev.stopPropagation();
-                            ev.currentTarget.style.background = theme === 'light' ? 'rgba(220, 38, 38, 0.25)' : 'rgba(239, 68, 68, 0.35)';
-                          }}
-                          onMouseOut={(ev) => {
-                            ev.stopPropagation();
-                            ev.currentTarget.style.background = theme === 'light' ? 'rgba(220, 38, 38, 0.15)' : 'rgba(239, 68, 68, 0.2)';
-                          }}
-                        >
-                          Fix →
-                        </button>
-                      )}
-                    </span>
-                  )}
-
-                  {/* Dockerfile Error Badge */}
-                  {!isLoading && health?.dockerfileHealth && health.dockerfileHealth.exists && !health.dockerfileHealth.valid && (
-                    <span 
-                      style={{
-                        background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
-                        border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
-                        padding: '3px 8px',
-                        borderRadius: '12px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontSize: '0.74rem',
-                        color: theme === 'light' ? '#b91c1c' : '#ef4444',
-                        boxShadow: theme === 'light' ? '0 1px 3px rgba(220, 38, 38, 0.05)' : '0 0 8px rgba(239, 68, 68, 0.2)',
-                        transition: 'all 0.2s ease',
-                        cursor: 'default'
-                      }}
-                      onMouseOver={(ev) => {
-                        ev.currentTarget.style.transform = 'scale(1.03)';
-                      }}
-                      onMouseOut={(ev) => {
-                        ev.currentTarget.style.transform = 'scale(1)';
-                      }}
-                    >
-                      <AlertCircle size={11} />
-                      <span>Dockerfile Error</span>
-                      {!isViewer && (
-                        <button
-                          onClick={handleFixDockerfile}
-                          style={{
-                            background: theme === 'light' ? 'rgba(220, 38, 38, 0.15)' : 'rgba(239, 68, 68, 0.2)',
-                            border: 'none',
-                            borderRadius: '4px',
-                            color: theme === 'light' ? '#b91c1c' : '#ef4444',
-                            fontSize: '0.68rem',
-                            fontWeight: 700,
-                            padding: '1px 5px',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            transition: 'all 0.15s ease'
-                          }}
-                          onMouseOver={(ev) => {
-                            ev.stopPropagation();
-                            ev.currentTarget.style.background = theme === 'light' ? 'rgba(220, 38, 38, 0.25)' : 'rgba(239, 68, 68, 0.35)';
-                          }}
-                          onMouseOut={(ev) => {
-                            ev.stopPropagation();
-                            ev.currentTarget.style.background = theme === 'light' ? 'rgba(220, 38, 38, 0.15)' : 'rgba(239, 68, 68, 0.2)';
-                          }}
-                        >
-                          Fix →
-                        </button>
-                      )}
-                    </span>
-                  )}
-
-                  {/* YAML Warnings Pill */}
-                  {!isLoading && health?.ymlHealth && health.ymlHealth.exists && health.ymlHealth.valid && health.ymlHealth.warningCount > 0 && (
-                    <span 
-                      style={{
-                        background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
-                        border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
-                        padding: '3px 8px',
-                        borderRadius: '12px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontSize: '0.74rem',
-                        color: theme === 'light' ? '#b45309' : '#fbbf24',
-                        fontWeight: 600,
-                        boxShadow: theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.05)' : '0 0 8px rgba(245, 158, 11, 0.2)',
-                        transition: 'all 0.2s ease',
-                        cursor: 'default'
-                      }}
-                      onMouseOver={(ev) => {
-                        ev.currentTarget.style.transform = 'scale(1.03)';
-                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 2px 6px rgba(245, 158, 11, 0.1)' : '0 0 12px rgba(245, 158, 11, 0.35)';
-                      }}
-                      onMouseOut={(ev) => {
-                        ev.currentTarget.style.transform = 'scale(1)';
-                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.05)' : '0 0 8px rgba(245, 158, 11, 0.2)';
-                      }}
-                    >
-                      <AlertCircle size={11} />
-                      <span>{health.ymlHealth.warningCount} YAML Warning{health.ymlHealth.warningCount > 1 ? 's' : ''}</span>
-                    </span>
-                  )}
-
-                  {/* Dockerfile Warnings Pill */}
-                  {!isLoading && health?.dockerfileHealth && health.dockerfileHealth.exists && health.dockerfileHealth.valid && health.dockerfileHealth.warningCount > 0 && (
-                    <span 
-                      style={{
-                        background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
-                        border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
-                        padding: '3px 8px',
-                        borderRadius: '12px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontSize: '0.74rem',
-                        color: theme === 'light' ? '#b45309' : '#fbbf24',
-                        fontWeight: 600,
-                        boxShadow: theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.05)' : '0 0 8px rgba(245, 158, 11, 0.2)',
-                        transition: 'all 0.2s ease',
-                        cursor: 'default'
-                      }}
-                      onMouseOver={(ev) => {
-                        ev.currentTarget.style.transform = 'scale(1.03)';
-                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 2px 6px rgba(245, 158, 11, 0.1)' : '0 0 12px rgba(245, 158, 11, 0.35)';
-                      }}
-                      onMouseOut={(ev) => {
-                        ev.currentTarget.style.transform = 'scale(1)';
-                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.05)' : '0 0 8px rgba(245, 158, 11, 0.2)';
-                      }}
-                    >
-                      <AlertCircle size={11} />
-                      <span>{health.dockerfileHealth.warningCount} Dockerfile Warning{health.dockerfileHealth.warningCount > 1 ? 's' : ''}</span>
-                    </span>
-                  )}
-
-                  {/* Environments count — hover opens a fixed-position portal tooltip */}
-                  <span
-                    style={{
-                      fontSize: '0.76rem',
-                      color: 'var(--text-secondary)',
-                      fontWeight: 500,
-                      cursor: 'default',
-                      textDecoration: 'underline dotted',
-                      textUnderlineOffset: '3px'
-                    }}
-                    onMouseEnter={(e) => {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      setGroupTooltipData({
-                        groupKey: group.key,
-                        accentColor,
-                        envs: group.envs,
-                        top: rect.top - 8,  // will render above
-                        right: window.innerWidth - rect.right
-                      });
-                    }}
-                    onMouseLeave={() => setGroupTooltipData(null)}
-                  >
-                    {group.envs.length} {group.envs.length === 1 ? 'Environment' : 'Environments'}
-                  </span>
-                  
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', opacity: 0.8, marginRight: '6px' }}>
-                    {isCollapsed ? 'Click to expand group' : 'Click to Collapse group'}
-                  </span>
-                  
-                  <button
-                    type="button"
-                    onClick={() => toggleGroupScan(group.key)}
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid var(--glass-border)',
-                      color: 'var(--text-secondary)',
-                      borderRadius: '6px',
-                      width: '28px',
-                      height: '28px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-                  </button>
-                </div>
               </div>
 
-              {/* Group Environments List */}
-              {!isCollapsed && (
-                <div style={{ padding: '8px 16px 20px 28px', display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(0,0,0,0.03)' }}>
-                    {group.envs.map((item) => {
-                      const tag = getEnvTag(item);
-                      const cardStyle = getCardStyles(item, theme);
-                      const isOrphaned = item.status?.toLowerCase() === 'stale' || item.status?.toLowerCase() === 'orphaned';
-                      
-                      return (
-                        <div 
-                          key={item.name} 
-                          style={{ 
-                            display: 'flex', 
-                            flexDirection: 'column',
-                            alignItems: 'stretch', 
-                            padding: '20px 18px 16px 18px', 
-                            borderRadius: '10px', 
-                            border: `1px solid ${cardStyle.border}`, 
-                            borderLeft: `4px solid ${cardStyle.color}`,
-                            background: cardStyle.background,
-                            transition: 'all 0.25s ease',
-                            gap: '12px',
-                            position: 'relative'
-                          }}
-                        >
-                          {/* Block 1: Basic Info Block */}
-                          <div style={{
-                            background: theme === 'light' ? 'rgba(255, 255, 255, 0.45)' : 'rgba(255, 255, 255, 0.03)',
-                            border: '1px solid var(--glass-border)',
-                            borderRadius: '12px',
-                            padding: '16px',
-                            boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '12px',
-                            width: '100%',
-                            boxSizing: 'border-box',
-                            position: 'relative'
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', width: '100%' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '280px' }}>
-                            {/* Env Tag */}
-                            <span style={{
-                              fontSize: '0.68rem',
-                              fontWeight: 700,
-                              color: tag.color,
-                              background: tag.bg,
-                              border: `1px solid ${tag.border}`,
-                              width: '46px',
-                              height: '22px',
-                              borderRadius: '4px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              letterSpacing: '0.04em',
-                              flexShrink: 0
-                            }}>
-                              {tag.label}
-                            </span>
+              {(() => {
+                if (filteredAppGroups.length === 0) {
+                  return (
+                    <div className="glass-panel" style={{ padding: '60px', textAlign: 'center', marginTop: '10px' }}>
+                      <Search size={48} style={{ color: 'var(--text-secondary)', marginBottom: '16px' }} />
+                      <h3>No resources match your filters</h3>
+                      <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
+                        Try refining your search query or changing the environment tag filter.
+                      </p>
+                    </div>
+                  );
+                }
 
-                            {/* Name & Domain Details */}
-                            <div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                 {item.type === 'frontend' ? (
-                                   <Globe size={12} style={{ color: 'var(--accent-purple)', opacity: 0.8, flexShrink: 0 }} />
-                                 ) : item.type === 'vm' ? (
-                                   <Server size={12} style={{ color: '#f59e0b', opacity: 0.8, flexShrink: 0 }} />
-                                 ) : (
-                                   <Cpu size={12} style={{ color: 'var(--accent-teal)', opacity: 0.8, flexShrink: 0 }} />
-                                 )}
-                                 <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)' }}>{item.name}</span>
-                                 
-                                 {item.license_frozen === 1 && (
-                                   <span style={{
-                                     fontSize: '0.62rem',
-                                     fontWeight: 700,
-                                     textTransform: 'uppercase',
-                                     color: '#ef4444',
-                                     background: 'rgba(239, 68, 68, 0.12)',
-                                     padding: '2px 6px',
-                                     borderRadius: '4px',
-                                     border: '1px solid rgba(239, 68, 68, 0.3)',
-                                     display: 'inline-flex',
-                                     alignItems: 'center'
-                                   }} title="Environment frozen. Decommission or upgrade to manage.">
-                                     🔒 FROZEN
-                                   </span>
-                                 )}
+                const swaGroups = filteredAppGroups.filter(g => g.type === 'frontend');
+                const acaGroups = filteredAppGroups.filter(g => g.type === 'backend');
+                const vmGroups = filteredAppGroups.filter(g => g.type === 'vm');
+                // YAML tab: all groups that have yaml health data (swa + aca)
+                const yamlGroups = filteredAppGroups.filter(g => g.type === 'frontend' || g.type === 'backend');
+                // Docker tab: backend (ACA) groups only — Dockerfiles belong to container apps
+                const dockerGroups = filteredAppGroups.filter(g => g.type === 'backend');
 
-                                {item.isTestResource && (
-                                  <span style={{
-                                    fontSize: '0.62rem',
-                                    fontWeight: 700,
-                                    textTransform: 'uppercase',
-                                    color: '#94a3b8',
-                                    background: 'rgba(148, 163, 184, 0.12)',
-                                    padding: '2px 6px',
-                                    borderRadius: '4px',
-                                    border: '1px solid rgba(148, 163, 184, 0.2)'
-                                  }}>
-                                    Dev / Test
-                                  </span>
+                const allCategories = [
+                  {
+                    key: 'swa' as const,
+                    label: 'Static Web Apps',
+                    shortLabel: 'SWA',
+                    description: 'Azure Static Web Apps — host frontend SPAs and static sites with global CDN, SSL, and custom domains.',
+                    groups: swaGroups,
+                    icon: <Globe size={16} />,
+                    color: 'var(--accent-purple)',
+                    colorRaw: '#8b5cf6',
+                    bg: 'rgba(139,92,246,0.12)',
+                    glow: 'rgba(139,92,246,0.4)'
+                  },
+                  {
+                    key: 'aca' as const,
+                    label: 'Container Apps',
+                    shortLabel: 'ACA',
+                    description: 'Azure Container Apps — serverless containers with automatic scaling, zero-downtime blue/green deployments, and traffic splitting.',
+                    groups: acaGroups,
+                    icon: <Cpu size={16} />,
+                    color: 'var(--accent-teal)',
+                    colorRaw: '#14b8a6',
+                    bg: 'rgba(20,184,166,0.12)',
+                    glow: 'rgba(20,184,166,0.4)'
+                  },
+                  {
+                    key: 'vm' as const,
+                    label: 'Virtual Machines',
+                    shortLabel: 'VM',
+                    description: 'Azure Virtual Machines — full IaaS compute instances with SSH access, custom OS, and on-demand start/stop power controls.',
+                    groups: vmGroups,
+                    icon: <Server size={16} />,
+                    color: '#f59e0b',
+                    colorRaw: '#f59e0b',
+                    bg: 'rgba(245,158,11,0.12)',
+                    glow: 'rgba(245,158,11,0.4)'
+                  }
+                ];
+
+                const visibleCategories = allCategories.filter(c => c.groups.length > 0);
+                // Default to first visible tab if activeDashboardTab not visible
+                const activeTab = visibleCategories.find(c => c.key === activeDashboardTab) ? activeDashboardTab : (visibleCategories[0]?.key ?? 'swa');
+                const activeCategory = visibleCategories.find(c => c.key === activeTab);
+
+                return (
+                  <>
+                    {/* ── Tab Navigation Bar ── */}
+                    <div style={{
+                      display: 'flex',
+                      gap: '4px',
+                      padding: '6px',
+                      marginBottom: '20px',
+                      background: theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)',
+                      borderRadius: '14px',
+                      border: '1px solid var(--glass-border)',
+                      position: 'relative'
+                    }}>
+                      {visibleCategories.map(cat => {
+                        const isActive = cat.key === activeTab;
+                        const catHasActiveBuild = cat.groups.some(g => g.envs.some(e => e.pipelineRun && isBuildActive(e.pipelineRun)));
+                        const runningCount = cat.groups.reduce((sum, g) => sum + g.envs.filter(e => (e.status || '').toLowerCase() === 'running' || (e.status || '').toLowerCase() === 'deployed').length, 0);
+                        const stoppedCount = cat.groups.reduce((sum, g) => sum + g.envs.filter(e => (e.status || '').toLowerCase() === 'stopped' || (e.status || '').toLowerCase() === 'sleep').length, 0);
+                        const totalEnvs = cat.groups.reduce((sum, g) => sum + g.envs.length, 0);
+
+                        return (
+                          <div
+                            key={cat.key}
+                            style={{ position: 'relative', flex: 1 }}
+                            onMouseEnter={() => setHoveredTab(cat.key)}
+                            onMouseLeave={() => setHoveredTab(null)}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setActiveDashboardTab(cat.key)}
+                              style={{
+                                width: '100%',
+                                padding: '10px 16px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px',
+                                borderRadius: '10px',
+                                border: isActive ? `1px solid ${cat.color}50` : '1px solid transparent',
+                                background: isActive
+                                  ? (theme === 'light' ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.07)')
+                                  : 'transparent',
+                                boxShadow: isActive ? `0 2px 12px ${cat.glow}30, inset 0 1px 0 rgba(255,255,255,0.1)` : 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                color: isActive ? cat.color : 'var(--text-secondary)',
+                                fontWeight: isActive ? 700 : 500,
+                                fontSize: '0.84rem',
+                                letterSpacing: '0.01em',
+                                position: 'relative',
+                                overflow: 'hidden'
+                              }}
+                              onMouseEnter={(e) => {
+                                if (!isActive) {
+                                  e.currentTarget.style.background = theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)';
+                                  e.currentTarget.style.color = 'var(--text-primary)';
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!isActive) {
+                                  e.currentTarget.style.background = 'transparent';
+                                  e.currentTarget.style.color = 'var(--text-secondary)';
+                                }
+                              }}
+                            >
+                              {/* Tab icon */}
+                              <span style={{ opacity: isActive ? 1 : 0.65 }}>{cat.icon}</span>
+
+                              {/* Tab label */}
+                              <span>{cat.shortLabel}</span>
+
+                              {/* Resources count badge */}
+                              <span style={{
+                                fontSize: '0.62rem',
+                                fontWeight: 700,
+                                backgroundColor: isActive ? cat.bg : 'rgba(148,163,184,0.15)',
+                                color: isActive ? cat.color : 'var(--text-secondary)',
+                                padding: '1px 7px',
+                                borderRadius: '10px',
+                                border: isActive ? `1px solid ${cat.colorRaw}30` : '1px solid transparent',
+                                transition: 'all 0.2s ease'
+                              }}>
+                                {cat.groups.length}
+                              </span>
+
+                              {/* Pulsing build-in-progress indicator */}
+                              {catHasActiveBuild && (
+                                <span style={{
+                                  width: '7px',
+                                  height: '7px',
+                                  borderRadius: '50%',
+                                  backgroundColor: '#10b981',
+                                  boxShadow: '0 0 6px rgba(16,185,129,0.8)',
+                                  display: 'inline-block',
+                                  flexShrink: 0
+                                }} className="play-pulse-anim" title="Active build in progress" />
+                              )}
+                            </button>
+
+                            {/* Hover Tooltip */}
+                            {hoveredTab === cat.key && (
+                              <div style={{
+                                position: 'absolute',
+                                top: 'calc(100% + 8px)',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                zIndex: 9000,
+                                background: '#090d16',
+                                border: '1px solid rgba(255, 255, 255, 0.15)',
+                                borderRadius: '10px',
+                                padding: '12px 14px',
+                                minWidth: '220px',
+                                boxShadow: '0 8px 30px rgba(0,0,0,0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+                                pointerEvents: 'none',
+                                color: '#e2e8f0'
+                              }}>
+                                {/* Arrow */}
+                                <div style={{
+                                  position: 'absolute',
+                                  top: '-5px',
+                                  left: '50%',
+                                  transform: 'translateX(-50%)',
+                                  width: '10px',
+                                  height: '10px',
+                                  background: '#090d16',
+                                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                                  borderBottom: 'none',
+                                  borderRight: 'none',
+                                  rotate: '45deg'
+                                }} />
+                                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: cat.color, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  {cat.icon} {cat.label} ({cat.shortLabel})
+                                </div>
+                                <div style={{ fontSize: '0.7rem', color: '#cbd5e1', lineHeight: 1.5, marginBottom: '8px' }}>
+                                  {cat.description}
+                                </div>
+                                <div style={{ display: 'flex', gap: '10px', paddingTop: '6px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', fontWeight: 600, color: '#34d399' }}>
+                                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#34d399', display: 'inline-block' }} />
+                                    {runningCount} Running
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', fontWeight: 600, color: '#f87171' }}>
+                                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#f87171', display: 'inline-block' }} />
+                                    {stoppedCount} Stopped
+                                  </div>
+                                  {totalEnvs - runningCount - stoppedCount > 0 && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', fontWeight: 600, color: '#94a3b8' }}>
+                                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#94a3b8', display: 'inline-block' }} />
+                                      {totalEnvs - runningCount - stoppedCount} Other
+                                    </div>
+                                  )}
+                                </div>
+                                {catHasActiveBuild && (
+                                  <div style={{ marginTop: '6px', padding: '4px 8px', background: 'rgba(16,185,129,0.1)', borderRadius: '6px', border: '1px solid rgba(16,185,129,0.25)', fontSize: '0.66rem', fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }} className="play-pulse-anim" />
+                                    Active build in progress
+                                  </div>
                                 )}
-                                {isOrphaned && (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* ── Active Tab Description Banner ── */}
+                    {activeCategory && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '10px 16px',
+                        marginBottom: '16px',
+                        borderRadius: '10px',
+                        background: activeCategory.bg,
+                        border: `1px solid ${activeCategory.colorRaw}25`,
+                        fontSize: '0.74rem',
+                        color: 'var(--text-secondary)',
+                        lineHeight: 1.5
+                      }}>
+                        <span style={{ color: activeCategory.color, flexShrink: 0 }}>{activeCategory.icon}</span>
+                        <span><strong style={{ color: activeCategory.color }}>{activeCategory.label} ({activeCategory.shortLabel}):</strong> {activeCategory.description}</span>
+                      </div>
+                    )}
+
+                    {/* ── Active Tab Groups ── */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                      {(activeCategory?.groups ?? []).map((group) => {
+                        const accentColor = group.type === 'vm' ? '#f59e0b' : (group.type === 'frontend' ? 'var(--accent-purple)' : 'var(--accent-teal)');
+                        const accentBg = group.type === 'vm' ? 'rgba(245,158,11,0.1)' : (group.type === 'frontend' ? 'rgba(139,92,246,0.1)' : 'rgba(20,184,166,0.1)');
+                        const accentGlow = group.type === 'vm' ? '0 0 10px rgba(245,158,11,0.4)' : (group.type === 'frontend' ? '0 0 10px var(--accent-purple-glow)' : '0 0 10px var(--accent-teal-glow)');
+
+                        const isCollapsed = collapsedScanGroups[group.key] !== false;
+                        const groupHasActiveDeployment = group.envs.some(app => !!(app.pipelineRun && isBuildActive(app.pipelineRun)));
+
+                        const health = ymlHealthMap?.[group.key];
+                        const isLoading = ymlHealthLoading?.[group.key];
+                        const firstEnv = group.envs?.[0];
+
+                        const handleFixYml = (e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          if (firstEnv) openPipelineModal(firstEnv, group);
+                        };
+
+                        const handleFixDockerfile = (e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          if (firstEnv) openDockerfileEditor(firstEnv, group);
+                        };
+
+                        // ── Standard SWA / ACA / VM card accordion ──────────────────────────────
+                        return (
+                          <div key={group.key} className="glass-panel" style={{ padding: '0', position: 'relative', overflow: 'hidden' }}>
+                            {/* Left accent strip */}
+                            <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', backgroundColor: accentColor, boxShadow: accentGlow }} />
+
+                            {/* Group Header */}
+                            <div
+                              onClick={() => toggleGroupScan(group.key)}
+                              style={{
+                                padding: '20px 24px 14px 28px',
+                                borderBottom: isCollapsed ? 'none' : '1px solid var(--glass-border)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                flexWrap: 'wrap',
+                                gap: '10px',
+                                cursor: 'pointer',
+                                userSelect: 'none',
+                                transition: 'background-color 0.2s ease'
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                                <div style={{
+                                  width: '32px',
+                                  height: '32px',
+                                  borderRadius: '8px',
+                                  backgroundColor: accentBg,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1)'
+                                }}>
+                                  {group.type === 'frontend' ? (
+                                    <Globe size={16} style={{ color: 'var(--accent-purple)' }} />
+                                  ) : group.type === 'vm' ? (
+                                    <Server size={16} style={{ color: '#f59e0b' }} />
+                                  ) : (
+                                    <Cpu size={16} style={{ color: 'var(--accent-teal)' }} />
+                                  )}
+                                </div>
+                                <div>
+                                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                                    {group.label}
                                     <span style={{
                                       fontSize: '0.62rem',
                                       fontWeight: 700,
                                       textTransform: 'uppercase',
-                                      color: 'var(--error)',
-                                      background: theme === 'light' ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)',
-                                      padding: '2px 6px',
-                                      borderRadius: '4px',
-                                      border: '1px solid rgba(239, 68, 68, 0.2)'
-                                    }}>
-                                      Stale / Not In Use
-                                    </span>
-                                    {(item.type === 'frontend' || item.type === 'backend') && (
-                                       <button
-                                         type="button"
-                                         onClick={(e) => {
-                                           e.stopPropagation();
-                                           handleDeleteApp(item.name, item.type as 'frontend' | 'backend');
-                                         }}
-                                         disabled={isViewer || deletingAppName === item.name}
-                                         style={{
-                                           background: isViewer ? 'rgba(255,255,255,0.01)' : 'rgba(239, 68, 68, 0.15)',
-                                           border: isViewer ? '1px solid var(--glass-border)' : '1px solid rgba(239, 68, 68, 0.3)',
-                                           color: isViewer ? 'var(--text-muted)' : 'var(--error)',
-                                           borderRadius: '4px',
-                                           padding: '2px 8px',
-                                           fontSize: '0.65rem',
-                                           cursor: isViewer ? 'not-allowed' : 'pointer',
-                                           fontWeight: 600,
-                                           display: 'inline-flex',
-                                           alignItems: 'center',
-                                           gap: '4px',
-                                           opacity: isViewer ? 0.6 : 1
-                                         }}
-                                       >
-                                         {deletingAppName === item.name ? (
-                                           <RefreshCw size={10} className="spin-anim" />
-                                         ) : (
-                                           <Trash2 size={10} />
-                                         )}
-                                         Delete
-                                       </button>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                              {item.dnsDetails?.fqdn && (
-                                <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
-                                  <Globe size={12} style={{ opacity: 0.7, color: 'var(--accent-purple)', flexShrink: 0 }} />
-                                  <span>Domain: <a 
-                                    href={`https://${item.dnsDetails.fqdn}`} 
-                                    target="_blank" 
-                                    rel="noreferrer" 
-                                    style={{ color: 'var(--accent-purple)', textDecoration: 'none', fontWeight: 600 }}
-                                  >
-                                    {item.dnsDetails.fqdn}
-                                  </a></span>
-                                </div>
-                              )}
-                              {item.repositoryUrl && (
-                                <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
-                                  <Github size={12} style={{ opacity: 0.7, color: 'var(--accent-blue)', flexShrink: 0 }} />
-                                  <span>GitHub: <a 
-                                    href={item.repositoryUrl} 
-                                    target="_blank" 
-                                    rel="noreferrer" 
-                                    style={{ color: 'var(--accent-blue)', textDecoration: 'none', fontWeight: 600 }}
-                                  >
-                                    {item.repositoryUrl.replace('https://github.com/', '')}
-                                  </a></span>
-                                </div>
-                              )}
-
-                              {/* Branch Details */}
-                              <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
-                                <GitBranch size={12} style={{ opacity: 0.7, color: 'var(--accent-purple)', flexShrink: 0 }} />
-                                <span>Branch: <strong style={{ color: 'var(--text-primary)' }}>{resolveBranchName(item)}</strong></span>
-                                {item.pipelineRun && isBuildActive(item.pipelineRun) && (
-                                  <span style={{ 
-                                    marginLeft: '8px', 
-                                    display: 'inline-flex', 
-                                    alignItems: 'center', 
-                                    gap: '4px', 
-                                    color: 'var(--accent-purple)', 
-                                    fontWeight: 600,
-                                    fontSize: '0.68rem',
-                                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                                    padding: '1px 6px',
-                                    borderRadius: '4px',
-                                    border: '1px solid rgba(139, 92, 246, 0.2)'
-                                  }}>
-                                    <RefreshCw size={10} className="spin-anim" />
-                                    Build in progress...
-                                  </span>
-                                )}
-                                {item.pipelineId && !item.pipelineRun && !loadedPipelines[item.pipelineId] && (
-                                  <span style={{ 
-                                    marginLeft: '8px', 
-                                    display: 'inline-flex', 
-                                    alignItems: 'center', 
-                                    gap: '4px', 
-                                    color: 'var(--accent-purple)', 
-                                    fontWeight: 500,
-                                    fontSize: '0.68rem'
-                                  }}>
-                                    <RefreshCw size={10} className="spin-anim" />
-                                    loading status...
-                                  </span>
-                                )}
-                              </div>
-
-                              {/* Pipeline Details */}
-                              <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
-                                <Server size={12} style={{ opacity: 0.7, color: 'var(--accent-teal)', flexShrink: 0 }} />
-                                <span>Pipeline: <strong style={{ color: item.pipelineName ? 'var(--success)' : '#ef4444' }}>{item.pipelineName || 'Not Set'}</strong></span>
-                                {item.pipelineId && onShowBuildHistory && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); onShowBuildHistory(item); }}
-                                    style={{
-                                      background: 'none',
-                                      color: 'var(--text-secondary)',
-                                      cursor: 'pointer',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '4px',
-                                      padding: '2px 6px',
-                                      borderRadius: '4px',
-                                      fontSize: '0.66rem',
-                                      border: '1px solid var(--glass-border)',
-                                      marginLeft: '8px',
-                                      transition: 'all 0.2s'
-                                    }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'none'; }}
-                                    title="View build history & revisions"
-                                  >
-                                    <Clock size={10} />
-                                    <span>History</span>
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                            </div>
-                            
-                            {(() => {
-                              const statusInfo = getStatusDetails(item.status, item.type);
-                              const isLight = theme === 'light';
-                              
-                              let pillBg = '#1e293b';
-                              let pillBorder = '#334155';
-                              let pillText = '#94a3b8';
-                              
-                              if (statusInfo.color === '#10b981') {
-                                pillBg = isLight ? '#d1fae5' : '#064e3b';
-                                pillBorder = isLight ? '#10b981' : '#059669';
-                                pillText = isLight ? '#065f46' : '#a7f3d0';
-                              } else if (statusInfo.color === '#ef4444') {
-                                pillBg = isLight ? '#fee2e2' : '#7f1d1d';
-                                pillBorder = isLight ? '#ef4444' : '#dc2626';
-                                pillText = isLight ? '#991b1b' : '#fca5a5';
-                              } else {
-                                pillBg = isLight ? '#fef3c7' : '#78350f';
-                                pillBorder = isLight ? '#f59e0b' : '#d97706';
-                                pillText = isLight ? '#78350f' : '#fde68a';
-                              }
-
-                              return (
-                                <div style={{ 
-                                  position: 'absolute',
-                                  top: '-10px',
-                                  right: '16px',
-                                  display: 'inline-flex', 
-                                  alignItems: 'center', 
-                                  gap: '6px', 
-                                  padding: '4px 10px', 
-                                  borderRadius: '6px',
-                                  backgroundColor: pillBg,
-                                  border: `1px solid ${pillBorder}`,
-                                  zIndex: 10
-                                }} title={`Status: ${statusInfo.label}`}>
-                                  <span style={{
-                                    width: '6px',
-                                    height: '6px',
-                                    borderRadius: '50%',
-                                    backgroundColor: statusInfo.color,
-                                    boxShadow: `0 0 6px ${statusInfo.color}`,
-                                    display: 'inline-block'
-                                  }} />
-                                  <span style={{ 
-                                    fontSize: '0.68rem', 
-                                    color: pillText, 
-                                    fontWeight: 700, 
-                                    textTransform: 'uppercase', 
-                                    letterSpacing: '0.05em' 
-                                  }}>{statusInfo.label}</span>
-                                </div>
-                              );
-                            })()}
-                            </div> {/* End Header Row */}
-
-                          {/* Action Buttons & Decluttered controls (Restructured into Upper Section) */}
-                          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-
-                              {/* Primary Browse Link (Only SWAs/ACAs with hostnames) */}
-                              {item.hostname && item.type !== 'vm' && (
-                                <a 
-                                  href={item.dnsDetails?.fqdn ? `https://${item.dnsDetails.fqdn}` : `https://${item.hostname}`} 
-                                  target="_blank" 
-                                  rel="noreferrer" 
-                                  className="btn-secondary" 
-                                  style={{ padding: '6px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', textDecoration: 'none' }}
-                                >
-                                  <Globe size={12} />
-                                  Browse
-                                </a>
-                              )}
-
-                              {/* Blue-Green routing switch for ACA & CNAME swap config for SWA */}
-                              {item.type !== 'vm' && (
-                                item.type === 'backend' ? (
-                                  <div style={{ 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: '6px', 
-                                    backgroundColor: 'rgba(255,255,255,0.02)', 
-                                    padding: '3px 6px', 
-                                    borderRadius: '8px', 
-                                    border: '1px solid var(--glass-border)' 
-                                  }}>
-                                    <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', padding: '0 4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>B/G Mode:</span>
-                                    <div style={{ display: 'flex', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', padding: '2px' }}>
-                                      <button
-                                        type="button"
-                                        disabled={isViewer || item.license_frozen === 1}
-                                        onClick={async (e) => {
-                                          e.stopPropagation();
-                                          await handleToggleRevisionMode(item.name, 'Single');
-                                        }}
-                                        style={{
-                                          padding: '4px 10px',
-                                          fontSize: '0.66rem',
-                                          fontWeight: 700,
-                                          borderRadius: '4px',
-                                          border: 'none',
-                                          backgroundColor: (isViewer || item.license_frozen === 1) ? 'transparent' : (bgModeState[item.name] !== 'Multiple' && item.status !== 'multiple') ? 'var(--accent-purple, #8b5cf6)' : 'transparent',
-                                          color: (isViewer || item.license_frozen === 1) ? 'rgba(255,255,255,0.35)' : (bgModeState[item.name] !== 'Multiple' && item.status !== 'multiple') ? '#fff' : 'var(--text-secondary)',
-                                          cursor: (isViewer || item.license_frozen === 1) ? 'not-allowed' : 'pointer',
-                                          opacity: (isViewer || item.license_frozen === 1) ? 0.35 : 1,
-                                          transition: 'all 0.2s ease'
-                                        }}
-                                        title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
-                                      >
-                                        Single
-                                      </button>
-                                      <button
-                                        type="button"
-                                        disabled={isViewer || item.license_frozen === 1}
-                                        onClick={async (e) => {
-                                          e.stopPropagation();
-                                          await handleToggleRevisionMode(item.name, 'Multiple');
-                                          setBgDrawerApp(item);
-                                          fetchRevisions(item);
-                                        }}
-                                        style={{
-                                          padding: '4px 10px',
-                                          fontSize: '0.66rem',
-                                          fontWeight: 700,
-                                          borderRadius: '4px',
-                                          border: 'none',
-                                          backgroundColor: (isViewer || item.license_frozen === 1) ? 'transparent' : (bgModeState[item.name] === 'Multiple' || item.status === 'multiple') ? 'var(--accent-purple, #8b5cf6)' : 'transparent',
-                                          color: (isViewer || item.license_frozen === 1) ? 'rgba(255,255,255,0.35)' : (bgModeState[item.name] === 'Multiple' || item.status === 'multiple') ? '#fff' : 'var(--text-secondary)',
-                                          cursor: (isViewer || item.license_frozen === 1) ? 'not-allowed' : 'pointer',
-                                          opacity: (isViewer || item.license_frozen === 1) ? 0.35 : 1,
-                                          transition: 'all 0.2s ease'
-                                        }}
-                                        title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
-                                      >
-                                        Multi
-                                      </button>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      className="btn-secondary"
-                                      disabled={item.license_frozen === 1}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setBgDrawerApp(item);
-                                        fetchRevisions(item);
-                                      }}
-                                      style={{
-                                        width: '24px',
-                                        height: '24px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        borderRadius: '6px',
-                                        padding: 0,
-                                        border: 'none',
-                                        background: item.license_frozen === 1 ? 'rgba(255, 255, 255, 0.01)' : 'rgba(255, 255, 255, 0.04)',
-                                        cursor: item.license_frozen === 1 ? 'not-allowed' : 'pointer',
-                                        opacity: item.license_frozen === 1 ? 0.35 : 1
-                                      }}
-                                      title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : "Configure Traffic Split"}
-                                    >
-                                      <Sliders size={11} style={{ color: item.license_frozen === 1 ? 'rgba(255,255,255,0.25)' : 'var(--accent-purple)' }} />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    disabled={item.license_frozen === 1}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setBgDrawerApp(item);
-                                      fetchRevisions(item);
-                                    }}
-                                    style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '6px',
-                                      padding: '5px 12px',
-                                      fontSize: '0.7rem',
-                                      borderRadius: '8px',
-                                      fontWeight: 700,
-                                      backgroundColor: item.license_frozen === 1 ? 'rgba(255,255,255,0.01)' : 'rgba(139, 92, 246, 0.08)',
-                                      border: item.license_frozen === 1 ? '1px dashed var(--glass-border)' : '1px solid rgba(139, 92, 246, 0.2)',
-                                      color: item.license_frozen === 1 ? 'var(--text-muted)' : 'var(--accent-purple, #8b5cf6)',
-                                      transition: 'all 0.2s ease',
-                                      cursor: item.license_frozen === 1 ? 'not-allowed' : 'pointer',
-                                      opacity: item.license_frozen === 1 ? 0.35 : 1
-                                    }}
-                                    title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : "Configure B/G Swap"}
-                                  >
-                                    <GitCompare size={12} />
-                                    Configure B/G Swap
-                                  </button>
-                                )
-                              )}
-
-                              {/* Power Controls — Status Dropdown */}
-                              {(() => {
-                                const isCritical = item.name.toLowerCase().includes('evaops') ||
-                                                   item.name.toLowerCase().includes('devops-backend') ||
-                                                   item.name.toLowerCase().includes('devops-frontend');
-                                const isControlling = controllingResource === item.name;
-                                const s = (item.status || '').toLowerCase();
-                                const isStarted = s === 'running' || s === 'deployed';
-                                const isStopped = s === 'stopped' || s === 'sleep' || s === 'offline';
-                                const isOpen = activePowerDropdown === item.name;
-                                const isDisabled = isViewer || isControlling || item.license_frozen === 1;
-
-                                // Derive button appearance from runtime state
-                                let btnBg = 'rgba(255,255,255,0.02)';
-                                let btnColor = 'var(--text-secondary)';
-                                let btnBorder = 'var(--glass-border, rgba(255,255,255,0.08))';
-                                let btnText = 'Unknown';
-                                let btnIcon = <Square size={10} />;
-
-                                if (isControlling) {
-                                  btnBg = 'rgba(59,130,246,0.08)'; btnColor = '#3b82f6';
-                                  btnBorder = 'rgba(59,130,246,0.2)'; btnText = 'Updating…';
-                                  btnIcon = <RefreshCw size={10} className="spin-anim" />;
-                                  } else if (isStarted) {
-                                  btnBg = 'rgba(16,185,129,0.08)'; btnColor = '#10b981';
-                                  btnBorder = 'rgba(16,185,129,0.2)'; btnText = 'Running';
-                                  btnIcon = <Play size={10} fill="#10b981" className="play-pulse-anim" />;
-                                  } else if (isStopped) {
-                                  btnBg = 'rgba(239,68,68,0.08)'; btnColor = '#ef4444';
-                                  btnBorder = 'rgba(239,68,68,0.2)'; btnText = 'Stopped';
-                                  btnIcon = <Square size={10} fill="#ef4444" />;
-                                }
-
-                                // Per-action disabled flags
-                                const startDis  = isViewer || isControlling || isStarted  || isCritical || item.license_frozen === 1;
-                                const restartDis = isViewer || isControlling || isStopped  || isCritical || item.license_frozen === 1;
-                                const stopDis   = isViewer || isControlling || isStopped  || isCritical || item.license_frozen === 1;
-
-                                return (
-                                  <div style={{ position: 'relative' }}>
-                                    {/* Trigger button */}
-                                    <button
-                                      type="button"
-                                      disabled={isDisabled}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (isOpen) {
-                                          setActivePowerDropdown(null);
-                                          setPowerDropdownCoords(null);
-                                        } else {
-                                          const rect = e.currentTarget.getBoundingClientRect();
-                                          setPowerDropdownCoords({ top: rect.bottom + 6, left: rect.right - 130 });
-                                          setActivePowerDropdown(item.name);
-                                        }
-                                      }}
-                                      style={{
-                                        display: 'inline-flex', alignItems: 'center', gap: '6px',
-                                        padding: '6px 12px', borderRadius: '8px',
-                                        backgroundColor: (isViewer || item.license_frozen === 1) ? (theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)') : btnBg,
-                                        color: (isViewer || item.license_frozen === 1) ? (theme === 'light' ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)') : btnColor,
-                                        border: (isViewer || item.license_frozen === 1) ? '1px dashed var(--glass-border)' : `1px solid ${btnBorder}`,
-                                        fontSize: '0.72rem', fontWeight: 700,
-                                        cursor: isDisabled ? 'not-allowed' : 'pointer',
-                                        transition: 'all 0.2s ease',
-                                        opacity: (isViewer || item.license_frozen === 1) ? 0.35 : 1
-                                      }}
-                                      title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
-                                    >
-                                      {btnIcon}
-                                      <span>{btnText}</span>
-                                      <ChevronDown size={12} style={{ opacity: isDisabled ? 0.35 : 0.7 }} />
-                                    </button>
-
-                                    {/* Dropdown menu */}
-                                    {isOpen && powerDropdownCoords && (() => {
-                                      const disabledColor = theme === 'light' ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.25)';
-                                      const hoverBgColor = theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)';
-                                      return (
-                                        <>
-                                          {/* Backdrop to close on outside click */}
-                                          <div
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setActivePowerDropdown(null);
-                                              setPowerDropdownCoords(null);
-                                            }}
-                                            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998, cursor: 'default' }}
-                                          />
-                                          <div style={{
-                                            position: 'fixed',
-                                            top: powerDropdownCoords.top,
-                                            left: Math.max(8, powerDropdownCoords.left),
-                                            backgroundColor: 'var(--bg-secondary, #0f172a)',
-                                            border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
-                                            borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-                                            zIndex: 9999, minWidth: '130px',
-                                            display: 'flex', flexDirection: 'column',
-                                            padding: '4px 0', overflow: 'hidden'
-                                          }}>
-                                            {/* Start */}
-                                            <button
-                                              type="button"
-                                              disabled={startDis}
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setPendingPowerAction({ name: item.name, action: 'start' });
-                                                setActivePowerDropdown(null);
-                                                setPowerDropdownCoords(null);
-                                              }}
-                                              onMouseEnter={(e) => { if (!startDis) e.currentTarget.style.backgroundColor = hoverBgColor; }}
-                                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                              style={{
-                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                                padding: '8px 14px', fontSize: '0.75rem',
-                                                background: 'none', border: 'none', width: '100%', textAlign: 'left',
-                                                color: startDis ? disabledColor : 'var(--text-primary)',
-                                                cursor: startDis ? 'not-allowed' : 'pointer',
-                                                opacity: startDis ? 0.35 : 1
-                                              }}
-                                            >
-                                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <Play size={12} style={{ color: startDis ? disabledColor : '#10b981' }}
-                                                  fill={startDis ? 'none' : '#10b981'} />
-                                                <span>Start</span>
-                                              </div>
-                                              {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
-                                            </button>
-
-                                            {/* Restart */}
-                                            <button
-                                              type="button"
-                                              disabled={restartDis}
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setPendingPowerAction({ name: item.name, action: 'restart' });
-                                                setActivePowerDropdown(null);
-                                                setPowerDropdownCoords(null);
-                                              }}
-                                              onMouseEnter={(e) => { if (!restartDis) e.currentTarget.style.backgroundColor = hoverBgColor; }}
-                                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                              style={{
-                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                                padding: '8px 14px', fontSize: '0.75rem',
-                                                background: 'none', border: 'none', width: '100%', textAlign: 'left',
-                                                color: restartDis ? disabledColor : 'var(--text-primary)',
-                                                cursor: restartDis ? 'not-allowed' : 'pointer',
-                                                opacity: restartDis ? 0.35 : 1
-                                              }}
-                                            >
-                                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <RefreshCw size={12} style={{ color: restartDis ? disabledColor : '#3b82f6' }} />
-                                                <span>Restart</span>
-                                              </div>
-                                              {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
-                                            </button>
-
-                                            {/* Stop */}
-                                            <button
-                                              type="button"
-                                              disabled={stopDis}
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setPendingPowerAction({ name: item.name, action: 'stop' });
-                                                setActivePowerDropdown(null);
-                                                setPowerDropdownCoords(null);
-                                              }}
-                                              onMouseEnter={(e) => { if (!stopDis) e.currentTarget.style.backgroundColor = hoverBgColor; }}
-                                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                              style={{
-                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                                padding: '8px 14px', fontSize: '0.75rem',
-                                                background: 'none', border: 'none', width: '100%', textAlign: 'left',
-                                                color: stopDis ? disabledColor : 'var(--text-primary)',
-                                                cursor: stopDis ? 'not-allowed' : 'pointer',
-                                                opacity: stopDis ? 0.35 : 1
-                                              }}
-                                            >
-                                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <Square size={12} style={{ color: stopDis ? disabledColor : '#ef4444' }}
-                                                  fill={stopDis ? 'none' : '#ef4444'} />
-                                                <span>Stop</span>
-                                              </div>
-                                              {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
-                                            </button>
-                                          </div>
-                                        </>
-                                      );
-                                    })()}
-                                  </div>
-                                );
-                              })()}
-
-                              {/* Decluttered Actions Dropdown Menu */}
-                              <div style={{ position: 'relative' }}>
-                                <button
-                                  type="button"
-                                  className="btn-secondary"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (activeDropdown === item.name) {
-                                      setActiveDropdown(null);
-                                      setDropdownCoords(null);
-                                    } else {
-                                      const rect = e.currentTarget.getBoundingClientRect();
-                                      setDropdownCoords({ top: rect.bottom + 6, left: rect.right - 170 });
-                                      setActiveDropdown(item.name);
-                                    }
-                                  }}
-                                  style={{ padding: '6px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
-                                  title="Operations & Actions"
-                                >
-                                  <MoreVertical size={14} />
-                                </button>
-                                
-                                {activeDropdown === item.name && dropdownCoords && (
-                                  <>
-                                    <div 
-                                      onClick={(e) => { e.stopPropagation(); setActiveDropdown(null); setDropdownCoords(null); }}
-                                      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998, cursor: 'default' }}
-                                    />
-                                    <div style={{
-                                      position: 'fixed',
-                                      top: dropdownCoords.top,
-                                      left: Math.max(8, dropdownCoords.left),
-                                      backgroundColor: 'var(--bg-secondary, #0f172a)',
-                                      border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
-                                      borderRadius: '8px',
-                                      boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-                                      zIndex: 9999,
-                                      minWidth: '170px',
-                                      display: 'flex',
-                                      flexDirection: 'column',
-                                      padding: '4px 0',
-                                      overflow: 'hidden'
-                                    }}>
-                                       <button 
-                                         type="button"
-                                         disabled={item.license_frozen === 1}
-                                         onClick={(e) => { e.stopPropagation(); openDnsModal(item); setActiveDropdown(null); setDropdownCoords(null); }}
-                                         style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: item.license_frozen === 1 ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: item.license_frozen === 1 ? 'not-allowed' : 'pointer', opacity: item.license_frozen === 1 ? 0.35 : 1 }}
-                                         title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
-                                         onMouseEnter={(e) => { if (item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
-                                         onMouseLeave={(e) => { if (item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                       >
-                                         <Globe size={12} style={{ color: item.license_frozen === 1 ? 'rgba(255,255,255,0.25)' : 'var(--accent-purple)' }} />
-                                         <span>DNS Settings</span>
-                                       </button>
-
-                                      {item.pipelineId ? (
-                                        <a 
-                                          href={item.license_frozen === 1 ? undefined : (() => {
-                                            const pid = String(item.pipelineId || '');
-                                            if (pid.startsWith('github-actions:')) {
-                                              const repoPath = pid.split(':').slice(1).join(':');
-                                              if (item.pipelineRun?.webUrl) {
-                                                return item.pipelineRun.webUrl;
-                                              }
-                                              return `https://github.com/${repoPath}/actions`;
-                                            }
-                                            if (item.pipelineRun?.webUrl) {
-                                              try {
-                                                const url = new URL(item.pipelineRun.webUrl);
-                                                const parts = url.pathname.split('/');
-                                                const buildIndex = parts.indexOf('_build');
-                                                if (buildIndex !== -1) {
-                                                  const basePath = parts.slice(0, buildIndex + 1).join('/');
-                                                  return `${url.origin}${basePath}?definitionId=${item.pipelineId}`;
-                                                }
-                                              } catch (e) {
-                                                console.warn('Failed to parse webUrl:', e);
-                                              }
-                                            }
-                                            const baseOrg = (azureDevopsOrgUrl || 'https://dev.azure.com/esteviatech').replace(/\/$/, '');
-                                            const baseProj = azureDevopsProject || 'Estevia-Platform';
-                                            return `${baseOrg}/${baseProj}/_build?definitionId=${item.pipelineId}`;
-                                          })()}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', color: item.license_frozen === 1 ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textDecoration: 'none', boxSizing: 'border-box', pointerEvents: item.license_frozen === 1 ? 'none' : 'auto', opacity: item.license_frozen === 1 ? 0.35 : 1 }}
-                                          title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
-                                          onClick={() => setActiveDropdown(null)}
-                                          onMouseEnter={(e) => { if (item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
-                                          onMouseLeave={(e) => { if (item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                        >
-                                          <GitBranch size={12} style={{ color: item.license_frozen === 1 ? 'rgba(255,255,255,0.25)' : 'var(--accent-teal)' }} />
-                                          <span>View CI/CD Pipeline</span>
-                                        </a>
-                                      ) : (
-                                         <button 
-                                           type="button"
-                                           disabled={isViewer || item.license_frozen === 1}
-                                           onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); setActiveDropdown(null); }}
-                                           style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: (isViewer || item.license_frozen === 1) ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: (isViewer || item.license_frozen === 1) ? 'not-allowed' : 'pointer', opacity: (isViewer || item.license_frozen === 1) ? 0.35 : 1 }}
-                                           title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
-                                           onMouseEnter={(e) => { if (!isViewer && item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
-                                           onMouseLeave={(e) => { if (!isViewer && item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                         >
-                                           <PlusCircle size={12} style={{ color: (isViewer || item.license_frozen === 1) ? 'rgba(255,255,255,0.25)' : 'var(--accent-purple)' }} />
-                                           <span>Setup CI/CD</span>
-                                         </button>
-                                      )}
-
-                                      {item.type === 'backend' && onShowLogs && (
-                                        <button 
-                                          type="button"
-                                          disabled={item.license_frozen === 1}
-                                          onClick={(e) => { e.stopPropagation(); onShowLogs(item.name); setActiveDropdown(null); }}
-                                          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: item.license_frozen === 1 ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: item.license_frozen === 1 ? 'not-allowed' : 'pointer', opacity: item.license_frozen === 1 ? 0.35 : 1 }}
-                                          title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
-                                          onMouseEnter={(e) => { if (item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)' }}
-                                          onMouseLeave={(e) => { if (item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'transparent' }}
-                                        >
-                                          <Terminal size={12} style={{ color: item.license_frozen === 1 ? 'rgba(255,255,255,0.25)' : 'var(--accent-blue)' }} />
-                                          <span>View Logs</span>
-                                        </button>
-                                      )}
-
-                                      {onCloneApp && (
-                                        <button 
-                                          type="button"
-                                          disabled={isViewer || item.license_frozen === 1}
-                                          onClick={(e) => { e.stopPropagation(); onCloneApp(item); setActiveDropdown(null); }}
-                                          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: (isViewer || item.license_frozen === 1) ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: (isViewer || item.license_frozen === 1) ? 'not-allowed' : 'pointer', opacity: (isViewer || item.license_frozen === 1) ? 0.35 : 1 }}
-                                          title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
-                                          onMouseEnter={(e) => { if (!isViewer && item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
-                                          onMouseLeave={(e) => { if (!isViewer && item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                        >
-                                          <GitBranch size={12} style={{ color: (isViewer || item.license_frozen === 1) ? 'rgba(255,255,255,0.25)' : 'var(--success)' }} />
-                                          <span>Clone App</span>
-                                        </button>
-                                      )}
-
-                                      {item.type !== 'vm' && <div style={{ height: '1px', backgroundColor: 'var(--glass-border)', margin: '4px 0' }} />}
-
-                                      {!isOrphaned && item.type !== 'vm' && (
-                                        <button 
-                                           type="button"
-                                           onClick={(e) => { e.stopPropagation(); handleDeleteApp(item.name, item.type as 'frontend' | 'backend'); setActiveDropdown(null); }}
-                                           disabled={isViewer || deletingAppName === item.name} 
-                                           style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: (isViewer || deletingAppName === item.name) ? 'rgba(255,255,255,0.35)' : 'var(--error)', width: '100%', textAlign: 'left', cursor: (isViewer || deletingAppName === item.name) ? 'not-allowed' : 'pointer', opacity: (isViewer || deletingAppName === item.name) ? 0.35 : 1 }}
-                                           onMouseEnter={(e) => { if (!isViewer && deletingAppName !== item.name) e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.08)'; }}
-                                           onMouseLeave={(e) => { if (!isViewer && deletingAppName !== item.name) e.currentTarget.style.backgroundColor = 'transparent'; }}
-                                         >
-                                           <Trash2 size={12} style={{ color: (isViewer || deletingAppName === item.name) ? 'rgba(255,255,255,0.35)' : 'var(--error)' }} />
-                                           <span>Delete app</span>
-                                         </button>
-                                      )}
-                                    </div>
-                                  </>
-                                )}
-                              </div>
-
-                          </div>
-                          </div> {/* End Block 1 */}
-
-                          {/* Block 2: Security & Code Sanity Block */}
-                          {item.type !== 'vm' && (
-                            <div style={{
-                              background: theme === 'light'
-                                ? 'linear-gradient(135deg, rgba(20, 184, 166, 0.04) 0%, rgba(20, 184, 166, 0.01) 100%)'
-                                : 'linear-gradient(135deg, rgba(20, 184, 166, 0.05) 0%, rgba(20, 184, 166, 0.01) 100%)',
-                              border: theme === 'light' ? '1px solid rgba(20, 184, 166, 0.18)' : '1px solid rgba(20, 184, 166, 0.15)',
-                              borderRadius: '12px',
-                              padding: '16px',
-                              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '12px',
-                              width: '100%',
-                              boxSizing: 'border-box'
-                            }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                                <ShieldCheck size={14} style={{ color: 'var(--accent-teal)' }} />
-                                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                  Security & Code Sanity scan
-                                </span>
-                              </div>
-
-                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%' }}>
-                            
-                            {/* VNet and Network Connectivity Card (Premium Glassmorphic Layout) */}
-                            {(() => {
-                              const validation = checkNetworkWarnings(item, group);
-                              if (!validation) return null;
-                              const pillIcon = validation.status === 'verified' 
-                                ? <ShieldCheck size={11} /> 
-                                : validation.status === 'warning'
-                                  ? <AlertTriangle size={11} />
-                                  : validation.status === 'info'
-                                    ? <Info size={11} />
-                                    : <AlertCircle size={11} />;
-                              const pillStyles = validation.status === 'verified'
-                                ? { background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', color: '#10b981' }
-                                : validation.status === 'warning'
-                                  ? { background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)', color: '#fbbf24' }
-                                  : validation.status === 'info'
-                                    ? { background: 'rgba(14, 165, 233, 0.08)', border: '1px solid rgba(14, 165, 233, 0.25)', color: '#38bdf8' }
-                                    : { background: 'rgba(220, 38, 38, 0.08)', border: '1px solid rgba(220, 38, 38, 0.25)', color: '#ef4444' };
-
-                              return (
-                                <div style={{
-                                  flex: 2,
-                                  minWidth: '320px',
-                                  padding: '8px 12px',
-                                  borderRadius: '10px',
-                                  background: theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)',
-                                  border: '1px solid var(--glass-border)',
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: '6px',
-                                  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.03)',
-                                  backdropFilter: 'blur(8px)',
-                                  WebkitBackdropFilter: 'blur(8px)'
-                                }}>
-                                  {/* VNet Name Row */}
-                                  <div style={{ 
-                                    fontSize: '0.72rem', 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    justifyContent: 'space-between',
-                                    gap: '8px', 
-                                    fontWeight: 400, 
-                                    color: 'var(--text-secondary)' 
-                                  }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                      <Network size={11} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
-                                      <span>VNet / VPC:</span>
-                                    </div>
-                                    <strong style={{ 
-                                      color: 'var(--text-primary)',
-                                      background: 'rgba(255, 255, 255, 0.06)',
-                                      padding: '2px 6px',
-                                      borderRadius: '4px',
-                                      fontSize: '0.68rem',
-                                      fontWeight: 600,
-                                      border: '1px solid rgba(255, 255, 255, 0.05)'
-                                    }}>
-                                      {getVnetName(item) || 'None (Public Cloud)'}
-                                    </strong>
-                                  </div>
-
-                                  {/* Network Connection Status Row */}
-                                  <div style={{ 
-                                    fontSize: '0.72rem', 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    justifyContent: 'space-between',
-                                    gap: '8px', 
-                                    fontWeight: 400, 
-                                    color: 'var(--text-secondary)',
-                                    marginTop: '2px'
-                                  }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                      <ShieldCheck size={11} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
-                                      <span>Network Status:</span>
-                                    </div>
-                                    <span style={{
-                                      ...pillStyles,
+                                      letterSpacing: '0.04em',
+                                      backgroundColor: getBadgeBgColor(group.type),
+                                      color: getBadgeTextColor(group.type),
                                       padding: '2px 8px',
                                       borderRadius: '10px',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '5px',
-                                      fontSize: '0.68rem',
-                                      fontWeight: 600,
-                                      whiteSpace: 'nowrap'
+                                      border: '1px solid ' + (group.type === 'frontend' ? 'rgba(59, 130, 246, 0.2)' : group.type === 'vm' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)')
                                     }}>
-                                      {pillIcon}
-                                      <span>{validation.message}</span>
+                                      {group.type === 'frontend' ? 'SWA' : group.type === 'vm' ? 'VM' : 'ACA'}
                                     </span>
-                                  </div>
-                                  
-                                  {(() => {
-                                    const isLt = theme === 'light';
-                                    const isWarn = validation.status === 'warning';
-                                    const isVerified = validation.status === 'verified';
-                                    
-                                    // Only show expander if there's details or if verified and has a sourceFile
-                                    if (isVerified && !validation.sourceFile) return null;
-                                    
-                                    const toggleColor = isVerified
-                                      ? (isLt ? '#059669' : '#a7f3d0')
-                                      : isWarn
-                                        ? (isLt ? '#dc2626' : '#fca5a5')
-                                        : (isLt ? '#4b5563' : '#cbd5e1');
-                                    return (
-                                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2px', alignItems: 'center', gap: '6px' }}>
-                                        {isVerified && (
-                                          <span style={{ fontSize: '0.62rem', color: isLt ? '#059669' : '#34d399', opacity: 0.85, fontWeight: 500 }}>
-                                            via {validation.sourceFile}
-                                          </span>
-                                        )}
-                                        <button
-                                          onClick={() => setExpandedWarnings(prev => ({ ...prev, [item.name]: !prev[item.name] }))}
-                                          style={{
-                                            background: 'none',
-                                            border: 'none',
-                                            padding: '2px 0px',
-                                            fontSize: '0.62rem',
-                                            color: toggleColor,
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '3px',
-                                            textDecoration: 'underline',
-                                            fontWeight: 500,
-                                            transition: 'opacity 0.2s'
-                                          }}
-                                          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; }}
-                                          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
-                                        >
-                                          <span>{expandedWarnings[item.name] ? 'Hide Verification Details' : 'View Verification Details ➔'}</span>
-                                        </button>
-                                      </div>
-                                    );
-                                  })()}
-
-                                  {expandedWarnings[item.name] && (() => {
-                                    const isLt = theme === 'light';
-                                    const isWarn = validation.status === 'warning';
-                                    const isVerified = validation.status === 'verified';
-                                    // Theme-aware colors
-                                    const bannerBg = isVerified
-                                      ? (isLt
-                                        ? 'linear-gradient(135deg, rgba(16,185,129,0.07) 0%, rgba(16,185,129,0.03) 100%)'
-                                        : 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(16,185,129,0.03) 100%)')
-                                      : isWarn
-                                        ? (isLt
-                                          ? 'linear-gradient(135deg, rgba(220,38,38,0.07) 0%, rgba(220,38,38,0.03) 100%)'
-                                          : 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.03) 100%)')
-                                        : (isLt
-                                          ? 'linear-gradient(135deg, rgba(100,116,139,0.07) 0%, rgba(100,116,139,0.03) 100%)'
-                                          : 'linear-gradient(135deg, rgba(148,163,184,0.08) 0%, rgba(148,163,184,0.03) 100%)');
-                                    
-                                    const bannerBorderLeft = isVerified
-                                      ? (isLt ? '3px solid #059669' : '3px solid #34d399')
-                                      : isWarn
-                                        ? (isLt ? '3px solid #dc2626' : '3px solid #f87171')
-                                        : (isLt ? '3px solid #64748b' : '3px solid #94a3b8');
-                                    const bannerEdge = isLt
-                                      ? '1px solid rgba(0,0,0,0.06)'
-                                      : '1px solid rgba(255,255,255,0.02)';
-                                    const bannerText = isVerified
-                                      ? (isLt ? '#065f46' : '#a7f3d0')
-                                      : isWarn
-                                        ? (isLt ? '#991b1b' : '#fca5a5')
-                                        : (isLt ? '#374151' : '#cbd5e1');
-                                    const headerColor = isVerified
-                                      ? (isLt ? '#047857' : '#34d399')
-                                      : isWarn
-                                        ? (isLt ? '#b91c1c' : '#f87171')
-                                        : (isLt ? '#4b5563' : '#94a3b8');
-                                    const btnBg = isLt ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.08)';
-                                    const btnBgHover = isLt ? 'rgba(0,0,0,0.13)' : 'rgba(255,255,255,0.15)';
-                                    const btnBorder = isLt ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,255,255,0.15)';
-                                    const hasSearchedFiles = validation.scrapedSearchedFiles && validation.scrapedSearchedFiles.length > 0;
-                                    return (
-                                      <div style={{
-                                        fontSize: '0.66rem',
-                                        marginTop: '6px',
-                                        padding: '8px 10px',
-                                        borderRadius: '6px',
-                                        background: bannerBg,
-                                        borderLeft: bannerBorderLeft,
-                                        borderTop: bannerEdge,
-                                        borderRight: bannerEdge,
-                                        borderBottom: bannerEdge,
-                                        color: bannerText,
-                                        lineHeight: 1.45,
-                                        boxShadow: isLt ? '0 2px 8px rgba(0,0,0,0.06)' : '0 4px 12px rgba(0,0,0,0.15)',
-                                        letterSpacing: '0.015em'
-                                      }}>
-                                        {/* Header row: label + "View Scraped Config" button */}
-                                        <div style={{
-                                          fontWeight: 700,
-                                          marginBottom: '3px',
-                                          color: headerColor,
-                                          textTransform: 'uppercase',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'space-between',
-                                          gap: '4px',
-                                          flexWrap: 'wrap'
-                                        }}>
-                                          <span>{isVerified ? '✅ Network Resolution:' : '⚠️ Network Resolution:'}</span>
-                                          {(validation.sourceFile || validation.scrapedSearchedFiles) && (
-                                            <button
-                                              onClick={() => setViewScrapedConfig({
-                                                fileName: validation.sourceFile || 'unknown file',
-                                                fileContent: validation.sourceContent || 'no content',
-                                                appName: validation.sourceAppName || item.name,
-                                                searchedFiles: validation.scrapedSearchedFiles
-                                              })}
-                                              onMouseEnter={(e) => e.currentTarget.style.background = btnBgHover}
-                                              onMouseLeave={(e) => e.currentTarget.style.background = btnBg}
-                                              style={{
-                                                background: btnBg,
-                                                border: btnBorder,
-                                                color: bannerText,
-                                                padding: '2px 6px',
-                                                borderRadius: '4px',
-                                                cursor: 'pointer',
-                                                fontSize: '0.6rem',
-                                                fontWeight: 700,
-                                                transition: 'all 0.15s ease'
-                                              }}
-                                            >
-                                              View Scraped Config
-                                            </button>
-                                          )}
-                                        </div>
-                                        {/* Error/Warning Detail text */}
-                                        <div style={{ fontWeight: 500 }}>
-                                          {validation.detail}
-                                        </div>
-                                      </div>
-                                    );
-                                  })()}
-                                </div>
-                              );
-                            })()}
-
-                            {/* YAML Health Details Card */}
-                            {((item.type === 'frontend' || item.type === 'backend') && health && health.ymlHealth) && (
-                              <div 
-                                style={{
-                                  flex: 1,
-                                  minWidth: '180px',
-                                  padding: '8px 12px',
-                                  borderRadius: '10px',
-                                  background: theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)',
-                                  border: '1px solid var(--glass-border)',
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: '4px',
-                                  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.03)',
-                                  backdropFilter: 'blur(8px)',
-                                  WebkitBackdropFilter: 'blur(8px)',
-                                  fontSize: '0.72rem',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.2s ease',
-                                  userSelect: 'none'
-                                }}
-                                onClick={() => setExpandedYamlDetails(prev => ({ ...prev, [item.name]: !prev[item.name] }))}
-                                onMouseEnter={(e) => e.currentTarget.style.background = theme === 'light' ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.05)'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)'}
-                              >
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '8px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
-                                    <Terminal size={11} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
-                                    <span>YAML validation:</span>
-                                  </div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    {!health.ymlHealth.exists ? (
-                                      <span style={{
-                                        background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
-                                        border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
-                                        color: theme === 'light' ? '#b91c1c' : '#ef4444',
-                                        padding: '2px 8px',
-                                        borderRadius: '10px',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '5px',
-                                        fontSize: '0.68rem',
-                                        fontWeight: 600
-                                      }}>
-                                        <AlertCircle size={11} />
-                                        <span>Not Found</span>
-                                      </span>
-                                    ) : health.ymlHealth.valid ? (
-                                      health.ymlHealth.warningCount > 0 ? (
-                                        <span style={{
-                                          background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
-                                          border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
-                                          color: theme === 'light' ? '#b45309' : '#fbbf24',
-                                          padding: '2px 8px',
-                                          borderRadius: '10px',
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          gap: '5px',
-                                          fontSize: '0.68rem',
-                                          fontWeight: 600,
-                                          whiteSpace: 'nowrap'
-                                        }}>
-                                          <AlertCircle size={11} />
-                                          <span>{health.ymlHealth.warningCount} warning{health.ymlHealth.warningCount > 1 ? 's' : ''}</span>
-                                          {!isViewer && (
-                                            <button
-                                              type="button"
-                                              onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); }}
-                                              style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b45309' : '#fbbf24', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
-                                            >
-                                              Fix
-                                            </button>
-                                          )}
-                                        </span>
-                                      ) : (
-                                        <span style={{
-                                          background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(52, 211, 153, 0.12)',
-                                          border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(52, 211, 153, 0.3)',
-                                          color: theme === 'light' ? '#059669' : '#34d399',
-                                          padding: '2px 8px',
-                                          borderRadius: '10px',
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          gap: '5px',
-                                          fontSize: '0.68rem',
-                                          fontWeight: 600
-                                        }}>
-                                          <ShieldCheck size={11} />
-                                          <span>Valid</span>
-                                        </span>
-                                      )
-                                    ) : (
-                                      <span style={{
-                                        background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
-                                        border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
-                                        color: theme === 'light' ? '#b91c1c' : '#ef4444',
-                                        padding: '2px 8px',
-                                        borderRadius: '10px',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '5px',
-                                        fontSize: '0.68rem',
-                                        fontWeight: 600
-                                      }}>
-                                        <AlertCircle size={11} />
-                                        <span>{health.ymlHealth.errors?.length || 0} error{health.ymlHealth.errors?.length > 1 ? 's' : ''}</span>
-                                        {!isViewer && (
-                                          <button
-                                            type="button"
-                                            onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); }}
-                                            style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b91c1c' : '#ef4444', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
-                                          >
-                                            Fix
-                                          </button>
-                                        )}
-                                      </span>
-                                    )}
-                                    <ChevronDown 
-                                      size={12} 
-                                      style={{ 
-                                        color: 'var(--text-secondary)',
-                                        transform: expandedYamlDetails[item.name] ? 'rotate(180deg)' : 'rotate(0deg)',
-                                        transition: 'transform 0.2s ease',
-                                        marginLeft: '2px'
-                                      }} 
-                                    />
-                                  </div>
-                                </div>
-
-                                {expandedYamlDetails[item.name] && (
-                                  <div style={{
-                                    marginTop: '8px',
-                                    paddingTop: '8px',
-                                    borderTop: `1px solid ${theme === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '6px',
-                                    fontSize: '0.68rem',
-                                    color: 'var(--text-secondary)'
-                                  }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                      <span>File Name:</span>
-                                      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-                                        {health.ymlHealth.filePath ? (health.ymlHealth.filePath.split('/').pop() || 'Unknown') : 'Unknown'}
-                                      </span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                      <span>Full Path:</span>
-                                      <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace', opacity: 0.8 }}>
-                                        {health.ymlHealth.filePath || 'Unknown'}
-                                      </span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                      <span>Validation Status:</span>
-                                      <span style={{ 
-                                        color: !health.ymlHealth.exists 
-                                          ? (theme === 'light' ? '#b91c1c' : '#ef4444') 
-                                          : !health.ymlHealth.valid 
-                                            ? (theme === 'light' ? '#b91c1c' : '#ef4444') 
-                                            : health.ymlHealth.warningCount > 0 
-                                              ? (theme === 'light' ? '#b45309' : '#fbbf24') 
-                                              : (theme === 'light' ? '#059669' : '#34d399'),
-                                        fontWeight: 700 
-                                      }}>
-                                        {!health.ymlHealth.exists 
-                                          ? 'Not Found' 
-                                          : !health.ymlHealth.valid 
-                                            ? 'Failed' 
-                                            : health.ymlHealth.warningCount > 0 
-                                              ? 'Passed with Warnings' 
-                                              : 'Passed'}
-                                      </span>
-                                    </div>
-                                    {health.ymlHealth.errors && health.ymlHealth.errors.length > 0 && (
-                                      <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        <span style={{ fontWeight: 600, color: 'var(--error)' }}>Errors:</span>
-                                        {health.ymlHealth.errors.map((err: any, idx: number) => (
-                                          <div key={idx} style={{ 
-                                            background: theme === 'light' ? 'rgba(220, 38, 38, 0.04)' : 'rgba(239, 68, 68, 0.06)',
-                                            borderLeft: '2px solid var(--error)',
-                                            padding: '4px 6px',
-                                            borderRadius: '2px',
-                                            fontFamily: 'monospace',
-                                            fontSize: '0.62rem'
-                                          }}>
-                                            {err.message || err}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                    {health.ymlHealth.warnings && health.ymlHealth.warnings.length > 0 && (
-                                      <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        <span style={{ fontWeight: 600, color: theme === 'light' ? '#b45309' : '#fbbf24' }}>Warnings:</span>
-                                        {health.ymlHealth.warnings.map((warn: any, idx: number) => (
-                                          <div key={idx} style={{ 
-                                            background: theme === 'light' ? 'rgba(245, 158, 11, 0.04)' : 'rgba(245, 158, 11, 0.06)',
-                                            borderLeft: `2px solid ${theme === 'light' ? '#b45309' : '#fbbf24'}`,
-                                            padding: '4px 6px',
-                                            borderRadius: '2px',
-                                            fontFamily: 'monospace',
-                                            fontSize: '0.62rem'
-                                          }}>
-                                            {warn.message || warn}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                    
-                                    {health.ymlHealth.exists && (
-                                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px', borderTop: `1px solid ${theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'}`, paddingTop: '6px' }}>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            const isGitHubAction = health.ymlHealth.filePath ? health.ymlHealth.filePath.includes('.github') : (item.pipelineId && String(item.pipelineId).startsWith('github-actions:'));
-                                            const provider = isGitHubAction ? 'github_actions' : 'azure_devops';
-                                            handleOpenFileDrawer(
-                                              item.name,
-                                              health.ymlHealth.filePath ? (health.ymlHealth.filePath.split('/').pop() || 'deploy.yml') : (isGitHubAction ? 'deploy.yml' : 'azure-pipelines.yml'),
-                                              health.ymlHealth.filePath || (isGitHubAction ? '.github/workflows/deploy.yml' : 'azure-pipelines.yml'),
-                                              'yaml',
-                                              item.repositoryUrl || group?.repoPath || '',
-                                              item.branch || 'main',
-                                              provider
-                                            );
-                                          }}
-                                          style={{
-                                            background: 'none',
-                                            border: 'none',
-                                            color: 'var(--accent-teal)',
-                                            fontSize: '0.68rem',
-                                            fontWeight: 700,
-                                            cursor: 'pointer',
-                                            textDecoration: 'underline',
-                                            padding: 0,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '3px'
-                                          }}
-                                        >
-                                          <span>View File ➔</span>
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            {/* Dockerfile Health Details Card */}
-                            {(item.type === 'backend' && health && health.dockerfileHealth) && (
-                              <div 
-                                style={{
-                                  flex: 1,
-                                  minWidth: '180px',
-                                  padding: '8px 12px',
-                                  borderRadius: '10px',
-                                  background: theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)',
-                                  border: '1px solid var(--glass-border)',
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: '4px',
-                                  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.03)',
-                                  backdropFilter: 'blur(8px)',
-                                  WebkitBackdropFilter: 'blur(8px)',
-                                  fontSize: '0.72rem',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.2s ease',
-                                  userSelect: 'none'
-                                }}
-                                onClick={() => setExpandedDockerDetails(prev => ({ ...prev, [item.name]: !prev[item.name] }))}
-                                onMouseEnter={(e) => e.currentTarget.style.background = theme === 'light' ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.05)'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)'}
-                              >
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '8px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
-                                    <Terminal size={11} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
-                                    <span>Dockerfile validation:</span>
-                                  </div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    {!health.dockerfileHealth.exists ? (
-                                      <span style={{
-                                        background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
-                                        border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
-                                        color: theme === 'light' ? '#b91c1c' : '#ef4444',
-                                        padding: '2px 8px',
-                                        borderRadius: '10px',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '5px',
-                                        fontSize: '0.68rem',
-                                        fontWeight: 600
-                                      }}>
-                                        <AlertCircle size={11} />
-                                        <span>Not Found</span>
-                                      </span>
-                                    ) : health.dockerfileHealth.valid ? (
-                                      health.dockerfileHealth.warningCount > 0 ? (
-                                        <span style={{
-                                          background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
-                                          border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
-                                          color: theme === 'light' ? '#b45309' : '#fbbf24',
-                                          padding: '2px 8px',
-                                          borderRadius: '10px',
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          gap: '5px',
-                                          fontSize: '0.68rem',
-                                          fontWeight: 600,
-                                          whiteSpace: 'nowrap'
-                                        }}>
-                                          <AlertCircle size={11} />
-                                          <span>{health.dockerfileHealth.warningCount} warning{health.dockerfileHealth.warningCount > 1 ? 's' : ''}</span>
-                                          {!isViewer && (
-                                            <button
-                                              type="button"
-                                              onClick={(e) => { e.stopPropagation(); openDockerfileEditor(item, group); }}
-                                              style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b45309' : '#fbbf24', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
-                                            >
-                                              Fix
-                                            </button>
-                                          )}
-                                        </span>
-                                      ) : (
-                                        <span style={{
-                                          background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(52, 211, 153, 0.12)',
-                                          border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(52, 211, 153, 0.3)',
-                                          color: theme === 'light' ? '#059669' : '#34d399',
-                                          padding: '2px 8px',
-                                          borderRadius: '10px',
-                                          display: 'inline-flex',
-                                          alignItems: 'center',
-                                          gap: '5px',
-                                          fontSize: '0.68rem',
-                                          fontWeight: 600
-                                        }}>
-                                          <ShieldCheck size={11} />
-                                          <span>Valid</span>
-                                        </span>
-                                      )
-                                    ) : (
-                                      <span style={{
-                                        background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
-                                        border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
-                                        color: theme === 'light' ? '#b91c1c' : '#ef4444',
-                                        padding: '2px 8px',
-                                        borderRadius: '10px',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '5px',
-                                        fontSize: '0.68rem',
-                                        fontWeight: 600
-                                      }}>
-                                        <AlertCircle size={11} />
-                                        <span>{health.dockerfileHealth.errors?.length || 0} error{health.dockerfileHealth.errors?.length > 1 ? 's' : ''}</span>
-                                        {!isViewer && (
-                                          <button
-                                            type="button"
-                                            onClick={(e) => { e.stopPropagation(); openDockerfileEditor(item, group); }}
-                                            style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b91c1c' : '#ef4444', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
-                                          >
-                                            Fix
-                                          </button>
-                                        )}
-                                      </span>
-                                    )}
-                                    <ChevronDown 
-                                      size={12} 
-                                      style={{ 
-                                        color: 'var(--text-secondary)',
-                                        transform: expandedDockerDetails[item.name] ? 'rotate(180deg)' : 'rotate(0deg)',
-                                        transition: 'transform 0.2s ease',
-                                        marginLeft: '2px'
-                                      }} 
-                                    />
-                                  </div>
-                                </div>
-
-                                {expandedDockerDetails[item.name] && (
-                                  <div style={{
-                                    marginTop: '8px',
-                                    paddingTop: '8px',
-                                    borderTop: `1px solid ${theme === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '6px',
-                                    fontSize: '0.68rem',
-                                    color: 'var(--text-secondary)'
-                                  }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                      <span>File Name:</span>
-                                      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Dockerfile</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                      <span>Full Path:</span>
-                                      <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace', opacity: 0.8 }}>Dockerfile</span>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                      <span>Validation Status:</span>
-                                      <span style={{ 
-                                        color: !health.dockerfileHealth.exists 
-                                          ? (theme === 'light' ? '#b91c1c' : '#ef4444') 
-                                          : !health.dockerfileHealth.valid 
-                                            ? (theme === 'light' ? '#b91c1c' : '#ef4444') 
-                                            : health.dockerfileHealth.warningCount > 0 
-                                              ? (theme === 'light' ? '#b45309' : '#fbbf24') 
-                                              : (theme === 'light' ? '#059669' : '#34d399'),
-                                        fontWeight: 700 
-                                      }}>
-                                        {!health.dockerfileHealth.exists 
-                                          ? 'Not Found' 
-                                          : !health.dockerfileHealth.valid 
-                                            ? 'Failed' 
-                                            : health.dockerfileHealth.warningCount > 0 
-                                              ? 'Passed with Warnings' 
-                                              : 'Passed'}
-                                      </span>
-                                    </div>
-                                    {health.dockerfileHealth.errors && health.dockerfileHealth.errors.length > 0 && (
-                                      <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        <span style={{ fontWeight: 600, color: 'var(--error)' }}>Errors:</span>
-                                        {health.dockerfileHealth.errors.map((err: any, idx: number) => (
-                                          <div key={idx} style={{ 
-                                            background: theme === 'light' ? 'rgba(220, 38, 38, 0.04)' : 'rgba(239, 68, 68, 0.06)',
-                                            borderLeft: '2px solid var(--error)',
-                                            padding: '4px 6px',
-                                            borderRadius: '2px',
-                                            fontFamily: 'monospace',
-                                            fontSize: '0.62rem'
-                                          }}>
-                                            {err.message || err}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                    {health.dockerfileHealth.warnings && health.dockerfileHealth.warnings.length > 0 && (
-                                      <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                        <span style={{ fontWeight: 600, color: theme === 'light' ? '#b45309' : '#fbbf24' }}>Warnings:</span>
-                                        {health.dockerfileHealth.warnings.map((warn: any, idx: number) => (
-                                          <div key={idx} style={{ 
-                                            background: theme === 'light' ? 'rgba(245, 158, 11, 0.04)' : 'rgba(245, 158, 11, 0.06)',
-                                            borderLeft: `2px solid ${theme === 'light' ? '#b45309' : '#fbbf24'}`,
-                                            padding: '4px 6px',
-                                            borderRadius: '2px',
-                                            fontFamily: 'monospace',
-                                            fontSize: '0.62rem'
-                                          }}>
-                                            {warn.message || warn}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                    
-                                    {health.dockerfileHealth.exists && (
-                                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px', borderTop: `1px solid ${theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'}`, paddingTop: '6px' }}>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleOpenFileDrawer(
-                                              item.name,
-                                              'Dockerfile',
-                                              'Dockerfile',
-                                              'dockerfile',
-                                              item.repositoryUrl || group?.repoPath || '',
-                                              item.branch || 'main'
-                                            );
-                                          }}
-                                          style={{
-                                            background: 'none',
-                                            border: 'none',
-                                            color: 'var(--accent-teal)',
-                                            fontSize: '0.68rem',
-                                            fontWeight: 700,
-                                            cursor: 'pointer',
-                                            textDecoration: 'underline',
-                                            padding: 0,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '3px'
-                                          }}
-                                        >
-                                          <span>View File ➔</span>
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                          </div>
-                          </div>
-                          )} {/* End Block 2 */}
-
-                          {/* Block 3: Continuous Integration Telemetry Block */}
-                          {item.pipelineId && (item.pipelineRun || !loadedPipelines[item.pipelineId]) && (
-                            <div style={{
-                              background: theme === 'light'
-                                ? 'rgba(15, 23, 42, 0.02)'
-                                : 'rgba(15, 23, 42, 0.15)',
-                              border: theme === 'light' ? '1px solid rgba(15, 23, 42, 0.06)' : '1px solid rgba(15, 23, 42, 0.25)',
-                              borderRadius: '12px',
-                              padding: '16px',
-                              boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.02)',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '10px',
-                              width: '100%',
-                              boxSizing: 'border-box'
-                            }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                                <Activity size={14} style={{ color: 'var(--accent-purple)' }} />
-                                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                  Continuous Integration Telemetry
-                                </span>
-                              </div>
-
-                              {(() => {
-                            const isLight = theme === 'light';
-                            
-                            if (!item.pipelineRun) {
-                              return (
-                                <div style={{ 
-                                  width: '100%',
-                                  boxSizing: 'border-box'
-                                }}>
-                                  <div style={{ 
-                                    display: 'flex', 
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '8px',
-                                    padding: '12px 14px',
-                                    borderRadius: '8px', 
-                                    background: isLight 
-                                      ? 'rgba(0,0,0,0.02)' 
-                                      : 'rgba(255,255,255,0.01)', 
-                                    border: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
-                                    color: 'var(--text-secondary)',
-                                    fontSize: '0.72rem',
-                                    fontWeight: 500
-                                  }}>
-                                    <RefreshCw size={12} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
-                                    <span>Loading build information...</span>
-                                  </div>
-                                </div>
-                              );
-                            }
-
-                            const isExpanded = expandedBuilds[item.name] ?? isBuildActive(item.pipelineRun);
-                            const runStatus = isBuildActive(item.pipelineRun) ? 'BUILDING' : item.pipelineRun.result || item.pipelineRun.state;
-                            const runStatusColor = getStageColor(item.pipelineRun.result, item.pipelineRun.state);
-                            
-                            return (
-                              <div style={{ 
-                                width: '100%',
-                                boxSizing: 'border-box'
-                              }}>
-                                <div style={{ 
-                                  display: 'flex', 
-                                  flexDirection: 'column', 
-                                  gap: '6px', 
-                                  width: '100%', 
-                                  borderRadius: '8px', 
-                                  background: isLight 
-                                    ? 'linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(243, 244, 246, 0.75) 100%)' 
-                                    : 'linear-gradient(180deg, rgba(30, 41, 59, 0.2) 0%, rgba(15, 23, 42, 0.35) 100%)', 
-                                  border: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
-                                  boxSizing: 'border-box',
-                                  overflow: 'hidden'
-                                }}>
-                                  {/* Collapsible Header */}
-                                  <div 
-                                    onClick={() => setExpandedBuilds(prev => ({ ...prev, [item.name]: !isExpanded }))}
-                                    style={{
-                                      display: 'flex',
-                                      justifyContent: 'space-between',
-                                      alignItems: 'center',
-                                      padding: '10px 14px',
-                                      cursor: 'pointer',
-                                      userSelect: 'none',
-                                      background: isExpanded 
-                                        ? (isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)')
-                                        : 'transparent',
-                                      transition: 'background-color 0.2s ease',
-                                      borderBottom: isExpanded ? `1px solid ${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'}` : 'none'
-                                    }}
-                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)'}
-                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isExpanded ? (isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)') : 'transparent'}
-                                  >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                      <ChevronRight 
-                                        size={14} 
-                                        style={{ 
-                                          color: 'var(--text-secondary)',
-                                          transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-                                          transition: 'transform 0.2s ease'
-                                        }} 
-                                      />
-                                      <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
-                                        BUILD RUN: #{item.pipelineRun.name || item.pipelineRun.id}
-                                      </span>
-                                      {item.pipelineRun.startTime && (
-                                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                                          ({new Date(item.pipelineRun.startTime).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })})
-                                        </span>
-                                      )}
-                                      {onShowBuildHistory && (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            onShowBuildHistory(item);
-                                          }}
-                                          style={{
-                                            background: 'rgba(255,255,255,0.03)',
-                                            border: '1px solid var(--glass-border)',
-                                            borderRadius: '4px',
-                                            color: 'var(--text-secondary)',
-                                            fontSize: '0.64rem',
-                                            padding: '2px 6px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '4px',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s',
-                                            marginLeft: '6px'
-                                          }}
-                                          onMouseEnter={(e) => {
-                                            e.currentTarget.style.color = 'var(--text-primary)';
-                                            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)';
-                                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
-                                          }}
-                                          onMouseLeave={(e) => {
-                                            e.currentTarget.style.color = 'var(--text-secondary)';
-                                            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
-                                            e.currentTarget.style.borderColor = 'var(--glass-border)';
-                                          }}
-                                          title="View build history & revisions"
-                                        >
-                                          <Clock size={11} />
-                                          <span>History</span>
-                                        </button>
-                                      )}
-                                      <span style={{
-                                        fontSize: '0.64rem',
-                                        fontWeight: 800,
-                                        padding: '2px 6px',
-                                        borderRadius: '4px',
-                                        backgroundColor: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)',
-                                        color: runStatusColor,
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '4px'
-                                      }}>
-                                        {getStageIcon(item.pipelineRun.result, item.pipelineRun.state)}
-                                        {runStatus}
-                                      </span>
-                                      {item.pipelineRun.result === 'failed' && (
-                                        <span style={{
-                                          fontSize: '0.68rem',
-                                          color: 'var(--error)',
-                                          fontWeight: 600,
-                                          marginLeft: '8px'
-                                        }}>
-                                          (Last build failed)
-                                        </span>
-                                      )}
-                                    </div>
-                                    
-                                    {/* Right side Actions (CI/CD Pipeline Link) */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                      {item.pipelineId ? (
-                                        <a 
-                                          href={(() => {
-                                            const pid = String(item.pipelineId || '');
-                                            if (pid.startsWith('github-actions:')) {
-                                              const repoPath = pid.split(':').slice(1).join(':');
-                                              if (item.pipelineRun?.webUrl) {
-                                                return item.pipelineRun.webUrl;
-                                              }
-                                              return `https://github.com/${repoPath}/actions`;
-                                            }
-                                            if (item.pipelineRun?.webUrl) {
-                                              try {
-                                                const url = new URL(item.pipelineRun.webUrl);
-                                                const parts = url.pathname.split('/');
-                                                const buildIndex = parts.indexOf('_build');
-                                                if (buildIndex !== -1) {
-                                                  const basePath = parts.slice(0, buildIndex + 1).join('/');
-                                                  return `${url.origin}${basePath}?definitionId=${item.pipelineId}`;
-                                                }
-                                              } catch (e) {
-                                                console.warn('Failed to parse webUrl:', e);
-                                              }
-                                            }
-                                            const baseOrg = (azureDevopsOrgUrl || 'https://dev.azure.com/esteviatech').replace(/\/$/, '');
-                                            const baseProj = azureDevopsProject || 'Estevia-Platform';
-                                            return `${baseOrg}/${baseProj}/_build?definitionId=${item.pipelineId}`;
-                                          })()}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          style={{ 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            gap: '6px', 
-                                            padding: '4px 10px', 
-                                            borderRadius: '6px',
-                                            fontSize: '0.68rem', 
-                                            fontWeight: 600,
-                                            color: 'var(--text-primary)', 
-                                            backgroundColor: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)',
-                                            border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'var(--glass-border)'}`,
-                                            textDecoration: 'none', 
-                                            boxSizing: 'border-box' 
-                                          }}
-                                          onClick={(e) => e.stopPropagation()}
-                                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)'}
-                                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'}
-                                        >
-                                          <GitBranch size={10} style={{ color: 'var(--accent-teal)' }} />
-                                          <span>View CI/CD Pipeline</span>
-                                        </a>
-                                      ) : (
-                                        <button 
-                                          type="button"
-                                          disabled={isViewer}
-                                          onClick={(e) => { 
-                                            e.stopPropagation(); 
-                                            openPipelineModal(item, group); 
-                                          }}
-                                          style={{ 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            gap: '6px', 
-                                            padding: '4px 10px', 
-                                            borderRadius: '6px',
-                                            fontSize: '0.68rem', 
-                                            fontWeight: 600,
-                                            background: 'none', 
-                                            color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', 
-                                            backgroundColor: isViewer ? 'transparent' : (isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'),
-                                            border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'var(--glass-border)'}`,
-                                            textAlign: 'left', 
-                                            cursor: isViewer ? 'not-allowed' : 'pointer', 
-                                            opacity: isViewer ? 0.35 : 1 
-                                          }}
-                                          onMouseEnter={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)'; }}
-                                          onMouseLeave={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'; }}
-                                        >
-                                          <PlusCircle size={10} style={{ color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--accent-purple)' }} />
-                                          <span>Setup CI/CD</span>
-                                        </button>
-                                      )}
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Collapsible Content */}
-                                  {isExpanded && (
-                                    <div style={{
-                                      padding: '12px 14px',
-                                      display: 'flex',
-                                      flexDirection: 'column',
-                                      gap: '12px'
-                                    }}>
-                                      {item.pipelineRun.result === 'failed' && (
-                                        <div style={{
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: '8px',
-                                          padding: '10px 12px',
-                                          borderRadius: '6px',
-                                          backgroundColor: isLight ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.15)',
-                                          border: '1px solid rgba(239, 68, 68, 0.3)',
-                                          color: isLight ? '#b91c1c' : '#f87171',
-                                          fontSize: '0.72rem',
-                                          fontWeight: 600
-                                        }}>
-                                          <AlertCircle size={14} style={{ color: isLight ? '#b91c1c' : '#f87171', flexShrink: 0 }} />
-                                          <span>Build failed for the last build. Please check step logs below.</span>
-                                        </div>
-                                      )}
-                                      {!item.pipelineRun.stages || item.pipelineRun.stages.length === 0 ? (
-                                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontStyle: 'italic', padding: '6px 0' }}>
-                                          No stages defined for this run.
-                                        </div>
-                                      ) : (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                          {item.pipelineRun.stages.map((stage: any) => {
-                                            const stageColor = getStageColor(stage.result, stage.state);
-                                            const stageStatus = stage.state === 'inProgress' ? 'RUNNING' : stage.result || stage.state;
-                                            
-                                            return (
-                                              <div key={stage.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                {/* Stage Row */}
-                                                <div style={{ 
-                                                  display: 'flex', 
-                                                  alignItems: 'center', 
-                                                  justifyContent: 'space-between',
-                                                  fontSize: '0.74rem',
-                                                  fontWeight: 600,
-                                                  color: 'var(--text-primary)',
-                                                  padding: '4px 6px',
-                                                  borderRadius: '4px',
-                                                  backgroundColor: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)'
-                                                }}>
-                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    {getStageIcon(stage.result, stage.state)}
-                                                    <span>{stage.displayName || stage.name}</span>
-                                                  </div>
-                                                  <span style={{ fontSize: '0.66rem', fontWeight: 700, color: stageColor }}>
-                                                    {stageStatus.toUpperCase()}
-                                                  </span>
-                                                </div>
-                                                
-                                                {/* Jobs list under this Stage */}
-                                                {stage.jobs && stage.jobs.length > 0 && (
-                                                  <div style={{ 
-                                                    display: 'flex', 
-                                                    flexDirection: 'column', 
-                                                    gap: '6px', 
-                                                    paddingLeft: '16px',
-                                                    borderLeft: `1px dashed ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}` 
-                                                  }}>
-                                                    {stage.jobs.map((job: any) => {
-                                                      const jobColor = getStageColor(job.result, job.state);
-                                                      const jobStatus = job.state === 'inProgress' ? 'RUNNING' : job.result || job.state;
-                                                      
-                                                      return (
-                                                        <div key={job.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                          {/* Job Row */}
-                                                          <div style={{ 
-                                                            display: 'flex', 
-                                                            alignItems: 'center', 
-                                                            justifyContent: 'space-between',
-                                                            fontSize: '0.7rem',
-                                                            color: 'var(--text-secondary)',
-                                                            padding: '3px 6px',
-                                                            borderRadius: '4px'
-                                                          }}>
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                              {getStageIcon(job.result, job.state)}
-                                                              <span style={{ fontWeight: 500 }}>{job.displayName || job.name}</span>
-                                                            </div>
-                                                            <span style={{ fontSize: '0.62rem', fontWeight: 600, color: jobColor }}>
-                                                              {jobStatus.toUpperCase()}
-                                                            </span>
-                                                          </div>
-                                                          
-                                                          {/* Job Tasks (Steps) under this Job */}
-                                                          {job.steps && job.steps.length > 0 && (
-                                                            <div style={{ 
-                                                              display: 'flex', 
-                                                              flexDirection: 'column', 
-                                                              gap: '3px', 
-                                                              paddingLeft: '14px',
-                                                              borderLeft: `1px dotted ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`
-                                                            }}>
-                                                              {job.steps.map((step: any, idx: number) => {
-                                                                const stepColor = getStageColor(step.result, step.state);
-                                                                const stepStatus = step.state === 'inProgress' ? 'RUNNING' : step.result || step.state;
-                                                                
-                                                                // Compute step duration helper
-                                                                const getStepDuration = () => {
-                                                                  if (!step.startTime) return null;
-                                                                  const start = new Date(step.startTime).getTime();
-                                                                  const end = step.finishTime ? new Date(step.finishTime).getTime() : Date.now();
-                                                                  const dur = Math.max(0, Math.floor((end - start) / 1000));
-                                                                  return `${dur}s`;
-                                                                };
-                                                                const dur = getStepDuration();
-                                                                
-                                                                return (
-                                                                  <div 
-                                                                    key={step.id || idx}
-                                                                    onClick={() => setSelectedTaskForModal({
-                                                                      step,
-                                                                      jobName: job.displayName || job.name,
-                                                                      stageName: stage.displayName || stage.name,
-                                                                      buildId: item.pipelineRun?.id
-                                                                    })}
-                                                                    style={{
-                                                                      display: 'flex',
-                                                                      alignItems: 'center',
-                                                                      justifyContent: 'space-between',
-                                                                      padding: '3px 6px',
-                                                                      borderRadius: '4px',
-                                                                      cursor: 'pointer',
-                                                                      userSelect: 'none',
-                                                                      fontSize: '0.68rem',
-                                                                      transition: 'all 0.15s ease',
-                                                                      backgroundColor: 'transparent'
-                                                                    }}
-                                                                    onMouseEnter={(e) => {
-                                                                      e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)';
-                                                                      e.currentTarget.style.color = 'var(--text-primary)';
-                                                                    }}
-                                                                    onMouseLeave={(e) => {
-                                                                      e.currentTarget.style.backgroundColor = 'transparent';
-                                                                      e.currentTarget.style.color = 'var(--text-secondary)';
-                                                                    }}
-                                                                  >
-                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                                      {getStageIcon(step.result, step.state)}
-                                                                      <span style={{ color: 'var(--text-secondary)' }}>{step.displayName || step.name}</span>
-                                                                    </div>
-                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                                      <span style={{ fontSize: '0.62rem', fontWeight: 600, color: stepColor }}>
-                                                                        {stepStatus.toUpperCase()}
-                                                                      </span>
-                                                                      {dur && (
-                                                                        <span style={{ fontSize: '0.6rem', color: 'var(--text-muted, #94a3b8)', fontFamily: 'monospace' }}>
-                                                                          ({dur})
-                                                                        </span>
-                                                                      )}
-                                                                    </div>
-                                                                  </div>
-                                                                );
-                                                              })}
-                                                            </div>
-                                                          )}
-                                                        </div>
-                                                      );
-                                                    })}
-                                                  </div>
-                                                )}
-                                              </div>
-                                            );
-                                          })}
-                                        </div>
-                                      )}
-                                    </div>
+                                  </h3>
+                                  {group.repoPath && (
+                                    <p style={{ margin: '4px 0 0 0', fontSize: '0.74rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                      <GitBranch size={12} />
+                                      {group.repoPath}
+                                    </p>
                                   )}
                                 </div>
                               </div>
-                            );
-                          })()}
-                          </div>
-                        )} {/* End Block 3 */}
-                        </div>
-                      );
-                    })}
-                    {(() => {
-                      const deployedBranchNames = group.envs.map(app => resolveBranchName(app).toLowerCase());
-                      const undeployedBranches = (group.branches || []).filter(branch => {
-                        return !deployedBranchNames.includes(branch.name.toLowerCase());
-                      });
 
-                      if (undeployedBranches.length === 0) return null;
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                {groupHasActiveDeployment && (
+                                  <span style={{
+                                    fontSize: '0.68rem',
+                                    fontWeight: 700,
+                                    color: 'var(--accent-purple)',
+                                    background: 'rgba(139, 92, 246, 0.12)',
+                                    border: '1px solid rgba(139, 92, 246, 0.3)',
+                                    padding: '3px 8px',
+                                    borderRadius: '12px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    boxShadow: '0 0 8px rgba(139, 92, 246, 0.2)'
+                                  }}>
+                                    <RefreshCw size={10} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
+                                    BUILD IN PROGRESS
+                                  </span>
+                                )}
 
-                      const unlinkedStyle = getUnlinkedCardStyles(theme);
+                                {/* Health check loading spinner */}
+                                {isLoading && (
+                                  <span style={{
+                                    background: theme === 'light' ? 'rgba(59, 130, 246, 0.08)' : 'rgba(96, 165, 250, 0.12)',
+                                    border: theme === 'light' ? '1px solid rgba(59, 130, 246, 0.25)' : '1px solid rgba(96, 165, 250, 0.35)',
+                                    padding: '3px 8px',
+                                    borderRadius: '12px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    fontSize: '0.74rem',
+                                    color: theme === 'light' ? '#2563eb' : '#60a5fa',
+                                    fontWeight: 600,
+                                    boxShadow: theme === 'light' ? '0 1px 3px rgba(59, 130, 246, 0.05)' : '0 0 8px rgba(96, 165, 250, 0.25)',
+                                    transition: 'all 0.2s ease',
+                                    cursor: 'default'
+                                  }}>
+                                    <RefreshCw size={10} className="spin-anim" style={{ marginRight: '6px', color: theme === 'light' ? '#2563eb' : '#60a5fa' }} />
+                                    Checking health...
+                                  </span>
+                                )}
 
-                      return undeployedBranches.map((branch) => {
-                        return (
-                          <div 
-                            key={branch.name} 
-                            style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              justifyContent: 'space-between', 
-                              padding: '12px 18px', 
-                              borderRadius: '10px', 
-                              border: `1px dashed ${unlinkedStyle.border}`, 
-                              borderLeft: `4px solid ${unlinkedStyle.color}`,
-                              background: unlinkedStyle.background,
-                              transition: 'all 0.25s ease',
-                              flexWrap: 'wrap',
-                              gap: '12px'
-                            }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '280px' }}>
-                              {/* Git Icon / Branch details */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <GitBranch size={16} style={{ color: unlinkedStyle.color, opacity: 0.9 }} />
-                                <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                                  {branch.name}
+                                {/* Default Pending Badge */}
+                                {!isLoading && !health && group.repoPath && group.type !== 'vm' && (
+                                  <span
+                                    style={{
+                                      background: 'rgba(255, 255, 255, 0.05)',
+                                      border: '1px solid var(--glass-border)',
+                                      padding: '3px 8px',
+                                      borderRadius: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      fontSize: '0.74rem',
+                                      color: 'var(--text-secondary)',
+                                      fontWeight: 600,
+                                      cursor: 'default'
+                                    }}
+                                  >
+                                    <Clock size={11} style={{ color: 'var(--text-secondary)' }} />
+                                    <span>Health scan pending</span>
+                                  </span>
+                                )}
+
+                                {/* Healthy Badge */}
+                                {!isLoading && health && (
+                                  health.ymlHealth &&
+                                  (group.type === 'frontend' && !health.ymlHealth.exists ? true : (health.ymlHealth.exists && health.ymlHealth.valid && health.ymlHealth.warningCount === 0)) &&
+                                  (group.type !== 'backend' || !health.dockerfileHealth || !health.dockerfileHealth.exists || (health.dockerfileHealth.valid && health.dockerfileHealth.warningCount === 0))
+                                ) && (
+                                    <span
+                                      style={{
+                                        background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(52, 211, 153, 0.12)',
+                                        border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(52, 211, 153, 0.3)',
+                                        padding: '3px 8px',
+                                        borderRadius: '12px',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        fontSize: '0.74rem',
+                                        color: theme === 'light' ? '#059669' : '#34d399',
+                                        fontWeight: 600,
+                                        boxShadow: theme === 'light' ? '0 1px 3px rgba(16, 185, 129, 0.05)' : '0 0 8px rgba(52, 211, 153, 0.25)',
+                                        transition: 'all 0.2s ease',
+                                        cursor: 'default'
+                                      }}
+                                      onMouseOver={(ev) => {
+                                        ev.currentTarget.style.transform = 'scale(1.03)';
+                                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 2px 6px rgba(16, 185, 129, 0.1)' : '0 0 12px rgba(52, 211, 153, 0.4)';
+                                      }}
+                                      onMouseOut={(ev) => {
+                                        ev.currentTarget.style.transform = 'scale(1)';
+                                        ev.currentTarget.style.boxShadow = theme === 'light' ? '0 1px 3px rgba(16, 185, 129, 0.05)' : '0 0 8px rgba(52, 211, 153, 0.25)';
+                                      }}
+                                    >
+                                      <ShieldCheck size={11} style={{ color: theme === 'light' ? '#059669' : '#34d399' }} />
+                                      <span>Healthy</span>
+                                    </span >
+                                  )}
+
+                                {/* Network Issues Badge */}
+                                {(() => {
+                                  if (isLoading) return null;
+                                  let hasCritical = false;
+                                  let hasWarning = false;
+                                  let hasInfo = false;
+
+                                  for (const app of group.envs) {
+                                    const validation = checkNetworkWarnings(app, group);
+                                    if (validation) {
+                                      if (validation.status === 'critical' || validation.status === 'unverified') hasCritical = true;
+                                      else if (validation.status === 'warning') hasWarning = true;
+                                      else if (validation.status === 'info') hasInfo = true;
+                                    }
+                                  }
+
+                                  if (hasCritical) {
+                                    return (
+                                      <span
+                                        style={{
+                                          background: theme === 'light' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                          border: theme === 'light' ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                          padding: '3px 8px',
+                                          borderRadius: '12px',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '6px',
+                                          fontSize: '0.74rem',
+                                          color: theme === 'light' ? '#b91c1c' : '#f87171',
+                                          boxShadow: theme === 'light' ? '0 1px 3px rgba(239, 68, 68, 0.05)' : '0 0 8px rgba(239, 68, 68, 0.2)',
+                                          transition: 'all 0.2s ease',
+                                          cursor: 'default'
+                                        }}
+                                        onMouseOver={(ev) => {
+                                          ev.currentTarget.style.transform = 'scale(1.03)';
+                                        }}
+                                        onMouseOut={(ev) => {
+                                          ev.currentTarget.style.transform = 'scale(1)';
+                                        }}
+                                      >
+                                        <AlertCircle size={11} style={{ color: theme === 'light' ? '#b91c1c' : '#f87171' }} />
+                                        <span>Critical Network Issue</span>
+                                      </span>
+                                    );
+                                  }
+                                  if (hasWarning) {
+                                    return (
+                                      <span
+                                        style={{
+                                          background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
+                                          border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
+                                          padding: '3px 8px',
+                                          borderRadius: '12px',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '6px',
+                                          fontSize: '0.74rem',
+                                          color: theme === 'light' ? '#b45309' : '#fbbf24',
+                                          boxShadow: theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.05)' : '0 0 8px rgba(245, 158, 11, 0.2)',
+                                          transition: 'all 0.2s ease',
+                                          cursor: 'default'
+                                        }}
+                                        onMouseOver={(ev) => {
+                                          ev.currentTarget.style.transform = 'scale(1.03)';
+                                        }}
+                                        onMouseOut={(ev) => {
+                                          ev.currentTarget.style.transform = 'scale(1)';
+                                        }}
+                                      >
+                                        <AlertTriangle size={11} style={{ color: theme === 'light' ? '#b45309' : '#fbbf24' }} />
+                                        <span>Network Warning</span>
+                                      </span>
+                                    );
+                                  }
+                                  if (hasInfo) {
+                                    return (
+                                      <span
+                                        style={{
+                                          background: theme === 'light' ? 'rgba(14, 165, 233, 0.08)' : 'rgba(14, 165, 233, 0.12)',
+                                          border: theme === 'light' ? '1px solid rgba(14, 165, 233, 0.25)' : '1px solid rgba(14, 165, 233, 0.3)',
+                                          padding: '3px 8px',
+                                          borderRadius: '12px',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '6px',
+                                          fontSize: '0.74rem',
+                                          color: theme === 'light' ? '#0369a1' : '#38bdf8',
+                                          boxShadow: theme === 'light' ? '0 1px 3px rgba(14, 165, 233, 0.05)' : '0 0 8px rgba(14, 165, 233, 0.2)',
+                                          transition: 'all 0.2s ease',
+                                          cursor: 'default'
+                                        }}
+                                        onMouseOver={(ev) => {
+                                          ev.currentTarget.style.transform = 'scale(1.03)';
+                                        }}
+                                        onMouseOut={(ev) => {
+                                          ev.currentTarget.style.transform = 'scale(1)';
+                                        }}
+                                      >
+                                        <Info size={11} style={{ color: theme === 'light' ? '#0369a1' : '#38bdf8' }} />
+                                        <span>Network Info</span>
+                                      </span>
+                                    );
+                                  }
+                                  return null;
+                                })()}
+
+                                {/* Scan Error Badge */}
+                                {!isLoading && health?.error && (
+                                  <span
+                                    onMouseEnter={(e) => {
+                                      const rect = e.currentTarget.getBoundingClientRect();
+                                      setHoveredErrorTooltipData({
+                                        groupKey: group.key,
+                                        errorMessage: health.message || 'Check failed',
+                                        top: rect.top - 8,
+                                        left: rect.left + rect.width / 2
+                                      });
+                                    }}
+                                    onMouseLeave={() => setHoveredErrorTooltipData(null)}
+                                    style={{
+                                      position: 'relative',
+                                      background: theme === 'light' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                      border: theme === 'light' ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                      padding: '3px 8px',
+                                      borderRadius: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      fontSize: '0.74rem',
+                                      color: theme === 'light' ? '#dc2626' : '#f87171',
+                                      fontWeight: 600,
+                                      boxShadow: theme === 'light' ? '0 1px 3px rgba(239, 68, 68, 0.05)' : '0 0 8px rgba(239, 68, 68, 0.2)',
+                                      transition: 'all 0.2s ease',
+                                      cursor: 'default'
+                                    }}
+                                    onMouseOver={(ev) => {
+                                      ev.currentTarget.style.transform = 'scale(1.03)';
+                                    }}
+                                    onMouseOut={(ev) => {
+                                      ev.currentTarget.style.transform = 'scale(1)';
+                                    }}
+                                  >
+                                    <AlertCircle size={11} />
+                                    <span>
+                                      {health.message?.toLowerCase().includes('abort') || health.message?.toLowerCase().includes('timeout')
+                                        ? 'Cannot check (request timed out)'
+                                        : `Cannot check (${health.message || 'Check failed'})`}
+                                    </span>
+                                    {refreshHealthForRepo && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          refreshHealthForRepo(firstEnv?.repositoryUrl || group.repoUrl || '');
+                                        }}
+                                        style={{
+                                          background: 'rgba(255, 255, 255, 0.08)',
+                                          border: '1px solid var(--glass-border)',
+                                          color: theme === 'light' ? '#dc2626' : '#f87171',
+                                          borderRadius: '4px',
+                                          padding: '1px 6px',
+                                          fontSize: '0.65rem',
+                                          cursor: 'pointer',
+                                          marginLeft: '8px',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '3px',
+                                          transition: 'all 0.2s'
+                                        }}
+                                        onMouseOver={(ev) => {
+                                          ev.stopPropagation();
+                                          ev.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                                        }}
+                                        onMouseOut={(ev) => {
+                                          ev.stopPropagation();
+                                          ev.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                                        }}
+                                      >
+                                        <RefreshCw size={10} />
+                                        Retry
+                                      </button>
+                                    )}
+                                  </span>
+                                )}
+
+                                {/* YAML Issues Badge */}
+                                {!isLoading && health?.ymlHealth && health.ymlHealth.exists && !health.ymlHealth.valid && (
+                                  <span
+                                    style={{
+                                      background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                      border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                      padding: '3px 8px',
+                                      borderRadius: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      fontSize: '0.74rem',
+                                      color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                      boxShadow: theme === 'light' ? '0 1px 3px rgba(220, 38, 38, 0.05)' : '0 0 8px rgba(239, 68, 68, 0.2)',
+                                      transition: 'all 0.2s ease',
+                                      cursor: 'default'
+                                    }}
+                                    onMouseOver={(ev) => {
+                                      ev.currentTarget.style.transform = 'scale(1.03)';
+                                    }}
+                                    onMouseOut={(ev) => {
+                                      ev.currentTarget.style.transform = 'scale(1)';
+                                    }}
+                                  >
+                                    <AlertCircle size={11} />
+                                    <span>YAML Issues</span>
+                                    {!isViewer && (
+                                      <button
+                                        onClick={handleFixYml}
+                                        style={{
+                                          background: theme === 'light' ? 'rgba(220, 38, 38, 0.15)' : 'rgba(239, 68, 68, 0.2)',
+                                          border: 'none',
+                                          borderRadius: '4px',
+                                          color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                          fontSize: '0.68rem',
+                                          fontWeight: 700,
+                                          padding: '1px 5px',
+                                          cursor: 'pointer',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          transition: 'all 0.15s ease'
+                                        }}
+                                        onMouseOver={(ev) => {
+                                          ev.stopPropagation();
+                                          ev.currentTarget.style.background = theme === 'light' ? 'rgba(220, 38, 38, 0.25)' : 'rgba(239, 68, 68, 0.35)';
+                                        }}
+                                        onMouseOut={(ev) => {
+                                          ev.stopPropagation();
+                                          ev.currentTarget.style.background = theme === 'light' ? 'rgba(220, 38, 38, 0.15)' : 'rgba(239, 68, 68, 0.2)';
+                                        }}
+                                      >
+                                        Fix →
+                                      </button>
+                                    )}
+                                  </span>
+                                )}
+
+                                {/* Dockerfile Error Badge */}
+                                {!isLoading && health?.dockerfileHealth && health.dockerfileHealth.exists && !health.dockerfileHealth.valid && (
+                                  <span
+                                    style={{
+                                      background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                      border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                      padding: '3px 8px',
+                                      borderRadius: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      fontSize: '0.74rem',
+                                      color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                      boxShadow: theme === 'light' ? '0 1px 3px rgba(220, 38, 38, 0.05)' : '0 0 8px rgba(239, 68, 68, 0.2)',
+                                      transition: 'all 0.2s ease',
+                                      cursor: 'default'
+                                    }}
+                                    onMouseOver={(ev) => {
+                                      ev.currentTarget.style.transform = 'scale(1.03)';
+                                    }}
+                                    onMouseOut={(ev) => {
+                                      ev.currentTarget.style.transform = 'scale(1)';
+                                    }}
+                                  >
+                                    <AlertCircle size={11} />
+                                    <span>Dockerfile Error</span>
+                                    {!isViewer && (
+                                      <button
+                                        onClick={handleFixDockerfile}
+                                        style={{
+                                          background: theme === 'light' ? 'rgba(220, 38, 38, 0.15)' : 'rgba(239, 68, 68, 0.2)',
+                                          border: 'none',
+                                          borderRadius: '4px',
+                                          color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                          fontSize: '0.68rem',
+                                          fontWeight: 700,
+                                          padding: '1px 5px',
+                                          cursor: 'pointer',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          transition: 'all 0.15s ease'
+                                        }}
+                                        onMouseOver={(ev) => {
+                                          ev.stopPropagation();
+                                          ev.currentTarget.style.background = theme === 'light' ? 'rgba(220, 38, 38, 0.25)' : 'rgba(239, 68, 68, 0.35)';
+                                        }}
+                                        onMouseOut={(ev) => {
+                                          ev.stopPropagation();
+                                          ev.currentTarget.style.background = theme === 'light' ? 'rgba(220, 38, 38, 0.15)' : 'rgba(239, 68, 68, 0.2)';
+                                        }}
+                                      >
+                                        Fix →
+                                      </button>
+                                    )}
+                                  </span>
+                                )}
+
+                                {/* YAML Warnings Pill */}
+                                {!isLoading && health?.ymlHealth && health.ymlHealth.exists && health.ymlHealth.valid && health.ymlHealth.warningCount > 0 && (
+                                  <span
+                                    style={{
+                                      background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
+                                      border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
+                                      padding: '3px 8px',
+                                      borderRadius: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      fontSize: '0.74rem',
+                                      color: theme === 'light' ? '#b45309' : '#fbbf24',
+                                      fontWeight: 600,
+                                      boxShadow: theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.05)' : '0 0 8px rgba(245, 158, 11, 0.2)',
+                                      transition: 'all 0.2s ease',
+                                      cursor: 'default'
+                                    }}
+                                    onMouseOver={(ev) => {
+                                      ev.currentTarget.style.transform = 'scale(1.03)';
+                                      ev.currentTarget.style.boxShadow = theme === 'light' ? '0 2px 6px rgba(245, 158, 11, 0.1)' : '0 0 12px rgba(245, 158, 11, 0.35)';
+                                    }}
+                                    onMouseOut={(ev) => {
+                                      ev.currentTarget.style.transform = 'scale(1)';
+                                      ev.currentTarget.style.boxShadow = theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.05)' : '0 0 8px rgba(245, 158, 11, 0.2)';
+                                    }}
+                                  >
+                                    <AlertCircle size={11} />
+                                    <span>{health.ymlHealth.warningCount} YAML Warning{health.ymlHealth.warningCount > 1 ? 's' : ''}</span>
+                                  </span>
+                                )}
+
+                                {/* Dockerfile Warnings Pill */}
+                                {!isLoading && health?.dockerfileHealth && health.dockerfileHealth.exists && health.dockerfileHealth.valid && health.dockerfileHealth.warningCount > 0 && (
+                                  <span
+                                    style={{
+                                      background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
+                                      border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
+                                      padding: '3px 8px',
+                                      borderRadius: '12px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      fontSize: '0.74rem',
+                                      color: theme === 'light' ? '#b45309' : '#fbbf24',
+                                      fontWeight: 600,
+                                      boxShadow: theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.05)' : '0 0 8px rgba(245, 158, 11, 0.2)',
+                                      transition: 'all 0.2s ease',
+                                      cursor: 'default'
+                                    }}
+                                    onMouseOver={(ev) => {
+                                      ev.currentTarget.style.transform = 'scale(1.03)';
+                                      ev.currentTarget.style.boxShadow = theme === 'light' ? '0 2px 6px rgba(245, 158, 11, 0.1)' : '0 0 12px rgba(245, 158, 11, 0.35)';
+                                    }}
+                                    onMouseOut={(ev) => {
+                                      ev.currentTarget.style.transform = 'scale(1)';
+                                      ev.currentTarget.style.boxShadow = theme === 'light' ? '0 1px 3px rgba(245, 158, 11, 0.05)' : '0 0 8px rgba(245, 158, 11, 0.2)';
+                                    }}
+                                  >
+                                    <AlertCircle size={11} />
+                                    <span>{health.dockerfileHealth.warningCount} Dockerfile Warning{health.dockerfileHealth.warningCount > 1 ? 's' : ''}</span>
+                                  </span>
+                                )}
+
+                                {/* Environments count — hover opens a fixed-position portal tooltip */}
+                                <span
+                                  style={{
+                                    fontSize: '0.76rem',
+                                    color: 'var(--text-secondary)',
+                                    fontWeight: 500,
+                                    cursor: 'default',
+                                    textDecoration: 'underline dotted',
+                                    textUnderlineOffset: '3px'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setGroupTooltipData({
+                                      groupKey: group.key,
+                                      accentColor,
+                                      envs: group.envs,
+                                      top: rect.top - 8,  // will render above
+                                      right: window.innerWidth - rect.right
+                                    });
+                                  }}
+                                  onMouseLeave={() => setGroupTooltipData(null)}
+                                >
+                                  {group.envs.length} {group.envs.length === 1 ? 'Environment' : 'Environments'}
                                 </span>
+
+                                <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', opacity: 0.8, marginRight: '6px' }}>
+                                  {isCollapsed ? 'Click to expand group' : 'Click to Collapse group'}
+                                </span>
+
+                                <button
+                                  type="button"
+                                  onClick={() => toggleGroupScan(group.key)}
+                                  style={{
+                                    background: 'rgba(255, 255, 255, 0.03)',
+                                    border: '1px solid var(--glass-border)',
+                                    color: 'var(--text-secondary)',
+                                    borderRadius: '6px',
+                                    width: '28px',
+                                    height: '28px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                                </button>
                               </div>
-                              
-                              {/* UNLINKED badge */}
-                              <span style={{
-                                fontSize: '0.62rem',
-                                fontWeight: 700,
-                                textTransform: 'uppercase',
-                                color: unlinkedStyle.color,
-                                background: theme === 'light' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.15)',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                border: `1px dashed ${unlinkedStyle.border}`,
-                                letterSpacing: '0.04em'
-                              }}>
-                                UNLINKED
-                              </span>
                             </div>
 
-                             {/* Provision Branch Button */}
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                               <button 
-                                 className="btn-secondary" 
-                                 disabled={isViewer || isEnvLimitReached}
-                                 onClick={() => onDeployBranch(group.repoPath, branch.name, group.type as 'frontend' | 'backend')}
-                                 style={{ 
-                                   padding: '6px 12px', 
-                                   fontSize: '0.75rem', 
-                                   display: 'flex', 
-                                   alignItems: 'center', 
-                                   justifyContent: 'center', 
-                                   gap: '6px',
-                                   borderColor: (isViewer || isEnvLimitReached) ? 'var(--glass-border)' : unlinkedStyle.color,
-                                   color: (isViewer || isEnvLimitReached) ? 'var(--text-muted)' : 'var(--text-primary)',
-                                   background: (isViewer || isEnvLimitReached) ? 'rgba(255,255,255,0.01)' : (theme === 'light' ? 'rgba(239, 68, 68, 0.03)' : 'rgba(239, 68, 68, 0.05)'),
-                                   cursor: (isViewer || isEnvLimitReached) ? 'not-allowed' : 'pointer',
-                                   opacity: (isViewer || isEnvLimitReached) ? 0.6 : 1
-                                 }}
-                                 title={isEnvLimitReached ? `Environment cap (${licenseLimit}) reached for your ${licenseTier.toUpperCase()} tier. Upgrade subscription to provision more.` : undefined}
-                                 onMouseEnter={(e) => {
-                                   if (isViewer || isEnvLimitReached) return;
-                                   e.currentTarget.style.background = theme === 'light' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.15)';
-                                   e.currentTarget.style.boxShadow = `0 0 8px ${theme === 'light' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.4)'}`;
-                                 }}
-                                 onMouseLeave={(e) => {
-                                   if (isViewer || isEnvLimitReached) return;
-                                   e.currentTarget.style.background = theme === 'light' ? 'rgba(239, 68, 68, 0.03)' : 'rgba(239, 68, 68, 0.05)';
-                                   e.currentTarget.style.boxShadow = 'none';
-                                 }}
-                               >
-                                 <PlusCircle size={12} style={{ color: (isViewer || isEnvLimitReached) ? 'var(--text-muted)' : unlinkedStyle.color }} />
-                                 Provision Branch
-                               </button>
-                            </div>
+                            {/* Group Environments List */}
+                            {!isCollapsed && (
+                              <div style={{ padding: '8px 16px 20px 28px', display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(0,0,0,0.03)' }}>
+                                {group.envs.map((item) => {
+                                  const tag = getEnvTag(item);
+                                  const cardStyle = getCardStyles(item, theme);
+                                  const isOrphaned = item.status?.toLowerCase() === 'stale' || item.status?.toLowerCase() === 'orphaned';
+
+                                  return (
+                                    <div
+                                      key={item.name}
+                                      style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'stretch',
+                                        padding: '20px 18px 16px 18px',
+                                        borderRadius: '10px',
+                                        border: `1px solid ${cardStyle.border}`,
+                                        borderLeft: `4px solid ${cardStyle.color}`,
+                                        background: cardStyle.background,
+                                        transition: 'all 0.25s ease',
+                                        gap: '12px',
+                                        position: 'relative'
+                                      }}
+                                    >
+                                      {/* Block 1: Basic Info Block */}
+                                      <div style={{
+                                        background: theme === 'light' ? 'rgba(255, 255, 255, 0.45)' : 'rgba(255, 255, 255, 0.03)',
+                                        border: '1px solid var(--glass-border)',
+                                        borderRadius: '12px',
+                                        padding: '16px',
+                                        boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '12px',
+                                        width: '100%',
+                                        boxSizing: 'border-box',
+                                        position: 'relative'
+                                      }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', width: '100%' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '280px' }}>
+                                            {/* Env Tag */}
+                                            <span style={{
+                                              fontSize: '0.68rem',
+                                              fontWeight: 700,
+                                              color: tag.color,
+                                              background: tag.bg,
+                                              border: `1px solid ${tag.border}`,
+                                              width: '46px',
+                                              height: '22px',
+                                              borderRadius: '4px',
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              letterSpacing: '0.04em',
+                                              flexShrink: 0
+                                            }}>
+                                              {tag.label}
+                                            </span>
+
+                                            {/* Name & Domain Details */}
+                                            <div>
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                {item.type === 'frontend' ? (
+                                                  <Globe size={12} style={{ color: 'var(--accent-purple)', opacity: 0.8, flexShrink: 0 }} />
+                                                ) : item.type === 'vm' ? (
+                                                  <Server size={12} style={{ color: '#f59e0b', opacity: 0.8, flexShrink: 0 }} />
+                                                ) : (
+                                                  <Cpu size={12} style={{ color: 'var(--accent-teal)', opacity: 0.8, flexShrink: 0 }} />
+                                                )}
+                                                <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)' }}>{item.name}</span>
+
+                                                {item.license_frozen === 1 && (
+                                                  <span style={{
+                                                    fontSize: '0.62rem',
+                                                    fontWeight: 700,
+                                                    textTransform: 'uppercase',
+                                                    color: '#ef4444',
+                                                    background: 'rgba(239, 68, 68, 0.12)',
+                                                    padding: '2px 6px',
+                                                    borderRadius: '4px',
+                                                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center'
+                                                  }} title="Environment frozen. Decommission or upgrade to manage.">
+                                                    🔒 FROZEN
+                                                  </span>
+                                                )}
+
+                                                {item.isTestResource && (
+                                                  <span style={{
+                                                    fontSize: '0.62rem',
+                                                    fontWeight: 700,
+                                                    textTransform: 'uppercase',
+                                                    color: '#94a3b8',
+                                                    background: 'rgba(148, 163, 184, 0.12)',
+                                                    padding: '2px 6px',
+                                                    borderRadius: '4px',
+                                                    border: '1px solid rgba(148, 163, 184, 0.2)'
+                                                  }}>
+                                                    Dev / Test
+                                                  </span>
+                                                )}
+                                                {isOrphaned && (
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <span style={{
+                                                      fontSize: '0.62rem',
+                                                      fontWeight: 700,
+                                                      textTransform: 'uppercase',
+                                                      color: 'var(--error)',
+                                                      background: theme === 'light' ? '#fee2e2' : 'rgba(239, 68, 68, 0.2)',
+                                                      padding: '2px 6px',
+                                                      borderRadius: '4px',
+                                                      border: '1px solid rgba(239, 68, 68, 0.2)'
+                                                    }}>
+                                                      Stale / Not In Use
+                                                    </span>
+                                                    {(item.type === 'frontend' || item.type === 'backend') && (
+                                                      <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          handleDeleteApp(item.name, item.type as 'frontend' | 'backend');
+                                                        }}
+                                                        disabled={isViewer || deletingAppName === item.name}
+                                                        style={{
+                                                          background: isViewer ? 'rgba(255,255,255,0.01)' : 'rgba(239, 68, 68, 0.15)',
+                                                          border: isViewer ? '1px solid var(--glass-border)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                                          color: isViewer ? 'var(--text-muted)' : 'var(--error)',
+                                                          borderRadius: '4px',
+                                                          padding: '2px 8px',
+                                                          fontSize: '0.65rem',
+                                                          cursor: isViewer ? 'not-allowed' : 'pointer',
+                                                          fontWeight: 600,
+                                                          display: 'inline-flex',
+                                                          alignItems: 'center',
+                                                          gap: '4px',
+                                                          opacity: isViewer ? 0.6 : 1
+                                                        }}
+                                                      >
+                                                        {deletingAppName === item.name ? (
+                                                          <RefreshCw size={10} className="spin-anim" />
+                                                        ) : (
+                                                          <Trash2 size={10} />
+                                                        )}
+                                                        Delete
+                                                      </button>
+                                                    )}
+                                                  </div>
+                                                )}
+                                              </div>
+                                              {item.dnsDetails?.fqdn && (
+                                                <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
+                                                  <Globe size={12} style={{ opacity: 0.7, color: 'var(--accent-purple)', flexShrink: 0 }} />
+                                                  <span>Domain: <a
+                                                    href={`https://${item.dnsDetails.fqdn}`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    style={{ color: 'var(--accent-purple)', textDecoration: 'none', fontWeight: 600 }}
+                                                  >
+                                                    {item.dnsDetails.fqdn}
+                                                  </a></span>
+                                                </div>
+                                              )}
+                                              {item.repositoryUrl && (
+                                                <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
+                                                  <Github size={12} style={{ opacity: 0.7, color: 'var(--accent-blue)', flexShrink: 0 }} />
+                                                  <span>GitHub: <a
+                                                    href={item.repositoryUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    style={{ color: 'var(--accent-blue)', textDecoration: 'none', fontWeight: 600 }}
+                                                  >
+                                                    {item.repositoryUrl.replace('https://github.com/', '')}
+                                                  </a></span>
+                                                </div>
+                                              )}
+
+                                              {/* Branch Details */}
+                                              <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
+                                                <GitBranch size={12} style={{ opacity: 0.7, color: 'var(--accent-purple)', flexShrink: 0 }} />
+                                                <span>Branch: <strong style={{ color: 'var(--text-primary)' }}>{resolveBranchName(item)}</strong></span>
+                                                {item.pipelineRun && isBuildActive(item.pipelineRun) && (
+                                                  <span style={{
+                                                    marginLeft: '8px',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px',
+                                                    color: 'var(--accent-purple)',
+                                                    fontWeight: 600,
+                                                    fontSize: '0.68rem',
+                                                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                                                    padding: '1px 6px',
+                                                    borderRadius: '4px',
+                                                    border: '1px solid rgba(139, 92, 246, 0.2)'
+                                                  }}>
+                                                    <RefreshCw size={10} className="spin-anim" />
+                                                    Build in progress...
+                                                  </span>
+                                                )}
+                                                {item.pipelineId && !item.pipelineRun && !loadedPipelines[item.pipelineId] && (
+                                                  <span style={{
+                                                    marginLeft: '8px',
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px',
+                                                    color: 'var(--accent-purple)',
+                                                    fontWeight: 500,
+                                                    fontSize: '0.68rem'
+                                                  }}>
+                                                    <RefreshCw size={10} className="spin-anim" />
+                                                    loading status...
+                                                  </span>
+                                                )}
+                                              </div>
+
+                                              {/* Pipeline Details */}
+                                              <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
+                                                <Server size={12} style={{ opacity: 0.7, color: 'var(--accent-teal)', flexShrink: 0 }} />
+                                                <span>Pipeline: <strong style={{ color: item.pipelineName ? 'var(--success)' : '#ef4444' }}>{item.pipelineName || 'Not Set'}</strong></span>
+                                                {item.pipelineId && onShowBuildHistory && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); onShowBuildHistory(item); }}
+                                                    style={{
+                                                      background: 'none',
+                                                      color: 'var(--text-secondary)',
+                                                      cursor: 'pointer',
+                                                      display: 'flex',
+                                                      alignItems: 'center',
+                                                      gap: '4px',
+                                                      padding: '2px 6px',
+                                                      borderRadius: '4px',
+                                                      fontSize: '0.66rem',
+                                                      border: '1px solid var(--glass-border)',
+                                                      marginLeft: '8px',
+                                                      transition: 'all 0.2s'
+                                                    }}
+                                                    onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+                                                    onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'none'; }}
+                                                    title="View build history & revisions"
+                                                  >
+                                                    <Clock size={10} />
+                                                    <span>History</span>
+                                                  </button>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          {(() => {
+                                            const statusInfo = getStatusDetails(item.status, item.type);
+                                            const isLight = theme === 'light';
+
+                                            let pillBg = '#1e293b';
+                                            let pillBorder = '#334155';
+                                            let pillText = '#94a3b8';
+
+                                            if (statusInfo.color === '#10b981') {
+                                              pillBg = isLight ? '#d1fae5' : '#064e3b';
+                                              pillBorder = isLight ? '#10b981' : '#059669';
+                                              pillText = isLight ? '#065f46' : '#a7f3d0';
+                                            } else if (statusInfo.color === '#ef4444') {
+                                              pillBg = isLight ? '#fee2e2' : '#7f1d1d';
+                                              pillBorder = isLight ? '#ef4444' : '#dc2626';
+                                              pillText = isLight ? '#991b1b' : '#fca5a5';
+                                            } else {
+                                              pillBg = isLight ? '#fef3c7' : '#78350f';
+                                              pillBorder = isLight ? '#f59e0b' : '#d97706';
+                                              pillText = isLight ? '#78350f' : '#fde68a';
+                                            }
+
+                                            return (
+                                              <div style={{
+                                                position: 'absolute',
+                                                top: '-10px',
+                                                right: '16px',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '6px',
+                                                padding: '4px 10px',
+                                                borderRadius: '6px',
+                                                backgroundColor: pillBg,
+                                                border: `1px solid ${pillBorder}`,
+                                                zIndex: 10
+                                              }} title={`Status: ${statusInfo.label}`}>
+                                                <span style={{
+                                                  width: '6px',
+                                                  height: '6px',
+                                                  borderRadius: '50%',
+                                                  backgroundColor: statusInfo.color,
+                                                  boxShadow: `0 0 6px ${statusInfo.color}`,
+                                                  display: 'inline-block'
+                                                }} />
+                                                <span style={{
+                                                  fontSize: '0.68rem',
+                                                  color: pillText,
+                                                  fontWeight: 700,
+                                                  textTransform: 'uppercase',
+                                                  letterSpacing: '0.05em'
+                                                }}>{statusInfo.label}</span>
+                                              </div>
+                                            );
+                                          })()}
+                                        </div> {/* End Header Row */}
+
+                                        {/* Action Buttons & Decluttered controls (Restructured into Upper Section) */}
+                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+
+                                          {/* Primary Browse Link (Only SWAs/ACAs with hostnames) */}
+                                          {item.hostname && item.type !== 'vm' && (
+                                            <a
+                                              href={item.dnsDetails?.fqdn ? `https://${item.dnsDetails.fqdn}` : `https://${item.hostname}`}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              className="btn-secondary"
+                                              style={{ padding: '6px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', textDecoration: 'none' }}
+                                            >
+                                              <Globe size={12} />
+                                              Browse
+                                            </a>
+                                          )}
+
+                                          {/* Blue-Green routing switch for ACA & CNAME swap config for SWA */}
+                                          {item.type !== 'vm' && (
+                                            item.type === 'backend' ? (
+                                              <div style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px',
+                                                backgroundColor: 'rgba(255,255,255,0.02)',
+                                                padding: '3px 6px',
+                                                borderRadius: '8px',
+                                                border: '1px solid var(--glass-border)'
+                                              }}>
+                                                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', padding: '0 4px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>B/G Mode:</span>
+                                                <div style={{ display: 'flex', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', padding: '2px' }}>
+                                                  <button
+                                                    type="button"
+                                                    disabled={isViewer || item.license_frozen === 1}
+                                                    onClick={async (e) => {
+                                                      e.stopPropagation();
+                                                      await handleToggleRevisionMode(item.name, 'Single');
+                                                    }}
+                                                    style={{
+                                                      padding: '4px 10px',
+                                                      fontSize: '0.66rem',
+                                                      fontWeight: 700,
+                                                      borderRadius: '4px',
+                                                      border: 'none',
+                                                      backgroundColor: (isViewer || item.license_frozen === 1) ? 'transparent' : (bgModeState[item.name] !== 'Multiple' && item.status !== 'multiple') ? 'var(--accent-purple, #8b5cf6)' : 'transparent',
+                                                      color: (isViewer || item.license_frozen === 1) ? 'rgba(255,255,255,0.35)' : (bgModeState[item.name] !== 'Multiple' && item.status !== 'multiple') ? '#fff' : 'var(--text-secondary)',
+                                                      cursor: (isViewer || item.license_frozen === 1) ? 'not-allowed' : 'pointer',
+                                                      opacity: (isViewer || item.license_frozen === 1) ? 0.35 : 1,
+                                                      transition: 'all 0.2s ease'
+                                                    }}
+                                                    title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
+                                                  >
+                                                    Single
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    disabled={isViewer || item.license_frozen === 1}
+                                                    onClick={async (e) => {
+                                                      e.stopPropagation();
+                                                      await handleToggleRevisionMode(item.name, 'Multiple');
+                                                      setBgDrawerApp(item);
+                                                      fetchRevisions(item);
+                                                    }}
+                                                    style={{
+                                                      padding: '4px 10px',
+                                                      fontSize: '0.66rem',
+                                                      fontWeight: 700,
+                                                      borderRadius: '4px',
+                                                      border: 'none',
+                                                      backgroundColor: (isViewer || item.license_frozen === 1) ? 'transparent' : (bgModeState[item.name] === 'Multiple' || item.status === 'multiple') ? 'var(--accent-purple, #8b5cf6)' : 'transparent',
+                                                      color: (isViewer || item.license_frozen === 1) ? 'rgba(255,255,255,0.35)' : (bgModeState[item.name] === 'Multiple' || item.status === 'multiple') ? '#fff' : 'var(--text-secondary)',
+                                                      cursor: (isViewer || item.license_frozen === 1) ? 'not-allowed' : 'pointer',
+                                                      opacity: (isViewer || item.license_frozen === 1) ? 0.35 : 1,
+                                                      transition: 'all 0.2s ease'
+                                                    }}
+                                                    title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
+                                                  >
+                                                    Multi
+                                                  </button>
+                                                </div>
+                                                <button
+                                                  type="button"
+                                                  className="btn-secondary"
+                                                  disabled={item.license_frozen === 1}
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setBgDrawerApp(item);
+                                                    fetchRevisions(item);
+                                                  }}
+                                                  style={{
+                                                    width: '24px',
+                                                    height: '24px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    borderRadius: '6px',
+                                                    padding: 0,
+                                                    border: 'none',
+                                                    background: item.license_frozen === 1 ? 'rgba(255, 255, 255, 0.01)' : 'rgba(255, 255, 255, 0.04)',
+                                                    cursor: item.license_frozen === 1 ? 'not-allowed' : 'pointer',
+                                                    opacity: item.license_frozen === 1 ? 0.35 : 1
+                                                  }}
+                                                  title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : "Configure Traffic Split"}
+                                                >
+                                                  <Sliders size={11} style={{ color: item.license_frozen === 1 ? 'rgba(255,255,255,0.25)' : 'var(--accent-purple)' }} />
+                                                </button>
+                                              </div>
+                                            ) : (
+                                              <button
+                                                type="button"
+                                                disabled={item.license_frozen === 1}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setBgDrawerApp(item);
+                                                  fetchRevisions(item);
+                                                }}
+                                                style={{
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  gap: '6px',
+                                                  padding: '5px 12px',
+                                                  fontSize: '0.7rem',
+                                                  borderRadius: '8px',
+                                                  fontWeight: 700,
+                                                  backgroundColor: item.license_frozen === 1 ? 'rgba(255,255,255,0.01)' : 'rgba(139, 92, 246, 0.08)',
+                                                  border: item.license_frozen === 1 ? '1px dashed var(--glass-border)' : '1px solid rgba(139, 92, 246, 0.2)',
+                                                  color: item.license_frozen === 1 ? 'var(--text-muted)' : 'var(--accent-purple, #8b5cf6)',
+                                                  transition: 'all 0.2s ease',
+                                                  cursor: item.license_frozen === 1 ? 'not-allowed' : 'pointer',
+                                                  opacity: item.license_frozen === 1 ? 0.35 : 1
+                                                }}
+                                                title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : "Configure B/G Swap"}
+                                              >
+                                                <GitCompare size={12} />
+                                                Configure B/G Swap
+                                              </button>
+                                            )
+                                          )}
+
+                                          {/* Power Controls — Status Dropdown */}
+                                          {(() => {
+                                            const isCritical = item.name.toLowerCase().includes('evaops') ||
+                                              item.name.toLowerCase().includes('devops-backend') ||
+                                              item.name.toLowerCase().includes('devops-frontend');
+                                            const isControlling = controllingResource === item.name;
+                                            const s = (item.status || '').toLowerCase();
+                                            const isStarted = s === 'running' || s === 'deployed';
+                                            const isStopped = s === 'stopped' || s === 'sleep' || s === 'offline';
+                                            const isOpen = activePowerDropdown === item.name;
+                                            const isDisabled = isViewer || isControlling || item.license_frozen === 1;
+
+                                            // Derive button appearance from runtime state
+                                            let btnBg = 'rgba(255,255,255,0.02)';
+                                            let btnColor = 'var(--text-secondary)';
+                                            let btnBorder = 'var(--glass-border, rgba(255,255,255,0.08))';
+                                            let btnText = 'Unknown';
+                                            let btnIcon = <Square size={10} />;
+
+                                            if (isControlling) {
+                                              btnBg = 'rgba(59,130,246,0.08)'; btnColor = '#3b82f6';
+                                              btnBorder = 'rgba(59,130,246,0.2)'; btnText = 'Updating…';
+                                              btnIcon = <RefreshCw size={10} className="spin-anim" />;
+                                            } else if (isStarted) {
+                                              btnBg = 'rgba(16,185,129,0.08)'; btnColor = '#10b981';
+                                              btnBorder = 'rgba(16,185,129,0.2)'; btnText = 'Running';
+                                              btnIcon = <Play size={10} fill="#10b981" className="play-pulse-anim" />;
+                                            } else if (isStopped) {
+                                              btnBg = 'rgba(239,68,68,0.08)'; btnColor = '#ef4444';
+                                              btnBorder = 'rgba(239,68,68,0.2)'; btnText = 'Stopped';
+                                              btnIcon = <Square size={10} fill="#ef4444" />;
+                                            }
+
+                                            // Per-action disabled flags
+                                            const startDis = isViewer || isControlling || isStarted || isCritical || item.license_frozen === 1;
+                                            const restartDis = isViewer || isControlling || isStopped || isCritical || item.license_frozen === 1;
+                                            const stopDis = isViewer || isControlling || isStopped || isCritical || item.license_frozen === 1;
+
+                                            return (
+                                              <div style={{ position: 'relative' }}>
+                                                {/* Trigger button */}
+                                                <button
+                                                  type="button"
+                                                  disabled={isDisabled}
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (isOpen) {
+                                                      setActivePowerDropdown(null);
+                                                      setPowerDropdownCoords(null);
+                                                    } else {
+                                                      const rect = e.currentTarget.getBoundingClientRect();
+                                                      setPowerDropdownCoords({ top: rect.bottom + 6, left: rect.right - 130 });
+                                                      setActivePowerDropdown(item.name);
+                                                    }
+                                                  }}
+                                                  style={{
+                                                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                                    padding: '6px 12px', borderRadius: '8px',
+                                                    backgroundColor: (isViewer || item.license_frozen === 1) ? (theme === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)') : btnBg,
+                                                    color: (isViewer || item.license_frozen === 1) ? (theme === 'light' ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)') : btnColor,
+                                                    border: (isViewer || item.license_frozen === 1) ? '1px dashed var(--glass-border)' : `1px solid ${btnBorder}`,
+                                                    fontSize: '0.72rem', fontWeight: 700,
+                                                    cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                                    transition: 'all 0.2s ease',
+                                                    opacity: (isViewer || item.license_frozen === 1) ? 0.35 : 1
+                                                  }}
+                                                  title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
+                                                >
+                                                  {btnIcon}
+                                                  <span>{btnText}</span>
+                                                  <ChevronDown size={12} style={{ opacity: isDisabled ? 0.35 : 0.7 }} />
+                                                </button>
+
+                                                {/* Dropdown menu */}
+                                                {isOpen && powerDropdownCoords && (() => {
+                                                  const disabledColor = theme === 'light' ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.25)';
+                                                  const hoverBgColor = theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)';
+                                                  return (
+                                                    <>
+                                                      {/* Backdrop to close on outside click */}
+                                                      <div
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          setActivePowerDropdown(null);
+                                                          setPowerDropdownCoords(null);
+                                                        }}
+                                                        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998, cursor: 'default' }}
+                                                      />
+                                                      <div style={{
+                                                        position: 'fixed',
+                                                        top: powerDropdownCoords.top,
+                                                        left: Math.max(8, powerDropdownCoords.left),
+                                                        backgroundColor: 'var(--bg-secondary, #0f172a)',
+                                                        border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
+                                                        borderRadius: '8px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                                                        zIndex: 9999, minWidth: '130px',
+                                                        display: 'flex', flexDirection: 'column',
+                                                        padding: '4px 0', overflow: 'hidden'
+                                                      }}>
+                                                        {/* Start */}
+                                                        <button
+                                                          type="button"
+                                                          disabled={startDis}
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setPendingPowerAction({ name: item.name, action: 'start' });
+                                                            setActivePowerDropdown(null);
+                                                            setPowerDropdownCoords(null);
+                                                          }}
+                                                          onMouseEnter={(e) => { if (!startDis) e.currentTarget.style.backgroundColor = hoverBgColor; }}
+                                                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                                          style={{
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                            padding: '8px 14px', fontSize: '0.75rem',
+                                                            background: 'none', border: 'none', width: '100%', textAlign: 'left',
+                                                            color: startDis ? disabledColor : 'var(--text-primary)',
+                                                            cursor: startDis ? 'not-allowed' : 'pointer',
+                                                            opacity: startDis ? 0.35 : 1
+                                                          }}
+                                                        >
+                                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <Play size={12} style={{ color: startDis ? disabledColor : '#10b981' }}
+                                                              fill={startDis ? 'none' : '#10b981'} />
+                                                            <span>Start</span>
+                                                          </div>
+                                                          {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
+                                                        </button>
+
+                                                        {/* Restart */}
+                                                        <button
+                                                          type="button"
+                                                          disabled={restartDis}
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setPendingPowerAction({ name: item.name, action: 'restart' });
+                                                            setActivePowerDropdown(null);
+                                                            setPowerDropdownCoords(null);
+                                                          }}
+                                                          onMouseEnter={(e) => { if (!restartDis) e.currentTarget.style.backgroundColor = hoverBgColor; }}
+                                                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                                          style={{
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                            padding: '8px 14px', fontSize: '0.75rem',
+                                                            background: 'none', border: 'none', width: '100%', textAlign: 'left',
+                                                            color: restartDis ? disabledColor : 'var(--text-primary)',
+                                                            cursor: restartDis ? 'not-allowed' : 'pointer',
+                                                            opacity: restartDis ? 0.35 : 1
+                                                          }}
+                                                        >
+                                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <RefreshCw size={12} style={{ color: restartDis ? disabledColor : '#3b82f6' }} />
+                                                            <span>Restart</span>
+                                                          </div>
+                                                          {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
+                                                        </button>
+
+                                                        {/* Stop */}
+                                                        <button
+                                                          type="button"
+                                                          disabled={stopDis}
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setPendingPowerAction({ name: item.name, action: 'stop' });
+                                                            setActivePowerDropdown(null);
+                                                            setPowerDropdownCoords(null);
+                                                          }}
+                                                          onMouseEnter={(e) => { if (!stopDis) e.currentTarget.style.backgroundColor = hoverBgColor; }}
+                                                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                                          style={{
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                            padding: '8px 14px', fontSize: '0.75rem',
+                                                            background: 'none', border: 'none', width: '100%', textAlign: 'left',
+                                                            color: stopDis ? disabledColor : 'var(--text-primary)',
+                                                            cursor: stopDis ? 'not-allowed' : 'pointer',
+                                                            opacity: stopDis ? 0.35 : 1
+                                                          }}
+                                                        >
+                                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <Square size={12} style={{ color: stopDis ? disabledColor : '#ef4444' }}
+                                                              fill={stopDis ? 'none' : '#ef4444'} />
+                                                            <span>Stop</span>
+                                                          </div>
+                                                          {isCritical && <Lock size={10} style={{ color: '#ef4444' }} />}
+                                                        </button>
+                                                      </div>
+                                                    </>
+                                                  );
+                                                })()}
+                                              </div>
+                                            );
+                                          })()}
+
+                                          {/* Decluttered Actions Dropdown Menu */}
+                                          <div style={{ position: 'relative' }}>
+                                            <button
+                                              type="button"
+                                              className="btn-secondary"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (activeDropdown === item.name) {
+                                                  setActiveDropdown(null);
+                                                  setDropdownCoords(null);
+                                                } else {
+                                                  const rect = e.currentTarget.getBoundingClientRect();
+                                                  setDropdownCoords({ top: rect.bottom + 6, left: rect.right - 170 });
+                                                  setActiveDropdown(item.name);
+                                                }
+                                              }}
+                                              style={{ padding: '6px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                                              title="Operations & Actions"
+                                            >
+                                              <MoreVertical size={14} />
+                                            </button>
+
+                                            {activeDropdown === item.name && dropdownCoords && (
+                                              <>
+                                                <div
+                                                  onClick={(e) => { e.stopPropagation(); setActiveDropdown(null); setDropdownCoords(null); }}
+                                                  style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998, cursor: 'default' }}
+                                                />
+                                                <div style={{
+                                                  position: 'fixed',
+                                                  top: dropdownCoords.top,
+                                                  left: Math.max(8, dropdownCoords.left),
+                                                  backgroundColor: 'var(--bg-secondary, #0f172a)',
+                                                  border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
+                                                  borderRadius: '8px',
+                                                  boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+                                                  zIndex: 9999,
+                                                  minWidth: '170px',
+                                                  display: 'flex',
+                                                  flexDirection: 'column',
+                                                  padding: '4px 0',
+                                                  overflow: 'hidden'
+                                                }}>
+                                                  <button
+                                                    type="button"
+                                                    disabled={item.license_frozen === 1}
+                                                    onClick={(e) => { e.stopPropagation(); openDnsModal(item); setActiveDropdown(null); setDropdownCoords(null); }}
+                                                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: item.license_frozen === 1 ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: item.license_frozen === 1 ? 'not-allowed' : 'pointer', opacity: item.license_frozen === 1 ? 0.35 : 1 }}
+                                                    title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
+                                                    onMouseEnter={(e) => { if (item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
+                                                    onMouseLeave={(e) => { if (item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                                  >
+                                                    <Globe size={12} style={{ color: item.license_frozen === 1 ? 'rgba(255,255,255,0.25)' : 'var(--accent-purple)' }} />
+                                                    <span>DNS Settings</span>
+                                                  </button>
+
+                                                  {item.pipelineId ? (
+                                                    <a
+                                                      href={item.license_frozen === 1 ? undefined : (() => {
+                                                        const pid = String(item.pipelineId || '');
+                                                        if (pid.startsWith('github-actions:')) {
+                                                          const repoPath = pid.split(':').slice(1).join(':');
+                                                          if (item.pipelineRun?.webUrl) {
+                                                            return item.pipelineRun.webUrl;
+                                                          }
+                                                          return `https://github.com/${repoPath}/actions`;
+                                                        }
+                                                        if (item.pipelineRun?.webUrl) {
+                                                          try {
+                                                            const url = new URL(item.pipelineRun.webUrl);
+                                                            const parts = url.pathname.split('/');
+                                                            const buildIndex = parts.indexOf('_build');
+                                                            if (buildIndex !== -1) {
+                                                              const basePath = parts.slice(0, buildIndex + 1).join('/');
+                                                              return `${url.origin}${basePath}?definitionId=${item.pipelineId}`;
+                                                            }
+                                                          } catch (e) {
+                                                            console.warn('Failed to parse webUrl:', e);
+                                                          }
+                                                        }
+                                                        const baseOrg = (azureDevopsOrgUrl || 'https://dev.azure.com/esteviatech').replace(/\/$/, '');
+                                                        const baseProj = azureDevopsProject || 'Estevia-Platform';
+                                                        return `${baseOrg}/${baseProj}/_build?definitionId=${item.pipelineId}`;
+                                                      })()}
+                                                      target="_blank"
+                                                      rel="noreferrer"
+                                                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', color: item.license_frozen === 1 ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textDecoration: 'none', boxSizing: 'border-box', pointerEvents: item.license_frozen === 1 ? 'none' : 'auto', opacity: item.license_frozen === 1 ? 0.35 : 1 }}
+                                                      title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
+                                                      onClick={() => setActiveDropdown(null)}
+                                                      onMouseEnter={(e) => { if (item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
+                                                      onMouseLeave={(e) => { if (item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                                    >
+                                                      <GitBranch size={12} style={{ color: item.license_frozen === 1 ? 'rgba(255,255,255,0.25)' : 'var(--accent-teal)' }} />
+                                                      <span>View CI/CD Pipeline</span>
+                                                    </a>
+                                                  ) : (
+                                                    <button
+                                                      type="button"
+                                                      disabled={isViewer || item.license_frozen === 1}
+                                                      onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); setActiveDropdown(null); }}
+                                                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: (isViewer || item.license_frozen === 1) ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: (isViewer || item.license_frozen === 1) ? 'not-allowed' : 'pointer', opacity: (isViewer || item.license_frozen === 1) ? 0.35 : 1 }}
+                                                      title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
+                                                      onMouseEnter={(e) => { if (!isViewer && item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
+                                                      onMouseLeave={(e) => { if (!isViewer && item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                                    >
+                                                      <PlusCircle size={12} style={{ color: (isViewer || item.license_frozen === 1) ? 'rgba(255,255,255,0.25)' : 'var(--accent-purple)' }} />
+                                                      <span>Setup CI/CD</span>
+                                                    </button>
+                                                  )}
+
+                                                  {item.type === 'backend' && onShowLogs && (
+                                                    <button
+                                                      type="button"
+                                                      disabled={item.license_frozen === 1}
+                                                      onClick={(e) => { e.stopPropagation(); onShowLogs(item.name); setActiveDropdown(null); }}
+                                                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: item.license_frozen === 1 ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: item.license_frozen === 1 ? 'not-allowed' : 'pointer', opacity: item.license_frozen === 1 ? 0.35 : 1 }}
+                                                      title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
+                                                      onMouseEnter={(e) => { if (item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)' }}
+                                                      onMouseLeave={(e) => { if (item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'transparent' }}
+                                                    >
+                                                      <Terminal size={12} style={{ color: item.license_frozen === 1 ? 'rgba(255,255,255,0.25)' : 'var(--accent-blue)' }} />
+                                                      <span>View Logs</span>
+                                                    </button>
+                                                  )}
+
+                                                  {onCloneApp && (
+                                                    <button
+                                                      type="button"
+                                                      disabled={isViewer || item.license_frozen === 1}
+                                                      onClick={(e) => { e.stopPropagation(); onCloneApp(item); setActiveDropdown(null); }}
+                                                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: (isViewer || item.license_frozen === 1) ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)', width: '100%', textAlign: 'left', cursor: (isViewer || item.license_frozen === 1) ? 'not-allowed' : 'pointer', opacity: (isViewer || item.license_frozen === 1) ? 0.35 : 1 }}
+                                                      title={item.license_frozen === 1 ? "Environment frozen. Decommission or upgrade to manage." : undefined}
+                                                      onMouseEnter={(e) => { if (!isViewer && item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
+                                                      onMouseLeave={(e) => { if (!isViewer && item.license_frozen !== 1) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                                    >
+                                                      <GitBranch size={12} style={{ color: (isViewer || item.license_frozen === 1) ? 'rgba(255,255,255,0.25)' : 'var(--success)' }} />
+                                                      <span>Clone App</span>
+                                                    </button>
+                                                  )}
+
+                                                  {item.type !== 'vm' && <div style={{ height: '1px', backgroundColor: 'var(--glass-border)', margin: '4px 0' }} />}
+
+                                                  {!isOrphaned && item.type !== 'vm' && (
+                                                    <button
+                                                      type="button"
+                                                      onClick={(e) => { e.stopPropagation(); handleDeleteApp(item.name, item.type as 'frontend' | 'backend'); setActiveDropdown(null); }}
+                                                      disabled={isViewer || deletingAppName === item.name}
+                                                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', fontSize: '0.75rem', background: 'none', border: 'none', color: (isViewer || deletingAppName === item.name) ? 'rgba(255,255,255,0.35)' : 'var(--error)', width: '100%', textAlign: 'left', cursor: (isViewer || deletingAppName === item.name) ? 'not-allowed' : 'pointer', opacity: (isViewer || deletingAppName === item.name) ? 0.35 : 1 }}
+                                                      onMouseEnter={(e) => { if (!isViewer && deletingAppName !== item.name) e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.08)'; }}
+                                                      onMouseLeave={(e) => { if (!isViewer && deletingAppName !== item.name) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                                                    >
+                                                      <Trash2 size={12} style={{ color: (isViewer || deletingAppName === item.name) ? 'rgba(255,255,255,0.35)' : 'var(--error)' }} />
+                                                      <span>Delete app</span>
+                                                    </button>
+                                                  )}
+                                                </div>
+                                              </>
+                                            )}
+                                          </div>
+
+                                        </div>
+                                      </div> {/* End Block 1 */}
+
+                                      {/* Block 2: Security & Code Sanity Block */}
+                                      {item.type !== 'vm' && (
+                                        <div style={{
+                                          background: theme === 'light'
+                                            ? 'linear-gradient(135deg, rgba(20, 184, 166, 0.04) 0%, rgba(20, 184, 166, 0.01) 100%)'
+                                            : 'linear-gradient(135deg, rgba(20, 184, 166, 0.05) 0%, rgba(20, 184, 166, 0.01) 100%)',
+                                          border: theme === 'light' ? '1px solid rgba(20, 184, 166, 0.18)' : '1px solid rgba(20, 184, 166, 0.15)',
+                                          borderRadius: '12px',
+                                          padding: '16px',
+                                          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+                                          display: 'flex',
+                                          flexDirection: 'column',
+                                          gap: '12px',
+                                          width: '100%',
+                                          boxSizing: 'border-box'
+                                        }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                                            <ShieldCheck size={14} style={{ color: 'var(--accent-teal)' }} />
+                                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                              Security & Code Sanity scan
+                                            </span>
+                                          </div>
+
+                                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%' }}>
+
+                                            {/* VNet and Network Connectivity Card (Premium Glassmorphic Layout) */}
+                                            {(() => {
+                                              const validation = checkNetworkWarnings(item, group);
+                                              if (!validation) return null;
+                                              const pillIcon = validation.status === 'verified'
+                                                ? <ShieldCheck size={11} />
+                                                : validation.status === 'warning'
+                                                  ? <AlertTriangle size={11} />
+                                                  : validation.status === 'info'
+                                                    ? <Info size={11} />
+                                                    : <AlertCircle size={11} />;
+                                              const pillStyles = validation.status === 'verified'
+                                                ? { background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', color: '#10b981' }
+                                                : validation.status === 'warning'
+                                                  ? { background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)', color: '#fbbf24' }
+                                                  : validation.status === 'info'
+                                                    ? { background: 'rgba(14, 165, 233, 0.08)', border: '1px solid rgba(14, 165, 233, 0.25)', color: '#38bdf8' }
+                                                    : { background: 'rgba(220, 38, 38, 0.08)', border: '1px solid rgba(220, 38, 38, 0.25)', color: '#ef4444' };
+
+                                              return (
+                                                <div style={{
+                                                  flex: 2,
+                                                  minWidth: '320px',
+                                                  padding: '8px 12px',
+                                                  borderRadius: '10px',
+                                                  background: theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)',
+                                                  border: '1px solid var(--glass-border)',
+                                                  display: 'flex',
+                                                  flexDirection: 'column',
+                                                  gap: '6px',
+                                                  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.03)',
+                                                  backdropFilter: 'blur(8px)',
+                                                  WebkitBackdropFilter: 'blur(8px)'
+                                                }}>
+                                                  {/* VNet Name Row */}
+                                                  <div style={{
+                                                    fontSize: '0.72rem',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    gap: '8px',
+                                                    fontWeight: 400,
+                                                    color: 'var(--text-secondary)'
+                                                  }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                      <Network size={11} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
+                                                      <span>VNet / VPC:</span>
+                                                    </div>
+                                                    <strong style={{
+                                                      color: 'var(--text-primary)',
+                                                      background: 'rgba(255, 255, 255, 0.06)',
+                                                      padding: '2px 6px',
+                                                      borderRadius: '4px',
+                                                      fontSize: '0.68rem',
+                                                      fontWeight: 600,
+                                                      border: '1px solid rgba(255, 255, 255, 0.05)'
+                                                    }}>
+                                                      {getVnetName(item) || 'None (Public Cloud)'}
+                                                    </strong>
+                                                  </div>
+
+                                                  {/* Network Connection Status Row */}
+                                                  <div style={{
+                                                    fontSize: '0.72rem',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    gap: '8px',
+                                                    fontWeight: 400,
+                                                    color: 'var(--text-secondary)',
+                                                    marginTop: '2px'
+                                                  }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                      <ShieldCheck size={11} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
+                                                      <span>Network Status:</span>
+                                                    </div>
+                                                    <span style={{
+                                                      ...pillStyles,
+                                                      padding: '2px 8px',
+                                                      borderRadius: '10px',
+                                                      display: 'inline-flex',
+                                                      alignItems: 'center',
+                                                      gap: '5px',
+                                                      fontSize: '0.68rem',
+                                                      fontWeight: 600,
+                                                      whiteSpace: 'nowrap'
+                                                    }}>
+                                                      {pillIcon}
+                                                      <span>{validation.message}</span>
+                                                    </span>
+                                                  </div>
+
+                                                  {(() => {
+                                                    const isLt = theme === 'light';
+                                                    const isWarn = validation.status === 'warning';
+                                                    const isVerified = validation.status === 'verified';
+
+                                                    // Only show expander if there's details or if verified and has a sourceFile
+                                                    if (isVerified && !validation.sourceFile) return null;
+
+                                                    const toggleColor = isVerified
+                                                      ? (isLt ? '#059669' : '#a7f3d0')
+                                                      : isWarn
+                                                        ? (isLt ? '#dc2626' : '#fca5a5')
+                                                        : (isLt ? '#4b5563' : '#cbd5e1');
+                                                    return (
+                                                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2px', alignItems: 'center', gap: '6px' }}>
+                                                        {isVerified && (
+                                                          <span style={{ fontSize: '0.62rem', color: isLt ? '#059669' : '#34d399', opacity: 0.85, fontWeight: 500 }}>
+                                                            via {validation.sourceFile}
+                                                          </span>
+                                                        )}
+                                                        <button
+                                                          onClick={() => setExpandedWarnings(prev => ({ ...prev, [item.name]: !prev[item.name] }))}
+                                                          style={{
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            padding: '2px 0px',
+                                                            fontSize: '0.62rem',
+                                                            color: toggleColor,
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '3px',
+                                                            textDecoration: 'underline',
+                                                            fontWeight: 500,
+                                                            transition: 'opacity 0.2s'
+                                                          }}
+                                                          onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.8'; }}
+                                                          onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+                                                        >
+                                                          <span>{expandedWarnings[item.name] ? 'Hide Verification Details' : 'View Verification Details ➔'}</span>
+                                                        </button>
+                                                      </div>
+                                                    );
+                                                  })()}
+
+                                                  {expandedWarnings[item.name] && (() => {
+                                                    const isLt = theme === 'light';
+                                                    const isWarn = validation.status === 'warning';
+                                                    const isVerified = validation.status === 'verified';
+                                                    // Theme-aware colors
+                                                    const bannerBg = isVerified
+                                                      ? (isLt
+                                                        ? 'linear-gradient(135deg, rgba(16,185,129,0.07) 0%, rgba(16,185,129,0.03) 100%)'
+                                                        : 'linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(16,185,129,0.03) 100%)')
+                                                      : isWarn
+                                                        ? (isLt
+                                                          ? 'linear-gradient(135deg, rgba(220,38,38,0.07) 0%, rgba(220,38,38,0.03) 100%)'
+                                                          : 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.03) 100%)')
+                                                        : (isLt
+                                                          ? 'linear-gradient(135deg, rgba(100,116,139,0.07) 0%, rgba(100,116,139,0.03) 100%)'
+                                                          : 'linear-gradient(135deg, rgba(148,163,184,0.08) 0%, rgba(148,163,184,0.03) 100%)');
+
+                                                    const bannerBorderLeft = isVerified
+                                                      ? (isLt ? '3px solid #059669' : '3px solid #34d399')
+                                                      : isWarn
+                                                        ? (isLt ? '3px solid #dc2626' : '3px solid #f87171')
+                                                        : (isLt ? '3px solid #64748b' : '3px solid #94a3b8');
+                                                    const bannerEdge = isLt
+                                                      ? '1px solid rgba(0,0,0,0.06)'
+                                                      : '1px solid rgba(255,255,255,0.02)';
+                                                    const bannerText = isVerified
+                                                      ? (isLt ? '#065f46' : '#a7f3d0')
+                                                      : isWarn
+                                                        ? (isLt ? '#991b1b' : '#fca5a5')
+                                                        : (isLt ? '#374151' : '#cbd5e1');
+                                                    const headerColor = isVerified
+                                                      ? (isLt ? '#047857' : '#34d399')
+                                                      : isWarn
+                                                        ? (isLt ? '#b91c1c' : '#f87171')
+                                                        : (isLt ? '#4b5563' : '#94a3b8');
+                                                    const btnBg = isLt ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.08)';
+                                                    const btnBgHover = isLt ? 'rgba(0,0,0,0.13)' : 'rgba(255,255,255,0.15)';
+                                                    const btnBorder = isLt ? '1px solid rgba(0,0,0,0.15)' : '1px solid rgba(255,255,255,0.15)';
+                                                    const hasSearchedFiles = validation.scrapedSearchedFiles && validation.scrapedSearchedFiles.length > 0;
+                                                    return (
+                                                      <div style={{
+                                                        fontSize: '0.66rem',
+                                                        marginTop: '6px',
+                                                        padding: '8px 10px',
+                                                        borderRadius: '6px',
+                                                        background: bannerBg,
+                                                        borderLeft: bannerBorderLeft,
+                                                        borderTop: bannerEdge,
+                                                        borderRight: bannerEdge,
+                                                        borderBottom: bannerEdge,
+                                                        color: bannerText,
+                                                        lineHeight: 1.45,
+                                                        boxShadow: isLt ? '0 2px 8px rgba(0,0,0,0.06)' : '0 4px 12px rgba(0,0,0,0.15)',
+                                                        letterSpacing: '0.015em'
+                                                      }}>
+                                                        {/* Header row: label + "View Scraped Config" button */}
+                                                        <div style={{
+                                                          fontWeight: 700,
+                                                          marginBottom: '3px',
+                                                          color: headerColor,
+                                                          textTransform: 'uppercase',
+                                                          display: 'flex',
+                                                          alignItems: 'center',
+                                                          justifyContent: 'space-between',
+                                                          gap: '4px',
+                                                          flexWrap: 'wrap'
+                                                        }}>
+                                                          <span>{isVerified ? '✅ Network Resolution:' : '⚠️ Network Resolution:'}</span>
+                                                          {(validation.sourceFile || validation.scrapedSearchedFiles) && (
+                                                            <button
+                                                              onClick={() => setViewScrapedConfig({
+                                                                fileName: validation.sourceFile || 'unknown file',
+                                                                fileContent: validation.sourceContent || 'no content',
+                                                                appName: validation.sourceAppName || item.name,
+                                                                searchedFiles: validation.scrapedSearchedFiles
+                                                              })}
+                                                              onMouseEnter={(e) => e.currentTarget.style.background = btnBgHover}
+                                                              onMouseLeave={(e) => e.currentTarget.style.background = btnBg}
+                                                              style={{
+                                                                background: btnBg,
+                                                                border: btnBorder,
+                                                                color: bannerText,
+                                                                padding: '2px 6px',
+                                                                borderRadius: '4px',
+                                                                cursor: 'pointer',
+                                                                fontSize: '0.6rem',
+                                                                fontWeight: 700,
+                                                                transition: 'all 0.15s ease'
+                                                              }}
+                                                            >
+                                                              View Scraped Config
+                                                            </button>
+                                                          )}
+                                                        </div>
+                                                        {/* Error/Warning Detail text */}
+                                                        <div style={{ fontWeight: 500 }}>
+                                                          {validation.detail}
+                                                        </div>
+                                                      </div>
+                                                    );
+                                                  })()}
+                                                </div>
+                                              );
+                                            })()}
+
+                                            {/* YAML Health Details Card */}
+                                            {((item.type === 'frontend' || item.type === 'backend') && health && health.ymlHealth) && (
+                                              <div
+                                                style={{
+                                                  flex: 1,
+                                                  minWidth: '180px',
+                                                  padding: '8px 12px',
+                                                  borderRadius: '10px',
+                                                  background: theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)',
+                                                  border: '1px solid var(--glass-border)',
+                                                  display: 'flex',
+                                                  flexDirection: 'column',
+                                                  gap: '4px',
+                                                  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.03)',
+                                                  backdropFilter: 'blur(8px)',
+                                                  WebkitBackdropFilter: 'blur(8px)',
+                                                  fontSize: '0.72rem',
+                                                  cursor: 'pointer',
+                                                  transition: 'all 0.2s ease',
+                                                  userSelect: 'none'
+                                                }}
+                                                onClick={() => setExpandedYamlDetails(prev => ({ ...prev, [item.name]: !prev[item.name] }))}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = theme === 'light' ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.05)'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)'}
+                                              >
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '8px' }}>
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+                                                    <Terminal size={11} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
+                                                    <span>YAML validation:</span>
+                                                  </div>
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    {!health.ymlHealth.exists ? (
+                                                      <span style={{
+                                                        background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                                        border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                                        color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                                        padding: '2px 8px',
+                                                        borderRadius: '10px',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '5px',
+                                                        fontSize: '0.68rem',
+                                                        fontWeight: 600
+                                                      }}>
+                                                        <AlertCircle size={11} />
+                                                        <span>Not Found</span>
+                                                      </span>
+                                                    ) : health.ymlHealth.valid ? (
+                                                      health.ymlHealth.warningCount > 0 ? (
+                                                        <span style={{
+                                                          background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
+                                                          border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
+                                                          color: theme === 'light' ? '#b45309' : '#fbbf24',
+                                                          padding: '2px 8px',
+                                                          borderRadius: '10px',
+                                                          display: 'inline-flex',
+                                                          alignItems: 'center',
+                                                          gap: '5px',
+                                                          fontSize: '0.68rem',
+                                                          fontWeight: 600,
+                                                          whiteSpace: 'nowrap'
+                                                        }}>
+                                                          <AlertCircle size={11} />
+                                                          <span>{health.ymlHealth.warningCount} warning{health.ymlHealth.warningCount > 1 ? 's' : ''}</span>
+                                                          {!isViewer && (
+                                                            <button
+                                                              type="button"
+                                                              onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); }}
+                                                              style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b45309' : '#fbbf24', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
+                                                            >
+                                                              Fix
+                                                            </button>
+                                                          )}
+                                                        </span>
+                                                      ) : (
+                                                        <span style={{
+                                                          background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(52, 211, 153, 0.12)',
+                                                          border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(52, 211, 153, 0.3)',
+                                                          color: theme === 'light' ? '#059669' : '#34d399',
+                                                          padding: '2px 8px',
+                                                          borderRadius: '10px',
+                                                          display: 'inline-flex',
+                                                          alignItems: 'center',
+                                                          gap: '5px',
+                                                          fontSize: '0.68rem',
+                                                          fontWeight: 600
+                                                        }}>
+                                                          <ShieldCheck size={11} />
+                                                          <span>Valid</span>
+                                                        </span>
+                                                      )
+                                                    ) : (
+                                                      <span style={{
+                                                        background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                                        border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                                        color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                                        padding: '2px 8px',
+                                                        borderRadius: '10px',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '5px',
+                                                        fontSize: '0.68rem',
+                                                        fontWeight: 600
+                                                      }}>
+                                                        <AlertCircle size={11} />
+                                                        <span>{health.ymlHealth.errors?.length || 0} error{health.ymlHealth.errors?.length > 1 ? 's' : ''}</span>
+                                                        {!isViewer && (
+                                                          <button
+                                                            type="button"
+                                                            onClick={(e) => { e.stopPropagation(); openPipelineModal(item, group); }}
+                                                            style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b91c1c' : '#ef4444', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
+                                                          >
+                                                            Fix
+                                                          </button>
+                                                        )}
+                                                      </span>
+                                                    )}
+                                                    <ChevronDown
+                                                      size={12}
+                                                      style={{
+                                                        color: 'var(--text-secondary)',
+                                                        transform: expandedYamlDetails[item.name] ? 'rotate(180deg)' : 'rotate(0deg)',
+                                                        transition: 'transform 0.2s ease',
+                                                        marginLeft: '2px'
+                                                      }}
+                                                    />
+                                                  </div>
+                                                </div>
+
+                                                {expandedYamlDetails[item.name] && (
+                                                  <div style={{
+                                                    marginTop: '8px',
+                                                    paddingTop: '8px',
+                                                    borderTop: `1px solid ${theme === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    gap: '6px',
+                                                    fontSize: '0.68rem',
+                                                    color: 'var(--text-secondary)'
+                                                  }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                      <span>File Name:</span>
+                                                      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                                                        {health.ymlHealth.filePath ? (health.ymlHealth.filePath.split('/').pop() || 'Unknown') : 'Unknown'}
+                                                      </span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                      <span>Full Path:</span>
+                                                      <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace', opacity: 0.8 }}>
+                                                        {health.ymlHealth.filePath || 'Unknown'}
+                                                      </span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                      <span>Validation Status:</span>
+                                                      <span style={{
+                                                        color: !health.ymlHealth.exists
+                                                          ? (theme === 'light' ? '#b91c1c' : '#ef4444')
+                                                          : !health.ymlHealth.valid
+                                                            ? (theme === 'light' ? '#b91c1c' : '#ef4444')
+                                                            : health.ymlHealth.warningCount > 0
+                                                              ? (theme === 'light' ? '#b45309' : '#fbbf24')
+                                                              : (theme === 'light' ? '#059669' : '#34d399'),
+                                                        fontWeight: 700
+                                                      }}>
+                                                        {!health.ymlHealth.exists
+                                                          ? 'Not Found'
+                                                          : !health.ymlHealth.valid
+                                                            ? 'Failed'
+                                                            : health.ymlHealth.warningCount > 0
+                                                              ? 'Passed with Warnings'
+                                                              : 'Passed'}
+                                                      </span>
+                                                    </div>
+                                                    {health.ymlHealth.errors && health.ymlHealth.errors.length > 0 && (
+                                                      <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                        <span style={{ fontWeight: 600, color: 'var(--error)' }}>Errors:</span>
+                                                        {health.ymlHealth.errors.map((err: any, idx: number) => (
+                                                          <div key={idx} style={{
+                                                            background: theme === 'light' ? 'rgba(220, 38, 38, 0.04)' : 'rgba(239, 68, 68, 0.06)',
+                                                            borderLeft: '2px solid var(--error)',
+                                                            padding: '4px 6px',
+                                                            borderRadius: '2px',
+                                                            fontFamily: 'monospace',
+                                                            fontSize: '0.62rem'
+                                                          }}>
+                                                            {err.message || err}
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    )}
+                                                    {health.ymlHealth.warnings && health.ymlHealth.warnings.length > 0 && (
+                                                      <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                        <span style={{ fontWeight: 600, color: theme === 'light' ? '#b45309' : '#fbbf24' }}>Warnings:</span>
+                                                        {health.ymlHealth.warnings.map((warn: any, idx: number) => (
+                                                          <div key={idx} style={{
+                                                            background: theme === 'light' ? 'rgba(245, 158, 11, 0.04)' : 'rgba(245, 158, 11, 0.06)',
+                                                            borderLeft: `2px solid ${theme === 'light' ? '#b45309' : '#fbbf24'}`,
+                                                            padding: '4px 6px',
+                                                            borderRadius: '2px',
+                                                            fontFamily: 'monospace',
+                                                            fontSize: '0.62rem'
+                                                          }}>
+                                                            {warn.message || warn}
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    )}
+
+                                                    {health.ymlHealth.exists && (
+                                                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px', borderTop: `1px solid ${theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'}`, paddingTop: '6px' }}>
+                                                        <button
+                                                          type="button"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const isGitHubAction = health.ymlHealth.filePath ? health.ymlHealth.filePath.includes('.github') : (item.pipelineId && String(item.pipelineId).startsWith('github-actions:'));
+                                                            const provider = isGitHubAction ? 'github_actions' : 'azure_devops';
+                                                            handleOpenFileDrawer(
+                                                              item.name,
+                                                              health.ymlHealth.filePath ? (health.ymlHealth.filePath.split('/').pop() || 'deploy.yml') : (isGitHubAction ? 'deploy.yml' : 'azure-pipelines.yml'),
+                                                              health.ymlHealth.filePath || (isGitHubAction ? '.github/workflows/deploy.yml' : 'azure-pipelines.yml'),
+                                                              'yaml',
+                                                              item.repositoryUrl || group?.repoPath || '',
+                                                              item.branch || 'main',
+                                                              provider
+                                                            );
+                                                          }}
+                                                          style={{
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            color: 'var(--accent-teal)',
+                                                            fontSize: '0.68rem',
+                                                            fontWeight: 700,
+                                                            cursor: 'pointer',
+                                                            textDecoration: 'underline',
+                                                            padding: 0,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '3px'
+                                                          }}
+                                                        >
+                                                          <span>View File ➔</span>
+                                                        </button>
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            )}
+
+                                            {/* Dockerfile Health Details Card */}
+                                            {(item.type === 'backend' && health && health.dockerfileHealth) && (
+                                              <div
+                                                style={{
+                                                  flex: 1,
+                                                  minWidth: '180px',
+                                                  padding: '8px 12px',
+                                                  borderRadius: '10px',
+                                                  background: theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)',
+                                                  border: '1px solid var(--glass-border)',
+                                                  display: 'flex',
+                                                  flexDirection: 'column',
+                                                  gap: '4px',
+                                                  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.03)',
+                                                  backdropFilter: 'blur(8px)',
+                                                  WebkitBackdropFilter: 'blur(8px)',
+                                                  fontSize: '0.72rem',
+                                                  cursor: 'pointer',
+                                                  transition: 'all 0.2s ease',
+                                                  userSelect: 'none'
+                                                }}
+                                                onClick={() => setExpandedDockerDetails(prev => ({ ...prev, [item.name]: !prev[item.name] }))}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = theme === 'light' ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.05)'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = theme === 'light' ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.02)'}
+                                              >
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '8px' }}>
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+                                                    <Terminal size={11} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
+                                                    <span>Dockerfile validation:</span>
+                                                  </div>
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    {!health.dockerfileHealth.exists ? (
+                                                      <span style={{
+                                                        background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                                        border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                                        color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                                        padding: '2px 8px',
+                                                        borderRadius: '10px',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '5px',
+                                                        fontSize: '0.68rem',
+                                                        fontWeight: 600
+                                                      }}>
+                                                        <AlertCircle size={11} />
+                                                        <span>Not Found</span>
+                                                      </span>
+                                                    ) : health.dockerfileHealth.valid ? (
+                                                      health.dockerfileHealth.warningCount > 0 ? (
+                                                        <span style={{
+                                                          background: theme === 'light' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.12)',
+                                                          border: theme === 'light' ? '1px solid rgba(245, 158, 11, 0.25)' : '1px solid rgba(245, 158, 11, 0.3)',
+                                                          color: theme === 'light' ? '#b45309' : '#fbbf24',
+                                                          padding: '2px 8px',
+                                                          borderRadius: '10px',
+                                                          display: 'inline-flex',
+                                                          alignItems: 'center',
+                                                          gap: '5px',
+                                                          fontSize: '0.68rem',
+                                                          fontWeight: 600,
+                                                          whiteSpace: 'nowrap'
+                                                        }}>
+                                                          <AlertCircle size={11} />
+                                                          <span>{health.dockerfileHealth.warningCount} warning{health.dockerfileHealth.warningCount > 1 ? 's' : ''}</span>
+                                                          {!isViewer && (
+                                                            <button
+                                                              type="button"
+                                                              onClick={(e) => { e.stopPropagation(); openDockerfileEditor(item, group); }}
+                                                              style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b45309' : '#fbbf24', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
+                                                            >
+                                                              Fix
+                                                            </button>
+                                                          )}
+                                                        </span>
+                                                      ) : (
+                                                        <span style={{
+                                                          background: theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(52, 211, 153, 0.12)',
+                                                          border: theme === 'light' ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(52, 211, 153, 0.3)',
+                                                          color: theme === 'light' ? '#059669' : '#34d399',
+                                                          padding: '2px 8px',
+                                                          borderRadius: '10px',
+                                                          display: 'inline-flex',
+                                                          alignItems: 'center',
+                                                          gap: '5px',
+                                                          fontSize: '0.68rem',
+                                                          fontWeight: 600
+                                                        }}>
+                                                          <ShieldCheck size={11} />
+                                                          <span>Valid</span>
+                                                        </span>
+                                                      )
+                                                    ) : (
+                                                      <span style={{
+                                                        background: theme === 'light' ? 'rgba(220, 38, 38, 0.08)' : 'rgba(239, 68, 68, 0.12)',
+                                                        border: theme === 'light' ? '1px solid rgba(220, 38, 38, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                                        color: theme === 'light' ? '#b91c1c' : '#ef4444',
+                                                        padding: '2px 8px',
+                                                        borderRadius: '10px',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '5px',
+                                                        fontSize: '0.68rem',
+                                                        fontWeight: 600
+                                                      }}>
+                                                        <AlertCircle size={11} />
+                                                        <span>{health.dockerfileHealth.errors?.length || 0} error{health.dockerfileHealth.errors?.length > 1 ? 's' : ''}</span>
+                                                        {!isViewer && (
+                                                          <button
+                                                            type="button"
+                                                            onClick={(e) => { e.stopPropagation(); openDockerfileEditor(item, group); }}
+                                                            style={{ background: 'none', border: 'none', color: theme === 'light' ? '#b91c1c' : '#ef4444', textDecoration: 'underline', padding: 0, marginLeft: '6px', fontSize: '0.66rem', cursor: 'pointer', fontWeight: 700 }}
+                                                          >
+                                                            Fix
+                                                          </button>
+                                                        )}
+                                                      </span>
+                                                    )}
+                                                    <ChevronDown
+                                                      size={12}
+                                                      style={{
+                                                        color: 'var(--text-secondary)',
+                                                        transform: expandedDockerDetails[item.name] ? 'rotate(180deg)' : 'rotate(0deg)',
+                                                        transition: 'transform 0.2s ease',
+                                                        marginLeft: '2px'
+                                                      }}
+                                                    />
+                                                  </div>
+                                                </div>
+
+                                                {expandedDockerDetails[item.name] && (
+                                                  <div style={{
+                                                    marginTop: '8px',
+                                                    paddingTop: '8px',
+                                                    borderTop: `1px solid ${theme === 'light' ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    gap: '6px',
+                                                    fontSize: '0.68rem',
+                                                    color: 'var(--text-secondary)'
+                                                  }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                      <span>File Name:</span>
+                                                      <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>Dockerfile</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                      <span>Full Path:</span>
+                                                      <span style={{ color: 'var(--text-primary)', fontFamily: 'monospace', opacity: 0.8 }}>Dockerfile</span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                      <span>Validation Status:</span>
+                                                      <span style={{
+                                                        color: !health.dockerfileHealth.exists
+                                                          ? (theme === 'light' ? '#b91c1c' : '#ef4444')
+                                                          : !health.dockerfileHealth.valid
+                                                            ? (theme === 'light' ? '#b91c1c' : '#ef4444')
+                                                            : health.dockerfileHealth.warningCount > 0
+                                                              ? (theme === 'light' ? '#b45309' : '#fbbf24')
+                                                              : (theme === 'light' ? '#059669' : '#34d399'),
+                                                        fontWeight: 700
+                                                      }}>
+                                                        {!health.dockerfileHealth.exists
+                                                          ? 'Not Found'
+                                                          : !health.dockerfileHealth.valid
+                                                            ? 'Failed'
+                                                            : health.dockerfileHealth.warningCount > 0
+                                                              ? 'Passed with Warnings'
+                                                              : 'Passed'}
+                                                      </span>
+                                                    </div>
+                                                    {health.dockerfileHealth.errors && health.dockerfileHealth.errors.length > 0 && (
+                                                      <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                        <span style={{ fontWeight: 600, color: 'var(--error)' }}>Errors:</span>
+                                                        {health.dockerfileHealth.errors.map((err: any, idx: number) => (
+                                                          <div key={idx} style={{
+                                                            background: theme === 'light' ? 'rgba(220, 38, 38, 0.04)' : 'rgba(239, 68, 68, 0.06)',
+                                                            borderLeft: '2px solid var(--error)',
+                                                            padding: '4px 6px',
+                                                            borderRadius: '2px',
+                                                            fontFamily: 'monospace',
+                                                            fontSize: '0.62rem'
+                                                          }}>
+                                                            {err.message || err}
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    )}
+                                                    {health.dockerfileHealth.warnings && health.dockerfileHealth.warnings.length > 0 && (
+                                                      <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                        <span style={{ fontWeight: 600, color: theme === 'light' ? '#b45309' : '#fbbf24' }}>Warnings:</span>
+                                                        {health.dockerfileHealth.warnings.map((warn: any, idx: number) => (
+                                                          <div key={idx} style={{
+                                                            background: theme === 'light' ? 'rgba(245, 158, 11, 0.04)' : 'rgba(245, 158, 11, 0.06)',
+                                                            borderLeft: `2px solid ${theme === 'light' ? '#b45309' : '#fbbf24'}`,
+                                                            padding: '4px 6px',
+                                                            borderRadius: '2px',
+                                                            fontFamily: 'monospace',
+                                                            fontSize: '0.62rem'
+                                                          }}>
+                                                            {warn.message || warn}
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    )}
+
+                                                    {health.dockerfileHealth.exists && (
+                                                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px', borderTop: `1px solid ${theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'}`, paddingTop: '6px' }}>
+                                                        <button
+                                                          type="button"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleOpenFileDrawer(
+                                                              item.name,
+                                                              'Dockerfile',
+                                                              'Dockerfile',
+                                                              'dockerfile',
+                                                              item.repositoryUrl || group?.repoPath || '',
+                                                              item.branch || 'main'
+                                                            );
+                                                          }}
+                                                          style={{
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            color: 'var(--accent-teal)',
+                                                            fontSize: '0.68rem',
+                                                            fontWeight: 700,
+                                                            cursor: 'pointer',
+                                                            textDecoration: 'underline',
+                                                            padding: 0,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '3px'
+                                                          }}
+                                                        >
+                                                          <span>View File ➔</span>
+                                                        </button>
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            )}
+
+                                          </div>
+                                        </div>
+                                      )} {/* End Block 2 */}
+
+                                      {/* Block 3: Continuous Integration Telemetry Block */}
+                                      {item.pipelineId && (item.pipelineRun || !loadedPipelines[item.pipelineId]) && (
+                                        <div style={{
+                                          background: theme === 'light'
+                                            ? 'rgba(15, 23, 42, 0.02)'
+                                            : 'rgba(15, 23, 42, 0.15)',
+                                          border: theme === 'light' ? '1px solid rgba(15, 23, 42, 0.06)' : '1px solid rgba(15, 23, 42, 0.25)',
+                                          borderRadius: '12px',
+                                          padding: '16px',
+                                          boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.02)',
+                                          display: 'flex',
+                                          flexDirection: 'column',
+                                          gap: '10px',
+                                          width: '100%',
+                                          boxSizing: 'border-box'
+                                        }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                                            <Activity size={14} style={{ color: 'var(--accent-purple)' }} />
+                                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                              Continuous Integration Telemetry
+                                            </span>
+                                          </div>
+
+                                          {(() => {
+                                            const isLight = theme === 'light';
+
+                                            if (!item.pipelineRun) {
+                                              return (
+                                                <div style={{
+                                                  width: '100%',
+                                                  boxSizing: 'border-box'
+                                                }}>
+                                                  <div style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '8px',
+                                                    padding: '12px 14px',
+                                                    borderRadius: '8px',
+                                                    background: isLight
+                                                      ? 'rgba(0,0,0,0.02)'
+                                                      : 'rgba(255,255,255,0.01)',
+                                                    border: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
+                                                    color: 'var(--text-secondary)',
+                                                    fontSize: '0.72rem',
+                                                    fontWeight: 500
+                                                  }}>
+                                                    <RefreshCw size={12} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
+                                                    <span>Loading build information...</span>
+                                                  </div>
+                                                </div>
+                                              );
+                                            }
+
+                                            const isExpanded = expandedBuilds[item.name] ?? isBuildActive(item.pipelineRun);
+                                            const runStatus = isBuildActive(item.pipelineRun) ? 'BUILDING' : item.pipelineRun.result || item.pipelineRun.state;
+                                            const runStatusColor = getStageColor(item.pipelineRun.result, item.pipelineRun.state);
+
+                                            return (
+                                              <div style={{
+                                                width: '100%',
+                                                boxSizing: 'border-box'
+                                              }}>
+                                                <div style={{
+                                                  display: 'flex',
+                                                  flexDirection: 'column',
+                                                  gap: '6px',
+                                                  width: '100%',
+                                                  borderRadius: '8px',
+                                                  background: isLight
+                                                    ? 'linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(243, 244, 246, 0.75) 100%)'
+                                                    : 'linear-gradient(180deg, rgba(30, 41, 59, 0.2) 0%, rgba(15, 23, 42, 0.35) 100%)',
+                                                  border: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
+                                                  boxSizing: 'border-box',
+                                                  overflow: 'hidden'
+                                                }}>
+                                                  {/* Collapsible Header */}
+                                                  <div
+                                                    onClick={() => setExpandedBuilds(prev => ({ ...prev, [item.name]: !isExpanded }))}
+                                                    style={{
+                                                      display: 'flex',
+                                                      justifyContent: 'space-between',
+                                                      alignItems: 'center',
+                                                      padding: '10px 14px',
+                                                      cursor: 'pointer',
+                                                      userSelect: 'none',
+                                                      background: isExpanded
+                                                        ? (isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)')
+                                                        : 'transparent',
+                                                      transition: 'background-color 0.2s ease',
+                                                      borderBottom: isExpanded ? `1px solid ${isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'}` : 'none'
+                                                    }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isExpanded ? (isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)') : 'transparent'}
+                                                  >
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                      <ChevronRight
+                                                        size={14}
+                                                        style={{
+                                                          color: 'var(--text-secondary)',
+                                                          transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                                                          transition: 'transform 0.2s ease'
+                                                        }}
+                                                      />
+                                                      <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
+                                                        BUILD RUN: #{item.pipelineRun.name || item.pipelineRun.id}
+                                                      </span>
+                                                      {item.pipelineRun.startTime && (
+                                                        <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                                                          ({new Date(item.pipelineRun.startTime).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })})
+                                                        </span>
+                                                      )}
+                                                      {onShowBuildHistory && (
+                                                        <button
+                                                          type="button"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onShowBuildHistory(item);
+                                                          }}
+                                                          style={{
+                                                            background: 'rgba(255,255,255,0.03)',
+                                                            border: '1px solid var(--glass-border)',
+                                                            borderRadius: '4px',
+                                                            color: 'var(--text-secondary)',
+                                                            fontSize: '0.64rem',
+                                                            padding: '2px 6px',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '4px',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s',
+                                                            marginLeft: '6px'
+                                                          }}
+                                                          onMouseEnter={(e) => {
+                                                            e.currentTarget.style.color = 'var(--text-primary)';
+                                                            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)';
+                                                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+                                                          }}
+                                                          onMouseLeave={(e) => {
+                                                            e.currentTarget.style.color = 'var(--text-secondary)';
+                                                            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
+                                                            e.currentTarget.style.borderColor = 'var(--glass-border)';
+                                                          }}
+                                                          title="View build history & revisions"
+                                                        >
+                                                          <Clock size={11} />
+                                                          <span>History</span>
+                                                        </button>
+                                                      )}
+                                                      <span style={{
+                                                        fontSize: '0.64rem',
+                                                        fontWeight: 800,
+                                                        padding: '2px 6px',
+                                                        borderRadius: '4px',
+                                                        backgroundColor: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)',
+                                                        color: runStatusColor,
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px'
+                                                      }}>
+                                                        {getStageIcon(item.pipelineRun.result, item.pipelineRun.state)}
+                                                        {runStatus}
+                                                      </span>
+                                                      {item.pipelineRun.result === 'failed' && (
+                                                        <span style={{
+                                                          fontSize: '0.68rem',
+                                                          color: 'var(--error)',
+                                                          fontWeight: 600,
+                                                          marginLeft: '8px'
+                                                        }}>
+                                                          (Last build failed)
+                                                        </span>
+                                                      )}
+                                                    </div>
+
+                                                    {/* Right side Actions (CI/CD Pipeline Link) */}
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                      {item.pipelineId ? (
+                                                        <a
+                                                          href={(() => {
+                                                            const pid = String(item.pipelineId || '');
+                                                            if (pid.startsWith('github-actions:')) {
+                                                              const repoPath = pid.split(':').slice(1).join(':');
+                                                              if (item.pipelineRun?.webUrl) {
+                                                                return item.pipelineRun.webUrl;
+                                                              }
+                                                              return `https://github.com/${repoPath}/actions`;
+                                                            }
+                                                            if (item.pipelineRun?.webUrl) {
+                                                              try {
+                                                                const url = new URL(item.pipelineRun.webUrl);
+                                                                const parts = url.pathname.split('/');
+                                                                const buildIndex = parts.indexOf('_build');
+                                                                if (buildIndex !== -1) {
+                                                                  const basePath = parts.slice(0, buildIndex + 1).join('/');
+                                                                  return `${url.origin}${basePath}?definitionId=${item.pipelineId}`;
+                                                                }
+                                                              } catch (e) {
+                                                                console.warn('Failed to parse webUrl:', e);
+                                                              }
+                                                            }
+                                                            const baseOrg = (azureDevopsOrgUrl || 'https://dev.azure.com/esteviatech').replace(/\/$/, '');
+                                                            const baseProj = azureDevopsProject || 'Estevia-Platform';
+                                                            return `${baseOrg}/${baseProj}/_build?definitionId=${item.pipelineId}`;
+                                                          })()}
+                                                          target="_blank"
+                                                          rel="noreferrer"
+                                                          style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '6px',
+                                                            padding: '4px 10px',
+                                                            borderRadius: '6px',
+                                                            fontSize: '0.68rem',
+                                                            fontWeight: 600,
+                                                            color: 'var(--text-primary)',
+                                                            backgroundColor: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)',
+                                                            border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'var(--glass-border)'}`,
+                                                            textDecoration: 'none',
+                                                            boxSizing: 'border-box'
+                                                          }}
+                                                          onClick={(e) => e.stopPropagation()}
+                                                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)'}
+                                                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'}
+                                                        >
+                                                          <GitBranch size={10} style={{ color: 'var(--accent-teal)' }} />
+                                                          <span>View CI/CD Pipeline</span>
+                                                        </a>
+                                                      ) : (
+                                                        <button
+                                                          type="button"
+                                                          disabled={isViewer}
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            openPipelineModal(item, group);
+                                                          }}
+                                                          style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '6px',
+                                                            padding: '4px 10px',
+                                                            borderRadius: '6px',
+                                                            fontSize: '0.68rem',
+                                                            fontWeight: 600,
+                                                            background: 'none',
+                                                            color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--text-primary)',
+                                                            backgroundColor: isViewer ? 'transparent' : (isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'),
+                                                            border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'var(--glass-border)'}`,
+                                                            textAlign: 'left',
+                                                            cursor: isViewer ? 'not-allowed' : 'pointer',
+                                                            opacity: isViewer ? 0.35 : 1
+                                                          }}
+                                                          onMouseEnter={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)'; }}
+                                                          onMouseLeave={(e) => { if (!isViewer) e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)'; }}
+                                                        >
+                                                          <PlusCircle size={10} style={{ color: isViewer ? 'rgba(255,255,255,0.35)' : 'var(--accent-purple)' }} />
+                                                          <span>Setup CI/CD</span>
+                                                        </button>
+                                                      )}
+                                                    </div>
+                                                  </div>
+
+                                                  {/* Collapsible Content */}
+                                                  {isExpanded && (
+                                                    <div style={{
+                                                      padding: '12px 14px',
+                                                      display: 'flex',
+                                                      flexDirection: 'column',
+                                                      gap: '12px'
+                                                    }}>
+                                                      {item.pipelineRun.result === 'failed' && (
+                                                        <div style={{
+                                                          display: 'flex',
+                                                          alignItems: 'center',
+                                                          gap: '8px',
+                                                          padding: '10px 12px',
+                                                          borderRadius: '6px',
+                                                          backgroundColor: isLight ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.15)',
+                                                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                                                          color: isLight ? '#b91c1c' : '#f87171',
+                                                          fontSize: '0.72rem',
+                                                          fontWeight: 600
+                                                        }}>
+                                                          <AlertCircle size={14} style={{ color: isLight ? '#b91c1c' : '#f87171', flexShrink: 0 }} />
+                                                          <span>Build failed for the last build. Please check step logs below.</span>
+                                                        </div>
+                                                      )}
+                                                      {!item.pipelineRun.stages || item.pipelineRun.stages.length === 0 ? (
+                                                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontStyle: 'italic', padding: '6px 0' }}>
+                                                          No stages defined for this run.
+                                                        </div>
+                                                      ) : (
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                          {item.pipelineRun.stages.map((stage: any) => {
+                                                            const stageColor = getStageColor(stage.result, stage.state);
+                                                            const stageStatus = stage.state === 'inProgress' ? 'RUNNING' : stage.result || stage.state;
+
+                                                            return (
+                                                              <div key={stage.id} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                                {/* Stage Row */}
+                                                                <div style={{
+                                                                  display: 'flex',
+                                                                  alignItems: 'center',
+                                                                  justifyContent: 'space-between',
+                                                                  fontSize: '0.74rem',
+                                                                  fontWeight: 600,
+                                                                  color: 'var(--text-primary)',
+                                                                  padding: '4px 6px',
+                                                                  borderRadius: '4px',
+                                                                  backgroundColor: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)'
+                                                                }}>
+                                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                    {getStageIcon(stage.result, stage.state)}
+                                                                    <span>{stage.displayName || stage.name}</span>
+                                                                  </div>
+                                                                  <span style={{ fontSize: '0.66rem', fontWeight: 700, color: stageColor }}>
+                                                                    {stageStatus.toUpperCase()}
+                                                                  </span>
+                                                                </div>
+
+                                                                {/* Jobs list under this Stage */}
+                                                                {stage.jobs && stage.jobs.length > 0 && (
+                                                                  <div style={{
+                                                                    display: 'flex',
+                                                                    flexDirection: 'column',
+                                                                    gap: '6px',
+                                                                    paddingLeft: '16px',
+                                                                    borderLeft: `1px dashed ${isLight ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'}`
+                                                                  }}>
+                                                                    {stage.jobs.map((job: any) => {
+                                                                      const jobColor = getStageColor(job.result, job.state);
+                                                                      const jobStatus = job.state === 'inProgress' ? 'RUNNING' : job.result || job.state;
+
+                                                                      return (
+                                                                        <div key={job.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                                          {/* Job Row */}
+                                                                          <div style={{
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            justifyContent: 'space-between',
+                                                                            fontSize: '0.7rem',
+                                                                            color: 'var(--text-secondary)',
+                                                                            padding: '3px 6px',
+                                                                            borderRadius: '4px'
+                                                                          }}>
+                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                              {getStageIcon(job.result, job.state)}
+                                                                              <span style={{ fontWeight: 500 }}>{job.displayName || job.name}</span>
+                                                                            </div>
+                                                                            <span style={{ fontSize: '0.62rem', fontWeight: 600, color: jobColor }}>
+                                                                              {jobStatus.toUpperCase()}
+                                                                            </span>
+                                                                          </div>
+
+                                                                          {/* Job Tasks (Steps) under this Job */}
+                                                                          {job.steps && job.steps.length > 0 && (
+                                                                            <div style={{
+                                                                              display: 'flex',
+                                                                              flexDirection: 'column',
+                                                                              gap: '3px',
+                                                                              paddingLeft: '14px',
+                                                                              borderLeft: `1px dotted ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`
+                                                                            }}>
+                                                                              {job.steps.map((step: any, idx: number) => {
+                                                                                const stepColor = getStageColor(step.result, step.state);
+                                                                                const stepStatus = step.state === 'inProgress' ? 'RUNNING' : step.result || step.state;
+
+                                                                                // Compute step duration helper
+                                                                                const getStepDuration = () => {
+                                                                                  if (!step.startTime) return null;
+                                                                                  const start = new Date(step.startTime).getTime();
+                                                                                  const end = step.finishTime ? new Date(step.finishTime).getTime() : Date.now();
+                                                                                  const dur = Math.max(0, Math.floor((end - start) / 1000));
+                                                                                  return `${dur}s`;
+                                                                                };
+                                                                                const dur = getStepDuration();
+
+                                                                                return (
+                                                                                  <div
+                                                                                    key={step.id || idx}
+                                                                                    onClick={() => setSelectedTaskForModal({
+                                                                                      step,
+                                                                                      jobName: job.displayName || job.name,
+                                                                                      stageName: stage.displayName || stage.name,
+                                                                                      buildId: item.pipelineRun?.id
+                                                                                    })}
+                                                                                    style={{
+                                                                                      display: 'flex',
+                                                                                      alignItems: 'center',
+                                                                                      justifyContent: 'space-between',
+                                                                                      padding: '3px 6px',
+                                                                                      borderRadius: '4px',
+                                                                                      cursor: 'pointer',
+                                                                                      userSelect: 'none',
+                                                                                      fontSize: '0.68rem',
+                                                                                      transition: 'all 0.15s ease',
+                                                                                      backgroundColor: 'transparent'
+                                                                                    }}
+                                                                                    onMouseEnter={(e) => {
+                                                                                      e.currentTarget.style.backgroundColor = isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)';
+                                                                                      e.currentTarget.style.color = 'var(--text-primary)';
+                                                                                    }}
+                                                                                    onMouseLeave={(e) => {
+                                                                                      e.currentTarget.style.backgroundColor = 'transparent';
+                                                                                      e.currentTarget.style.color = 'var(--text-secondary)';
+                                                                                    }}
+                                                                                  >
+                                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                                      {getStageIcon(step.result, step.state)}
+                                                                                      <span style={{ color: 'var(--text-secondary)' }}>{step.displayName || step.name}</span>
+                                                                                    </div>
+                                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                                      <span style={{ fontSize: '0.62rem', fontWeight: 600, color: stepColor }}>
+                                                                                        {stepStatus.toUpperCase()}
+                                                                                      </span>
+                                                                                      {dur && (
+                                                                                        <span style={{ fontSize: '0.6rem', color: 'var(--text-muted, #94a3b8)', fontFamily: 'monospace' }}>
+                                                                                          ({dur})
+                                                                                        </span>
+                                                                                      )}
+                                                                                    </div>
+                                                                                  </div>
+                                                                                );
+                                                                              })}
+                                                                            </div>
+                                                                          )}
+                                                                        </div>
+                                                                      );
+                                                                    })}
+                                                                  </div>
+                                                                )}
+                                                              </div>
+                                                            );
+                                                          })}
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            );
+                                          })()}
+                                        </div>
+                                      )} {/* End Block 3 */}
+                                    </div>
+                                  );
+                                })}
+                                {(() => {
+                                  const deployedBranchNames = group.envs.map(app => resolveBranchName(app).toLowerCase());
+                                  const undeployedBranches = (group.branches || []).filter(branch => {
+                                    return !deployedBranchNames.includes(branch.name.toLowerCase());
+                                  });
+
+                                  if (undeployedBranches.length === 0) return null;
+
+                                  const unlinkedStyle = getUnlinkedCardStyles(theme);
+
+                                  return undeployedBranches.map((branch) => {
+                                    return (
+                                      <div
+                                        key={branch.name}
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'space-between',
+                                          padding: '12px 18px',
+                                          borderRadius: '10px',
+                                          border: `1px dashed ${unlinkedStyle.border}`,
+                                          borderLeft: `4px solid ${unlinkedStyle.color}`,
+                                          background: unlinkedStyle.background,
+                                          transition: 'all 0.25s ease',
+                                          flexWrap: 'wrap',
+                                          gap: '12px'
+                                        }}
+                                      >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '280px' }}>
+                                          {/* Git Icon / Branch details */}
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <GitBranch size={16} style={{ color: unlinkedStyle.color, opacity: 0.9 }} />
+                                            <span style={{ fontSize: '0.86rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                              {branch.name}
+                                            </span>
+                                          </div>
+
+                                          {/* UNLINKED badge */}
+                                          <span style={{
+                                            fontSize: '0.62rem',
+                                            fontWeight: 700,
+                                            textTransform: 'uppercase',
+                                            color: unlinkedStyle.color,
+                                            background: theme === 'light' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.15)',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            border: `1px dashed ${unlinkedStyle.border}`,
+                                            letterSpacing: '0.04em'
+                                          }}>
+                                            UNLINKED
+                                          </span>
+                                        </div>
+
+                                        {/* Provision Branch Button */}
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                          <button
+                                            className="btn-secondary"
+                                            disabled={isViewer || isEnvLimitReached}
+                                            onClick={() => onDeployBranch(group.repoPath, branch.name, group.type as 'frontend' | 'backend')}
+                                            style={{
+                                              padding: '6px 12px',
+                                              fontSize: '0.75rem',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              gap: '6px',
+                                              borderColor: (isViewer || isEnvLimitReached) ? 'var(--glass-border)' : unlinkedStyle.color,
+                                              color: (isViewer || isEnvLimitReached) ? 'var(--text-muted)' : 'var(--text-primary)',
+                                              background: (isViewer || isEnvLimitReached) ? 'rgba(255,255,255,0.01)' : (theme === 'light' ? 'rgba(239, 68, 68, 0.03)' : 'rgba(239, 68, 68, 0.05)'),
+                                              cursor: (isViewer || isEnvLimitReached) ? 'not-allowed' : 'pointer',
+                                              opacity: (isViewer || isEnvLimitReached) ? 0.6 : 1
+                                            }}
+                                            title={isEnvLimitReached ? `Environment cap (${licenseLimit}) reached for your ${licenseTier.toUpperCase()} tier. Upgrade subscription to provision more.` : undefined}
+                                            onMouseEnter={(e) => {
+                                              if (isViewer || isEnvLimitReached) return;
+                                              e.currentTarget.style.background = theme === 'light' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.15)';
+                                              e.currentTarget.style.boxShadow = `0 0 8px ${theme === 'light' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.4)'}`;
+                                            }}
+                                            onMouseLeave={(e) => {
+                                              if (isViewer || isEnvLimitReached) return;
+                                              e.currentTarget.style.background = theme === 'light' ? 'rgba(239, 68, 68, 0.03)' : 'rgba(239, 68, 68, 0.05)';
+                                              e.currentTarget.style.boxShadow = 'none';
+                                            }}
+                                          >
+                                            <PlusCircle size={12} style={{ color: (isViewer || isEnvLimitReached) ? 'var(--text-muted)' : unlinkedStyle.color }} />
+                                            Provision Branch
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  });
+                                })()}
+                              </div>
+                            )}
                           </div>
                         );
-                      });
-                    })()}
-                  </div>
-                )}
-                  </div>
+                      })}
+                    </div>
+                  </>
                 );
-              })}
-              </div>
+              })()}
             </>
-            );
-          })()}
-          </>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {loadingCompliance && !complianceData ? (
@@ -5041,24 +5041,24 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   {/* Export and Policy Settings Header Row */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                       <button
-                         type="button"
-                         className="btn-secondary"
-                         onClick={() => setPolicyConfigExpanded(!policyConfigExpanded)}
-                         style={{
-                           padding: '8px 16px',
-                           fontSize: '0.82rem',
-                           borderRadius: '8px',
-                           display: 'flex',
-                           alignItems: 'center',
-                           gap: '6px'
-                         }}
-                       >
-                         <Sliders size={14} />
-                         <span>{policyConfigExpanded ? 'Hide Policy Settings' : 'Configure Policy Rules'}</span>
-                       </button>
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => setPolicyConfigExpanded(!policyConfigExpanded)}
+                        style={{
+                          padding: '8px 16px',
+                          fontSize: '0.82rem',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <Sliders size={14} />
+                        <span>{policyConfigExpanded ? 'Hide Policy Settings' : 'Configure Policy Rules'}</span>
+                      </button>
                     </div>
-                    
+
                     <button
                       type="button"
                       className="btn-secondary"
@@ -5139,9 +5139,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                           const isLocked = isRuleLockedByTier(r.id);
                           const isEnabled = !isLocked && !disabledRules.includes(r.id);
                           const severity = ruleSeverities[r.id] || (r.id === 'tls' || r.id === 'network-security' ? 'critical' : r.id === 'tagging' ? 'low' : r.id === 'https-only' || r.id === 'registry-auth' ? 'medium' : 'high');
-                          
+
                           return (
-                            <div key={r.id} 
+                            <div key={r.id}
                               title={isLocked ? "Requires Enterprise or Sovereign subscription" : undefined}
                               style={{
                                 padding: '12px',
@@ -5190,7 +5190,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 </label>
                               </div>
                               <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--text-secondary)', minHeight: '32px' }}>{r.desc}</p>
-                              
+
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '4px' }}>
                                 <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Severity Level:</span>
                                 <select
@@ -5225,7 +5225,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                   {/* Compliance Overview Dashboard */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-                    
+
                     {/* Score Widget */}
                     <div className="glass-panel" style={{
                       padding: '24px',
@@ -5339,7 +5339,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                   }} />
                                   <span>{rule.name}</span>
                                 </div>
-                                
+
                                 {rule.status === 'passed' ? (
                                   <span style={{
                                     fontSize: '0.64rem',
@@ -5401,23 +5401,23 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                   </button>
                                 )}
                               </div>
-                              
+
                               {/* Description & Detail Subsections */}
                               <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', marginTop: '8px', lineHeight: '1.45', display: 'flex', flexDirection: 'column', gap: '8px', minHeight: '210px' }}>
                                 <div style={{ fontWeight: 500, color: 'var(--text-primary)', minHeight: '54px' }}>{rule.description}</div>
-                                
+
                                 {rule.rootCause && (
                                   <div style={{ fontSize: '0.72rem', borderLeft: '2px solid rgba(245, 158, 11, 0.35)', paddingLeft: '8px', color: 'rgba(245, 158, 11, 0.75)', lineHeight: '1.4', minHeight: '44px' }}>
                                     <strong style={{ color: 'var(--text-primary)' }}>Root Cause:</strong> {rule.rootCause}
                                   </div>
                                 )}
-                                
+
                                 {rule.whyImportant && (
                                   <div style={{ fontSize: '0.72rem', borderLeft: '2px solid rgba(16, 185, 129, 0.35)', paddingLeft: '8px', color: 'rgba(16, 185, 129, 0.75)', lineHeight: '1.4', minHeight: '44px' }}>
                                     <strong style={{ color: '#10b981' }}>ROI / Benefit:</strong> {rule.whyImportant}
                                   </div>
                                 )}
-                                
+
                                 {rule.impactOfFix && (
                                   <div style={{ fontSize: '0.72rem', borderLeft: '2px solid rgba(59, 130, 246, 0.35)', paddingLeft: '8px', color: 'rgba(59, 130, 246, 0.75)', lineHeight: '1.4', minHeight: '44px' }}>
                                     <strong style={{ color: '#60a5fa' }}>Impact of Fix:</strong> {rule.impactOfFix}
@@ -5429,18 +5429,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               <div style={{
                                 marginTop: '10px',
                                 borderRadius: '8px',
-                                background: rule.status === 'passed' 
-                                  ? 'rgba(16, 185, 129, 0.04)' 
-                                  : rule.status === 'disabled' 
-                                    ? 'rgba(255, 255, 255, 0.02)' 
+                                background: rule.status === 'passed'
+                                  ? 'rgba(16, 185, 129, 0.04)'
+                                  : rule.status === 'disabled'
+                                    ? 'rgba(255, 255, 255, 0.02)'
                                     : 'rgba(239, 68, 68, 0.04)',
-                                border: `1px solid ${
-                                  rule.status === 'passed' 
-                                    ? 'rgba(16, 185, 129, 0.15)' 
-                                    : rule.status === 'disabled' 
-                                      ? 'var(--glass-border)' 
+                                border: `1px solid ${rule.status === 'passed'
+                                    ? 'rgba(16, 185, 129, 0.15)'
+                                    : rule.status === 'disabled'
+                                      ? 'var(--glass-border)'
                                       : 'rgba(239, 68, 68, 0.15)'
-                                }`,
+                                  }`,
                                 overflow: 'hidden',
                                 fontSize: '0.72rem',
                                 lineHeight: '1.45'
@@ -5451,23 +5450,23 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                   alignItems: 'center',
                                   gap: '8px',
                                   padding: '8px 10px',
-                                  color: rule.status === 'passed' 
-                                    ? 'rgba(16, 185, 129, 0.85)' 
-                                    : rule.status === 'disabled' 
-                                      ? 'var(--text-muted)' 
+                                  color: rule.status === 'passed'
+                                    ? 'rgba(16, 185, 129, 0.85)'
+                                    : rule.status === 'disabled'
+                                      ? 'var(--text-muted)'
                                       : '#f87171',
                                   fontWeight: 600,
                                   cursor: rule.status === 'failed' && ruleViolations.length > 0 ? 'pointer' : 'default',
                                   userSelect: 'none'
                                 }}
-                                onClick={() => {
-                                  if (rule.status === 'failed' && ruleViolations.length > 0) {
-                                    setExpandedRuleViolations(prev => ({
-                                      ...prev,
-                                      [rule.id]: !prev[rule.id]
-                                    }));
-                                  }
-                                }}>
+                                  onClick={() => {
+                                    if (rule.status === 'failed' && ruleViolations.length > 0) {
+                                      setExpandedRuleViolations(prev => ({
+                                        ...prev,
+                                        [rule.id]: !prev[rule.id]
+                                      }));
+                                    }
+                                  }}>
                                   {rule.status === 'passed' ? (
                                     <CheckCircle2 size={13} style={{ color: '#10b981', flexShrink: 0 }} />
                                   ) : rule.status === 'disabled' ? (
@@ -5476,10 +5475,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                     <AlertCircle size={13} style={{ color: '#ef4444', flexShrink: 0 }} />
                                   )}
                                   <span style={{ flex: 1 }}>
-                                    {rule.status === 'passed' 
-                                      ? 'Rule Compliant' 
-                                      : rule.status === 'disabled' 
-                                        ? 'Evaluation Deactivated' 
+                                    {rule.status === 'passed'
+                                      ? 'Rule Compliant'
+                                      : rule.status === 'disabled'
+                                        ? 'Evaluation Deactivated'
                                         : `Violations Detected (${violationCount})`}
                                   </span>
                                   {rule.status === 'failed' && ruleViolations.length > 0 && (
@@ -5541,7 +5540,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               }}>
                                 {rule.severity}
                               </span>
-                              
+
                               {/* Regulatory Standards */}
                               {rule.standards && rule.standards.map((std: string) => (
                                 <span key={std} style={{
@@ -5740,19 +5739,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                       </div>
                     ) : (() => {
                       const allViolations = complianceData?.violations || [];
-                      
+
                       // Apply Filters
                       const filteredViolations = allViolations.filter((v: any) => {
                         const matchesSearch = !complianceSearchQuery ? true : (
-                          v.resourceName?.toLowerCase().includes(complianceSearchQuery.toLowerCase()) || 
+                          v.resourceName?.toLowerCase().includes(complianceSearchQuery.toLowerCase()) ||
                           v.resourceType?.toLowerCase().includes(complianceSearchQuery.toLowerCase()) ||
                           v.ruleName?.toLowerCase().includes(complianceSearchQuery.toLowerCase()) ||
                           v.message?.toLowerCase().includes(complianceSearchQuery.toLowerCase())
                         );
                         const matchesRule = complianceFilterRule === 'all' || v.ruleId === complianceFilterRule;
-                        const matchesRemed = complianceFilterRemed === 'all' || 
-                                             (complianceFilterRemed === 'remediable' && v.remediable) ||
-                                             (complianceFilterRemed === 'manual' && !v.remediable);
+                        const matchesRemed = complianceFilterRemed === 'all' ||
+                          (complianceFilterRemed === 'remediable' && v.remediable) ||
+                          (complianceFilterRemed === 'manual' && !v.remediable);
                         return matchesSearch && matchesRule && matchesRemed;
                       });
 
@@ -5762,7 +5761,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                       const currentPage = Math.min(compliancePage, totalPages);
                       const startIndex = (currentPage - 1) * compliancePageSize;
                       const paginatedViolations = filteredViolations.slice(startIndex, startIndex + compliancePageSize);
-                      
+
                       const remediableFiltered = filteredViolations.filter((v: any) => v.remediable);
                       const paginatedRemediable = paginatedViolations.filter((v: any) => v.remediable);
                       const isAllPageSelected = paginatedRemediable.length > 0 && paginatedRemediable.every((v: any) => selectedViolationIds.includes(v.suggestionId));
@@ -5781,7 +5780,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                          
+
                           {/* Batch Actions Bar */}
                           {remediableFiltered.length > 0 && (
                             <div style={{
@@ -5805,7 +5804,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                 />
                                 <span>Select All Remediable on Page</span>
                               </label>
-                              
+
                               {selectedViolationIds.length > 0 && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                                   <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -5861,7 +5860,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                       padding: '16px',
                                       borderRadius: '12px',
                                       border: `1px solid ${isSelected ? 'rgba(139,92,246,0.35)' : 'rgba(239,68,68,0.18)'}`,
-                                      background: isSelected 
+                                      background: isSelected
                                         ? 'linear-gradient(145deg, rgba(139,92,246,0.06) 0%, rgba(99,102,241,0.04) 100%)'
                                         : 'rgba(239,68,68,0.02)',
                                       display: 'flex',
@@ -5889,7 +5888,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                           }}>
                                             {v.ruleName}
                                           </span>
-                                          
+
                                           {/* Severity and Standards */}
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', marginTop: '2px' }}>
                                             <span style={{
@@ -6022,10 +6021,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                           {/* Pagination controls */}
                           {totalPages > 1 && (
-                            <div style={{ 
-                              display: 'flex', 
-                              justifyContent: 'space-between', 
-                              alignItems: 'center', 
+                            <div style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
                               marginTop: '16px',
                               paddingTop: '16px',
                               borderTop: '1px solid var(--glass-border)'
@@ -6364,7 +6363,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 <GitBranch size={18} style={{ color: 'var(--accent-purple)' }} />
                 Job Steps: {selectedJobForModal.displayName || selectedJobForModal.name}
               </h3>
-              <button 
+              <button
                 onClick={() => setSelectedJobForModal(null)}
                 style={{
                   background: 'transparent',
@@ -6404,8 +6403,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 selectedJobForModal.steps.map((step: any, idx: number) => {
                   const stepColor = getStageColor(step.result, step.state);
                   return (
-                    <div 
-                      key={step.id || idx} 
+                    <div
+                      key={step.id || idx}
                       style={{
                         padding: '12px 16px',
                         borderRadius: '8px',
@@ -6497,7 +6496,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 <CheckCircle2 size={18} style={{ color: 'var(--accent-purple)' }} />
                 Task Details
               </h3>
-              <button 
+              <button
                 onClick={() => setSelectedTaskForModal(null)}
                 style={{
                   background: 'transparent',
@@ -6538,9 +6537,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               <div style={{ display: 'flex', gap: '16px' }}>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>Status</span>
-                  <span style={{ 
-                    fontSize: '0.74rem', 
-                    fontWeight: 700, 
+                  <span style={{
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
                     color: getStageColor(selectedTaskForModal.step.result, selectedTaskForModal.step.state),
                     display: 'flex',
                     alignItems: 'center',
@@ -6583,13 +6582,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               </div>
 
               {/* Console logs terminal UI */}
-              <div style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: '6px', 
-                borderTop: '1px solid var(--glass-border)', 
-                paddingTop: '12px', 
-                marginTop: '8px' 
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                borderTop: '1px solid var(--glass-border)',
+                paddingTop: '12px',
+                marginTop: '8px'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>Console Log Output</span>
@@ -6709,8 +6708,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   Resource: <strong>{bgDrawerApp.name}</strong> ({bgDrawerApp.type === 'frontend' ? 'Static Web App' : 'Container App'})
                 </span>
               </div>
-              <button 
-                className="btn-secondary" 
+              <button
+                className="btn-secondary"
                 onClick={() => setBgDrawerApp(null)}
                 style={{ padding: '6px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
@@ -6725,7 +6724,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                
+
                 {/* ACA Revision Routing Split (Container App only) */}
                 {bgDrawerApp.type === 'backend' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -6758,7 +6757,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     {revisionMode === 'Multiple' && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
                         <h4 style={{ margin: 0, fontSize: '0.86rem', color: 'var(--text-primary)', fontWeight: 600 }}>Active Revisions Split</h4>
-                        
+
                         {revisions.length === 0 ? (
                           <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>No revisions found. Deploy a new revision first.</span>
                         ) : (
@@ -6878,11 +6877,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                           className="btn-primary"
                           disabled={!dnsSwapTargetAppName || swappingDns || isViewer}
                           onClick={handleDnsSwap}
-                          style={{ 
-                            marginTop: '8px', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center', 
+                          style={{
+                            marginTop: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                             gap: '8px',
                             background: isViewer ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))',
                             opacity: isViewer ? 0.35 : 1,
@@ -6954,8 +6953,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   padding: '8px 20px',
                   fontSize: '0.82rem',
                   flex: 1,
-                  background: pendingPowerAction.action === 'stop' 
-                    ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+                  background: pendingPowerAction.action === 'stop'
+                    ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
                     : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                   border: pendingPowerAction.action === 'stop' ? '1px solid #dc2626' : '1px solid #059669'
                 }}
@@ -6976,7 +6975,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Scraped Codebase Config</h3>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Resource: <strong>{viewScrapedConfig.appName}</strong></span>
               </div>
-              <button 
+              <button
                 onClick={() => setViewScrapedConfig(null)}
                 style={{
                   background: 'none',
@@ -7083,7 +7082,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 </h3>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Resource: <strong>{viewingFileDrawer.appName}</strong></span>
               </div>
-              <button 
+              <button
                 onClick={() => setViewingFileDrawer(null)}
                 style={{
                   background: 'none',
@@ -7137,12 +7136,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Loading configuration from GitHub...</span>
                   </div>
                 ) : viewingFileDrawer.error ? (
-                  <div style={{ 
-                    flex: 1, 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
+                  <div style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     gap: '12px',
                     padding: '24px',
                     textAlign: 'center',
