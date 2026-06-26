@@ -57,7 +57,6 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
   const [loadingClientInvoices, setLoadingClientInvoices] = useState(false);
 
   // Invoice Generation
-  const [invoiceAmount, setInvoiceAmount] = useState('');
   const [invoiceDueDays, setInvoiceDueDays] = useState('15');
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
   const [invoiceMsg, setInvoiceMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -190,7 +189,6 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
     setSeatsLimit(client.operator_seats_limit || 10);
     setLicensingMsg(null);
     setInvoiceMsg(null);
-    setInvoiceAmount('');
     
     // Fetch client invoices
     setLoadingClientInvoices(true);
@@ -258,19 +256,17 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
   const handleGenerateInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedClient || !invoiceAmount) return;
+    if (!selectedClient) return;
     setGeneratingInvoice(true);
     setInvoiceMsg(null);
     try {
-      await crmRequest(`/clients/${selectedClient.id}/invoices`, {
+      const result = await crmRequest(`/clients/${selectedClient.id}/invoices`, {
         method: 'POST',
         body: JSON.stringify({
-          amount: parseFloat(invoiceAmount),
           due_days: parseInt(invoiceDueDays, 10)
         })
       });
-      setInvoiceMsg({ type: 'success', text: 'Billing invoice generated successfully.' });
-      setInvoiceAmount('');
+      setInvoiceMsg({ type: 'success', text: `Invoice ${result.invoice_number} generated — $${result.breakdown.total_amount.toLocaleString()}` });
       
       // Refresh client invoices
       const updatedInvs = await crmRequest(`/clients/${selectedClient.id}/invoices`);
@@ -925,10 +921,104 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 </div>
               </div>
 
+              {/* Stats Bar */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '28px' }}>
+                <div className="glass-panel" style={{ padding: '16px 20px' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '6px' }}>License Tier</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700, textTransform: 'capitalize' }}>
+                    <span style={{
+                      padding: '2px 8px', borderRadius: '4px', fontSize: '0.85rem',
+                      background: selectedClient.license_tier === 'sovereign' ? 'rgba(20,184,166,0.12)' : selectedClient.license_tier === 'enterprise' ? 'rgba(139,92,246,0.12)' : 'rgba(59,130,246,0.12)',
+                      border: selectedClient.license_tier === 'sovereign' ? '1px solid rgba(20,184,166,0.3)' : selectedClient.license_tier === 'enterprise' ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(59,130,246,0.3)',
+                      color: selectedClient.license_tier === 'sovereign' ? '#2dd4bf' : selectedClient.license_tier === 'enterprise' ? '#c084fc' : '#60a5fa'
+                    }}>
+                      {selectedClient.license_tier || 'growth'}
+                    </span>
+                  </div>
+                </div>
+                <div className="glass-panel" style={{ padding: '16px 20px' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '6px' }}>Seat Utilization</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>
+                    {selectedClient.activeSeats} <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 400 }}>/ {selectedClient.operator_seats_limit || 10}</span>
+                  </div>
+                  <div style={{ marginTop: '8px', height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', borderRadius: '4px', transition: 'width 0.4s',
+                      width: `${Math.min(100, ((selectedClient.activeSeats || 0) / (selectedClient.operator_seats_limit || 10)) * 100)}%`,
+                      background: 'linear-gradient(90deg, #14b8a6, #0d9488)'
+                    }} />
+                  </div>
+                </div>
+                <div className="glass-panel" style={{ padding: '16px 20px' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '6px' }}>Outstanding Balance</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: selectedClient.unpaidInvoicesCount > 0 ? 'var(--warning)' : 'var(--text-primary)' }}>
+                    ${clientInvoices.filter(i => i.status === 'Pending').reduce((s, i) => s + parseFloat(i.amount), 0).toLocaleString()}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                    {selectedClient.unpaidInvoicesCount} pending invoice{selectedClient.unpaidInvoicesCount !== 1 ? 's' : ''}
+                  </div>
+                </div>
+                <div className="glass-panel" style={{ padding: '16px 20px' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '6px' }}>Account Status</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '6px',
+                      color: selectedClient.is_disabled ? 'var(--error)' : 'var(--success)'
+                    }}>
+                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: selectedClient.is_disabled ? 'var(--error)' : 'var(--success)' }} />
+                      {selectedClient.is_disabled ? 'Suspended' : 'Active'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                    Created {new Date(selectedClient.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '28px' }}>
                 {/* Left Column: Plan and licensing controls */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                   
+                  {/* Account Overview / Seat Utilization */}
+                  <div className="glass-panel" style={{ padding: '24px' }}>
+                    <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '16px' }}>Account Overview</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Org Key</div>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 600, marginTop: '4px', fontFamily: 'monospace' }}>
+                          {selectedClient.org_key}
+                        </div>
+                      </div>
+                      <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Admin Email</div>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 600, marginTop: '4px' }}>
+                          {selectedClient.admin_email || '—'}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{
+                      marginTop: '14px', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                    }}>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Seat Utilization</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 600, marginTop: '4px' }}>
+                          {selectedClient.activeSeats} active <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>of {selectedClient.operator_seats_limit || 10} limit</span>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right', fontSize: '0.82rem', fontWeight: 600, color: (selectedClient.activeSeats || 0) >= (selectedClient.operator_seats_limit || 10) ? 'var(--warning)' : 'var(--success)' }}>
+                        {Math.round(((selectedClient.activeSeats || 0) / (selectedClient.operator_seats_limit || 10)) * 100)}%
+                      </div>
+                    </div>
+                    <div style={{ marginTop: '8px', height: '6px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%', borderRadius: '4px', transition: 'width 0.5s',
+                        width: `${Math.min(100, ((selectedClient.activeSeats || 0) / (selectedClient.operator_seats_limit || 10)) * 100)}%`,
+                        background: 'linear-gradient(90deg, #8b5cf6, #6366f1)'
+                      }} />
+                    </div>
+                  </div>
+
                   {/* Licensing form */}
                   <div className="glass-panel" style={{ padding: '24px' }}>
                     <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '16px' }}>License Management</h4>
@@ -1096,8 +1186,45 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   </div>
                 </div>
 
-                {/* Right Column: Generate invoice form */}
-                <div>
+                {/* Right Column: Billing Summary + Invoice Generator */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  {/* Billing Summary */}
+                  <div className="glass-panel" style={{ padding: '24px' }}>
+                    <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '16px' }}>Billing Summary</h4>
+                    {(() => {
+                      const totalInvoiced = clientInvoices.reduce((s, i) => s + parseFloat(i.amount), 0);
+                      const totalPaid = clientInvoices.filter(i => i.status === 'Paid').reduce((s, i) => s + parseFloat(i.amount), 0);
+                      const totalPending = clientInvoices.filter(i => i.status === 'Pending').reduce((s, i) => s + parseFloat(i.amount), 0);
+                      const lastInv = clientInvoices.length > 0 ? clientInvoices[0] : null;
+                      return (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                          <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Total Invoiced</div>
+                            <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '4px' }}>${totalInvoiced.toLocaleString()}</div>
+                          </div>
+                          <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Total Collected</div>
+                            <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '4px', color: '#4ade80' }}>${totalPaid.toLocaleString()}</div>
+                          </div>
+                          <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Outstanding</div>
+                            <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '4px', color: totalPending > 0 ? 'var(--warning)' : 'var(--text-primary)' }}>${totalPending.toLocaleString()}</div>
+                          </div>
+                          <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Last Invoice</div>
+                            <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '4px' }}>
+                              {lastInv ? `$${parseFloat(lastInv.amount).toLocaleString()}` : '—'}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                              {lastInv ? new Date(lastInv.issue_date).toLocaleDateString() : ''}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Invoice Preview & Generate */}
                   <div className="glass-panel" style={{ padding: '24px' }}>
                     <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '16px' }}>Generate Client Invoice</h4>
                     
@@ -1115,84 +1242,82 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       </div>
                     )}
 
-                    <form onSubmit={handleGenerateInvoice} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <div>
-                        <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                          Invoice Amount (USD)
-                        </label>
-                        <div style={{ position: 'relative' }}>
-                          <span style={{ position: 'absolute', left: '12px', top: '10px', color: 'var(--text-secondary)', fontSize: '0.86rem' }}>$</span>
-                          <input
-                            type="number"
-                            required
-                            min={1}
-                            value={invoiceAmount}
-                            onChange={e => setInvoiceAmount(e.target.value)}
-                            placeholder="1200"
-                            style={{
-                              width: '100%',
-                              padding: '10px 12px 10px 24px',
-                              background: 'var(--input-bg)',
-                              border: '1px solid var(--glass-border)',
-                              borderRadius: '8px',
-                              color: 'var(--text-primary)',
-                              fontSize: '0.86rem',
-                              outline: 'none'
-                            }}
-                          />
+                    {(() => {
+                      const tier = (selectedClient.license_tier || 'growth').toLowerCase();
+                      const seats = selectedClient.activeSeats || 0;
+                      const seatLimit = selectedClient.operator_seats_limit || 10;
+                      const PRICING: Record<string, { base: number; perSeat: number }> = {
+                        'growth': { base: 1000, perSeat: 25 },
+                        'enterprise': { base: 2000, perSeat: 35 },
+                        'sovereign': { base: 4000, perSeat: 50 }
+                      };
+                      const p = PRICING[tier] || PRICING.growth;
+                      const baseAmount = p.base;
+                      const perSeatTotal = seats * p.perSeat;
+                      const totalAmount = baseAmount + perSeatTotal;
+                      return (
+                        <div style={{ marginBottom: '16px' }}>
+                          <div style={{
+                            background: 'rgba(255,255,255,0.03)', borderRadius: '8px', padding: '14px', marginBottom: '12px'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Base ({tier})</span>
+                              <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>${baseAmount.toLocaleString()}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Seats ({seats} × ${p.perSeat}/seat)</span>
+                              <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>${perSeatTotal.toLocaleString()}</span>
+                            </div>
+                            <div style={{ borderTop: '1px solid var(--divider)', marginTop: '8px', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontSize: '0.82rem', fontWeight: 700 }}>Invoice Total</span>
+                              <span style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--accent-purple)' }}>${totalAmount.toLocaleString()}</span>
+                            </div>
+                          </div>
+
+                          <form onSubmit={handleGenerateInvoice}>
+                            <div style={{ marginBottom: '14px' }}>
+                              <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                                Payment Due Terms
+                              </label>
+                              <select
+                                value={invoiceDueDays}
+                                onChange={e => setInvoiceDueDays(e.target.value)}
+                                style={{
+                                  width: '100%', padding: '10px 12px',
+                                  background: 'var(--input-bg)', border: '1px solid var(--glass-border)',
+                                  borderRadius: '8px', color: 'var(--text-primary)', fontSize: '0.86rem', outline: 'none'
+                                }}
+                              >
+                                <option value="7">Due in 7 Days (Net 7)</option>
+                                <option value="15">Due in 15 Days (Net 15)</option>
+                                <option value="30">Due in 30 Days (Net 30)</option>
+                                <option value="60">Due in 60 Days (Net 60)</option>
+                              </select>
+                            </div>
+
+                            <button
+                              type="submit"
+                              disabled={generatingInvoice}
+                              style={{
+                                width: '100%', padding: '10px 16px',
+                                borderRadius: '8px', border: 'none',
+                                background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
+                                color: '#ffffff', fontWeight: 600,
+                                cursor: generatingInvoice ? 'not-allowed' : 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                fontSize: '0.84rem'
+                              }}
+                            >
+                              {generatingInvoice ? (
+                                <><RefreshCw size={14} className="spin-anim" /> Generating...</>
+                              ) : (
+                                <><Plus size={14} /> Generate & Dispatch Invoice</>
+                              )}
+                            </button>
+                          </form>
                         </div>
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                          Payment Due Terms
-                        </label>
-                        <select
-                          value={invoiceDueDays}
-                          onChange={e => setInvoiceDueDays(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            background: 'var(--input-bg)',
-                            border: '1px solid var(--glass-border)',
-                            borderRadius: '8px',
-                            color: 'var(--text-primary)',
-                            fontSize: '0.86rem',
-                            outline: 'none'
-                          }}
-                        >
-                          <option value="7">Due in 7 Days (Net 7)</option>
-                          <option value="15">Due in 15 Days (Net 15)</option>
-                          <option value="30">Due in 30 Days (Net 30)</option>
-                          <option value="60">Due in 60 Days (Net 60)</option>
-                        </select>
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={generatingInvoice}
-                        style={{
-                          padding: '10px 16px',
-                          borderRadius: '8px',
-                          border: 'none',
-                          background: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
-                          color: '#ffffff',
-                          fontWeight: 600,
-                          cursor: generatingInvoice ? 'not-allowed' : 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '8px',
-                          fontSize: '0.84rem'
-                        }}
-                      >
-                        {generatingInvoice ? (
-                          <><RefreshCw size={14} className="spin-anim" /> Generating...</>
-                        ) : (
-                          <><Plus size={14} /> Generate & Dispatch Invoice</>
-                        )}
-                      </button>
-                    </form>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
