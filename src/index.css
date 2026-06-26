@@ -590,6 +590,21 @@ input:not([type="checkbox"]):not([type="radio"]):focus, select:focus {
   position: relative;
 }
 
+.premium-tab-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.premium-tab-btn:disabled:hover {
+  background: rgba(255, 255, 255, 0.015);
+  color: var(--text-secondary);
+  border: 1px solid var(--glass-border);
+}
+.premium-tab-btn:disabled .menu-hover-card,
+.premium-tab-btn:disabled .menu-hover-card-left,
+.premium-tab-btn:disabled .menu-hover-card-right {
+  display: none !important;
+}
+
 /* ─── Menu Hover Tooltip Cards ─── */
 .menu-hover-card {
   position: absolute;

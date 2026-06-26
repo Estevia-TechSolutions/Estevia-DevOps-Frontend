@@ -252,6 +252,19 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
   const [activeTab, setActiveTab] = useState<CredTab>('summary');
   const [azureSubTab, setAzureSubTab] = useState<'auth' | 'scope' | 'pipelines'>('auth');
   const [discoveringWorkspace, setDiscoveringWorkspace] = useState(false);
+  const [runningAll, setRunningAll] = useState(false);
+
+  const handleRunAll = async () => {
+    setRunningAll(true);
+    for (const c of ['azure', 'github', 'azure_devops', 'godaddy'] as const) {
+      await new Promise<void>(resolve => {
+        handleValidateCredential(c as any);
+        setTimeout(resolve, 800);
+      });
+    }
+    setRunningAll(false);
+  };
+
 
   const handleDiscoverWorkspace = async () => {
     setDiscoveringWorkspace(true);
@@ -543,17 +556,7 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
               const healthPct = Math.round((totalOk / totalItems) * 100);
               const healthColor = healthPct >= 80 ? '#22c55e' : healthPct >= 50 ? '#f59e0b' : '#ef4444';
 
-              const [runningAll, setRunningAll] = useState(false);
-              const handleRunAll = async () => {
-                setRunningAll(true);
-                for (const c of ['azure', 'github', 'azure_devops', 'godaddy'] as const) {
-                  await new Promise<void>(resolve => {
-                    handleValidateCredential(c as any);
-                    setTimeout(resolve, 800);
-                  });
-                }
-                setRunningAll(false);
-              };
+
 
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fade-in-anim 0.25s ease-out' }}>

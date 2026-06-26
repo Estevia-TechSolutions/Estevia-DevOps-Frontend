@@ -1611,6 +1611,30 @@ function App() {
   }>({ azure: false, github: false, azureDevops: false, godaddy: false });
   // ── End License / Credential Gate States ──────────────────────────────────
 
+  const checkCredentialGateStatus = async (authTokenToCheck?: string) => {
+    const activeToken = authTokenToCheck || token || localStorage.getItem('devops_token');
+    if (!activeToken) return;
+    try {
+      const statusRes = await window.fetch(`${API_BASE}/org/status`, {
+        headers: { Authorization: `Bearer ${activeToken}` }
+      });
+      if (statusRes.ok) {
+        const statusData = await statusRes.json();
+        if (statusData.credentialGate) {
+          if (statusData.credentialGate.isComplete) {
+            setRequiresCredentialSetup(false);
+          } else if (statusData.onboardingComplete) {
+            setRequiresCredentialSetup(true);
+            setMissingCredentials(statusData.credentialGate.missing);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to check credential gate status:', err);
+    }
+  };
+
+
   // Onboarding Wizard States
   const [onboardStep, setOnboardStep] = useState(1);
   const [onboardOrgName, setOnboardOrgName] = useState('');
@@ -1896,18 +1920,7 @@ function App() {
         setRequiresOnboarding(data.requiresOnboarding);
         // ── Credential Gate: re-evaluate on every login ───────────────────
         if (data.organization?.id) {
-          try {
-            const statusRes = await window.fetch(`${API_BASE}/org/status`, {
-              headers: { Authorization: `Bearer ${data.token}` }
-            });
-            const statusData = await statusRes.json();
-            if (statusData.credentialGate && !statusData.credentialGate.isComplete && statusData.onboardingComplete) {
-              setRequiresCredentialSetup(true);
-              setMissingCredentials(statusData.credentialGate.missing);
-            } else {
-              setRequiresCredentialSetup(false);
-            }
-          } catch (_) { /* non-fatal */ }
+          await checkCredentialGateStatus(data.token);
         }
         // ─────────────────────────────────────────────────────────────────
       } else {
@@ -1950,18 +1963,7 @@ function App() {
         setRequiresOnboarding(data.requiresOnboarding);
         // ── Credential Gate: re-evaluate on every login ───────────────────
         if (data.organization?.id) {
-          try {
-            const statusRes = await window.fetch(`${API_BASE}/org/status`, {
-              headers: { Authorization: `Bearer ${data.token}` }
-            });
-            const statusData = await statusRes.json();
-            if (statusData.credentialGate && !statusData.credentialGate.isComplete && statusData.onboardingComplete) {
-              setRequiresCredentialSetup(true);
-              setMissingCredentials(statusData.credentialGate.missing);
-            } else {
-              setRequiresCredentialSetup(false);
-            }
-          } catch (_) { /* non-fatal */ }
+          await checkCredentialGateStatus(data.token);
         }
         // ─────────────────────────────────────────────────────────────────
         setShowDevOverrideForm(false);
@@ -2005,18 +2007,7 @@ function App() {
         setRequiresOnboarding(data.requiresOnboarding);
         // ── Credential Gate: re-evaluate on every login ───────────────────
         if (data.organization?.id) {
-          try {
-            const statusRes = await window.fetch(`${API_BASE}/org/status`, {
-              headers: { Authorization: `Bearer ${data.token}` }
-            });
-            const statusData = await statusRes.json();
-            if (statusData.credentialGate && !statusData.credentialGate.isComplete && statusData.onboardingComplete) {
-              setRequiresCredentialSetup(true);
-              setMissingCredentials(statusData.credentialGate.missing);
-            } else {
-              setRequiresCredentialSetup(false);
-            }
-          } catch (_) { /* non-fatal */ }
+          await checkCredentialGateStatus(data.token);
         }
         // ─────────────────────────────────────────────────────────────────
         setShowAdminOverrideForm(false);
@@ -2568,6 +2559,7 @@ function App() {
     if (token) {
       fetchCredentialStatus();
       fetchResourceGroups();
+      checkCredentialGateStatus();
       
       // Load cached apps first, then run a live scan in the background
       const loadCachedAndScan = async () => {
@@ -2863,18 +2855,7 @@ function App() {
 
         // ── Re-evaluate credential gate on every save ─────────────────
         if (token) {
-          try {
-            const statusRes = await window.fetch(`${API_BASE}/org/status`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            const statusData = await statusRes.json();
-            if (statusData.credentialGate?.isComplete) {
-              setRequiresCredentialSetup(false);
-            } else if (statusData.credentialGate && !statusData.credentialGate.isComplete && statusData.onboardingComplete) {
-              setRequiresCredentialSetup(true);
-              setMissingCredentials(statusData.credentialGate.missing);
-            }
-          } catch (_) { /* non-fatal */ }
+          await checkCredentialGateStatus();
         }
         // ─────────────────────────────────────────────────────────────
       } else {
@@ -3462,6 +3443,7 @@ function App() {
         showToast('Credentials Saved', `${provider.toUpperCase()} credentials successfully updated.`, 'success');
         addEvent('Credentials Updated', `${provider.toUpperCase()} credentials registered successfully.`, 'credential', 'success');
         fetchCredentialStatus();
+        checkCredentialGateStatus();
         // Clear forms and decrypted tracking
         if (provider === 'github') {
           setGithubToken('');
@@ -5539,7 +5521,7 @@ function App() {
 
             </div>
           </div>
-        ) : requiresCredentialSetup ? (
+        ) : (requiresCredentialSetup && activeTab !== 'credentials') ? (
           /* ── Credential Gate Screen ─────────────────────────────────────── */
           <div style={{ maxWidth: '680px', margin: '60px auto', padding: '0 20px' }}>
             <div className="glass-panel" style={{
@@ -5708,7 +5690,7 @@ function App() {
 
                 {/* Bottom Row: Tab buttons grid */}
                 <div className="premium-tabs-grid">
-                  <button className={`premium-tab-btn ${activeTab === 'scan' ? 'active' : ''}`} onClick={() => setActiveTab('scan')}>
+                  <button className={`premium-tab-btn ${activeTab === 'scan' ? 'active' : ''}`} onClick={() => setActiveTab('scan')} disabled={requiresCredentialSetup}>
                     <Server size={16} />
                     <span>Cloud Scanning</span>
                     {tabLoadingMap.scan && (
@@ -5722,7 +5704,7 @@ function App() {
                       <div className="menu-hover-card-desc">Scan and monitor all your Azure Static Web Apps, backend APIs, and virtual machines across environments.</div>
                     </div>
                   </button>
-                  <button className={`premium-tab-btn ${activeTab === 'provision' ? 'active' : ''}`} onClick={() => setActiveTab('provision')}>
+                  <button className={`premium-tab-btn ${activeTab === 'provision' ? 'active' : ''}`} onClick={() => setActiveTab('provision')} disabled={requiresCredentialSetup}>
                     <PlusCircle size={16} />
                     <span>Provision App</span>
                     {tabLoadingMap.provision && (
@@ -5733,7 +5715,7 @@ function App() {
                       <div className="menu-hover-card-desc">Launch new Azure Static Web Apps or backend containers with guided step-by-step provisioning wizard.</div>
                     </div>
                   </button>
-                  <button className={`premium-tab-btn ${activeTab === 'cost' ? 'active' : ''}`} onClick={() => { setActiveTab('cost'); setCostTab('breakdown'); }}>
+                  <button className={`premium-tab-btn ${activeTab === 'cost' ? 'active' : ''}`} onClick={() => { setActiveTab('cost'); setCostTab('breakdown'); }} disabled={requiresCredentialSetup}>
                     <TrendingDown size={16} />
                     <span>Cost Management</span>
                     {(tabLoadingMap.cost || tabLoadingMap.optimization) && (
@@ -5744,7 +5726,7 @@ function App() {
                       <div className="menu-hover-card-desc">View a detailed Azure cost breakdown, billing invoices, and AI-driven recommendations to right-size resources, configure schedules, and optimize cloud spend.</div>
                     </div>
                   </button>
-                  <button className={`premium-tab-btn ${activeTab === 'databases' ? 'active' : ''}`} onClick={() => setActiveTab('databases')}>
+                  <button className={`premium-tab-btn ${activeTab === 'databases' ? 'active' : ''}`} onClick={() => setActiveTab('databases')} disabled={requiresCredentialSetup}>
                     <Database size={16} />
                     <span>DB Hub</span>
                     {tabLoadingMap.databases && (
@@ -5764,7 +5746,7 @@ function App() {
                     </div>
                   </button>
                   {(user?.role === 'owner' || user?.role === 'admin') && (
-                    <button className={`premium-tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}>
+                    <button className={`premium-tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')} disabled={requiresCredentialSetup}>
                       <Users size={16} />
                       <span>Team Settings</span>
                       {tabLoadingMap.users && (
@@ -5777,7 +5759,7 @@ function App() {
                     </button>
                   )}
                   {(user?.role === 'owner' || user?.role === 'admin') && (
-                    <button className={`premium-tab-btn ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
+                    <button className={`premium-tab-btn ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')} disabled={requiresCredentialSetup}>
                       <Settings size={16} />
                       <span>Licensing</span>
                       <div className="menu-hover-card">
@@ -5787,7 +5769,7 @@ function App() {
                     </button>
                   )}
 
-                  <button className={`premium-tab-btn ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')}>
+                  <button className={`premium-tab-btn ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')} disabled={requiresCredentialSetup}>
                     <Activity size={16} />
                     <span>Events Feed</span>
                     {tabLoadingMap.events && (
@@ -5803,7 +5785,7 @@ function App() {
                       <div className="menu-hover-card-desc">Real-time stream of build triggers, power actions, scans, and credential changes across the platform.</div>
                     </div>
                   </button>
-                  <button className={`premium-tab-btn ${activeTab === 'guide' ? 'active' : ''}`} onClick={() => setActiveTab('guide')}>
+                  <button className={`premium-tab-btn ${activeTab === 'guide' ? 'active' : ''}`} onClick={() => setActiveTab('guide')} disabled={requiresCredentialSetup}>
                     <Info size={16} />
                     <span>User Guide</span>
                     <div className="menu-hover-card menu-hover-card-right">
