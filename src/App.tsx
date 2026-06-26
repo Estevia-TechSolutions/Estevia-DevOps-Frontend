@@ -2073,6 +2073,10 @@ function App() {
       if (res.ok && data.success) {
         setOrganizationId(data.organization.id);
         setOrgName(data.organization.name);
+        if (data.token) {
+          localStorage.setItem('devops_token', data.token);
+          setToken(data.token);
+        }
         setOnboardStep(2);
       } else {
         throw new Error(data.message || 'Failed to configure organization.');
