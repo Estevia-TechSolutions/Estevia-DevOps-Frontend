@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Database, Eye, EyeOff, GitBranch, Settings, Globe, Cloud, AlertTriangle, MessageSquare, Copy, CheckCircle, Loader, RefreshCw } from 'lucide-react';
+import { Database, Eye, EyeOff, GitBranch, Settings, Globe, Cloud, AlertTriangle, MessageSquare, Copy, CheckCircle, Loader, RefreshCw, ShieldCheck, CheckCircle2, XCircle, AlertCircle, ArrowRight, Zap } from 'lucide-react';
 import { KeyVaultConfigurator } from '../components/credentials/KeyVaultConfigurator';
 
 interface CredentialsPageProps {
@@ -106,9 +106,10 @@ interface CredentialsPageProps {
   handleDiscoverAzureEnvCredentials: () => Promise<void>;
 }
 
-type CredTab = 'github' | 'godaddy' | 'azure' | 'keyvault' | 'teams';
+type CredTab = 'summary' | 'github' | 'godaddy' | 'azure' | 'keyvault' | 'teams';
 
 const TABS: { id: CredTab; label: string; sublabel: string; icon: React.ReactNode; accentVar: string }[] = [
+  { id: 'summary',  label: 'Integration Health', sublabel: 'Live health check across all credentials and infrastructure configuration', icon: <ShieldCheck size={15} />, accentVar: '#ca8a04' },
   { id: 'github',   label: 'GitHub Integration',   sublabel: 'Personal Access Tokens & repository owner organization configuration', icon: <GitBranch size={15} />,    accentVar: '#ca8a04' },
   { id: 'godaddy',  label: 'GoDaddy DNS Binding',  sublabel: 'Automated DNS record bindings for custom app domains', icon: <Globe size={15} />,        accentVar: '#ca8a04' },
   { id: 'azure',    label: 'Azure Infrastructure', sublabel: 'Subscriptions, target resource groups, variable groups, and container registries', icon: <Cloud size={15} />,        accentVar: '#ca8a04' },
@@ -248,7 +249,7 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
   decryptedAzureClientId, decryptedAzureClientSecret, decryptedAzureTenantId,
   showToast, handleDiscoverAzureEnvCredentials,
 }) => {
-  const [activeTab, setActiveTab] = useState<CredTab>('github');
+  const [activeTab, setActiveTab] = useState<CredTab>('summary');
   const [azureSubTab, setAzureSubTab] = useState<'auth' | 'scope' | 'pipelines'>('auth');
   const [discoveringWorkspace, setDiscoveringWorkspace] = useState(false);
 
@@ -505,6 +506,269 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', paddingRight: '8px' }}>
           
           <div style={{ flex: 1 }}>
+            {/* ── INTEGRATION HEALTH SUMMARY TAB ── */}
+            {activeTab === 'summary' && (() => {
+              const creds = [
+                { key: 'azure',       label: 'Azure Service Principal',  icon: '☁️', tab: 'azure' as CredTab,   statusKey: 'azure'       },
+                { key: 'github',      label: 'GitHub Platform Token',    icon: '🐙', tab: 'github' as CredTab,  statusKey: 'github'      },
+                { key: 'azure_devops',label: 'Azure DevOps PAT',         icon: '🔧', tab: 'azure' as CredTab,   statusKey: 'azure_devops'},
+                { key: 'godaddy',     label: 'GoDaddy Domain API',       icon: '🌐', tab: 'godaddy' as CredTab, statusKey: 'godaddy'     },
+              ];
+
+              const infraChecks = [
+                { label: 'Azure Subscription ID',    ok: !!azureSubscriptionId },
+                { label: 'Azure Resource Group',     ok: !!azureResourceGroup },
+                { label: 'Azure DevOps Org URL',     ok: !!azureDevopsOrgUrl },
+                { label: 'DevOps Project Name',      ok: !!azureDevopsProject },
+                { label: 'Pipeline Variable Group',  ok: !!pipelineVariableGroup },
+                { label: 'Container Registry',       ok: !!azureContainerRegistry },
+                { label: 'Default DNS Domain',       ok: !!defaultDnsDomain },
+                { label: 'Dev DB Host',              ok: !!devDbHost },
+                { label: 'QA DB Host',               ok: !!qaDbHost },
+                { label: 'Prod DB Host',             ok: !!prodDbHost },
+              ];
+
+              const obsChecks = [
+                { label: 'MS Teams Webhook',         ok: !!teamsWebhookUrl },
+                { label: 'Log Analytics (Dev/QA)',   ok: !!logAnalyticsWorkspaceId },
+                { label: 'Log Analytics (Prod)',     ok: !!prodLogAnalyticsWorkspaceId },
+                { label: 'Azure Key Vault URL',      ok: !!azureKeyVaultUrl },
+              ];
+
+              const credOk = creds.filter(c => credentialStatus[c.statusKey]).length;
+              const infraOk = infraChecks.filter(c => c.ok).length;
+              const obsOk = obsChecks.filter(c => c.ok).length;
+              const totalOk = credOk + infraOk + obsOk;
+              const totalItems = creds.length + infraChecks.length + obsChecks.length;
+              const healthPct = Math.round((totalOk / totalItems) * 100);
+              const healthColor = healthPct >= 80 ? '#22c55e' : healthPct >= 50 ? '#f59e0b' : '#ef4444';
+
+              const [runningAll, setRunningAll] = useState(false);
+              const handleRunAll = async () => {
+                setRunningAll(true);
+                for (const c of ['azure', 'github', 'azure_devops', 'godaddy'] as const) {
+                  await new Promise<void>(resolve => {
+                    handleValidateCredential(c as any);
+                    setTimeout(resolve, 800);
+                  });
+                }
+                setRunningAll(false);
+              };
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fade-in-anim 0.25s ease-out' }}>
+
+                  {/* Overview header */}
+                  <div style={{
+                    background: 'rgba(255,255,255,0.015)',
+                    border: '1px solid var(--glass-border)',
+                    borderRadius: '12px',
+                    padding: '20px 24px',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+                      <div>
+                        <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <ShieldCheck size={18} style={{ color: '#ca8a04' }} />
+                          Integration Health Overview
+                        </h3>
+                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          {totalOk} / {totalItems} integrations configured
+                        </p>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 900, color: healthColor, lineHeight: 1 }}>{healthPct}%</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Health Score</div>
+                      </div>
+                    </div>
+                    {/* Progress bar */}
+                    <div style={{ height: '6px', borderRadius: '3px', background: 'rgba(255,255,255,0.05)', overflow: 'hidden', marginTop: '16px' }}>
+                      <div style={{
+                        height: '100%', borderRadius: '3px',
+                        width: `${healthPct}%`,
+                        background: healthPct >= 80
+                          ? 'linear-gradient(90deg, #22c55e, #4ade80)'
+                          : healthPct >= 50
+                          ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
+                          : 'linear-gradient(90deg, #ef4444, #f87171)',
+                        transition: 'width 0.6s ease-out',
+                        boxShadow: `0 0 8px ${healthColor}44`,
+                      }} />
+                    </div>
+                  </div>
+
+                  {/* Critical Credentials */}
+                  <div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '3px', height: '12px', borderRadius: '2px', background: '#ca8a04', display: 'inline-block' }} />
+                      Critical Credentials
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {creds.map(cred => {
+                        const isConfigured = credentialStatus[cred.statusKey];
+                        const vResult = validationResult[cred.key === 'azure_devops' ? 'azure_devops' : cred.key];
+                        const isTesting = testingCredential === cred.key;
+                        const statusColor = !isConfigured ? '#f59e0b' : vResult?.success === false ? '#ef4444' : '#22c55e';
+                        const statusLabel = !isConfigured ? 'Not Configured' : vResult?.success === false ? 'Connection Failed' : vResult?.success ? 'Connected' : 'Configured';
+                        const statusIcon = !isConfigured ? '⚠' : vResult?.success === false ? '✗' : '●';
+
+                        return (
+                          <div key={cred.key} style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '14px 18px', borderRadius: '10px',
+                            background: isConfigured ? 'rgba(34,197,94,0.03)' : 'rgba(245,158,11,0.04)',
+                            border: `1px solid ${isConfigured ? 'rgba(34,197,94,0.15)' : 'rgba(245,158,11,0.2)'}`,
+                            gap: '12px', flexWrap: 'wrap',
+                          }}>
+                            {/* Left: icon + label + validation message */}
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flex: 1, minWidth: 0 }}>
+                              <span style={{ fontSize: '18px', flexShrink: 0 }}>{cred.icon}</span>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontWeight: 600, fontSize: '0.86rem', color: 'var(--text-primary)' }}>{cred.label}</div>
+                                {vResult && (
+                                  <div style={{
+                                    fontSize: '0.72rem', marginTop: '3px',
+                                    color: vResult.success ? '#4ade80' : '#f87171',
+                                    display: 'flex', alignItems: 'center', gap: '4px',
+                                  }}>
+                                    {vResult.success ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
+                                    {vResult.message}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Right: status badge + CTA */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                              <span style={{
+                                fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: '20px',
+                                background: isConfigured ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
+                                color: statusColor,
+                                border: `1px solid ${isConfigured ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`,
+                              }}>
+                                {statusIcon} {statusLabel}
+                              </span>
+                              {isConfigured ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleValidateCredential(cred.key as any)}
+                                  disabled={isTesting}
+                                  style={{
+                                    fontSize: '0.74rem', fontWeight: 600, padding: '4px 12px', borderRadius: '6px',
+                                    background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)',
+                                    color: 'var(--text-secondary)', cursor: isTesting ? 'not-allowed' : 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: '5px',
+                                  }}
+                                >
+                                  {isTesting ? <><Loader size={11} className="spin-anim" /> Testing...</> : <><RefreshCw size={11} /> Test</>}
+                                </button>
+                              ) : canEdit ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveTab(cred.tab)}
+                                  style={{
+                                    fontSize: '0.74rem', fontWeight: 600, padding: '4px 12px', borderRadius: '6px',
+                                    background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.25)',
+                                    color: '#eab308', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', gap: '5px',
+                                  }}
+                                >
+                                  Set Up <ArrowRight size={11} />
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Infrastructure Configuration */}
+                  <div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '3px', height: '12px', borderRadius: '2px', background: '#3b82f6', display: 'inline-block' }} />
+                      Infrastructure Configuration
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '8px' }}>
+                      {infraChecks.map((item, idx) => (
+                        <div key={idx} style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          padding: '10px 14px', borderRadius: '8px',
+                          background: item.ok ? 'rgba(34,197,94,0.03)' : 'rgba(245,158,11,0.03)',
+                          border: `1px solid ${item.ok ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.15)'}`,
+                        }}>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{item.label}</span>
+                          <span style={{
+                            fontSize: '0.7rem', fontWeight: 700,
+                            color: item.ok ? '#4ade80' : '#f59e0b',
+                            display: 'flex', alignItems: 'center', gap: '4px',
+                          }}>
+                            {item.ok ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                            {item.ok ? 'Set' : 'Missing'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {canEdit && (
+                      <div style={{ marginTop: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('azure')}
+                          style={{
+                            fontSize: '0.74rem', color: '#ca8a04', background: 'none', border: 'none',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 0', fontWeight: 600,
+                          }}
+                        >
+                          Configure Azure Infrastructure <ArrowRight size={11} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Observability & Notifications */}
+                  <div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '3px', height: '12px', borderRadius: '2px', background: '#8b5cf6', display: 'inline-block' }} />
+                      Observability &amp; Notifications
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '8px' }}>
+                      {obsChecks.map((item, idx) => (
+                        <div key={idx} style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          padding: '10px 14px', borderRadius: '8px',
+                          background: item.ok ? 'rgba(34,197,94,0.03)' : 'rgba(245,158,11,0.03)',
+                          border: `1px solid ${item.ok ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.15)'}`,
+                        }}>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{item.label}</span>
+                          <span style={{
+                            fontSize: '0.7rem', fontWeight: 700,
+                            color: item.ok ? '#4ade80' : '#f59e0b',
+                            display: 'flex', alignItems: 'center', gap: '4px',
+                          }}>
+                            {item.ok ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                            {item.ok ? 'Set' : 'Missing'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Run All Tests */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={handleRunAll}
+                      disabled={runningAll}
+                      className="btn-primary"
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 22px', fontSize: '0.84rem' }}
+                    >
+                      {runningAll ? <><Loader size={14} className="spin-anim" /> Running Tests...</> : <><Zap size={14} /> Run All Connection Tests</>}
+                    </button>
+                  </div>
+
+                </div>
+              );
+            })()}
+
             {/* ── GITHUB TAB ── */}
             {activeTab === 'github' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -1402,28 +1666,6 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                   <span style={{ color: 'var(--text-secondary)', fontSize: '0.72rem', lineHeight: '1.2' }}>Processed client-side on demand.</span>
                 </div>
 
-                {/* Health summary */}
-                <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
-                  {[
-                    { name: 'GitHub', ok: credentialStatus.github },
-                    { name: 'GoDaddy', ok: credentialStatus.godaddy },
-                    { name: 'Azure', ok: credentialStatus.azure_devops },
-                  ].map((item, idx) => (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>{item.name}:</span>
-                      <span style={{
-                        fontSize: '0.68rem',
-                        fontWeight: 600,
-                        color: item.ok ? 'var(--success)' : '#f59e0b',
-                        background: item.ok ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)',
-                        padding: '1px 6px',
-                        borderRadius: '4px',
-                      }}>
-                        {item.ok ? 'Active' : 'Missing'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
              </div>
           </div>
 

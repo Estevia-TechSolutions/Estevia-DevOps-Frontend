@@ -5779,13 +5779,14 @@ function App() {
                   {(user?.role === 'owner' || user?.role === 'admin') && (
                     <button className={`premium-tab-btn ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
                       <Settings size={16} />
-                      <span>Settings</span>
+                      <span>Licensing</span>
                       <div className="menu-hover-card">
-                        <div className="menu-hover-card-title"><Settings size={12} /> Settings</div>
-                        <div className="menu-hover-card-desc">Configure subscription licensing, operator seat limits, Azure settings, and manage compliance downgrades.</div>
+                        <div className="menu-hover-card-title"><Settings size={12} /> Licensing</div>
+                        <div className="menu-hover-card-desc">Manage subscription tiers, operator seat limits, and compliance downgrade controls for your organisation.</div>
                       </div>
                     </button>
                   )}
+
                   <button className={`premium-tab-btn ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')}>
                     <Activity size={16} />
                     <span>Events Feed</span>

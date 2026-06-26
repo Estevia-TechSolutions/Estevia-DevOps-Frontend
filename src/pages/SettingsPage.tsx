@@ -1,5 +1,5 @@
 import React from 'react';
-import { Crown, ShieldAlert, AlertTriangle, Check, ShieldCheck, Zap, CreditCard } from 'lucide-react';
+import { Crown, ShieldAlert, AlertTriangle, Check, ShieldCheck, Zap, CreditCard, ChevronDown, ChevronUp, AlertCircle, ArrowRight, Info } from 'lucide-react';
 
 interface SettingsPageProps {
   azureSubscriptionId: string;
@@ -46,25 +46,17 @@ interface SettingsPageProps {
   organizationId?: string;
 }
 
+// ── Primary color family aligned with app design tokens ──────────────────────
 const TIER_LABELS: Record<string, { label: string; color: string; bg: string; border: string; glow: string }> = {
-  growth:     { label: 'Growth',     color: '#60a5fa', bg: 'rgba(96,165,250,0.06)',  border: 'rgba(96,165,250,0.2)',  glow: 'rgba(96,165,250,0.1)'  },
-  enterprise: { label: 'Enterprise', color: '#c084fc', bg: 'rgba(192,132,252,0.06)', border: 'rgba(192,132,252,0.2)', glow: 'rgba(192,132,252,0.1)' },
-  sovereign:  { label: 'Sovereign',  color: '#fbbf24', bg: 'rgba(251,191,36,0.06)',   border: 'rgba(251,191,36,0.2)',   glow: 'rgba(251,191,36,0.1)'   },
+  growth:     { label: 'Growth',                color: '#3b82f6', bg: 'rgba(59,130,246,0.06)',  border: 'rgba(59,130,246,0.22)',  glow: 'rgba(59,130,246,0.18)'  },
+  enterprise: { label: 'Enterprise Governance', color: '#8b5cf6', bg: 'rgba(139,92,246,0.06)', border: 'rgba(139,92,246,0.22)', glow: 'rgba(139,92,246,0.18)' },
+  sovereign:  { label: 'Sovereign Compliance',  color: '#14b8a6', bg: 'rgba(20,184,166,0.06)',  border: 'rgba(20,184,166,0.22)',  glow: 'rgba(20,184,166,0.18)'  },
 };
 
 const PRICING_DETAILS: Record<string, { baseUSD: number; seatUSD: number }> = {
-  growth: {
-    baseUSD: 1000,
-    seatUSD: 40,
-  },
-  enterprise: {
-    baseUSD: 2000,
-    seatUSD: 90,
-  },
-  sovereign: {
-    baseUSD: 4000,
-    seatUSD: 30,
-  },
+  growth:     { baseUSD: 1000, seatUSD: 40  },
+  enterprise: { baseUSD: 2000, seatUSD: 90  },
+  sovereign:  { baseUSD: 4000, seatUSD: 30  },
 };
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({
@@ -90,7 +82,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const isOwnerOrAdmin = userRole === 'owner' || userRole === 'admin';
   const activeTier = pendingLicenseTier ?? licenseTier;
   const currentTierInfo = TIER_LABELS[licenseTier] ?? TIER_LABELS.growth;
+  const activeTierInfo = TIER_LABELS[activeTier] ?? TIER_LABELS.growth;
+  const activePricing = PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth;
 
+  // Exchange rate state
   const [usdToInrRate, setUsdToInrRate] = React.useState<number>(94.43);
 
   React.useEffect(() => {
@@ -101,21 +96,45 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         if (res.ok) {
           const data = await res.json();
           if (data && data.rates && typeof data.rates.INR === 'number') {
-            if (active) {
-              setUsdToInrRate(data.rates.INR);
-              console.log('[SettingsPage] Live USD to INR rate loaded:', data.rates.INR);
-            }
+            if (active) setUsdToInrRate(data.rates.INR);
           }
         }
-      } catch (err) {
-        console.warn('[SettingsPage] Failed to fetch live USD to INR rate, using baseline 94.43:', err);
-      }
+      } catch (_) {}
     };
     fetchRate();
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, []);
+
+  // Expanded tier accordion state — current tier auto-expanded
+  const [expandedTier, setExpandedTier] = React.useState<string | null>(licenseTier);
+
+  // Save confirmation prompt state
+  const [showSaveConfirmPrompt, setShowSaveConfirmPrompt] = React.useState(false);
+  const [originalSeatsLimit] = React.useState(operatorSeatsLimit);
+
+  const hasTierChange = pendingLicenseTier !== null && pendingLicenseTier !== undefined && pendingLicenseTier !== licenseTier;
+  const hasSeatsChange = operatorSeatsLimit !== originalSeatsLimit;
+  const hasAnyChange = hasTierChange || hasSeatsChange;
+
+  // Downgrade detection (needed to decide whether to show confirm prompt vs downgrade modal)
+  const tierRank: Record<string, number> = { growth: 1, enterprise: 2, sovereign: 3 };
+  const isDowngrade = pendingLicenseTier !== null && pendingLicenseTier !== undefined &&
+    (tierRank[pendingLicenseTier] ?? 0) < (tierRank[licenseTier] ?? 0);
+
+  const handleReviewChanges = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isDowngrade) {
+      // Let the existing downgrade modal handle it
+      handleSaveSettings(e as any);
+    } else {
+      setShowSaveConfirmPrompt(true);
+    }
+  };
+
+  const handleConfirmApply = (e: React.MouseEvent) => {
+    setShowSaveConfirmPrompt(false);
+    handleSaveSettings(e as any);
+  };
 
   const tiers = [
     {
@@ -124,14 +143,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       price: '$1,000',
       priceINR: `₹${Math.round(1000 * usdToInrRate).toLocaleString()}`,
       period: '/mo',
-      color: '#60a5fa',
+      color: '#3b82f6',
       features: [
         'Max 5 Active Environments',
         '3 Core Compliance Rules',
         'Manual Vulnerability Remediation',
         'Standard Email Support',
       ],
-      desc: 'Perfect for fast-growing startup teams.'
+      desc: 'Perfect for fast-growing startup teams.',
     },
     {
       id: 'enterprise',
@@ -139,7 +158,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       price: '$2,000',
       priceINR: `₹${Math.round(2000 * usdToInrRate).toLocaleString()}`,
       period: '/mo',
-      color: '#c084fc',
+      color: '#8b5cf6',
       features: [
         'Max 25 Active Environments',
         'All 9 Compliance Rules',
@@ -147,7 +166,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         'Custom Rule Severities',
         '24/7 Slack & Email Support',
       ],
-      desc: 'Complete control and automated compliance for enterprises.'
+      desc: 'Complete control and automated compliance for enterprises.',
     },
     {
       id: 'sovereign',
@@ -155,7 +174,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       price: '$4,000',
       priceINR: `₹${Math.round(4000 * usdToInrRate).toLocaleString()}`,
       period: '/mo',
-      color: '#fbbf24',
+      color: '#14b8a6',
       features: [
         'Unlimited Environments',
         'Unlimited + Custom Rules',
@@ -163,19 +182,31 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         'On-Prem / Private Azure Tenant Deployments',
         'Dedicated Solutions Architect support',
       ],
-      desc: 'Highly regulated institutional sectors requiring strict isolation.'
-    }
+      desc: 'Highly regulated institutional sectors requiring strict isolation.',
+    },
   ];
 
-  const handleCardSelect = (tierId: string) => {
+  const handleCardClick = (tierId: string) => {
     if (!isOwnerOrAdmin) return;
+    // Expand AND select
+    setExpandedTier(tierId);
     if (setPendingLicenseTier) {
       setPendingLicenseTier(tierId !== licenseTier ? tierId : null);
     }
+    setShowSaveConfirmPrompt(false);
   };
 
+  const handleToggleExpand = (e: React.MouseEvent, tierId: string) => {
+    e.stopPropagation();
+    setExpandedTier(prev => prev === tierId ? null : tierId);
+  };
+
+  // Projected cost
+  const projectedUSD = activePricing.baseUSD + activePricing.seatUSD * operatorSeatsLimit;
+  const projectedINR = Math.round(projectedUSD * usdToInrRate);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '1100px', margin: '0 auto', padding: '10px 0' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1200px', margin: '0 auto', padding: '10px 0' }}>
 
       {/* ── Compliance Debt Banner ── */}
       {downgradeComplianceDebt && (
@@ -192,7 +223,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             </div>
             <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
               Your workspace was downgraded. Environments exceeding the new subscription tier limits have been <strong>frozen</strong> in EvaOps.
-              They remain intact in Azure. To unfreeze them, decommission excess environments from the <strong>Cloud Scanning</strong> page or upgrade your subscription tier below.
+              They remain intact in Azure. To unfreeze them, decommission excess environments or upgrade your tier below.
             </div>
           </div>
         </div>
@@ -212,8 +243,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               ⚠️ Write-Access Seat Limit Exceeded
             </div>
             <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              You currently have <strong>{currentWriteUsers}</strong> active write-role users (Owner, Admin, Contributor) while your configured limit is set to <strong>{operatorSeatsLimit}</strong>.
-              No new operator/write roles can be added until your user count drops below the limit. Viewers are unaffected.
+              You currently have <strong>{currentWriteUsers}</strong> active write-role users while your configured limit is <strong>{operatorSeatsLimit}</strong>.
+              No new operator/write roles can be added until your user count drops below the limit.
             </div>
           </div>
         </div>
@@ -232,297 +263,487 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         </div>
       )}
 
-      {/* ── Subscription & Licensing Configuration Card ── */}
-      <div className="glass-panel" style={{ padding: '36px', border: '1px solid var(--glass-border)', borderRadius: '16px', background: 'var(--panel-bg)' }}>
-        
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
-          <div>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0, fontSize: '1.4rem', fontWeight: 800 }}>
-              <Crown size={22} style={{ color: '#fbbf24' }} />
-              Subscription &amp; Licensing Settings
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.86rem', margin: '6px 0 0 0' }}>
-              Select your organization tier, customize seat limits, and review compliance capacities.
-            </p>
+      {/* ── Main Two-Column Layout ── */}
+      <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
+
+        {/* ── LEFT PANEL (crisp at-a-glance) ── */}
+        <div className="glass-panel" style={{
+          width: '280px',
+          flexShrink: 0,
+          padding: '28px 22px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px',
+          background: 'linear-gradient(160deg, rgba(251,191,36,0.10) 0%, rgba(202,138,4,0.14) 55%, rgba(133,77,14,0.18) 100%)',
+          borderColor: 'rgba(251,191,36,0.20)',
+          boxShadow: '0 0 28px rgba(251,191,36,0.06), inset 0 0 20px rgba(251,191,36,0.03)',
+          position: 'sticky',
+          top: '16px',
+        }}>
+          {/* Crown Icon + Title */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Crown size={18} style={{ color: '#fbbf24', flexShrink: 0 }} />
+            <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Licensing Control
+            </span>
           </div>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Current Tier:</span>
+
+          {/* Current Tier Badge */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+              Active Tier
+            </span>
             <span style={{
-              padding: '4px 12px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 700,
-              background: currentTierInfo.bg, color: currentTierInfo.color, border: `1px solid ${currentTierInfo.border}`,
-              boxShadow: `0 0 10px ${currentTierInfo.glow}`
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '6px 14px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700,
+              background: currentTierInfo.bg, color: currentTierInfo.color,
+              border: `1px solid ${currentTierInfo.border}`,
+              boxShadow: `0 0 12px ${currentTierInfo.glow}`,
+              alignSelf: 'flex-start',
             }}>
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: currentTierInfo.color, display: 'inline-block' }} />
               {currentTierInfo.label}
             </span>
+            {pendingLicenseTier && pendingLicenseTier !== licenseTier && (
+              <span style={{ fontSize: '0.72rem', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <ArrowRight size={11} />
+                Pending: {TIER_LABELS[pendingLicenseTier]?.label}
+              </span>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: '1px', background: 'rgba(251,191,36,0.15)' }} />
+
+          {/* Projected Monthly Cost */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+              Projected Monthly Cost
+            </span>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                <span>Base ({activeTierInfo.label})</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>${activePricing.baseUSD.toLocaleString()}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                <span>{operatorSeatsLimit} seats × ${activePricing.seatUSD}</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>${(activePricing.seatUSD * operatorSeatsLimit).toLocaleString()}</span>
+              </div>
+              <div style={{ height: '1px', background: 'var(--glass-border)', margin: '2px 0' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem', fontWeight: 700 }}>
+                <span style={{ color: 'var(--text-primary)' }}>Total /mo</span>
+                <span style={{ color: activeTierInfo.color }}>${projectedUSD.toLocaleString()}</span>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textAlign: 'right' }}>
+                ≈ ₹{projectedINR.toLocaleString()}
+              </div>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: '1px', background: 'rgba(251,191,36,0.15)' }} />
+
+          {/* Live Exchange Rate */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+              Exchange Rate
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+              <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#4ade80', display: 'inline-block', boxShadow: '0 0 6px rgba(74,222,128,0.5)' }} />
+              1 USD = {usdToInrRate.toFixed(2)} INR
+            </div>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Live via er-api.com · fallback 94.43</span>
+          </div>
+
+          {/* Footer role note */}
+          <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid rgba(251,191,36,0.12)', fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            Only <strong style={{ color: 'var(--text-secondary)' }}>Owners</strong> &amp; <strong style={{ color: 'var(--text-secondary)' }}>Admins</strong> can change subscription levels or seat limits.
           </div>
         </div>
 
-        <form onSubmit={handleSaveSettings}>
-          {/* TIER SELECTION CARDS */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '24px',
-            marginBottom: '36px'
-          }}>
-            {tiers.map((tier) => {
-              const isCurrent = tier.id === licenseTier;
-              const isSelected = tier.id === activeTier;
-              const hasBorderColor = isSelected ? tier.color : 'var(--glass-border)';
-              
-              return (
-                <div
-                  key={tier.id}
-                  onClick={() => handleCardSelect(tier.id)}
-                  style={{
-                    padding: '24px',
-                    borderRadius: '16px',
-                    border: `2px solid ${hasBorderColor}`,
-                    background: isSelected ? 'rgba(255,255,255,0.015)' : 'rgba(255,255,255,0.005)',
-                    cursor: isOwnerOrAdmin ? 'pointer' : 'default',
-                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    boxShadow: isSelected ? `0 0 20px ${isSelected ? TIER_LABELS[tier.id].glow : 'transparent'}` : 'none',
-                    transform: isSelected ? 'translateY(-2px)' : 'none'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (isOwnerOrAdmin && !isSelected) {
-                      e.currentTarget.style.borderColor = tier.color;
-                      e.currentTarget.style.boxShadow = `0 4px 15px ${TIER_LABELS[tier.id].glow}`;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (isOwnerOrAdmin && !isSelected) {
-                      e.currentTarget.style.borderColor = 'var(--glass-border)';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }
-                  }}
-                >
-                  {/* Selected/Active Badges */}
-                  {isCurrent && (
-                    <span style={{
-                      position: 'absolute', top: '12px', right: '12px',
-                      fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '20px',
-                      background: 'rgba(34,197,94,0.12)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.25)'
-                    }}>
-                      Active
-                    </span>
-                  )}
-                  {!isCurrent && isSelected && (
-                    <span style={{
-                      position: 'absolute', top: '12px', right: '12px',
-                      fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '20px',
-                      background: 'rgba(251,191,36,0.12)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.25)'
-                    }}>
-                      Pending Save
-                    </span>
-                  )}
+        {/* ── RIGHT PANEL ── */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-                  {/* Tier Title */}
-                  <h3 style={{ margin: '0 0 6px 0', fontSize: '1.15rem', fontWeight: 750, color: 'var(--text-primary)' }}>
-                    {tier.name}
-                  </h3>
-                  
-                  <p style={{ margin: '0 0 20px 0', fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4', minHeight: '34px' }}>
-                    {tier.desc}
-                  </p>
-
-                  {/* Pricing Display */}
-                  <div style={{ display: 'flex', flexDirection: 'column', marginBottom: '24px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline' }}>
-                      <span style={{ fontSize: '2rem', fontWeight: 900, color: tier.color }}>{tier.price}</span>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginLeft: '4px' }}>{tier.period}</span>
-                    </div>
-                    {tier.priceINR && (
-                      <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <CreditCard size={12} style={{ color: tier.color, flexShrink: 0 }} />
-                        <span>Approx. {tier.priceINR}{tier.period}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Feature Lists */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: 'auto' }}>
-                    {tier.features.map((feat, fIdx) => (
-                      <div key={fIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                        <Check size={13} style={{ color: tier.color, flexShrink: 0 }} />
-                        <span>{feat}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+          {/* Page header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0, fontSize: '1.35rem', fontWeight: 800 }}>
+                <Crown size={20} style={{ color: '#fbbf24' }} />
+                Licensing &amp; Subscription Control
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.84rem', margin: '5px 0 0 0' }}>
+                Select your organisation tier, configure seat limits, and review compliance capacities.
+              </p>
+            </div>
           </div>
 
-          {/* SEAT AND CONFIG CONTROLS SECTION */}
-          <div style={{
-            background: 'rgba(255,255,255,0.01)',
-            border: '1px solid var(--glass-border)',
-            borderRadius: '12px',
-            padding: '24px',
-            marginBottom: '28px'
-          }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', alignItems: 'center', flexWrap: 'wrap' }}>
-              
-              {/* Utilization Bar */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 600 }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <ShieldCheck size={14} style={{ color: 'var(--accent-teal)' }} />
-                    Active Seat Allocation
-                  </span>
-                  <span style={{ color: currentWriteUsers >= operatorSeatsLimit ? '#f87171' : 'var(--text-primary)' }}>
-                    {currentWriteUsers} / {operatorSeatsLimit} in use
-                  </span>
-                </div>
-                
-                <div style={{ height: '8px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', overflow: 'hidden', marginBottom: '8px' }}>
-                  <div style={{
-                    height: '100%', borderRadius: '4px', transition: 'width 0.5s ease-out',
-                    width: `${Math.min(100, (currentWriteUsers / operatorSeatsLimit) * 100)}%`,
-                    background: currentWriteUsers >= operatorSeatsLimit
-                      ? 'linear-gradient(90deg, #ef4444, #f87171)'
-                      : 'linear-gradient(90deg, #6366f1, #a78bfa)',
-                    boxShadow: currentWriteUsers >= operatorSeatsLimit
-                      ? '0 0 10px rgba(239,68,68,0.2)'
-                      : '0 0 10px rgba(99,102,241,0.2)'
-                  }} />
-                </div>
-                
-                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                  Owners, Admins, and Contributors consume 1 operator seat limit. Viewers are free.
-                </div>
-              </div>
+          <form onSubmit={handleSaveSettings}>
 
-              {/* Limit Input Box */}
-              <div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 600 }}>
-                  <Zap size={14} style={{ color: '#fbbf24' }} /> Configure Seat Limit
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <input
-                    type="number"
-                    min={1}
-                    max={9999}
-                    disabled={!isOwnerOrAdmin}
-                    value={operatorSeatsLimit}
-                    onChange={e => setOperatorSeatsLimit?.(parseInt(e.target.value, 10) || 1)}
+            {/* ── TIER SELECTION CARDS (Accordion) ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+              {tiers.map((tier) => {
+                const isCurrent = tier.id === licenseTier;
+                const isSelected = tier.id === activeTier;
+                const isExpanded = expandedTier === tier.id;
+                const tierInfo = TIER_LABELS[tier.id];
+
+                return (
+                  <div
+                    key={tier.id}
+                    onClick={() => handleCardClick(tier.id)}
                     style={{
-                      padding: '10px 14px', borderRadius: '8px',
-                      background: 'var(--input-bg)', border: '1px solid var(--glass-border)',
-                      color: 'var(--text-primary)', fontSize: '0.88rem', width: '120px',
-                      boxSizing: 'border-box'
+                      borderRadius: '14px',
+                      border: `2px solid ${isSelected ? tier.color : 'var(--glass-border)'}`,
+                      background: isSelected
+                        ? `linear-gradient(145deg, ${tierInfo.bg} 0%, rgba(255,255,255,0.01) 100%)`
+                        : 'rgba(255,255,255,0.005)',
+                      cursor: isOwnerOrAdmin ? 'pointer' : 'default',
+                      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      boxShadow: isSelected ? `0 0 22px ${tierInfo.glow}` : 'none',
+                      transform: isSelected ? 'translateY(-2px)' : 'none',
                     }}
-                  />
-                  <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                    Limit configuration changes apply to active billing cycles immediately.
-                  </span>
-                </div>
-              </div>
+                    onMouseEnter={(e) => {
+                      if (isOwnerOrAdmin && !isSelected) {
+                        e.currentTarget.style.borderColor = tier.color;
+                        e.currentTarget.style.boxShadow = `0 4px 16px ${tierInfo.glow}`;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (isOwnerOrAdmin && !isSelected) {
+                        e.currentTarget.style.borderColor = 'var(--glass-border)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }
+                    }}
+                  >
+                    {/* Colour bar accent on top */}
+                    <div style={{ height: '3px', background: `linear-gradient(90deg, ${tier.color}, transparent)`, borderRadius: '14px 14px 0 0' }} />
 
+                    <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+
+                      {/* Badges */}
+                      <div style={{ position: 'absolute', top: '14px', right: '14px', display: 'flex', gap: '5px' }}>
+                        {isCurrent && (
+                          <span style={{
+                            fontSize: '0.62rem', fontWeight: 700, padding: '2px 8px', borderRadius: '20px',
+                            background: 'rgba(34,197,94,0.12)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.25)'
+                          }}>Active</span>
+                        )}
+                        {!isCurrent && isSelected && (
+                          <span style={{
+                            fontSize: '0.62rem', fontWeight: 700, padding: '2px 8px', borderRadius: '20px',
+                            background: 'rgba(251,191,36,0.12)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.25)'
+                          }}>Pending Save</span>
+                        )}
+                      </div>
+
+                      {/* Tier name */}
+                      <h3 style={{ margin: '0 0 4px 0', fontSize: '1.05rem', fontWeight: 750, color: isSelected ? tier.color : 'var(--text-primary)', paddingRight: '70px' }}>
+                        {tier.name}
+                      </h3>
+                      <p style={{ margin: '0 0 16px 0', fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                        {tier.desc}
+                      </p>
+
+                      {/* Pricing */}
+                      <div style={{ marginBottom: '14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
+                          <span style={{ fontSize: '1.8rem', fontWeight: 900, color: tier.color, lineHeight: 1 }}>{tier.price}</span>
+                          <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{tier.period}</span>
+                        </div>
+                        <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <CreditCard size={11} style={{ color: tier.color }} />
+                          <span>≈ {tier.priceINR}{tier.period}</span>
+                        </div>
+                      </div>
+
+                      {/* Accordion feature list */}
+                      <div style={{
+                        overflow: 'hidden',
+                        maxHeight: isExpanded ? '300px' : '0px',
+                        transition: 'max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      }}>
+                        <div style={{ borderTop: `1px solid ${isSelected ? tierInfo.border : 'var(--glass-border)'}`, paddingTop: '12px', marginBottom: '12px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {tier.features.map((feat, fIdx) => (
+                              <div key={fIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                                <Check size={12} style={{ color: tier.color, flexShrink: 0, marginTop: '2px' }} />
+                                <span>{feat}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Expand / Collapse toggle */}
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleExpand(e, tier.id)}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          fontSize: '0.72rem', color: isSelected ? tier.color : 'var(--text-secondary)',
+                          fontWeight: 600, padding: '6px 0 0 0',
+                          transition: 'color 0.2s',
+                          marginTop: 'auto',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.color = tier.color)}
+                        onMouseLeave={e => (e.currentTarget.style.color = isSelected ? tier.color : 'var(--text-secondary)')}
+                      >
+                        {isExpanded
+                          ? <><ChevronUp size={13} /> Collapse</>
+                          : <><ChevronDown size={13} /> See Details</>
+                        }
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
 
-          {/* Projected Billing Estimate Card */}
-          <div className="glass-panel" style={{
-            background: 'rgba(255,255,255,0.015)',
-            border: '1px solid var(--glass-border)',
-            borderRadius: '12px',
-            padding: '24px',
-            marginBottom: '28px',
-            animation: 'fade-in-anim 0.3s ease-out',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
-          }}>
-            <h4 style={{ margin: '0 0 16px 0', fontSize: '0.94rem', fontWeight: 750, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <CreditCard size={16} style={{ color: TIER_LABELS[activeTier]?.color ?? '#60a5fa' }} />
-              Projected Monthly Cost Projection
-            </h4>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  <span>Base Platform Cost ({TIER_LABELS[activeTier]?.label}):</span>
-                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                    ${(PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth).baseUSD.toLocaleString()} <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>(₹{Math.round((PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth).baseUSD * usdToInrRate).toLocaleString()})</span>
-                  </span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  <span>Seat Allocation Cost ({operatorSeatsLimit} seats @ ${(PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth).seatUSD}/seat):</span>
-                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                    ${((PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth).seatUSD * operatorSeatsLimit).toLocaleString()} <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>(₹{Math.round((PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth).seatUSD * operatorSeatsLimit * usdToInrRate).toLocaleString()})</span>
-                  </span>
-                </div>
-                <div style={{ height: '1px', background: 'var(--glass-border)', margin: '4px 0' }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  <span>Total Projected Cost:</span>
-                  <span style={{ color: TIER_LABELS[activeTier]?.color ?? '#60a5fa' }}>
-                    ${((PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth).baseUSD + (PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth).seatUSD * operatorSeatsLimit).toLocaleString()} /mo <span style={{ fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-secondary)' }}>(₹{Math.round(((PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth).baseUSD + (PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth).seatUSD * operatorSeatsLimit) * usdToInrRate).toLocaleString()} /mo)</span>
-                  </span>
-                </div>
-              </div>
-
-              <div style={{
-                background: 'rgba(255,255,255,0.01)',
-                border: '1px solid var(--glass-border)',
-                borderRadius: '8px',
-                padding: '12px 16px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                gap: '4px'
-              }}>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Exchange Rate Source
-                </div>
-                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', display: 'inline-block' }} />
-                  1 USD = {usdToInrRate.toFixed(2)} INR
-                </div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
-                  Live exchange rates fetched from er-api.com. Baseline rate is 94.43 INR.
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          {/* Action Area */}
-          {isOwnerOrAdmin ? (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', alignItems: 'center', borderTop: '1px solid var(--glass-border)', paddingTop: '20px' }}>
-              {pendingLicenseTier && pendingLicenseTier !== licenseTier && (
-                <span style={{ fontSize: '0.78rem', color: '#fbbf24', fontWeight: 500 }}>
-                  ⚠️ Save changes to apply subscription transition
-                </span>
-              )}
-              <button
-                type="submit"
-                className="btn-primary"
-                disabled={savingSettings || (pendingLicenseTier === null && operatorSeatsLimit === (currentOrgSeatLimit() ?? 10))}
-                style={{ padding: '10px 32px', borderRadius: '8px', fontSize: '0.86rem', fontWeight: 700 }}
-              >
-                {savingSettings ? 'Applying License Settings...' : 'Save Configuration'}
-              </button>
-            </div>
-          ) : (
+            {/* ── SEAT CONFIGURATION ── */}
             <div style={{
-              textAlign: 'center', padding: '16px', borderRadius: '8px',
-              background: 'rgba(255,255,255,0.015)', border: '1px solid var(--glass-border)',
-              fontSize: '0.84rem', color: 'var(--text-secondary)'
+              background: 'rgba(255,255,255,0.01)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '12px',
+              padding: '22px',
+              marginBottom: '16px',
             }}>
-              Only **Organization Owners** and **Administrators** can change subscription levels or seat limits.
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', alignItems: 'center' }}>
+
+                {/* Utilization Bar */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 600 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <ShieldCheck size={14} style={{ color: 'var(--accent-teal)' }} />
+                      Active Seat Allocation
+                    </span>
+                    <span style={{ color: currentWriteUsers >= operatorSeatsLimit ? '#f87171' : 'var(--text-primary)' }}>
+                      {currentWriteUsers} / {operatorSeatsLimit} in use
+                    </span>
+                  </div>
+                  <div style={{ height: '8px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', overflow: 'hidden', marginBottom: '8px' }}>
+                    <div style={{
+                      height: '100%', borderRadius: '4px', transition: 'width 0.5s ease-out',
+                      width: `${Math.min(100, (currentWriteUsers / operatorSeatsLimit) * 100)}%`,
+                      background: currentWriteUsers >= operatorSeatsLimit
+                        ? 'linear-gradient(90deg, #ef4444, #f87171)'
+                        : 'linear-gradient(90deg, var(--accent-blue), var(--accent-purple))',
+                      boxShadow: currentWriteUsers >= operatorSeatsLimit
+                        ? '0 0 10px rgba(239,68,68,0.2)'
+                        : '0 0 10px rgba(99,102,241,0.2)',
+                    }} />
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    Owners, Admins, and Contributors consume 1 seat. Viewers are free.
+                  </div>
+                </div>
+
+                {/* Seat Limit Input */}
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 600 }}>
+                    <Zap size={14} style={{ color: '#fbbf24' }} />
+                    Configure Seat Limit
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <input
+                      type="number"
+                      min={1}
+                      max={9999}
+                      disabled={!isOwnerOrAdmin}
+                      value={operatorSeatsLimit}
+                      onChange={e => {
+                        setOperatorSeatsLimit?.(parseInt(e.target.value, 10) || 1);
+                        setShowSaveConfirmPrompt(false);
+                      }}
+                      style={{
+                        padding: '10px 14px', borderRadius: '8px',
+                        background: 'var(--input-bg)', border: '1px solid var(--glass-border)',
+                        color: 'var(--text-primary)', fontSize: '0.88rem', width: '110px',
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                      Seat limit changes apply to the active billing cycle immediately.
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
-        </form>
+
+            {/* ── SAVE CONFIRMATION PROMPT (slide-up inline panel) ── */}
+            {isOwnerOrAdmin && showSaveConfirmPrompt && (
+              <div style={{
+                borderRadius: '12px',
+                border: '1px solid rgba(99,102,241,0.25)',
+                borderLeft: '3px solid var(--accent-purple)',
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.05) 100%)',
+                padding: '20px 22px',
+                marginBottom: '16px',
+                boxShadow: '0 4px 20px rgba(99,102,241,0.12)',
+                animation: 'fade-in-anim 0.2s ease-out',
+              }}>
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <AlertCircle size={16} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
+                  <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>Confirm Changes</span>
+                </div>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0 0 16px 0' }}>
+                  Review the changes below before applying.
+                </p>
+
+                {/* Diff rows */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                  {hasTierChange && pendingLicenseTier && (
+                    <div style={{
+                      background: 'rgba(255,255,255,0.02)',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                    }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '8px' }}>
+                        💳 Subscription Tier
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{
+                          background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)',
+                          borderRadius: '6px', padding: '3px 10px', fontSize: '0.8rem', color: 'var(--text-secondary)'
+                        }}>
+                          {TIER_LABELS[licenseTier]?.label ?? licenseTier}
+                        </span>
+                        <ArrowRight size={14} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
+                        <span style={{
+                          background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.28)',
+                          borderRadius: '6px', padding: '3px 10px', fontSize: '0.8rem',
+                          color: 'var(--accent-purple)', fontWeight: 700,
+                        }}>
+                          {TIER_LABELS[pendingLicenseTier]?.label ?? pendingLicenseTier}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {hasSeatsChange && (
+                    <div style={{
+                      background: 'rgba(255,255,255,0.02)',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                    }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '8px' }}>
+                        🪑 Operator Seat Limit
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{
+                          background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)',
+                          borderRadius: '6px', padding: '3px 10px', fontSize: '0.8rem', color: 'var(--text-secondary)'
+                        }}>
+                          {originalSeatsLimit} seats
+                        </span>
+                        <ArrowRight size={14} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
+                        <span style={{
+                          background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.28)',
+                          borderRadius: '6px', padding: '3px 10px', fontSize: '0.8rem',
+                          color: 'var(--accent-purple)', fontWeight: 700,
+                        }}>
+                          {operatorSeatsLimit} seats
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer info */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '16px' }}>
+                  <Info size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    Changes apply immediately to your active billing cycle.
+                  </span>
+                </div>
+
+                {/* Actions */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setShowSaveConfirmPrompt(false)}
+                    style={{ padding: '9px 20px', fontSize: '0.84rem' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={savingSettings}
+                    onClick={handleConfirmApply}
+                    style={{
+                      padding: '9px 24px', borderRadius: '8px', fontWeight: 700, fontSize: '0.84rem',
+                      background: 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))',
+                      border: 'none', color: '#fff',
+                      boxShadow: '0 2px 12px rgba(99,102,241,0.3)',
+                      cursor: savingSettings ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      opacity: savingSettings ? 0.7 : 1,
+                    }}
+                    onMouseEnter={e => {
+                      if (!savingSettings) {
+                        (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)';
+                        (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 6px 20px rgba(99,102,241,0.45)';
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLButtonElement).style.transform = 'none';
+                      (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 2px 12px rgba(99,102,241,0.3)';
+                    }}
+                  >
+                    {savingSettings ? 'Applying...' : 'Apply Changes'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── ACTION BAR ── */}
+            {isOwnerOrAdmin ? (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', alignItems: 'center', borderTop: '1px solid var(--glass-border)', paddingTop: '18px' }}>
+                {pendingLicenseTier && pendingLicenseTier !== licenseTier && !showSaveConfirmPrompt && (
+                  <span style={{ fontSize: '0.78rem', color: '#fbbf24', fontWeight: 500 }}>
+                    ⚠️ Save changes to apply subscription transition
+                  </span>
+                )}
+                {showSaveConfirmPrompt ? (
+                  <span style={{ fontSize: '0.78rem', color: 'var(--accent-purple)', fontWeight: 600 }}>
+                    ↑ Review your changes above
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    disabled={savingSettings || !hasAnyChange}
+                    onClick={handleReviewChanges}
+                    style={{ padding: '10px 32px', borderRadius: '8px', fontSize: '0.86rem', fontWeight: 700 }}
+                  >
+                    {savingSettings ? 'Applying License Settings...' : hasAnyChange ? 'Review Changes' : 'No Changes'}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div style={{
+                textAlign: 'center', padding: '16px', borderRadius: '8px',
+                background: 'rgba(255,255,255,0.015)', border: '1px solid var(--glass-border)',
+                fontSize: '0.84rem', color: 'var(--text-secondary)'
+              }}>
+                Only <strong>Organisation Owners</strong> and <strong>Administrators</strong> can change subscription levels or seat limits.
+              </div>
+            )}
+
+          </form>
+        </div>
       </div>
 
-      {/* ── Downgrade Confirmation Modal ── */}
+      {/* ── Downgrade Confirmation Modal ── (unchanged) */}
       {showDowngradeModal && downgradeImpactData && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 999,
@@ -618,7 +839,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 style={{
                   flex: 1, padding: '11px', borderRadius: '8px', fontWeight: 700, fontSize: '0.88rem',
                   background: downgradeConfirmInput === organizationId ? 'rgba(239,68,68,0.8)' : 'rgba(100,100,100,0.3)',
-                  border: '1px solid rgba(239,68,68,0.4)', color: '#fff', cursor: downgradeConfirmInput === organizationId ? 'pointer' : 'not-allowed',
+                  border: '1px solid rgba(239,68,68,0.4)', color: '#fff',
+                  cursor: downgradeConfirmInput === organizationId ? 'pointer' : 'not-allowed',
                   transition: 'all 0.2s',
                 }}
               >
@@ -631,7 +853,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     </div>
   );
 
-  // Helper local function to fetch initial seat limit
+  // Helper local function
   function currentOrgSeatLimit(): number {
     return operatorSeatsLimit;
   }
