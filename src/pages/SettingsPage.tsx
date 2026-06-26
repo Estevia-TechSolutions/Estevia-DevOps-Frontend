@@ -264,7 +264,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       )}
 
       {/* ── Main Two-Column Layout ── */}
-      <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: '24px', alignItems: 'stretch' }}>
 
         {/* ── LEFT PANEL (crisp at-a-glance) ── */}
         <div className="glass-panel" style={{
@@ -277,8 +277,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
           background: 'linear-gradient(160deg, rgba(251,191,36,0.10) 0%, rgba(202,138,4,0.14) 55%, rgba(133,77,14,0.18) 100%)',
           borderColor: 'rgba(251,191,36,0.20)',
           boxShadow: '0 0 28px rgba(251,191,36,0.06), inset 0 0 20px rgba(251,191,36,0.03)',
-          position: 'sticky',
-          top: '16px',
         }}>
           {/* Crown Icon + Title */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -338,6 +336,73 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textAlign: 'right' }}>
                 ≈ ₹{projectedINR.toLocaleString()}
               </div>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: '1px', background: 'rgba(251,191,36,0.15)' }} />
+
+          {/* Seat & Access Info */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+              Seat &amp; Access Info
+            </span>
+            <div style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '8px',
+              padding: '10px 12px',
+              fontSize: '0.74rem',
+              color: 'var(--text-secondary)',
+              lineHeight: '1.45'
+            }}>
+              <span>• <strong>Operator seats</strong> represent users with active write/admin roles.</span>
+              <span style={{ display: 'inline-block', marginTop: '4px' }}>• <strong>Viewer seats</strong> (read-only) are completely unlimited and free.</span>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: '1px', background: 'rgba(251,191,36,0.15)' }} />
+
+          {/* Tier Specifications */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600 }}>
+              Tier Specifications
+            </span>
+            <div style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '8px',
+              padding: '10px 12px',
+              fontSize: '0.74rem',
+              color: 'var(--text-secondary)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px'
+            }}>
+              {activeTier === 'growth' && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={12} style={{ color: activeTierInfo.color }} /> 5 Environments max</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={12} style={{ color: activeTierInfo.color }} /> 3 Compliance rules</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={12} style={{ color: activeTierInfo.color }} /> Manual remediation</div>
+                </>
+              )}
+              {activeTier === 'enterprise' && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={12} style={{ color: activeTierInfo.color }} /> 25 Environments max</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={12} style={{ color: activeTierInfo.color }} /> 9 Compliance rules</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={12} style={{ color: activeTierInfo.color }} /> Auto-healing remediation</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={12} style={{ color: activeTierInfo.color }} /> Custom rule severities</div>
+                </>
+              )}
+              {activeTier === 'sovereign' && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={12} style={{ color: activeTierInfo.color }} /> Unlimited environments</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={12} style={{ color: activeTierInfo.color }} /> Custom rules supported</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={12} style={{ color: activeTierInfo.color }} /> Air-gapped / Private deploy</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={12} style={{ color: activeTierInfo.color }} /> Dedicated Architect Support</div>
+                </>
+              )}
             </div>
           </div>
 
