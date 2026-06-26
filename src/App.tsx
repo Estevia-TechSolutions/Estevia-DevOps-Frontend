@@ -3490,9 +3490,7 @@ function App() {
         setCredMsg({ type: 'success', text: `${provider.toUpperCase()} credentials registered successfully.` });
         showToast('Credentials Saved', `${provider.toUpperCase()} credentials successfully updated.`, 'success');
         addEvent('Credentials Updated', `${provider.toUpperCase()} credentials registered successfully.`, 'credential', 'success');
-        fetchCredentialStatus();
-        checkCredentialGateStatus();
-        // Clear forms and decrypted tracking
+        // Clear forms and decrypted tracking before refreshing status
         if (provider === 'github') {
           setGithubToken('');
           setDecryptedGithubToken('');
@@ -3515,6 +3513,8 @@ function App() {
           setDecryptedAzureClientSecret('');
           setDecryptedAzureTenantId('');
         }
+        await fetchCredentialStatus();
+        await checkCredentialGateStatus();
       } else {
         setCredMsg({ type: 'error', text: data.message || 'Failed to save credentials.' });
         showToast('Credentials Save Failed', data.message || `Failed to save ${provider.toUpperCase()} credentials.`, 'error');
@@ -3587,8 +3587,10 @@ function App() {
         setShowAzureClientId(true);
         setShowAzureClientSecret(true);
         setShowAzureTenantId(true);
-        fetchCredentialStatus();
-        checkCredentialGateStatus();
+        // Optimistically mark Azure as configured so UI reflects immediately
+        setCredentialStatus(prev => ({ ...prev, azure: true }));
+        await fetchCredentialStatus();
+        await checkCredentialGateStatus();
         showToast('Credentials Discovered', 'Azure Service Principal credentials auto-discovered from server environment successfully!', 'success');
       } else {
         showToast('Discovery Failed', data.message || 'No Azure Service Principal environment variables found on server.', 'error');
