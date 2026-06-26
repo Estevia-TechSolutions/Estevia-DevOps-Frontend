@@ -3539,6 +3539,8 @@ function App() {
         setShowAzureClientId(true);
         setShowAzureClientSecret(true);
         setShowAzureTenantId(true);
+        fetchCredentialStatus();
+        checkCredentialGateStatus();
         showToast('Credentials Discovered', 'Azure Service Principal credentials auto-discovered from server environment successfully!', 'success');
       } else {
         showToast('Discovery Failed', data.message || 'No Azure Service Principal environment variables found on server.', 'error');
