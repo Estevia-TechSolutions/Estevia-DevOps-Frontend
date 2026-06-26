@@ -68,6 +68,13 @@ Password = {First 4 letters of Org ID — UPPERCASE} + "2026" + "CbEt06"
 > - Admin Override sessions expire after **8 hours** (shorter than regular sessions for security).
 > - Do not share this formula externally. Rotate by updating the suffix in `authController.js`.
 
+### 4. Support CRM Portal (Seeded CRM Admin)
+ A dedicated administrative portal at `http://localhost:5173/#crm` for platform customer support agents to manage client licensing, disable delinquent accounts, and issue invoices.
+ - **Login URL**: `http://localhost:5173/#crm`
+ - **Default Admin Email**: `admin@evaops.crm`
+ - **Default Admin Password**: `CrmAdminPass123!`
+ - **Actions Available**: Update licensing plans and seat limits, enable/disable organization accounts, view/generate invoices, and manage support agents.
+
 ---
 
 ## Role Hierarchy

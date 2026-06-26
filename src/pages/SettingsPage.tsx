@@ -44,6 +44,9 @@ interface SettingsPageProps {
   setOperatorSeatsLimit?: (val: number) => void;
   userRole?: string;
   organizationId?: string;
+  invoices?: any[];
+  onPayInvoice?: (invoiceId: number) => Promise<boolean>;
+  isOrgDisabled?: boolean;
 }
 
 // ── Primary color family aligned with app design tokens ──────────────────────
@@ -78,12 +81,20 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   setOperatorSeatsLimit,
   userRole,
   organizationId,
+  invoices = [],
+  onPayInvoice,
+  isOrgDisabled = false,
 }) => {
   const isOwnerOrAdmin = userRole === 'owner' || userRole === 'admin';
   const activeTier = pendingLicenseTier ?? licenseTier;
   const currentTierInfo = TIER_LABELS[licenseTier] ?? TIER_LABELS.growth;
   const activeTierInfo = TIER_LABELS[activeTier] ?? TIER_LABELS.growth;
   const activePricing = PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth;
+
+  // Sub-tab navigation and simulated payment states
+  const [activeSubTab, setActiveSubTab] = React.useState<'licensing' | 'billing'>('licensing');
+  const [payingInvoiceId, setPayingInvoiceId] = React.useState<number | null>(null);
+  const [payError, setPayError] = React.useState<string | null>(null);
 
   // Exchange rate state
   const [usdToInrRate, setUsdToInrRate] = React.useState<number>(94.43);
@@ -187,7 +198,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   ];
 
   const handleCardClick = (tierId: string) => {
-    if (!isOwnerOrAdmin) return;
+    if (!isOwnerOrAdmin || isOrgDisabled) return;
     // Expand AND select
     setExpandedTier(tierId);
     if (setPendingLicenseTier) {
@@ -443,7 +454,68 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             </div>
           </div>
 
-          <form onSubmit={handleSaveSettings}>
+          {/* Sub-tab Navigation */}
+          <div style={{ display: 'flex', borderBottom: '1px solid var(--glass-border)', paddingBottom: '1px', gap: '8px', marginBottom: '8px' }}>
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('licensing')}
+              style={{
+                padding: '10px 18px',
+                background: 'none',
+                border: 'none',
+                borderBottom: `2px solid ${activeSubTab === 'licensing' ? 'var(--accent-purple)' : 'transparent'}`,
+                color: activeSubTab === 'licensing' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                fontWeight: activeSubTab === 'licensing' ? 700 : 500,
+                fontSize: '0.86rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <Crown size={15} style={{ color: activeSubTab === 'licensing' ? 'var(--accent-purple)' : 'var(--text-muted)' }} />
+              Subscription &amp; Licensing
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('billing')}
+              style={{
+                padding: '10px 18px',
+                background: 'none',
+                border: 'none',
+                borderBottom: `2px solid ${activeSubTab === 'billing' ? 'var(--accent-purple)' : 'transparent'}`,
+                color: activeSubTab === 'billing' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                fontWeight: activeSubTab === 'billing' ? 700 : 500,
+                fontSize: '0.86rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <CreditCard size={15} style={{ color: activeSubTab === 'billing' ? 'var(--accent-purple)' : 'var(--text-muted)' }} />
+              Billing &amp; Invoices
+              {invoices.some((inv: any) => inv.status === 'Pending') && (
+                <span style={{
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '0.62rem',
+                  fontWeight: 800,
+                  padding: '1px 5px',
+                  borderRadius: '10px',
+                  lineHeight: 1,
+                  marginLeft: '4px'
+                }}>
+                  {invoices.filter((inv: any) => inv.status === 'Pending').length}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {activeSubTab === 'licensing' && (
+            <form onSubmit={handleSaveSettings}>
 
             {/* ── TIER SELECTION CARDS (Accordion) ── */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '20px' }}>
@@ -463,7 +535,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       background: isSelected
                         ? `linear-gradient(145deg, ${tierInfo.bg} 0%, rgba(255,255,255,0.01) 100%)`
                         : 'rgba(255,255,255,0.005)',
-                      cursor: isOwnerOrAdmin ? 'pointer' : 'default',
+                      cursor: (isOwnerOrAdmin && !isOrgDisabled) ? 'pointer' : 'default',
                       transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                       position: 'relative',
                       overflow: 'hidden',
@@ -473,13 +545,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       transform: isSelected ? 'translateY(-2px)' : 'none',
                     }}
                     onMouseEnter={(e) => {
-                      if (isOwnerOrAdmin && !isSelected) {
+                      if (isOwnerOrAdmin && !isOrgDisabled && !isSelected) {
                         e.currentTarget.style.borderColor = tier.color;
                         e.currentTarget.style.boxShadow = `0 4px 16px ${tierInfo.glow}`;
                       }
                     }}
                     onMouseLeave={(e) => {
-                      if (isOwnerOrAdmin && !isSelected) {
+                      if (isOwnerOrAdmin && !isOrgDisabled && !isSelected) {
                         e.currentTarget.style.borderColor = 'var(--glass-border)';
                         e.currentTarget.style.boxShadow = 'none';
                       }
@@ -619,7 +691,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       type="number"
                       min={1}
                       max={9999}
-                      disabled={!isOwnerOrAdmin}
+                      disabled={!isOwnerOrAdmin || isOrgDisabled}
                       value={operatorSeatsLimit}
                       onChange={e => {
                         setOperatorSeatsLimit?.(parseInt(e.target.value, 10) || 1);
@@ -786,7 +858,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   <button
                     type="button"
                     className="btn-primary"
-                    disabled={savingSettings || !hasAnyChange}
+                    disabled={savingSettings || !hasAnyChange || isOrgDisabled}
                     onClick={handleReviewChanges}
                     style={{ padding: '10px 32px', borderRadius: '8px', fontSize: '0.86rem', fontWeight: 700 }}
                   >
@@ -805,6 +877,201 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             )}
 
           </form>
+          )}
+
+          {activeSubTab === 'billing' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fade-in-anim 0.2s ease-out' }}>
+              <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                
+                {/* Invoices list */}
+                <div style={{ flex: payingInvoiceId ? 1.2 : 1, minWidth: '300px' }}>
+                  <div className="glass-panel" style={{ overflow: 'hidden', padding: 0 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--divider)' }}>
+                          <th style={{ padding: '14px 18px' }}>Invoice Number</th>
+                          <th style={{ padding: '14px 18px' }}>Amount</th>
+                          <th style={{ padding: '14px 18px' }}>Due Date</th>
+                          <th style={{ padding: '14px 18px' }}>Status</th>
+                          <th style={{ padding: '14px 18px', width: '100px' }}>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {invoices.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                              No invoices generated for your organization.
+                            </td>
+                          </tr>
+                        ) : (
+                          invoices.map((inv: any) => (
+                            <tr key={inv.id} style={{ borderBottom: '1px solid var(--divider)' }}>
+                              <td style={{ padding: '14px 18px', fontWeight: 600 }}>{inv.invoice_number}</td>
+                              <td style={{ padding: '14px 18px' }}>${parseFloat(inv.amount).toLocaleString()}</td>
+                              <td style={{ padding: '14px 18px' }}>{new Date(inv.due_date).toLocaleDateString()}</td>
+                              <td style={{ padding: '14px 18px' }}>
+                                <span style={{
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.68rem',
+                                  fontWeight: 700,
+                                  textTransform: 'uppercase',
+                                  background: inv.status === 'Paid' ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)',
+                                  color: inv.status === 'Paid' ? 'var(--success)' : 'var(--warning)',
+                                  border: inv.status === 'Paid' ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(245,158,11,0.2)'
+                                }}>
+                                  {inv.status}
+                                </span>
+                              </td>
+                              <td style={{ padding: '14px 18px' }}>
+                                {inv.status === 'Pending' ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => { setPayingInvoiceId(inv.id); setPayError(null); }}
+                                    style={{
+                                      padding: '5px 12px',
+                                      borderRadius: '6px',
+                                      border: 'none',
+                                      background: 'linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-blue) 100%)',
+                                      color: '#ffffff',
+                                      fontSize: '0.74rem',
+                                      fontWeight: 600,
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    Pay Now
+                                  </button>
+                                ) : (
+                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.76rem' }}>
+                                    Settled
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Checkout simulation form */}
+                {payingInvoiceId && (
+                  <div style={{ flex: 0.8, minWidth: '280px' }}>
+                    <div className="glass-panel" style={{ padding: '24px', animation: 'fade-in-anim 0.2s ease-out' }}>
+                      <h4 style={{ fontSize: '0.92rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <CreditCard size={15} style={{ color: 'var(--accent-purple)' }} />
+                        SaaS Checkout Simulator
+                      </h4>
+
+                      {payError && (
+                        <div style={{
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          border: '1px solid var(--error)',
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          color: '#fca5a5',
+                          fontSize: '0.8rem',
+                          marginBottom: '16px'
+                        }}>
+                          {payError}
+                        </div>
+                      )}
+
+                      <div style={{
+                        background: 'rgba(255,255,255,0.015)',
+                        border: '1px solid var(--glass-border)',
+                        borderRadius: '8px',
+                        padding: '14px',
+                        marginBottom: '18px',
+                        fontSize: '0.82rem'
+                      }}>
+                        <div style={{ color: 'var(--text-secondary)' }}>Outstanding Balance</div>
+                        <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '2px' }}>
+                          ${parseFloat(invoices.find((i: any) => i.id === payingInvoiceId)?.amount || '0').toLocaleString()} USD
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                          Reference: {invoices.find((i: any) => i.id === payingInvoiceId)?.invoice_number}
+                        </div>
+                      </div>
+
+                      <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (!payingInvoiceId || !onPayInvoice) return;
+                        setPayError(null);
+                        try {
+                          const success = await onPayInvoice(payingInvoiceId);
+                          if (success) {
+                            setPayingInvoiceId(null);
+                          } else {
+                            setPayError('Failed to process simulated payment.');
+                          }
+                        } catch (err: any) {
+                          setPayError(err.message || 'Payment simulation failed.');
+                        }
+                      }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px', fontWeight: 600 }}>Cardholder Name</label>
+                          <input type="text" placeholder="John Doe" required style={{ width: '100%', padding: '9px 12px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', borderRadius: '6px', color: 'var(--text-primary)', fontSize: '0.82rem', outline: 'none' }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px', fontWeight: 600 }}>Card Number</label>
+                          <input type="text" placeholder="4242 4242 4242 4242" required style={{ width: '100%', padding: '9px 12px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', borderRadius: '6px', color: 'var(--text-primary)', fontSize: '0.82rem', outline: 'none' }} />
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                          <div>
+                            <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px', fontWeight: 600 }}>Expiry</label>
+                            <input type="text" placeholder="MM/YY" required style={{ width: '100%', padding: '9px 12px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', borderRadius: '6px', color: 'var(--text-primary)', fontSize: '0.82rem', outline: 'none' }} />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px', fontWeight: 600 }}>CVC</label>
+                            <input type="text" placeholder="123" required style={{ width: '100%', padding: '9px 12px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', borderRadius: '6px', color: 'var(--text-primary)', fontSize: '0.82rem', outline: 'none' }} />
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={() => setPayingInvoiceId(null)}
+                            style={{
+                              flex: 1,
+                              padding: '10px',
+                              borderRadius: '6px',
+                              border: '1px solid var(--glass-border)',
+                              background: 'var(--glass-bg)',
+                              color: 'var(--text-primary)',
+                              fontSize: '0.82rem',
+                              cursor: 'pointer',
+                              fontWeight: 600
+                            }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            style={{
+                              flex: 1.5,
+                              padding: '10px',
+                              borderRadius: '6px',
+                              border: 'none',
+                              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                              color: '#ffffff',
+                              fontSize: '0.82rem',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Clear Balance
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

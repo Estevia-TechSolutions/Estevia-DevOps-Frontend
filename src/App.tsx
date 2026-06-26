@@ -62,6 +62,7 @@ import { isFixable, applyAutoFix } from './utils/autoFixEngine';
 import { runWithConcurrency } from './utils/concurrency';
 import { DiffViewer } from './components/DiffViewer';
 import { Footer } from './components/layout/Footer';
+import { CrmPortal } from './pages/CrmPortal';
 
 const Github = ({ size = 24, ...props }: { size?: number; [key: string]: any }) => (
   <svg
@@ -1610,6 +1611,9 @@ function App() {
   const [missingCredentials, setMissingCredentials] = useState<{
     azure: boolean; github: boolean; azureDevops: boolean; godaddy: boolean;
   }>({ azure: false, github: false, azureDevops: false, godaddy: false });
+  // ── CRM Portal & Suspension Gate States ────────────────────────────────────
+  const [showCrm, setShowCrm] = useState(false);
+  const [isOrgDisabled, setIsOrgDisabled] = useState(false);
   // ── End License / Credential Gate States ──────────────────────────────────
 
   const checkCredentialGateStatus = async (authTokenToCheck?: string) => {
@@ -1621,6 +1625,9 @@ function App() {
       });
       if (statusRes.ok) {
         const statusData = await statusRes.json();
+        if (statusData.is_disabled !== undefined) {
+          setIsOrgDisabled(statusData.is_disabled);
+        }
         if (statusData.credentialGate) {
           if (statusData.credentialGate.isComplete) {
             setRequiresCredentialSetup(false);
@@ -1632,6 +1639,44 @@ function App() {
       }
     } catch (err) {
       console.warn('Failed to check credential gate status:', err);
+    }
+  };
+
+  // ── CRM Hash Routing ───────────────────────────────────────────────────────
+  useEffect(() => {
+    const checkHash = () => {
+      setShowCrm(window.location.hash === '#crm');
+    };
+    checkHash();
+    window.addEventListener('hashchange', checkHash);
+    return () => window.removeEventListener('hashchange', checkHash);
+  }, []);
+
+  // ── Force settings tab when org is disabled ────────────────────────────────
+  useEffect(() => {
+    if (isOrgDisabled && activeTab !== 'settings') {
+      setActiveTab('settings');
+    }
+  }, [isOrgDisabled, activeTab]);
+
+  // ── Pay invoice handler (client-side) ──────────────────────────────────────
+  const handlePayInvoice = async (invoiceId: number): Promise<boolean> => {
+    try {
+      const res = await window.fetch(`${API_BASE}/org/invoices/${invoiceId}/pay`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.is_disabled !== undefined) {
+          setIsOrgDisabled(data.is_disabled);
+        }
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Failed to pay invoice:', err);
+      return false;
     }
   };
 
@@ -5052,6 +5097,14 @@ function App() {
 
   return (
     <div>
+      {showCrm ? (
+        <CrmPortal
+          API_BASE={API_BASE}
+          theme={theme}
+          onBackToApp={() => { setShowCrm(false); window.location.hash = ''; }}
+        />
+      ) : (
+        <>
       {scanProgress > 0 && (
         <div style={{
           position: 'fixed',
@@ -5768,9 +5821,30 @@ function App() {
 
                 <div style={{ height: '1px', background: 'var(--divider)', margin: '0' }} />
 
+                {/* ── Restriction Banner (org disabled) ── */}
+                {isOrgDisabled && (
+                  <div style={{
+                    margin: '8px 0 12px 0',
+                    padding: '12px 16px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(245,158,11,0.08) 100%)',
+                    border: '1px solid rgba(239,68,68,0.3)',
+                    boxShadow: '0 0 20px rgba(239,68,68,0.06), inset 0 0 20px rgba(239,68,68,0.03)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    animation: 'fade-in-anim 0.3s ease-out'
+                  }}>
+                    <AlertTriangle size={20} style={{ color: '#f87171', flexShrink: 0 }} />
+                    <div style={{ fontSize: '0.84rem', color: '#fca5a5', lineHeight: 1.5 }}>
+                      <strong style={{ color: '#f87171' }}>Account Restricted:</strong> Access is limited to Billing &amp; Licensing due to outstanding invoices. Please clear your balance in <strong>Settings → Licensing</strong> to restore full service.
+                    </div>
+                  </div>
+                )}
+
                 {/* Bottom Row: Tab buttons grid */}
                 <div className="premium-tabs-grid">
-                  <button className={`premium-tab-btn ${activeTab === 'scan' ? 'active' : ''}`} onClick={() => setActiveTab('scan')} disabled={requiresCredentialSetup}>
+                  <button className={`premium-tab-btn ${activeTab === 'scan' ? 'active' : ''}`} onClick={() => setActiveTab('scan')} disabled={requiresCredentialSetup || isOrgDisabled}>
                     <Server size={16} />
                     <span>Cloud Scanning</span>
                     {tabLoadingMap.scan && (
@@ -5784,7 +5858,7 @@ function App() {
                       <div className="menu-hover-card-desc">Scan and monitor all your Azure Static Web Apps, backend APIs, and virtual machines across environments.</div>
                     </div>
                   </button>
-                  <button className={`premium-tab-btn ${activeTab === 'provision' ? 'active' : ''}`} onClick={() => setActiveTab('provision')} disabled={requiresCredentialSetup}>
+                  <button className={`premium-tab-btn ${activeTab === 'provision' ? 'active' : ''}`} onClick={() => setActiveTab('provision')} disabled={requiresCredentialSetup || isOrgDisabled}>
                     <PlusCircle size={16} />
                     <span>Provision App</span>
                     {tabLoadingMap.provision && (
@@ -5795,7 +5869,7 @@ function App() {
                       <div className="menu-hover-card-desc">Launch new Azure Static Web Apps or backend containers with guided step-by-step provisioning wizard.</div>
                     </div>
                   </button>
-                  <button className={`premium-tab-btn ${activeTab === 'cost' ? 'active' : ''}`} onClick={() => { setActiveTab('cost'); setCostTab('breakdown'); }} disabled={requiresCredentialSetup}>
+                  <button className={`premium-tab-btn ${activeTab === 'cost' ? 'active' : ''}`} onClick={() => { setActiveTab('cost'); setCostTab('breakdown'); }} disabled={requiresCredentialSetup || isOrgDisabled}>
                     <TrendingDown size={16} />
                     <span>Cost Management</span>
                     {(tabLoadingMap.cost || tabLoadingMap.optimization) && (
@@ -5806,7 +5880,7 @@ function App() {
                       <div className="menu-hover-card-desc">View a detailed Azure cost breakdown, billing invoices, and AI-driven recommendations to right-size resources, configure schedules, and optimize cloud spend.</div>
                     </div>
                   </button>
-                  <button className={`premium-tab-btn ${activeTab === 'databases' ? 'active' : ''}`} onClick={() => setActiveTab('databases')} disabled={requiresCredentialSetup}>
+                  <button className={`premium-tab-btn ${activeTab === 'databases' ? 'active' : ''}`} onClick={() => setActiveTab('databases')} disabled={requiresCredentialSetup || isOrgDisabled}>
                     <Database size={16} />
                     <span>DB Hub</span>
                     {tabLoadingMap.databases && (
@@ -5826,7 +5900,7 @@ function App() {
                     </div>
                   </button>
                   {(user?.role === 'owner' || user?.role === 'admin') && (
-                    <button className={`premium-tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')} disabled={requiresCredentialSetup}>
+                    <button className={`premium-tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')} disabled={requiresCredentialSetup || isOrgDisabled}>
                       <Users size={16} />
                       <span>Team Settings</span>
                       {tabLoadingMap.users && (
@@ -5849,7 +5923,7 @@ function App() {
                     </button>
                   )}
 
-                  <button className={`premium-tab-btn ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')} disabled={requiresCredentialSetup}>
+                  <button className={`premium-tab-btn ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')} disabled={requiresCredentialSetup || isOrgDisabled}>
                     <Activity size={16} />
                     <span>Events Feed</span>
                     {tabLoadingMap.events && (
@@ -5865,7 +5939,7 @@ function App() {
                       <div className="menu-hover-card-desc">Real-time stream of build triggers, power actions, scans, and credential changes across the platform.</div>
                     </div>
                   </button>
-                  <button className={`premium-tab-btn ${activeTab === 'guide' ? 'active' : ''}`} onClick={() => setActiveTab('guide')} disabled={requiresCredentialSetup}>
+                  <button className={`premium-tab-btn ${activeTab === 'guide' ? 'active' : ''}`} onClick={() => setActiveTab('guide')} disabled={requiresCredentialSetup || isOrgDisabled}>
                     <Info size={16} />
                     <span>User Guide</span>
                     <div className="menu-hover-card menu-hover-card-right">
@@ -6365,6 +6439,9 @@ function App() {
             setOperatorSeatsLimit={setOperatorSeatsLimit}
             userRole={user?.role}
             organizationId={organizationId}
+            isOrgDisabled={isOrgDisabled}
+            invoices={invoices}
+            onPayInvoice={handlePayInvoice}
           />
         )}
 
@@ -8536,6 +8613,9 @@ function App() {
       </div>
 
       </div>
+
+      </>
+    )}
     </div>
   );
 }
