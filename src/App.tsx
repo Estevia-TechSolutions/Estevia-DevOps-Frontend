@@ -1612,7 +1612,7 @@ function App() {
     azure: boolean; github: boolean; azureDevops: boolean; godaddy: boolean;
   }>({ azure: false, github: false, azureDevops: false, godaddy: false });
   // ── CRM Portal & Suspension Gate States ────────────────────────────────────
-  const [showCrm, setShowCrm] = useState(false);
+  const [showCrm, setShowCrm] = useState(() => window.location.hash === '#crm');
   const [isOrgDisabled, setIsOrgDisabled] = useState(false);
   // ── End License / Credential Gate States ──────────────────────────────────
 
@@ -4566,6 +4566,16 @@ function App() {
     await fetchDockerfileContent(repo, branch);
   };
 
+  if (showCrm) {
+    return (
+      <CrmPortal
+        API_BASE={API_BASE}
+        theme={theme}
+        onBackToApp={() => { setShowCrm(false); window.location.hash = ''; }}
+      />
+    );
+  }
+
   if (!token) {
     return (
       <div style={{ 
@@ -5097,14 +5107,6 @@ function App() {
 
   return (
     <div>
-      {showCrm ? (
-        <CrmPortal
-          API_BASE={API_BASE}
-          theme={theme}
-          onBackToApp={() => { setShowCrm(false); window.location.hash = ''; }}
-        />
-      ) : (
-        <>
       {scanProgress > 0 && (
         <div style={{
           position: 'fixed',
@@ -8613,9 +8615,6 @@ function App() {
       </div>
 
       </div>
-
-      </>
-    )}
     </div>
   );
 }
