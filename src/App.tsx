@@ -2978,9 +2978,7 @@ function App() {
           setDevopsPat(prev => prev === '' ? '••••••••••••••••••••' : prev);
         }
         if (statusMap.azure) {
-          setAzureClientId(prev => prev === '' ? '••••••••••••••••••••' : prev);
-          setAzureClientSecret(prev => prev === '' ? '••••••••••••••••••••' : prev);
-          setAzureTenantId(prev => prev === '' ? '••••••••••••••••••••' : prev);
+          handleLoadSavedCredential('azure');
         }
       }
     } catch (e) {
