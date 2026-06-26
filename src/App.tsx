@@ -420,6 +420,7 @@ function App() {
   });
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [showOnboardingGuide, setShowOnboardingGuide] = useState(false);
 
   // Custom authenticated fetch wrapper (shadows standard fetch)
   const authFetch = async (url: RequestInfo | URL, options: RequestInit = {}) => {
@@ -4953,6 +4954,79 @@ function App() {
                     </button>
                   </div>
                 )}
+
+                {/* Onboarding Guide Collapsible */}
+                <div style={{
+                  borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                  paddingTop: '16px',
+                  textAlign: 'left'
+                }}>
+                  <button
+                    onClick={() => setShowOnboardingGuide(v => !v)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.82rem',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '4px 0',
+                      width: '100%',
+                      justifyContent: 'center',
+                      transition: 'color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+                  >
+                    <Info size={14} style={{ color: 'var(--accent-purple)' }} />
+                    <span>New to EvaOps? Onboarding Steps</span>
+                    {showOnboardingGuide ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </button>
+
+                  {showOnboardingGuide && (
+                    <div style={{
+                      marginTop: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                      animation: 'fadeIn 0.25s ease-out'
+                    }}>
+                      {[
+                        { step: '1', title: 'Sign in with Microsoft', desc: 'Authenticate with your work/school Azure account.' },
+                        { step: '2', title: 'Grant Entra ID Consent', desc: 'Accept permissions to register EvaOps in your tenant.' },
+                        { step: '3', title: 'Register Organization', desc: 'Provide organization name and domain details.' },
+                        { step: '4', title: 'Unlock Credentials', desc: 'Configure Azure details & DevOps PAT to finish onboarding.' }
+                      ].map((s, idx) => (
+                        <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                          <div style={{
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            backgroundColor: 'rgba(139, 92, 246, 0.12)',
+                            border: '1px solid rgba(139, 92, 246, 0.3)',
+                            color: 'var(--accent-purple)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            flexShrink: 0,
+                            marginTop: '2px'
+                          }}>
+                            {s.step}
+                          </div>
+                          <div>
+                            <h5 style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{s.title}</h5>
+                            <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: '1px 0 0 0', lineHeight: 1.3 }}>{s.desc}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
               </div>
             </div>
