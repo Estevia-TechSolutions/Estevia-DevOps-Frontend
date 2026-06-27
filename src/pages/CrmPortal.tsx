@@ -1140,10 +1140,10 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '28px' }}>
                 {/* Left Column: License Management with Visual Tier Cards */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', height: '100%' }}>
                   
                   {/* Licensing - Visual Tier Cards + Seat Config */}
-                  <div className="glass-panel" style={{ padding: '24px' }}>
+                  <div className="glass-panel" style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                     <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Shield size={16} style={{ color: 'var(--accent-purple)' }} />
                       License Plan Configuration
@@ -1163,13 +1163,13 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       </div>
                     )}
 
-                    <form onSubmit={handleUpdateLicensing}>
+                    <form onSubmit={handleUpdateLicensing} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                       {/* Tier Cards */}
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
                         {[
-                          { id: 'growth', name: 'Growth Plan', price: '$1,000', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.25)', glow: 'rgba(59,130,246,0.2)', features: ['10 Seats Max', 'Standard CI/CD', 'Email Support'] },
-                          { id: 'enterprise', name: 'Enterprise', price: '$2,000', color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.25)', glow: 'rgba(139,92,246,0.2)', features: ['30 Seats Max', 'Dedicated Run', 'Priority 24/7'] },
-                          { id: 'sovereign', name: 'Sovereign', price: '$4,000', color: '#14b8a6', bg: 'rgba(20,184,166,0.08)', border: 'rgba(20,184,166,0.25)', glow: 'rgba(20,184,166,0.2)', features: ['Unlimit Seats', 'Custom Engine', 'SLA Guarantee'] }
+                          { id: 'growth', name: 'Growth Plan', price: '$1,000', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.25)', glow: 'rgba(59,130,246,0.2)', features: ['10 Active Operators limit', 'Standard shared runners', 'Email support (business hours)', 'Base infra metrics tracking'] },
+                          { id: 'enterprise', name: 'Enterprise', price: '$2,000', color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.25)', glow: 'rgba(139,92,246,0.2)', features: ['30 Active Operators limit', 'Dedicated build runners', '24/7 Priority support SLAs', 'Advanced insights dashboard', 'Custom Key Vault integration'] },
+                          { id: 'sovereign', name: 'Sovereign', price: '$4,000', color: '#14b8a6', bg: 'rgba(20,184,166,0.08)', border: 'rgba(20,184,166,0.25)', glow: 'rgba(20,184,166,0.2)', features: ['Unlimited active operators', 'Self-hosted private nodes', 'Dedicated SLA guarantees', 'Audit logs & SSO authentication', 'Multi-tenant routing rules'] }
                         ].map(tier => {
                           const isSelected = licenseTier === tier.id;
                           return (
