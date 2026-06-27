@@ -260,6 +260,7 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
   const [devopsExpiresAt, setDevopsExpiresAt] = useState('');
   const [azureExpiresAt, setAzureExpiresAt] = useState('');
   const [rotatingSecret, setRotatingSecret] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
 
   // Sync saved expiration dates from list
   React.useEffect(() => {
@@ -886,7 +887,23 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                           value={githubExpiresAt} 
                           onChange={e => setGithubExpiresAt(e.target.value)}
                           disabled={!canEdit}
-                          style={{ width: '100%', padding: '8px 10px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '0.85rem' }} 
+                          onFocus={() => setFocusedInput('github')}
+                          onBlur={() => setFocusedInput(null)}
+                          style={{
+                            width: '100%',
+                            padding: '10px 14px',
+                            background: 'rgba(255, 255, 255, 0.02)',
+                            border: focusedInput === 'github' ? '1px solid #ca8a04' : '1px solid var(--glass-border)',
+                            borderRadius: '10px',
+                            color: 'var(--text-primary)',
+                            fontSize: '0.88rem',
+                            outline: 'none',
+                            fontFamily: 'inherit',
+                            cursor: 'pointer',
+                            colorScheme: 'dark',
+                            boxShadow: focusedInput === 'github' ? '0 0 12px rgba(202, 138, 4, 0.25), inset 0 1px 2px rgba(0,0,0,0.4)' : 'inset 0 1px 2px rgba(0,0,0,0.4)',
+                            transition: 'all 0.2s ease-in-out',
+                          }} 
                         />
                         <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>
                           This date is automatically populated/updated when testing or saving a valid token.
@@ -1198,7 +1215,23 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                             value={devopsExpiresAt} 
                             onChange={e => setDevopsExpiresAt(e.target.value)}
                             disabled={!canEdit}
-                            style={{ width: '100%', padding: '8px 10px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '0.85rem' }} 
+                            onFocus={() => setFocusedInput('azure_devops')}
+                            onBlur={() => setFocusedInput(null)}
+                            style={{
+                              width: '100%',
+                              padding: '10px 14px',
+                              background: 'rgba(255, 255, 255, 0.02)',
+                              border: focusedInput === 'azure_devops' ? '1px solid #ca8a04' : '1px solid var(--glass-border)',
+                              borderRadius: '10px',
+                              color: 'var(--text-primary)',
+                              fontSize: '0.88rem',
+                              outline: 'none',
+                              fontFamily: 'inherit',
+                              cursor: 'pointer',
+                              colorScheme: 'dark',
+                              boxShadow: focusedInput === 'azure_devops' ? '0 0 12px rgba(202, 138, 4, 0.25), inset 0 1px 2px rgba(0,0,0,0.4)' : 'inset 0 1px 2px rgba(0,0,0,0.4)',
+                              transition: 'all 0.2s ease-in-out',
+                            }} 
                           />
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'flex-start', margin: '2px 0' }}>
@@ -1319,7 +1352,23 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                             value={azureExpiresAt} 
                             onChange={e => setAzureExpiresAt(e.target.value)}
                             disabled={!canEdit}
-                            style={{ width: '100%', padding: '8px 10px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '0.85rem' }} 
+                            onFocus={() => setFocusedInput('azure')}
+                            onBlur={() => setFocusedInput(null)}
+                            style={{
+                              width: '100%',
+                              padding: '10px 14px',
+                              background: 'rgba(255, 255, 255, 0.02)',
+                              border: focusedInput === 'azure' ? '1px solid #ca8a04' : '1px solid var(--glass-border)',
+                              borderRadius: '10px',
+                              color: 'var(--text-primary)',
+                              fontSize: '0.88rem',
+                              outline: 'none',
+                              fontFamily: 'inherit',
+                              cursor: 'pointer',
+                              colorScheme: 'dark',
+                              boxShadow: focusedInput === 'azure' ? '0 0 12px rgba(202, 138, 4, 0.25), inset 0 1px 2px rgba(0,0,0,0.4)' : 'inset 0 1px 2px rgba(0,0,0,0.4)',
+                              transition: 'all 0.2s ease-in-out',
+                            }} 
                           />
                         </div>
                         <button className="btn-primary" style={{ width: '100%' }}
