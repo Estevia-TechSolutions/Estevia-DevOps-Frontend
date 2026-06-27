@@ -988,7 +988,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                                     gap: '6px',
                                     padding: '4px 10px',
                                     borderRadius: '20px',
-                                    fontSize: '0.74rem',
+                      fontSize: '0.74rem',
                                     fontWeight: 700,
                                     background: 'rgba(245,158,11,0.12)',
                                     border: '1px solid rgba(245,158,11,0.25)',
@@ -1062,7 +1062,8 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px'
+                      gap: '8px',
+                      boxShadow: selectedClient.is_disabled ? '0 4px 14px rgba(34,197,94,0.2)' : '0 4px 14px rgba(239,68,68,0.2)'
                     }}
                   >
                     <Power size={14} />
@@ -1073,26 +1074,28 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
               {/* Stats Bar */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '28px' }}>
-                <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s, box-shadow 0.2s' }}
-                     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.25)'; }}
-                     onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '6px' }}>License Tier</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, textTransform: 'capitalize' }}>
-                    <span style={{
-                      padding: '2px 8px', borderRadius: '4px', fontSize: '0.85rem',
-                      background: selectedClient.license_tier === 'sovereign' ? 'rgba(20,184,166,0.12)' : selectedClient.license_tier === 'enterprise' ? 'rgba(139,92,246,0.12)' : 'rgba(59,130,246,0.12)',
-                      border: selectedClient.license_tier === 'sovereign' ? '1px solid rgba(20,184,166,0.3)' : selectedClient.license_tier === 'enterprise' ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(59,130,246,0.3)',
-                      color: selectedClient.license_tier === 'sovereign' ? '#2dd4bf' : selectedClient.license_tier === 'enterprise' ? '#c084fc' : '#60a5fa'
-                    }}>
-                      {selectedClient.license_tier || 'growth'}
-                    </span>
+                {/* Stat 1: License Plan */}
+                <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s', display: 'flex', alignItems: 'center', gap: '16px' }}
+                     onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                     onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                  <div style={{ background: 'rgba(139,92,246,0.1)', padding: '10px', borderRadius: '10px' }}>
+                    <CreditCard size={20} style={{ color: 'var(--accent-purple)' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>License Tier</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 800, textTransform: 'capitalize', color: 'var(--accent-purple)' }}>{selectedClient.license_tier || 'growth'}</div>
                   </div>
                 </div>
-                <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s, box-shadow 0.2s' }}
-                     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.25)'; }}
-                     onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '6px' }}>Seat Utilization</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>
+
+                {/* Stat 2: Seat Utilization */}
+                <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s' }}
+                     onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                     onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>Seat Utilization</div>
+                    <Users size={14} style={{ color: '#14b8a6' }} />
+                  </div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>
                     {selectedClient.activeSeats} <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 400 }}>/ {selectedClient.operator_seats_limit || 10}</span>
                   </div>
                   <div style={{ marginTop: '8px', height: '4px', background: 'var(--divider)', borderRadius: '4px', overflow: 'hidden' }}>
@@ -1103,43 +1106,48 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                     }} />
                   </div>
                 </div>
-                <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s, box-shadow 0.2s' }}
-                     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.25)'; }}
-                     onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '6px' }}>Outstanding Balance</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: selectedClient.unpaidInvoicesCount > 0 ? 'var(--warning)' : 'var(--text-primary)' }}>
-                    ${clientInvoices.filter(i => i.status === 'Pending').reduce((s, i) => s + parseFloat(i.amount), 0).toLocaleString()}
+
+                {/* Stat 3: Balance */}
+                <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s', display: 'flex', alignItems: 'center', gap: '16px' }}
+                     onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                     onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                  <div style={{ background: 'rgba(245,158,11,0.1)', padding: '10px', borderRadius: '10px' }}>
+                    <DollarSign size={20} style={{ color: '#f59e0b' }} />
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                    {selectedClient.unpaidInvoicesCount} pending invoice{selectedClient.unpaidInvoicesCount !== 1 ? 's' : ''}
+                  <div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Outstanding</div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#f59e0b' }}>
+                      ${clientInvoices.filter(i => i.status === 'Pending').reduce((s, i) => s + parseFloat(i.amount), 0).toLocaleString()}
+                    </div>
                   </div>
                 </div>
-                <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s, box-shadow 0.2s' }}
-                     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.25)'; }}
-                     onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '6px' }}>Account Status</div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '6px',
-                      color: selectedClient.is_disabled ? 'var(--error)' : 'var(--success)'
-                    }}>
-                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: selectedClient.is_disabled ? 'var(--error)' : 'var(--success)' }} />
-                      {selectedClient.is_disabled ? 'Suspended' : 'Active'}
-                    </span>
+
+                {/* Stat 4: Account Status */}
+                <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s', display: 'flex', alignItems: 'center', gap: '16px' }}
+                     onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                     onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                  <div style={{ background: selectedClient.is_disabled ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)', padding: '10px', borderRadius: '10px' }}>
+                    <Activity size={20} style={{ color: selectedClient.is_disabled ? 'var(--error)' : 'var(--success)' }} />
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                    Created {new Date(selectedClient.created_at).toLocaleDateString()}
+                  <div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Account Status</div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 800, color: selectedClient.is_disabled ? 'var(--error)' : 'var(--success)' }}>
+                      {selectedClient.is_disabled ? 'Suspended' : 'Active'}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '28px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '28px' }}>
                 {/* Left Column: License Management with Visual Tier Cards */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                   
                   {/* Licensing - Visual Tier Cards + Seat Config */}
                   <div className="glass-panel" style={{ padding: '24px' }}>
-                    <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '16px' }}>License Management</h4>
+                    <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Shield size={16} style={{ color: 'var(--accent-purple)' }} />
+                      License Plan Configuration
+                    </h4>
                     
                     {licensingMsg && (
                       <div style={{
@@ -1159,9 +1167,9 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       {/* Tier Cards */}
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
                         {[
-                          { id: 'growth', name: 'Growth', price: '$1,000', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.25)', glow: 'rgba(59,130,246,0.2)' },
-                          { id: 'enterprise', name: 'Enterprise', price: '$2,000', color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.25)', glow: 'rgba(139,92,246,0.2)' },
-                          { id: 'sovereign', name: 'Sovereign', price: '$4,000', color: '#14b8a6', bg: 'rgba(20,184,166,0.08)', border: 'rgba(20,184,166,0.25)', glow: 'rgba(20,184,166,0.2)' }
+                          { id: 'growth', name: 'Growth Plan', price: '$1,000', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.25)', glow: 'rgba(59,130,246,0.2)', features: ['10 Seats Max', 'Standard CI/CD', 'Email Support'] },
+                          { id: 'enterprise', name: 'Enterprise', price: '$2,000', color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.25)', glow: 'rgba(139,92,246,0.2)', features: ['30 Seats Max', 'Dedicated Run', 'Priority 24/7'] },
+                          { id: 'sovereign', name: 'Sovereign', price: '$4,000', color: '#14b8a6', bg: 'rgba(20,184,166,0.08)', border: 'rgba(20,184,166,0.25)', glow: 'rgba(20,184,166,0.2)', features: ['Unlimit Seats', 'Custom Engine', 'SLA Guarantee'] }
                         ].map(tier => {
                           const isSelected = licenseTier === tier.id;
                           return (
@@ -1204,8 +1212,17 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                               <div style={{ fontSize: '0.82rem', fontWeight: 750, color: isSelected ? tier.color : 'var(--text-primary)', marginBottom: '4px' }}>
                                 {tier.name}
                               </div>
-                              <div style={{ fontSize: '1.3rem', fontWeight: 900, color: tier.color, lineHeight: 1 }}>
+                              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: tier.color, lineHeight: 1 }}>
                                 {tier.price}<span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 400 }}>/mo</span>
+                              </div>
+                              
+                              <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                {tier.features.map((feat, idx) => (
+                                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.64rem', color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                                    <Check size={9} style={{ color: tier.color }} />
+                                    <span>{feat}</span>
+                                  </div>
+                                ))}
                               </div>
                             </div>
                           );
@@ -1220,7 +1237,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                         padding: '18px',
                         marginBottom: '16px'
                       }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                           {/* Utilization Bar */}
                           <div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 600 }}>
@@ -1246,12 +1263,29 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                             </div>
                           </div>
 
-                          {/* Input */}
+                          {/* Interactive Range Config */}
                           <div>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '7px', fontWeight: 600 }}>
                               Configure Seat Limit
                             </label>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                              <input
+                                type="range"
+                                min={1}
+                                max={100}
+                                value={seatsLimit > 100 ? 100 : seatsLimit}
+                                onChange={e => setSeatsLimit(parseInt(e.target.value, 10) || 1)}
+                                style={{
+                                  flex: 1,
+                                  height: '6px',
+                                  borderRadius: '3px',
+                                  background: 'var(--divider)',
+                                  outline: 'none',
+                                  cursor: 'pointer',
+                                  accentColor: '#8b5cf6'
+                                }}
+                              />
                               <input
                                 type="number"
                                 min={1}
@@ -1259,27 +1293,39 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                                 value={seatsLimit}
                                 onChange={e => setSeatsLimit(parseInt(e.target.value, 10) || 1)}
                                 style={{
-                                  flex: 1, padding: '9px 12px',
-                                  background: 'var(--input-bg)', border: '1px solid var(--glass-border)',
-                                  borderRadius: '8px', color: 'var(--text-primary)', fontSize: '0.86rem', outline: 'none'
+                                  width: '75px',
+                                  padding: '8px 10px',
+                                  background: 'var(--input-bg)',
+                                  border: '1px solid var(--glass-border)',
+                                  borderRadius: '8px',
+                                  color: 'var(--text-primary)',
+                                  fontSize: '0.86rem',
+                                  textAlign: 'center',
+                                  outline: 'none'
                                 }}
                               />
                               <button
                                 type="submit"
                                 disabled={updatingLicensing}
                                 style={{
-                                  padding: '9px 16px',
-                                  borderRadius: '8px', border: 'none',
+                                  padding: '9px 18px',
+                                  borderRadius: '8px',
+                                  border: 'none',
                                   background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
-                                  color: '#ffffff', fontWeight: 600, whiteSpace: 'nowrap',
+                                  color: '#ffffff',
+                                  fontWeight: 600,
+                                  whiteSpace: 'nowrap',
                                   cursor: updatingLicensing ? 'not-allowed' : 'pointer',
-                                  display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem'
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  fontSize: '0.84rem'
                                 }}
                               >
                                 {updatingLicensing ? (
                                   <><RefreshCw size={13} className="spin-anim" /> Saving...</>
                                 ) : (
-                                  'Save'
+                                  'Save Plan'
                                 )}
                               </button>
                             </div>
@@ -1294,7 +1340,10 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                   {/* Billing Summary */}
                   <div className="glass-panel" style={{ padding: '24px' }}>
-                    <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '16px' }}>Billing Summary</h4>
+                    <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Activity size={16} style={{ color: 'var(--accent-purple)' }} />
+                      Billing Summary
+                    </h4>
                     {(() => {
                       const totalInvoiced = clientInvoices.reduce((s, i) => s + parseFloat(i.amount), 0);
                       const totalPaid = clientInvoices.filter(i => i.status === 'Paid').reduce((s, i) => s + parseFloat(i.amount), 0);
@@ -1330,7 +1379,10 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
                   {/* Invoice Preview & Generate */}
                   <div className="glass-panel" style={{ padding: '24px' }}>
-                    <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '16px' }}>Generate Client Invoice</h4>
+                    <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <FileText size={16} style={{ color: 'var(--accent-purple)' }} />
+                      Generate Client Invoice
+                    </h4>
                     
                     {invoiceMsg && (
                       <div style={{
@@ -1350,19 +1402,21 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       const tier = (selectedClient.license_tier || 'growth').toLowerCase();
                       const seats = selectedClient.activeSeats || 0;
                       const seatLimit = selectedClient.operator_seats_limit || 10;
-                      const PRICING: Record<string, { base: number; perSeat: number }> = {
+                      const pricing: Record<string, { base: number; perSeat: number }> = {
                         'growth': { base: 1000, perSeat: 40 },
                         'enterprise': { base: 2000, perSeat: 90 },
                         'sovereign': { base: 4000, perSeat: 30 }
                       };
-                      const p = PRICING[tier] || PRICING.growth;
+                      const p = pricing[tier] || pricing.growth;
+                      
                       const baseAmount = p.base;
                       const perSeatTotal = seats * p.perSeat;
                       const totalAmount = baseAmount + perSeatTotal;
+
                       return (
-                        <div style={{ marginBottom: '16px' }}>
+                        <div>
                           <div style={{
-                            background: 'var(--input-bg)', borderRadius: '8px', padding: '14px', marginBottom: '12px', border: '1px solid var(--glass-border)'
+                            background: 'var(--input-bg)', borderRadius: '8px', padding: '14px', marginBottom: '12px', border: '1px dashed var(--glass-border)'
                           }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                               <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Base ({tier})</span>
@@ -1372,7 +1426,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                               <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Seats ({seats} × ${p.perSeat}/seat)</span>
                               <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>${perSeatTotal.toLocaleString()}</span>
                             </div>
-                            <div style={{ borderTop: '1px solid var(--divider)', marginTop: '8px', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ borderTop: '1px dashed var(--divider)', marginTop: '8px', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <span style={{ fontSize: '0.82rem', fontWeight: 700 }}>Invoice Total</span>
                               <span style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--accent-purple)' }}>${totalAmount.toLocaleString()}</span>
                             </div>
