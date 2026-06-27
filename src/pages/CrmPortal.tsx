@@ -16,7 +16,8 @@ import {
   Info,
   Edit3,
   Check,
-  Save
+  Save,
+  Loader
 } from 'lucide-react';
 
 interface CrmPortalProps {
@@ -72,6 +73,11 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
   const [agentRole, setAgentRole] = useState('agent');
   const [creatingAgent, setCreatingAgent] = useState(false);
   const [agentMsg, setAgentMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Searching & Filtering for Client Directory
+  const [searchQuery, setSearchQuery] = useState('');
+  const [tierFilter, setTierFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   // Support Agents list & edit state
   const [agents, setAgents] = useState<any[]>([]);
@@ -738,134 +744,266 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
         {/* Content Panel */}
         <div style={{ flex: 1, padding: '36px', overflowY: 'auto' }}>
           {/* TAB 1: CLIENTS LIST */}
-          {activeTab === 'clients' && !selectedClient && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Client Organizations</h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '4px 0 0 0' }}>
-                    Monitor client licensing tiers, resource seat allocations, and account suspension locks.
-                  </p>
-                </div>
-                <button
-                  onClick={fetchClients}
-                  disabled={loadingClients}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--glass-border)',
-                    background: 'var(--glass-bg)',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <RefreshCw size={13} className={loadingClients ? 'spin-anim' : ''} />
-                  Reload List
-                </button>
-              </div>
+          {activeTab === 'clients' && !selectedClient && (() => {
+            const totalCustomers = clients.length;
+            const totalActiveSeats = clients.reduce((acc, c) => acc + (c.activeSeats || 0), 0);
+            const totalSeatLimit = clients.reduce((acc, c) => acc + (c.operator_seats_limit || 10), 0);
+            const pendingInvoices = clients.reduce((acc, c) => acc + (c.unpaidInvoicesCount || 0), 0);
+            const revenueProjection = clients.reduce((acc, c) => {
+              const tier = (c.license_tier || 'growth').toLowerCase();
+              const price = tier === 'sovereign' ? 999 : tier === 'enterprise' ? 499 : 99;
+              return acc + price;
+            }, 0);
 
-              {loadingClients ? (
-                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                  <RefreshCw size={24} className="spin-anim" style={{ marginBottom: '10px' }} />
-                  <div>Loading client organizations...</div>
+            const filteredClients = clients.filter(c => {
+              const matchesSearch = (c.id || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                   (c.name || '').toLowerCase().includes(searchQuery.toLowerCase());
+              const matchesTier = tierFilter === 'all' || (c.license_tier || 'growth') === tierFilter;
+              const matchesStatus = statusFilter === 'all' || 
+                                   (statusFilter === 'suspended' ? !!c.is_disabled : !c.is_disabled);
+              return matchesSearch && matchesTier && matchesStatus;
+            });
+
+            return (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, color: '#ffffff' }}>Client Directory</h3>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: '4px 0 0 0' }}>
+                      Monitor licensing tiers, resource seat allocations, active operations, and suspension locks.
+                    </p>
+                  </div>
+                  <button
+                    onClick={fetchClients}
+                    disabled={loadingClients}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--glass-border)',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <RefreshCw size={13} className={loadingClients ? 'spin-anim' : ''} />
+                    Reload List
+                  </button>
                 </div>
-              ) : (
-                <div className="glass-panel" style={{ overflow: 'hidden', padding: 0 }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
-                    <thead>
-                      <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--divider)', textAlign: 'left' }}>
-                        <th style={{ padding: '14px 20px' }}>Organization ID</th>
-                        <th style={{ padding: '14px 20px' }}>Organization Name</th>
-                        <th style={{ padding: '14px 20px' }}>Licensing Tier</th>
-                        <th style={{ padding: '14px 20px' }}>Seat Limit</th>
-                        <th style={{ padding: '14px 20px' }}>Status</th>
-                        <th style={{ padding: '14px 20px' }}>Outstanding Invoices</th>
-                        <th style={{ padding: '14px 20px', width: '80px' }}>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {clients.length === 0 ? (
-                        <tr>
-                          <td colSpan={7} style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                            No client organizations registered in the system.
-                          </td>
+
+                {/* Metrics Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '28px' }}>
+                  <div className="glass-panel" style={{ padding: '20px', background: 'rgba(30, 41, 59, 0.3)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Total Customers</div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f8fafc', marginTop: '6px' }}>{totalCustomers} Orgs</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>Registered Client Accounts</div>
+                  </div>
+                  <div className="glass-panel" style={{ padding: '20px', background: 'rgba(30, 41, 59, 0.3)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Seat Allocations</div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#a78bfa', marginTop: '6px' }}>{totalActiveSeats} / {totalSeatLimit}</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>Used operator seats vs limit</div>
+                  </div>
+                  <div className="glass-panel" style={{ padding: '20px', background: 'rgba(30, 41, 59, 0.3)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Unpaid Invoices</div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f59e0b', marginTop: '6px' }}>{pendingInvoices} Pending</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>Awaiting support clearance</div>
+                  </div>
+                  <div className="glass-panel" style={{ padding: '20px', background: 'rgba(30, 41, 59, 0.3)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>MRR Projection</div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#2dd4bf', marginTop: '6px' }}>${revenueProjection.toLocaleString()}</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>Est. monthly recurring revenue</div>
+                  </div>
+                </div>
+
+                {/* Directory Controls (Search & Filters) */}
+                <div style={{
+                  display: 'flex',
+                  gap: '16px',
+                  alignItems: 'center',
+                  marginBottom: '20px',
+                  flexWrap: 'wrap',
+                  background: 'rgba(15, 23, 42, 0.2)',
+                  padding: '16px',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(255,255,255,0.04)'
+                }}>
+                  <div style={{ flex: 1, minWidth: '240px' }}>
+                    <input 
+                      type="text" 
+                      placeholder="Search by Org ID or Name..." 
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--glass-border)',
+                        background: 'var(--input-bg)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.84rem',
+                        outline: 'none',
+                        transition: 'border-color 0.2s'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <div>
+                      <select
+                        value={tierFilter}
+                        onChange={e => setTierFilter(e.target.value)}
+                        style={{
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--glass-border)',
+                          background: 'var(--input-bg)',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.84rem',
+                          outline: 'none'
+                        }}
+                      >
+                        <option value="all">All Licensing Tiers</option>
+                        <option value="growth">Growth</option>
+                        <option value="enterprise">Enterprise</option>
+                        <option value="sovereign">Sovereign</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <select
+                        value={statusFilter}
+                        onChange={e => setStatusFilter(e.target.value)}
+                        style={{
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--glass-border)',
+                          background: 'var(--input-bg)',
+                          color: 'var(--text-primary)',
+                          fontSize: '0.84rem',
+                          outline: 'none'
+                        }}
+                      >
+                        <option value="all">All Statuses</option>
+                        <option value="active">Active</option>
+                        <option value="suspended">Suspended</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {loadingClients ? (
+                  <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    <Loader size={32} className="spin-anim" style={{ marginBottom: '16px', color: '#8b5cf6' }} />
+                    <div>Loading client directory...</div>
+                  </div>
+                ) : (
+                  <div className="glass-panel" style={{ overflow: 'hidden', padding: 0, background: 'rgba(15, 23, 42, 0.3)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem' }}>
+                      <thead>
+                        <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)', textAlign: 'left' }}>
+                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Organization ID</th>
+                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Organization Name</th>
+                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Licensing Tier</th>
+                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Seat Limit</th>
+                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Status</th>
+                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Pending Invoices</th>
+                          <th style={{ padding: '16px 20px', width: '90px', color: 'var(--text-secondary)', fontWeight: 600 }}>Action</th>
                         </tr>
-                      ) : (
-                        clients.map(client => (
-                          <tr 
-                            key={client.id} 
-                            onClick={() => handleSelectClient(client)}
-                            style={{ 
-                              borderBottom: '1px solid var(--divider)', 
-                              cursor: 'pointer',
-                              transition: 'background 0.15s'
-                            }}
-                            onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.025)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                          >
-                            <td style={{ padding: '14px 20px', fontWeight: 600 }}>{client.id}</td>
-                            <td style={{ padding: '14px 20px' }}>{client.name}</td>
-                            <td style={{ padding: '14px 20px', textTransform: 'capitalize' }}>
-                              <span style={{
-                                padding: '3px 8px',
-                                borderRadius: '4px',
-                                fontSize: '0.72rem',
-                                fontWeight: 600,
-                                background: client.license_tier === 'sovereign' ? 'rgba(20,184,166,0.1)' : client.license_tier === 'enterprise' ? 'rgba(139,92,246,0.1)' : 'rgba(59,130,246,0.1)',
-                                border: client.license_tier === 'sovereign' ? '1px solid rgba(20,184,166,0.25)' : client.license_tier === 'enterprise' ? '1px solid rgba(139,92,246,0.25)' : '1px solid rgba(59,130,246,0.25)',
-                                color: client.license_tier === 'sovereign' ? '#2dd4bf' : client.license_tier === 'enterprise' ? '#c084fc' : '#60a5fa'
-                              }}>
-                                {client.license_tier || 'growth'}
-                              </span>
-                            </td>
-                            <td style={{ padding: '14px 20px' }}>
-                              {client.activeSeats} / {client.operator_seats_limit || 10}
-                            </td>
-                            <td style={{ padding: '14px 20px' }}>
-                              <span style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                                padding: '3px 8px',
-                                borderRadius: '4px',
-                                fontSize: '0.72rem',
-                                fontWeight: 600,
-                                background: client.is_disabled ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
-                                border: client.is_disabled ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(34,197,94,0.2)',
-                                color: client.is_disabled ? 'var(--error)' : 'var(--success)'
-                              }}>
-                                <span style={{
-                                  width: '5px',
-                                  height: '5px',
-                                  borderRadius: '50%',
-                                  backgroundColor: client.is_disabled ? 'var(--error)' : 'var(--success)'
-                                }}></span>
-                                {client.is_disabled ? 'Suspended' : 'Active'}
-                              </span>
-                            </td>
-                            <td style={{ padding: '14px 20px' }}>
-                              {client.unpaidInvoicesCount > 0 ? (
-                                <span style={{ color: 'var(--warning)', fontWeight: 600 }}>{client.unpaidInvoicesCount} Pending</span>
-                              ) : (
-                                <span style={{ color: 'var(--text-muted)' }}>None</span>
-                              )}
-                            </td>
-                            <td style={{ padding: '14px 20px', color: 'var(--accent-purple)', fontWeight: 600 }}>
-                              Manage →
+                      </thead>
+                      <tbody>
+                        {filteredClients.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                              No organizations match the current filter criteria.
                             </td>
                           </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
+                        ) : (
+                          filteredClients.map(client => (
+                            <tr 
+                              key={client.id} 
+                              onClick={() => handleSelectClient(client)}
+                              style={{ 
+                                borderBottom: '1px solid rgba(255,255,255,0.05)', 
+                                cursor: 'pointer',
+                                transition: 'background 0.15s'
+                              }}
+                            >
+                              <td style={{ padding: '16px 20px', fontWeight: 700, color: '#f8fafc' }}>{client.id}</td>
+                              <td style={{ padding: '16px 20px' }}>{client.name}</td>
+                              <td style={{ padding: '16px 20px', textTransform: 'capitalize' }}>
+                                <span style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '20px',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 700,
+                                  background: client.license_tier === 'sovereign' ? 'rgba(20,184,166,0.12)' : client.license_tier === 'enterprise' ? 'rgba(139,92,246,0.12)' : 'rgba(59,130,246,0.12)',
+                                  border: client.license_tier === 'sovereign' ? '1px solid rgba(20,184,166,0.3)' : client.license_tier === 'enterprise' ? '1px solid rgba(139,92,246,0.3)' : '1px solid rgba(59,130,246,0.3)',
+                                  color: client.license_tier === 'sovereign' ? '#2dd4bf' : client.license_tier === 'enterprise' ? '#c084fc' : '#60a5fa'
+                                }}>
+                                  {client.license_tier || 'growth'}
+                                </span>
+                              </td>
+                              <td style={{ padding: '16px 20px', fontWeight: 600 }}>
+                                {client.activeSeats} / {client.operator_seats_limit || 10}
+                              </td>
+                              <td style={{ padding: '16px 20px' }}>
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  padding: '4px 10px',
+                                  borderRadius: '20px',
+                                  fontSize: '0.74rem',
+                                  fontWeight: 700,
+                                  background: client.is_disabled ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.12)',
+                                  border: client.is_disabled ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(34,197,94,0.25)',
+                                  color: client.is_disabled ? '#ef4444' : '#22c55e'
+                                }}>
+                                  <span style={{
+                                    width: '6px',
+                                    height: '6px',
+                                    borderRadius: '50%',
+                                    backgroundColor: client.is_disabled ? '#ef4444' : '#22c55e'
+                                  }}></span>
+                                  {client.is_disabled ? 'Suspended' : 'Active'}
+                                </span>
+                              </td>
+                              <td style={{ padding: '16px 20px' }}>
+                                {client.unpaidInvoicesCount > 0 ? (
+                                  <span style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    padding: '4px 10px',
+                                    borderRadius: '20px',
+                                    fontSize: '0.74rem',
+                                    fontWeight: 700,
+                                    background: 'rgba(245,158,11,0.12)',
+                                    border: '1px solid rgba(245,158,11,0.25)',
+                                    color: '#f59e0b'
+                                  }}>{client.unpaidInvoicesCount} Pending</span>
+                                ) : (
+                                  <span style={{ color: 'var(--text-muted)' }}>None</span>
+                                )}
+                              </td>
+                              <td style={{ padding: '16px 20px', color: '#a78bfa', fontWeight: 700 }}>
+                                Manage ↗
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* TAB 1 DETAIL PANEL: MANAGE SPECIFIC CLIENT */}
           {activeTab === 'clients' && selectedClient && (

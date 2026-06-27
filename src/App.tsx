@@ -1611,6 +1611,8 @@ function App() {
   const [missingCredentials, setMissingCredentials] = useState<{
     azure: boolean; github: boolean; azureDevops: boolean; godaddy: boolean;
   }>({ azure: false, github: false, azureDevops: false, godaddy: false });
+  const [credentialAlerts, setCredentialAlerts] = useState<any[]>([]);
+  const [credentialsList, setCredentialsList] = useState<any[]>([]);
   // ── CRM Portal & Suspension Gate States ────────────────────────────────────
   const [showCrm, setShowCrm] = useState(() => window.location.hash === '#crm');
   const [isOrgDisabled, setIsOrgDisabled] = useState(false);
@@ -1627,6 +1629,9 @@ function App() {
         const statusData = await statusRes.json();
         if (statusData.is_disabled !== undefined) {
           setIsOrgDisabled(statusData.is_disabled);
+        }
+        if (statusData.credentialAlerts) {
+          setCredentialAlerts(statusData.credentialAlerts);
         }
         if (statusData.credentialGate) {
           if (statusData.credentialGate.isComplete) {
@@ -2960,6 +2965,7 @@ function App() {
       const res = await fetch(`${API_BASE}/credentials?organizationId=${organizationId}`);
       if (res.ok) {
         const data = await res.json();
+        setCredentialsList(data);
         const statusMap: Record<string, boolean> = {};
         data.forEach((cred: any) => {
           statusMap[cred.provider] = true;
@@ -3471,7 +3477,7 @@ function App() {
     handleScan(rg);
   };
 
-  const handleSaveCredential = async (provider: string, secrets: any, name: string) => {
+  const handleSaveCredential = async (provider: string, secrets: any, name: string, expiresAt?: string) => {
     setSavingCredentials(provider);
     setCredMsg(null);
     try {
@@ -3482,7 +3488,8 @@ function App() {
           organizationId: organizationId,
           provider,
           credentialName: name,
-          secrets
+          secrets,
+          expiresAt
         })
       });
       const data = await res.json();
@@ -5844,6 +5851,75 @@ function App() {
                   </div>
                 )}
 
+                {/* ── Key Expiration Warning Banner ── */}
+                {credentialAlerts && credentialAlerts.length > 0 && (
+                  <div style={{
+                    margin: '8px 0 12px 0',
+                    padding: '12px 18px',
+                    borderRadius: '10px',
+                    background: credentialAlerts.some(a => a.isExpired) 
+                      ? 'linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(245,158,11,0.06) 100%)'
+                      : 'linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(202,138,4,0.06) 100%)',
+                    border: credentialAlerts.some(a => a.isExpired)
+                      ? '1px solid rgba(239,68,68,0.3)'
+                      : '1px solid rgba(245,158,11,0.3)',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    flexWrap: 'wrap',
+                    animation: 'fade-in-anim 0.3s ease-out'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                      <AlertTriangle size={18} style={{ 
+                        color: credentialAlerts.some(a => a.isExpired) ? '#ef4444' : '#f59e0b', 
+                        flexShrink: 0 
+                      }} />
+                      <div style={{ fontSize: '0.82rem', color: '#f8fafc', lineHeight: 1.4 }}>
+                        {credentialAlerts.map((alert, idx) => {
+                          const providerLabel = alert.provider === 'github' ? 'GitHub Platform Token' 
+                            : alert.provider === 'azure_devops' ? 'Azure DevOps PAT'
+                            : alert.provider === 'azure' ? 'Azure Service Principal'
+                            : alert.provider.toUpperCase();
+                          return (
+                            <div key={idx} style={{ marginBottom: idx < credentialAlerts.length - 1 ? '4px' : 0 }}>
+                              {alert.isExpired ? (
+                                <span>Your <strong>{providerLabel}</strong> has <strong style={{ color: '#f87171' }}>EXPIRED</strong>. Critical integrations are inactive.</span>
+                              ) : (
+                                <span>Your <strong>{providerLabel}</strong> will expire in <strong style={{ color: '#fbbf24' }}>{alert.daysRemaining} days</strong> (on {new Date(alert.expiresAt).toLocaleDateString()}).</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    {(user?.role === 'owner' || user?.role === 'admin') && (
+                      <button 
+                        onClick={() => setActiveTab('credentials')}
+                        style={{
+                          padding: '6px 12px',
+                          background: 'rgba(255,255,255,0.08)',
+                          border: '1px solid rgba(255,255,255,0.15)',
+                          color: '#ffffff',
+                          borderRadius: '6px',
+                          fontSize: '0.76rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+                      >
+                        Manage Credentials
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* Bottom Row: Tab buttons grid */}
                 <div className="premium-tabs-grid">
                   <button className={`premium-tab-btn ${activeTab === 'scan' ? 'active' : ''}`} onClick={() => setActiveTab('scan')} disabled={requiresCredentialSetup || isOrgDisabled}>
@@ -6181,6 +6257,7 @@ function App() {
         {/* TAB 3: CREDENTIALS MANAGEMENT */}
         {activeTab === 'credentials' && (
           <CredentialsPage
+            credentialsList={credentialsList}
             githubToken={githubToken}
             setGithubToken={setGithubToken}
             showGithubToken={showGithubToken}

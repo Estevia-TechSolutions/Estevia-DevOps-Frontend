@@ -4,6 +4,7 @@ import { KeyVaultConfigurator } from '../components/credentials/KeyVaultConfigur
 
 interface CredentialsPageProps {
   currentUser?: { role: string; name?: string; email?: string } | null;
+  credentialsList: any[];
   // Credentials
   githubToken: string;
   setGithubToken: (val: string) => void;
@@ -14,7 +15,7 @@ interface CredentialsPageProps {
   savingCredentials: string | null;
   credMsg: { type: 'success' | 'error'; text: string } | null;
   handleLoadSavedCredential: (type: 'github' | 'godaddy' | 'azure_devops' | 'azure') => void;
-  handleSaveCredential: (type: string, data: any, label: string) => void;
+  handleSaveCredential: (type: string, data: any, label: string, expiresAt?: string) => void;
   godaddyKey: string;
   setGodaddyKey: (val: string) => void;
 
@@ -212,6 +213,7 @@ const PasswordInput: React.FC<{
 /* ── Main Component ── */
 
 export const CredentialsPage: React.FC<CredentialsPageProps> = ({
+  credentialsList,
   githubToken, setGithubToken, showGithubToken, setShowGithubToken, decryptedGithubToken,
   credentialStatus, savingCredentials, credMsg,
   handleLoadSavedCredential, handleSaveCredential,
@@ -253,6 +255,59 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
   const [azureSubTab, setAzureSubTab] = useState<'auth' | 'scope' | 'pipelines'>('auth');
   const [discoveringWorkspace, setDiscoveringWorkspace] = useState(false);
   const [runningAll, setRunningAll] = useState(false);
+
+  const [githubExpiresAt, setGithubExpiresAt] = useState('');
+  const [devopsExpiresAt, setDevopsExpiresAt] = useState('');
+  const [azureExpiresAt, setAzureExpiresAt] = useState('');
+  const [rotatingSecret, setRotatingSecret] = useState(false);
+
+  // Sync saved expiration dates from list
+  React.useEffect(() => {
+    if (credentialsList && credentialsList.length > 0) {
+      const gh = credentialsList.find(c => c.provider === 'github');
+      if (gh && gh.expires_at) {
+        setGithubExpiresAt(new Date(gh.expires_at).toISOString().split('T')[0]);
+      }
+      const ado = credentialsList.find(c => c.provider === 'azure_devops');
+      if (ado && ado.expires_at) {
+        setDevopsExpiresAt(new Date(ado.expires_at).toISOString().split('T')[0]);
+      }
+      const az = credentialsList.find(c => c.provider === 'azure');
+      if (az && az.expires_at) {
+        setAzureExpiresAt(new Date(az.expires_at).toISOString().split('T')[0]);
+      }
+    }
+  }, [credentialsList]);
+
+  const handleRotateAzureSecret = async () => {
+    setRotatingSecret(true);
+    try {
+      const orgId = localStorage.getItem('devops_organization_id') || '';
+      const token = localStorage.getItem('devops_token') || '';
+      const res = await fetch(`${API_BASE}/credentials/rotate-azure`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ organizationId: orgId })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast('Secret Rotated', 'Azure Service Principal Client Secret has been programmatically rotated in Entra ID and local settings!', 'success');
+        if (data.expiresAt) {
+          setAzureExpiresAt(new Date(data.expiresAt).toISOString().split('T')[0]);
+        }
+        handleLoadSavedCredential('azure');
+      } else {
+        showToast('Rotation Failed', data.message || 'Verification of rotation permissions failed.', 'error');
+      }
+    } catch (err: any) {
+      showToast('Rotation Error', err.message || 'Error occurred during secret rotation.', 'error');
+    } finally {
+      setRotatingSecret(false);
+    }
+  };
 
   const handleRunAll = async () => {
     setRunningAll(true);
@@ -614,6 +669,27 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                         const statusLabel = !isConfigured ? 'Not Configured' : vResult?.success === false ? 'Connection Failed' : vResult?.success ? 'Connected' : 'Configured';
                         const statusIcon = !isConfigured ? '⚠' : vResult?.success === false ? '✗' : '●';
 
+                        const dbCred = credentialsList.find(c => c.provider === (cred.key === 'azure_devops' ? 'azure_devops' : cred.key));
+                        const expiresAt = dbCred?.expires_at;
+                        let expiryLabel = '';
+                        let isExpired = false;
+                        let isWarning = false;
+                        if (isConfigured && expiresAt) {
+                          const expDate = new Date(expiresAt);
+                          const now = new Date();
+                          const diff = expDate.getTime() - now.getTime();
+                          const diffDays = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                          if (diffDays <= 0) {
+                            expiryLabel = `Expired on ${expDate.toLocaleDateString()}`;
+                            isExpired = true;
+                          } else if (diffDays <= 30) {
+                            expiryLabel = `Expires in ${diffDays} days (${expDate.toLocaleDateString()})`;
+                            isWarning = true;
+                          } else {
+                            expiryLabel = `Expires on ${expDate.toLocaleDateString()}`;
+                          }
+                        }
+
                         return (
                           <div key={cred.key} style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -627,9 +703,17 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                               <span style={{ fontSize: '18px', flexShrink: 0 }}>{cred.icon}</span>
                               <div style={{ minWidth: 0 }}>
                                 <div style={{ fontWeight: 600, fontSize: '0.86rem', color: 'var(--text-primary)' }}>{cred.label}</div>
+                                {expiryLabel && (
+                                  <div style={{
+                                    fontSize: '0.72rem', marginTop: '2px',
+                                    color: isExpired ? '#ef4444' : isWarning ? '#fbbf24' : 'var(--text-secondary)'
+                                  }}>
+                                    {expiryLabel}
+                                  </div>
+                                )}
                                 {vResult && (
                                   <div style={{
-                                    fontSize: '0.72rem', marginTop: '3px',
+                                    fontSize: '0.72rem', marginTop: '4px',
                                     color: vResult.success ? '#4ade80' : '#f87171',
                                     display: 'flex', alignItems: 'center', gap: '4px',
                                   }}>
@@ -795,8 +879,26 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                         placeholder="ghp_................................."
                         disabled={!canEdit}
                       />
+                      <div>
+                        <FieldLabel>Expiration Date (Optional)</FieldLabel>
+                        <input 
+                          type="date" 
+                          value={githubExpiresAt} 
+                          onChange={e => setGithubExpiresAt(e.target.value)}
+                          disabled={!canEdit}
+                          style={{ width: '100%', padding: '8px 10px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '0.85rem' }} 
+                        />
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>
+                          This date is automatically populated/updated when testing or saving a valid token.
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'flex-start', margin: '2px 0' }}>
+                        <a href="https://github.com/settings/tokens/new?description=EvaOps+Integration&scopes=repo,read:org" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: '#ca8a04', textDecoration: 'underline', fontWeight: 500 }}>
+                          Generate new token on GitHub ↗
+                        </a>
+                      </div>
                       <button className="btn-primary" style={{ width: '100%' }}
-                        onClick={() => handleSaveCredential('github', { token: githubToken }, 'GitHub Platform Token')}
+                        onClick={() => handleSaveCredential('github', { token: githubToken }, 'GitHub Platform Token', githubExpiresAt)}
                         disabled={!canEdit || savingCredentials === 'github' || !githubToken || githubToken === '••••••••••••••••••••' || (!!decryptedGithubToken && githubToken === decryptedGithubToken)}
                       >
                         {savingCredentials === 'github' ? 'Saving...' : 'Save'}
@@ -1089,8 +1191,23 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                         <PasswordInput value={devopsPat} onChange={setDevopsPat}
                           show={showDevopsPat} onToggle={() => setShowDevopsPat(!showDevopsPat)}
                           placeholder="Azure DevOps PAT (Pipeline Scope)" disabled={!canEdit} />
+                        <div>
+                          <FieldLabel>Expiration Date (Optional)</FieldLabel>
+                          <input 
+                            type="date" 
+                            value={devopsExpiresAt} 
+                            onChange={e => setDevopsExpiresAt(e.target.value)}
+                            disabled={!canEdit}
+                            style={{ width: '100%', padding: '8px 10px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '0.85rem' }} 
+                          />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'flex-start', margin: '2px 0' }}>
+                          <a href="https://dev.azure.com" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: '#ca8a04', textDecoration: 'underline', fontWeight: 500 }}>
+                            Generate new PAT on Azure DevOps ↗
+                          </a>
+                        </div>
                         <button className="btn-primary" style={{ width: '100%' }}
-                          onClick={() => handleSaveCredential('azure_devops', { pat: devopsPat }, 'Azure DevOps Pipeline PAT')}
+                          onClick={() => handleSaveCredential('azure_devops', { pat: devopsPat }, 'Azure DevOps Pipeline PAT', devopsExpiresAt)}
                           disabled={!canEdit || savingCredentials === 'azure_devops' || !devopsPat || devopsPat === '••••••••••••••••••••' || (!!decryptedDevopsPat && devopsPat === decryptedDevopsPat)}
                         >
                           {savingCredentials === 'azure_devops' ? 'Saving...' : 'Save'}
@@ -1195,8 +1312,18 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                             placeholder="Client Secret password value" disabled={!canEdit}
                           />
                         </div>
+                        <div>
+                          <FieldLabel>Client Secret Expiration Date (Optional)</FieldLabel>
+                          <input 
+                            type="date" 
+                            value={azureExpiresAt} 
+                            onChange={e => setAzureExpiresAt(e.target.value)}
+                            disabled={!canEdit}
+                            style={{ width: '100%', padding: '8px 10px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '0.85rem' }} 
+                          />
+                        </div>
                         <button className="btn-primary" style={{ width: '100%' }}
-                          onClick={() => handleSaveCredential('azure', { clientId: azureClientId, clientSecret: azureClientSecret, tenantId: azureTenantId }, 'Azure Service Principal')}
+                          onClick={() => handleSaveCredential('azure', { clientId: azureClientId, clientSecret: azureClientSecret, tenantId: azureTenantId }, 'Azure Service Principal', azureExpiresAt)}
                           disabled={
                             !canEdit || 
                             savingCredentials === 'azure' || 
@@ -1212,6 +1339,36 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                         >
                           {savingCredentials === 'azure' ? 'Saving...' : 'Save Azure Credentials'}
                         </button>
+
+                        {canEdit && credentialStatus.azure && (
+                          <button
+                            type="button"
+                            onClick={handleRotateAzureSecret}
+                            disabled={rotatingSecret}
+                            style={{
+                              width: '100%',
+                              padding: '10px 14px',
+                              borderRadius: '8px',
+                              border: '1px solid rgba(139, 92, 246, 0.3)',
+                              background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%)',
+                              color: '#a78bfa',
+                              fontWeight: 600,
+                              cursor: rotatingSecret ? 'not-allowed' : 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '8px',
+                              boxShadow: '0 0 15px rgba(139, 92, 246, 0.1)',
+                              transition: 'all 0.25s'
+                            }}
+                          >
+                            {rotatingSecret ? (
+                              <><Loader size={14} className="spin-anim" /> Rotating Secret...</>
+                            ) : (
+                              <><RefreshCw size={14} /> Auto-Rotate Client Secret (via Graph API)</>
+                            )}
+                          </button>
+                        )}
 
                         {canEdit && handleDiscoverAzureEnvCredentials && (
                           <button
