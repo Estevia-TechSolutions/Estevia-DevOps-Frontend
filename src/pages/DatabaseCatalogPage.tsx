@@ -688,7 +688,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                             style={{ 
                               border: isExpanded ? '1px solid rgba(244, 63, 94, 0.35)' : '1px solid var(--glass-border)', 
                               borderRadius: '8px', 
-                              backgroundColor: isExpanded ? 'rgba(15, 23, 42, 0.45)' : 'rgba(15, 23, 42, 0.2)',
+                              backgroundColor: isExpanded ? 'var(--bg-secondary)' : 'var(--glass-bg)',
                               boxShadow: isExpanded ? '0 4px 20px rgba(244, 63, 94, 0.08)' : 'none',
                               overflow: 'hidden',
                               transition: 'all 0.2s ease',

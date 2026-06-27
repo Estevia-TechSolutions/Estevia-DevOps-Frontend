@@ -445,9 +445,10 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
           maxWidth: '400px',
           padding: '36px',
           borderRadius: '16px',
-          background: 'rgba(15, 23, 42, 0.45)',
+          background: 'var(--glass-bg)',
           textAlign: 'center',
-          border: '1px solid rgba(255, 255, 255, 0.08)'
+          border: '1px solid var(--glass-border)',
+          boxShadow: 'var(--modal-shadow)'
         }}>
           <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '8px' }}>CRM Support Sign In</h3>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '24px' }}>
@@ -584,8 +585,9 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
         alignItems: 'center',
         padding: '14px 28px',
         borderBottom: '1px solid var(--divider)',
-        background: 'rgba(2, 6, 23, 0.45)',
-        backdropFilter: 'blur(10px)'
+        background: 'var(--bg-header)',
+        backdropFilter: 'blur(10px)',
+        boxShadow: 'var(--header-shadow)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
@@ -643,7 +645,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
         <div style={{
           width: '240px',
           borderRight: '1px solid var(--divider)',
-          background: 'rgba(2, 6, 23, 0.15)',
+          background: 'var(--bg-secondary)',
           padding: '24px 16px',
           display: 'flex',
           flexDirection: 'column',
@@ -768,7 +770,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                   <div>
-                    <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, color: '#ffffff' }}>Client Directory</h3>
+                    <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>Client Directory</h3>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: '4px 0 0 0' }}>
                       Monitor licensing tiers, resource seat allocations, active operations, and suspension locks.
                     </p>
@@ -798,22 +800,22 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
                 {/* Metrics Cards */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '28px' }}>
-                  <div className="glass-panel" style={{ padding: '20px', background: 'rgba(30, 41, 59, 0.3)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="glass-panel" style={{ padding: '20px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)' }}>
                     <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Total Customers</div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f8fafc', marginTop: '6px' }}>{totalCustomers} Orgs</div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '6px' }}>{totalCustomers} Orgs</div>
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>Registered Client Accounts</div>
                   </div>
-                  <div className="glass-panel" style={{ padding: '20px', background: 'rgba(30, 41, 59, 0.3)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="glass-panel" style={{ padding: '20px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)' }}>
                     <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Seat Allocations</div>
                     <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#a78bfa', marginTop: '6px' }}>{totalActiveSeats} / {totalSeatLimit}</div>
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>Used operator seats vs limit</div>
                   </div>
-                  <div className="glass-panel" style={{ padding: '20px', background: 'rgba(30, 41, 59, 0.3)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="glass-panel" style={{ padding: '20px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)' }}>
                     <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Unpaid Invoices</div>
                     <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f59e0b', marginTop: '6px' }}>{pendingInvoices} Pending</div>
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>Awaiting support clearance</div>
                   </div>
-                  <div className="glass-panel" style={{ padding: '20px', background: 'rgba(30, 41, 59, 0.3)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="glass-panel" style={{ padding: '20px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)' }}>
                     <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>MRR Projection</div>
                     <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#2dd4bf', marginTop: '6px' }}>${revenueProjection.toLocaleString()}</div>
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>Est. monthly recurring revenue</div>
@@ -827,10 +829,10 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   alignItems: 'center',
                   marginBottom: '20px',
                   flexWrap: 'wrap',
-                  background: 'rgba(15, 23, 42, 0.2)',
+                  background: 'var(--glass-bg)',
                   padding: '16px',
                   borderRadius: '10px',
-                  border: '1px solid rgba(255,255,255,0.04)'
+                  border: '1px solid var(--glass-border)'
                 }}>
                   <div style={{ flex: 1, minWidth: '240px' }}>
                     <input 
@@ -902,10 +904,10 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                     <div>Loading client directory...</div>
                   </div>
                 ) : (
-                  <div className="glass-panel" style={{ overflow: 'hidden', padding: 0, background: 'rgba(15, 23, 42, 0.3)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="glass-panel" style={{ overflow: 'hidden', padding: 0, background: 'var(--glass-bg)', border: '1px solid var(--glass-border)' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem' }}>
                       <thead>
-                        <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)', textAlign: 'left' }}>
+                        <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--divider)', textAlign: 'left' }}>
                           <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Organization ID</th>
                           <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Organization Name</th>
                           <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Licensing Tier</th>
@@ -928,12 +930,12 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                               key={client.id} 
                               onClick={() => handleSelectClient(client)}
                               style={{ 
-                                borderBottom: '1px solid rgba(255,255,255,0.05)', 
+                                borderBottom: '1px solid var(--divider)', 
                                 cursor: 'pointer',
                                 transition: 'background 0.15s'
                               }}
                             >
-                              <td style={{ padding: '16px 20px', fontWeight: 700, color: '#f8fafc' }}>{client.id}</td>
+                              <td style={{ padding: '16px 20px', fontWeight: 700, color: 'var(--text-primary)' }}>{client.id}</td>
                               <td style={{ padding: '16px 20px' }}>{client.name}</td>
                               <td style={{ padding: '16px 20px', textTransform: 'capitalize' }}>
                                 <span style={{
@@ -1011,7 +1013,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
               <button
                 onClick={() => setSelectedClient(null)}
                 style={{
-                  background: 'rgba(255,255,255,0.03)',
+                  background: 'var(--glass-bg)',
                   border: '1px solid var(--glass-border)',
                   color: 'var(--text-secondary)',
                   fontSize: '0.78rem',
@@ -1025,8 +1027,8 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   borderRadius: '8px',
                   transition: 'all 0.2s'
                 }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--divider)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--glass-bg)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
               >
                 ← Back to Client Directory
               </button>
@@ -1037,7 +1039,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                     {selectedClient.name}
                   </h3>
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                    Org Key: <code style={{ color: 'var(--text-primary)', background: 'rgba(255,255,255,0.05)', padding: '2px 5px', borderRadius: '4px' }}>{selectedClient.id}</code> | Admin Contact: {selectedClient.admin_email || 'N/A'}
+                    Org Key: <code style={{ color: 'var(--text-primary)', background: 'var(--input-bg)', padding: '2px 5px', borderRadius: '4px', border: '1px solid var(--glass-border)' }}>{selectedClient.id}</code> | Admin Contact: {selectedClient.admin_email || 'N/A'}
                   </span>
                 </div>
 
@@ -1088,7 +1090,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   <div style={{ fontSize: '1.1rem', fontWeight: 700 }}>
                     {selectedClient.activeSeats} <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 400 }}>/ {selectedClient.operator_seats_limit || 10}</span>
                   </div>
-                  <div style={{ marginTop: '8px', height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div style={{ marginTop: '8px', height: '4px', background: 'var(--divider)', borderRadius: '4px', overflow: 'hidden' }}>
                     <div style={{
                       height: '100%', borderRadius: '4px', transition: 'width 0.4s',
                       width: `${Math.min(100, ((selectedClient.activeSeats || 0) / (selectedClient.operator_seats_limit || 10)) * 100)}%`,
@@ -1164,7 +1166,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                               style={{
                                 borderRadius: '12px',
                                 border: `2px solid ${isSelected ? tier.color : 'var(--glass-border)'}`,
-                                background: isSelected ? `linear-gradient(145deg, ${tier.bg} 0%, rgba(255,255,255,0.01) 100%)` : 'rgba(255,255,255,0.005)',
+                                background: isSelected ? `linear-gradient(145deg, ${tier.bg} 0%, rgba(255,255,255,0.01) 100%)` : 'transparent',
                                 cursor: 'pointer',
                                 transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                                 padding: '14px',
@@ -1295,19 +1297,19 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       const lastInv = clientInvoices.length > 0 ? clientInvoices[0] : null;
                       return (
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                          <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                          <div style={{ padding: '12px', background: 'var(--input-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Total Invoiced</div>
                             <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '4px' }}>${totalInvoiced.toLocaleString()}</div>
                           </div>
-                          <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                          <div style={{ padding: '12px', background: 'var(--input-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Total Collected</div>
                             <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '4px', color: '#4ade80' }}>${totalPaid.toLocaleString()}</div>
                           </div>
-                          <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                          <div style={{ padding: '12px', background: 'var(--input-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Outstanding</div>
                             <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '4px', color: totalPending > 0 ? 'var(--warning)' : 'var(--text-primary)' }}>${totalPending.toLocaleString()}</div>
                           </div>
-                          <div style={{ padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                          <div style={{ padding: '12px', background: 'var(--input-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Last Invoice</div>
                             <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '4px' }}>
                               {lastInv ? `$${parseFloat(lastInv.amount).toLocaleString()}` : '—'}
@@ -1355,7 +1357,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       return (
                         <div style={{ marginBottom: '16px' }}>
                           <div style={{
-                            background: 'rgba(255,255,255,0.03)', borderRadius: '8px', padding: '14px', marginBottom: '12px'
+                            background: 'var(--input-bg)', borderRadius: '8px', padding: '14px', marginBottom: '12px', border: '1px solid var(--glass-border)'
                           }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                               <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Base ({tier})</span>
@@ -1450,7 +1452,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       <tbody>
                         {clientInvoices.map(inv => (
                           <tr key={inv.id} style={{ borderBottom: '1px solid var(--divider)', transition: 'background 0.15s' }}
-                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.015)'}
+                              onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
                               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                             <td style={{ padding: '12px 14px', fontWeight: 600 }}>{inv.invoice_number}</td>
                             <td style={{ padding: '12px 14px' }}>{new Date(inv.issue_date).toLocaleDateString()}</td>
@@ -1541,7 +1543,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 <div className="glass-panel" style={{ overflow: 'hidden', padding: 0 }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
                     <thead>
-                      <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--divider)', textAlign: 'left' }}>
+                      <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--divider)', textAlign: 'left' }}>
                         <th style={{ padding: '14px 20px' }}>Invoice Number</th>
                         <th style={{ padding: '14px 20px' }}>Client Organization</th>
                         <th style={{ padding: '14px 20px' }}>Amount</th>
@@ -1674,7 +1676,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 <div className="glass-panel" style={{ overflow: 'hidden', padding: 0, marginBottom: '24px' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                     <thead>
-                      <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--divider)', textAlign: 'left' }}>
+                      <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--divider)', textAlign: 'left' }}>
                         <th style={{ padding: '12px 16px' }}>Name</th>
                         <th style={{ padding: '12px 16px' }}>Email</th>
                         <th style={{ padding: '12px 16px' }}>Role</th>

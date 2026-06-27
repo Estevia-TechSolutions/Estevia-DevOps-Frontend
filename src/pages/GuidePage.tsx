@@ -840,7 +840,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                       fontSize: '0.82rem',
                       borderRadius: '8px',
                       border: '1px solid var(--glass-border)',
-                      backgroundColor: 'rgba(15, 23, 42, 0.2)',
+                      backgroundColor: 'var(--input-bg)',
                       color: 'var(--text-primary)',
                       outline: 'none'
                     }}
