@@ -916,7 +916,13 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                       </div>
                       <button className="btn-primary" style={{ width: '100%' }}
                         onClick={() => handleSaveCredential('github', { token: githubToken }, 'GitHub Platform Token', githubExpiresAt)}
-                        disabled={!canEdit || savingCredentials === 'github' || !githubToken || githubToken === '••••••••••••••••••••' || (!!decryptedGithubToken && githubToken === decryptedGithubToken)}
+                        disabled={(() => {
+                          const savedGh = credentialsList?.find(c => c.provider === 'github');
+                          const savedGhDate = savedGh?.expires_at ? new Date(savedGh.expires_at).toISOString().split('T')[0] : '';
+                          const dateChanged = githubExpiresAt !== savedGhDate;
+                          const tokenChanged = githubToken !== '' && githubToken !== '••••••••••••••••••••' && githubToken !== decryptedGithubToken;
+                          return !canEdit || savingCredentials === 'github' || !githubToken || (!tokenChanged && !dateChanged);
+                        })()}
                       >
                         {savingCredentials === 'github' ? 'Saving...' : 'Save'}
                       </button>
@@ -1241,7 +1247,13 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                         </div>
                         <button className="btn-primary" style={{ width: '100%' }}
                           onClick={() => handleSaveCredential('azure_devops', { pat: devopsPat }, 'Azure DevOps Pipeline PAT', devopsExpiresAt)}
-                          disabled={!canEdit || savingCredentials === 'azure_devops' || !devopsPat || devopsPat === '••••••••••••••••••••' || (!!decryptedDevopsPat && devopsPat === decryptedDevopsPat)}
+                          disabled={(() => {
+                            const savedDevops = credentialsList?.find(c => c.provider === 'azure_devops');
+                            const savedDevopsDate = savedDevops?.expires_at ? new Date(savedDevops.expires_at).toISOString().split('T')[0] : '';
+                            const dateChanged = devopsExpiresAt !== savedDevopsDate;
+                            const patChanged = devopsPat !== '' && devopsPat !== '••••••••••••••••••••' && devopsPat !== decryptedDevopsPat;
+                            return !canEdit || savingCredentials === 'azure_devops' || !devopsPat || (!patChanged && !dateChanged);
+                          })()}
                         >
                           {savingCredentials === 'azure_devops' ? 'Saving...' : 'Save'}
                         </button>
@@ -1373,18 +1385,19 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                         </div>
                         <button className="btn-primary" style={{ width: '100%' }}
                           onClick={() => handleSaveCredential('azure', { clientId: azureClientId, clientSecret: azureClientSecret, tenantId: azureTenantId }, 'Azure Service Principal', azureExpiresAt)}
-                          disabled={
-                            !canEdit || 
-                            savingCredentials === 'azure' || 
-                            !azureClientId || !azureClientSecret || !azureTenantId || 
-                            azureClientId === '••••••••••••••••••••' || 
-                            azureClientSecret === '••••••••••••••••••••' || 
-                            azureTenantId === '••••••••••••••••••••' || 
-                            (!!decryptedAzureClientId && 
-                              azureClientId === decryptedAzureClientId && 
-                              azureClientSecret === decryptedAzureClientSecret && 
-                              azureTenantId === decryptedAzureTenantId)
-                          }
+                          disabled={(() => {
+                            const savedAzure = credentialsList?.find(c => c.provider === 'azure');
+                            const savedAzureDate = savedAzure?.expires_at ? new Date(savedAzure.expires_at).toISOString().split('T')[0] : '';
+                            const dateChanged = azureExpiresAt !== savedAzureDate;
+                            const secretsChanged = 
+                              (azureClientId !== '' && azureClientId !== '••••••••••••••••••••' && azureClientId !== decryptedAzureClientId) || 
+                              (azureClientSecret !== '' && azureClientSecret !== '••••••••••••••••••••' && azureClientSecret !== decryptedAzureClientSecret) || 
+                              (azureTenantId !== '' && azureTenantId !== '••••••••••••••••••••' && azureTenantId !== decryptedAzureTenantId);
+                            return !canEdit || 
+                              savingCredentials === 'azure' || 
+                              !azureClientId || !azureClientSecret || !azureTenantId || 
+                              (!secretsChanged && !dateChanged);
+                          })()}
                         >
                           {savingCredentials === 'azure' ? 'Saving...' : 'Save Azure Credentials'}
                         </button>

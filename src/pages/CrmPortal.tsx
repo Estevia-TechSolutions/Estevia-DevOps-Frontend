@@ -17,7 +17,11 @@ import {
   Edit3,
   Check,
   Save,
-  Loader
+  Loader,
+  Search,
+  DollarSign,
+  Activity,
+  Shield
 } from 'lucide-react';
 
 interface CrmPortalProps {
@@ -1535,6 +1539,71 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 </button>
               </div>
 
+              {/* Dynamic Invoices Stats Bar */}
+              {(() => {
+                const totalInvoiced = invoices.reduce((acc, inv) => acc + (inv.amount || 0), 0);
+                const collected = invoices.filter(inv => inv.status === 'Paid').reduce((acc, inv) => acc + (inv.amount || 0), 0);
+                const outstanding = invoices.filter(inv => inv.status === 'Pending').reduce((acc, inv) => acc + (inv.amount || 0), 0);
+                const paidCount = invoices.filter(inv => inv.status === 'Paid').length;
+                const pendingCount = invoices.filter(inv => inv.status === 'Pending').length;
+
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '28px' }}>
+                    {/* Card 1: Total Invoiced */}
+                    <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s', display: 'flex', alignItems: 'center', gap: '16px' }}
+                         onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                         onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                      <div style={{ background: 'rgba(139,92,246,0.1)', padding: '10px', borderRadius: '10px' }}>
+                        <DollarSign size={20} style={{ color: 'var(--accent-purple)' }} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Total Invoiced</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>${totalInvoiced.toLocaleString()}</div>
+                      </div>
+                    </div>
+
+                    {/* Card 2: Collected */}
+                    <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s', display: 'flex', alignItems: 'center', gap: '16px' }}
+                         onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                         onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                      <div style={{ background: 'rgba(20,184,166,0.1)', padding: '10px', borderRadius: '10px' }}>
+                        <ShieldCheck size={20} style={{ color: '#14b8a6' }} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Collected Volume</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#14b8a6' }}>${collected.toLocaleString()}</div>
+                      </div>
+                    </div>
+
+                    {/* Card 3: Outstanding */}
+                    <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s', display: 'flex', alignItems: 'center', gap: '16px' }}
+                         onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                         onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                      <div style={{ background: 'rgba(245,158,11,0.1)', padding: '10px', borderRadius: '10px' }}>
+                        <Activity size={20} style={{ color: '#f59e0b' }} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Outstanding Balance</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f59e0b' }}>${outstanding.toLocaleString()}</div>
+                      </div>
+                    </div>
+
+                    {/* Card 4: Paid vs Pending */}
+                    <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s', display: 'flex', alignItems: 'center', gap: '16px' }}
+                         onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                         onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                      <div style={{ background: 'rgba(99,102,241,0.1)', padding: '10px', borderRadius: '10px' }}>
+                        <FileText size={20} style={{ color: '#6366f1' }} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Settled / Unpaid</div>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{paidCount} Paid / {pendingCount} Pending</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Directory Controls (Search Filter) */}
               <div style={{
                 display: 'flex',
@@ -1684,7 +1753,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
           {/* TAB 3: SUPPORT AGENTS MANAGEMENT (ADMIN ONLY) */}
           {activeTab === 'agents' && crmUser.role === 'admin' && (
-            <div style={{ maxWidth: '720px' }}>
+            <div>
               <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Manage Support Staff</h3>
@@ -1712,6 +1781,10 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   Refresh
                 </button>
               </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '28px', alignItems: 'start' }}>
+                {/* Left Column: Staff Roster */}
+                <div>
 
               {/* ── Existing Agents Grid ── */}
               {loadingAgents ? (
@@ -1837,8 +1910,12 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 </div>
               )}
 
-              {/* ── Inline Edit Panel ── */}
-              {editingAgent && (
+                </div>
+
+                {/* Right Column: Register & Edit Forms */}
+                <div>
+                  {/* ── Inline Edit Panel ── */}
+                  {editingAgent && (
                 <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px', border: '1px solid rgba(139,92,246,0.3)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <h4 style={{ fontSize: '0.94rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -2163,7 +2240,9 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 </form>
               </div>
             </div>
-          )}
+          </div>
+        </div>
+      )}
         </div>
       </div>
     </div>
