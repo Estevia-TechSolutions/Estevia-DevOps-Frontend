@@ -78,6 +78,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
   const [searchQuery, setSearchQuery] = useState('');
   const [tierFilter, setTierFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [invoiceSearchQuery, setInvoiceSearchQuery] = useState('');
 
   // Support Agents list & edit state
   const [agents, setAgents] = useState<any[]>([]);
@@ -1067,7 +1068,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
               </div>
 
               {/* Stats Bar */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '28px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '28px' }}>
                 <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s, box-shadow 0.2s' }}
                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.25)'; }}
                      onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
@@ -1128,7 +1129,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '28px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '28px' }}>
                 {/* Left Column: License Management with Visual Tier Cards */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                   
@@ -1437,10 +1438,10 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                     No billing invoices generated for this organization.
                   </div>
                 ) : (
-                  <div style={{ overflowX: 'auto' }}>
+                  <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
                       <thead>
-                        <tr style={{ borderBottom: '1px solid var(--divider)', color: 'var(--text-secondary)' }}>
+                        <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--divider)', color: 'var(--text-secondary)' }}>
                           <th style={{ padding: '10px 14px' }}>Invoice #</th>
                           <th style={{ padding: '10px 14px' }}>Issue Date</th>
                           <th style={{ padding: '10px 14px' }}>Amount</th>
@@ -1534,6 +1535,39 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 </button>
               </div>
 
+              {/* Directory Controls (Search Filter) */}
+              <div style={{
+                display: 'flex',
+                gap: '16px',
+                alignItems: 'center',
+                marginBottom: '20px',
+                flexWrap: 'wrap',
+                background: 'var(--glass-bg)',
+                padding: '16px',
+                borderRadius: '10px',
+                border: '1px solid var(--glass-border)'
+              }}>
+                <div style={{ flex: 1, minWidth: '240px' }}>
+                  <input 
+                    type="text" 
+                    placeholder="Search invoices by invoice number, client name, or org ID..." 
+                    value={invoiceSearchQuery}
+                    onChange={e => setInvoiceSearchQuery(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--glass-border)',
+                      background: 'var(--input-bg)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.84rem',
+                      outline: 'none',
+                      transition: 'border-color 0.2s'
+                    }}
+                  />
+                </div>
+              </div>
+
               {loadingInvoices ? (
                 <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
                   <RefreshCw size={24} className="spin-anim" style={{ marginBottom: '10px' }} />
@@ -1554,15 +1588,28 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       </tr>
                     </thead>
                     <tbody>
-                      {invoices.length === 0 ? (
-                        <tr>
-                          <td colSpan={7} style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                            No invoices generated in the system.
-                          </td>
-                        </tr>
-                      ) : (
-                        invoices.map(inv => (
-                          <tr key={inv.id} style={{ borderBottom: '1px solid var(--divider)' }}>
+                      {(() => {
+                        const filtered = invoices.filter(inv => {
+                          const query = invoiceSearchQuery.toLowerCase();
+                          return (inv.invoice_number || '').toLowerCase().includes(query) || 
+                                 (inv.clientName || '').toLowerCase().includes(query) || 
+                                 (inv.organization_id || '').toLowerCase().includes(query);
+                        });
+
+                        if (filtered.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={7} style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                No invoices match the search query.
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return filtered.map(inv => (
+                          <tr key={inv.id} style={{ borderBottom: '1px solid var(--divider)', transition: 'background 0.15s' }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                             <td style={{ padding: '14px 20px', fontWeight: 600 }}>{inv.invoice_number}</td>
                             <td style={{ padding: '14px 20px' }}>
                               <span style={{ fontWeight: 500 }}>{inv.clientName}</span>
@@ -1626,8 +1673,8 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                               )}
                             </td>
                           </tr>
-                        ))
-                      )}
+                        ));
+                      })()}
                     </tbody>
                   </table>
                 </div>
@@ -1689,7 +1736,9 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                         const isMasterAdmin = agent.email === 'admin@evaops.crm';
                         const isCurrentlyEditing = editingAgent?.id === agent.id;
                         return (
-                          <tr key={agent.id} style={{ borderBottom: '1px solid var(--divider)' }}>
+                          <tr key={agent.id} style={{ borderBottom: '1px solid var(--divider)', transition: 'background 0.15s' }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                             <td style={{ padding: '12px 16px', fontWeight: 600 }}>{agent.name}</td>
                             <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{agent.email}</td>
                             <td style={{ padding: '12px 16px' }}>
