@@ -5876,19 +5876,102 @@ function App() {
                         color: credentialAlerts.some(a => a.isExpired) ? '#ef4444' : '#f59e0b', 
                         flexShrink: 0 
                       }} />
-                      <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', lineHeight: 1.4 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <style>{`
+                          .alert-pill {
+                            position: relative;
+                            transition: all 0.2s ease;
+                          }
+                          .alert-pill:hover {
+                            transform: translateY(-1px);
+                          }
+                          .alert-pill-tooltip {
+                            visibility: hidden;
+                            opacity: 0;
+                            position: absolute;
+                            bottom: 130%;
+                            left: 50%;
+                            transform: translateX(-50%);
+                            background: rgba(15, 23, 42, 0.95);
+                            border: 1px solid rgba(255, 255, 255, 0.1);
+                            color: #f8fafc;
+                            padding: 8px 12px;
+                            border-radius: 8px;
+                            font-size: 0.74rem;
+                            white-space: nowrap;
+                            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+                            z-index: 100;
+                            transition: opacity 0.2s, visibility 0.2s;
+                            pointer-events: none;
+                            font-weight: 500;
+                          }
+                          .alert-pill:hover .alert-pill-tooltip {
+                            visibility: visible;
+                            opacity: 1;
+                          }
+                          .alert-pill-tooltip::after {
+                            content: "";
+                            position: absolute;
+                            top: 100%;
+                            left: 50%;
+                            margin-left: -5px;
+                            border-width: 5px;
+                            border-style: solid;
+                            border-color: rgba(15, 23, 42, 0.95) transparent transparent transparent;
+                          }
+                        `}</style>
                         {credentialAlerts.map((alert, idx) => {
                           const providerLabel = alert.provider === 'github' ? 'GitHub Platform Token' 
                             : alert.provider === 'azure_devops' ? 'Azure DevOps PAT'
                             : alert.provider === 'azure' ? 'Azure Service Principal'
                             : alert.provider.toUpperCase();
+                          const providerLabelShort = alert.provider === 'github' ? 'GitHub PAT' 
+                            : alert.provider === 'azure_devops' ? 'Azure DevOps'
+                            : alert.provider === 'azure' ? 'Azure Principal'
+                            : alert.provider.toUpperCase();
+                          
+                          const pillBg = alert.isExpired 
+                            ? 'rgba(239,68,68,0.12)' 
+                            : 'rgba(245,158,11,0.12)';
+                          const pillBorder = alert.isExpired 
+                            ? '1px solid rgba(239,68,68,0.3)' 
+                            : '1px solid rgba(245,158,11,0.3)';
+                          const pillColor = alert.isExpired 
+                            ? '#ef4444' 
+                            : (theme === 'light' ? '#b45309' : '#fbbf24');
+                          
                           return (
-                            <div key={idx} style={{ marginBottom: idx < credentialAlerts.length - 1 ? '4px' : 0 }}>
-                              {alert.isExpired ? (
-                                <span>Your <strong>{providerLabel}</strong> has <strong style={{ color: '#ef4444' }}>EXPIRED</strong>. Critical integrations are inactive.</span>
-                              ) : (
-                                <span>Your <strong>{providerLabel}</strong> will expire in <strong style={{ color: theme === 'light' ? '#b45309' : '#fbbf24' }}>{alert.daysRemaining} days</strong> (on {new Date(alert.expiresAt).toLocaleDateString()}).</span>
-                              )}
+                            <div 
+                              key={idx} 
+                              className="alert-pill"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: '4px 10px',
+                                borderRadius: '20px',
+                                fontSize: '0.74rem',
+                                fontWeight: 700,
+                                background: pillBg,
+                                border: pillBorder,
+                                color: pillColor,
+                                cursor: 'help'
+                              }}
+                            >
+                              <span style={{ 
+                                width: '6px', 
+                                height: '6px', 
+                                borderRadius: '50%', 
+                                background: alert.isExpired ? '#ef4444' : '#fbbf24' 
+                              }} />
+                              <span>{providerLabelShort}: {alert.isExpired ? 'Expired' : `${alert.daysRemaining}d`}</span>
+                              
+                              <div className="alert-pill-tooltip">
+                                {alert.isExpired 
+                                  ? `Your ${providerLabel} has EXPIRED. Critical integrations are inactive.` 
+                                  : `Your ${providerLabel} will expire in ${alert.daysRemaining} days (on ${new Date(alert.expiresAt).toLocaleDateString()}).`
+                                }
+                              </div>
                             </div>
                           );
                         })}
