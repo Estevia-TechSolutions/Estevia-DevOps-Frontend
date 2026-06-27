@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Building2, 
-  Users, 
-  FileText, 
-  CreditCard, 
-  Plus, 
-  RefreshCw, 
-  Power, 
-  X, 
-  ShieldCheck, 
-  AlertCircle, 
-  LogOut, 
-  Lock, 
+import {
+  Building2,
+  Users,
+  FileText,
+  CreditCard,
+  Plus,
+  RefreshCw,
+  Power,
+  X,
+  ShieldCheck,
+  AlertCircle,
+  LogOut,
+  Lock,
   UserPlus,
   Info,
   Edit3,
@@ -200,7 +200,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
     setSeatsLimit(client.operator_seats_limit || 10);
     setLicensingMsg(null);
     setInvoiceMsg(null);
-    
+
     // Fetch client invoices
     setLoadingClientInvoices(true);
     try {
@@ -228,19 +228,19 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
         })
       });
       setLicensingMsg({ type: 'success', text: 'Licensing parameters updated successfully.' });
-      
+
       // Update local clients state
-      setClients(prev => prev.map(c => c.id === selectedClient.id ? { 
-        ...c, 
-        plan: licenseTier, 
-        license_tier: licenseTier, 
-        operator_seats_limit: seatsLimit 
+      setClients(prev => prev.map(c => c.id === selectedClient.id ? {
+        ...c,
+        plan: licenseTier,
+        license_tier: licenseTier,
+        operator_seats_limit: seatsLimit
       } : c));
-      setSelectedClient((prev: any) => ({ 
-        ...prev, 
-        plan: licenseTier, 
-        license_tier: licenseTier, 
-        operator_seats_limit: seatsLimit 
+      setSelectedClient((prev: any) => ({
+        ...prev,
+        plan: licenseTier,
+        license_tier: licenseTier,
+        operator_seats_limit: seatsLimit
       }));
     } catch (err: any) {
       setLicensingMsg({ type: 'error', text: err.message || 'Failed to update licensing.' });
@@ -278,11 +278,11 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
         })
       });
       setInvoiceMsg({ type: 'success', text: `Invoice ${result.invoice_number} generated — $${result.breakdown.total_amount.toLocaleString()}` });
-      
+
       // Refresh client invoices
       const updatedInvs = await crmRequest(`/clients/${selectedClient.id}/invoices`);
       setClientInvoices(updatedInvs);
-      
+
       // Sync client list state (increases unpaid count)
       fetchClients();
     } catch (err: any) {
@@ -298,22 +298,22 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
         method: 'PUT',
         body: JSON.stringify({ status: nextStatus })
       });
-      
+
       // Update local invoice lists
       if (fromTab === 'detail' && selectedClient) {
-        setClientInvoices(prev => prev.map(i => i.id === invoiceId ? { 
-          ...i, 
+        setClientInvoices(prev => prev.map(i => i.id === invoiceId ? {
+          ...i,
           status: nextStatus,
-          payment_date: nextStatus.toLowerCase() === 'paid' ? new Date().toISOString() : null 
+          payment_date: nextStatus.toLowerCase() === 'paid' ? new Date().toISOString() : null
         } : i));
       } else {
-        setInvoices(prev => prev.map(i => i.id === invoiceId ? { 
-          ...i, 
+        setInvoices(prev => prev.map(i => i.id === invoiceId ? {
+          ...i,
           status: nextStatus,
-          payment_date: nextStatus.toLowerCase() === 'paid' ? new Date().toISOString() : null 
+          payment_date: nextStatus.toLowerCase() === 'paid' ? new Date().toISOString() : null
         } : i));
       }
-      
+
       // Sync client list state
       fetchClients();
     } catch (err) {
@@ -763,11 +763,11 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
             }, 0);
 
             const filteredClients = clients.filter(c => {
-              const matchesSearch = (c.id || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                   (c.name || '').toLowerCase().includes(searchQuery.toLowerCase());
+              const matchesSearch = (c.id || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (c.name || '').toLowerCase().includes(searchQuery.toLowerCase());
               const matchesTier = tierFilter === 'all' || (c.license_tier || 'growth') === tierFilter;
-              const matchesStatus = statusFilter === 'all' || 
-                                   (statusFilter === 'suspended' ? !!c.is_disabled : !c.is_disabled);
+              const matchesStatus = statusFilter === 'all' ||
+                (statusFilter === 'suspended' ? !!c.is_disabled : !c.is_disabled);
               return matchesSearch && matchesTier && matchesStatus;
             });
 
@@ -840,9 +840,9 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   border: '1px solid var(--glass-border)'
                 }}>
                   <div style={{ flex: 1, minWidth: '240px' }}>
-                    <input 
-                      type="text" 
-                      placeholder="Search by Org ID or Name..." 
+                    <input
+                      type="text"
+                      placeholder="Search by Org ID or Name..."
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
                       style={{
@@ -931,11 +931,11 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                           </tr>
                         ) : (
                           filteredClients.map(client => (
-                            <tr 
-                              key={client.id} 
+                            <tr
+                              key={client.id}
                               onClick={() => handleSelectClient(client)}
-                              style={{ 
-                                borderBottom: '1px solid var(--divider)', 
+                              style={{
+                                borderBottom: '1px solid var(--divider)',
                                 cursor: 'pointer',
                                 transition: 'background 0.15s'
                               }}
@@ -988,7 +988,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                                     gap: '6px',
                                     padding: '4px 10px',
                                     borderRadius: '20px',
-                      fontSize: '0.74rem',
+                                    fontSize: '0.74rem',
                                     fontWeight: 700,
                                     background: 'rgba(245,158,11,0.12)',
                                     border: '1px solid rgba(245,158,11,0.25)',
@@ -1076,8 +1076,8 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '28px' }}>
                 {/* Stat 1: License Plan */}
                 <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s', display: 'flex', alignItems: 'center', gap: '16px' }}
-                     onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                     onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
                   <div style={{ background: 'rgba(139,92,246,0.1)', padding: '10px', borderRadius: '10px' }}>
                     <CreditCard size={20} style={{ color: 'var(--accent-purple)' }} />
                   </div>
@@ -1089,8 +1089,8 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
                 {/* Stat 2: Seat Utilization */}
                 <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s' }}
-                     onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                     onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>Seat Utilization</div>
                     <Users size={14} style={{ color: '#14b8a6' }} />
@@ -1109,8 +1109,8 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
                 {/* Stat 3: Balance */}
                 <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s', display: 'flex', alignItems: 'center', gap: '16px' }}
-                     onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                     onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
                   <div style={{ background: 'rgba(245,158,11,0.1)', padding: '10px', borderRadius: '10px' }}>
                     <DollarSign size={20} style={{ color: '#f59e0b' }} />
                   </div>
@@ -1124,8 +1124,8 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
                 {/* Stat 4: Account Status */}
                 <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s', display: 'flex', alignItems: 'center', gap: '16px' }}
-                     onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                     onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
                   <div style={{ background: selectedClient.is_disabled ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)', padding: '10px', borderRadius: '10px' }}>
                     <Activity size={20} style={{ color: selectedClient.is_disabled ? 'var(--error)' : 'var(--success)' }} />
                   </div>
@@ -1141,14 +1141,14 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '28px' }}>
                 {/* Left Column: License Management with Visual Tier Cards */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', height: '100%' }}>
-                  
+
                   {/* Licensing - Visual Tier Cards + Seat Config */}
                   <div className="glass-panel" style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                     <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Shield size={16} style={{ color: 'var(--accent-purple)' }} />
                       License Plan Configuration
                     </h4>
-                    
+
                     {licensingMsg && (
                       <div style={{
                         background: licensingMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
@@ -1215,7 +1215,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                               <div style={{ fontSize: '1.2rem', fontWeight: 900, color: tier.color, lineHeight: 1 }}>
                                 {tier.price}<span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 400 }}>/mo</span>
                               </div>
-                              
+
                               <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
                                 {tier.features.map((feat, idx) => (
                                   <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.64rem', color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
@@ -1228,6 +1228,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                           );
                         })}
                       </div>
+
 
                       {/* Seat Configuration */}
                       <div style={{
@@ -1268,7 +1269,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                             <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '7px', fontWeight: 600 }}>
                               Configure Seat Limit
                             </label>
-                            
+
                             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                               <input
                                 type="range"
@@ -1332,6 +1333,30 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                           </div>
                         </div>
                       </div>
+
+                      {/* Billing Policy & Calculation Details */}
+                      <div style={{
+                        background: 'rgba(255,255,255,0.01)',
+                        border: '1px dashed var(--glass-border)',
+                        borderRadius: '10px',
+                        padding: '16px 18px',
+                        marginBottom: '20px',
+                        fontSize: '0.74rem',
+                        lineHeight: 1.45,
+                        color: 'var(--text-secondary)'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
+                          <Info size={14} style={{ color: 'var(--accent-purple)' }} />
+                          <span>Billing & Policy Guidelines</span>
+                        </div>
+                        <ul style={{ margin: 0, paddingLeft: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <li><strong>Base Fees:</strong> Flat subscription fees are charged monthly in advance relative to the selected tier plan.</li>
+                          <li><strong>Operator Seat Surcharges:</strong> Additional active user seats are billed at dynamic per-seat rates determined by the current tier ($40/seat on Growth, $90/seat on Enterprise, and $30/seat on Sovereign).</li>
+                          <li><strong>Terms & Adjustments:</strong> Mid-cycle changes are pro-rated. Plan switches are applied instantly to platform quotas.</li>
+                        </ul>
+                      </div>
+
+
                     </form>
                   </div>
                 </div>
@@ -1383,7 +1408,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       <FileText size={16} style={{ color: 'var(--accent-purple)' }} />
                       Generate Client Invoice
                     </h4>
-                    
+
                     {invoiceMsg && (
                       <div style={{
                         background: invoiceMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
@@ -1408,7 +1433,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                         'sovereign': { base: 4000, perSeat: 30 }
                       };
                       const p = pricing[tier] || pricing.growth;
-                      
+
                       const baseAmount = p.base;
                       const perSeatTotal = seats * p.perSeat;
                       const totalAmount = baseAmount + perSeatTotal;
@@ -1486,7 +1511,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
               {/* Full Width: Billing History */}
               <div className="glass-panel" style={{ padding: '24px', marginTop: '28px' }}>
                 <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '16px' }}>Organization Billing History</h4>
-                
+
                 {loadingClientInvoices ? (
                   <div style={{ textAlign: 'center', padding: '20px' }}>
                     <RefreshCw size={20} className="spin-anim" />
@@ -1511,8 +1536,8 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       <tbody>
                         {clientInvoices.map(inv => (
                           <tr key={inv.id} style={{ borderBottom: '1px solid var(--divider)', transition: 'background 0.15s' }}
-                              onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
-                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                            onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                             <td style={{ padding: '12px 14px', fontWeight: 600 }}>{inv.invoice_number}</td>
                             <td style={{ padding: '12px 14px' }}>{new Date(inv.issue_date).toLocaleDateString()}</td>
                             <td style={{ padding: '12px 14px' }}>${parseFloat(inv.amount).toLocaleString()}</td>
@@ -1605,8 +1630,8 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '28px' }}>
                     {/* Card 1: Total Invoiced */}
                     <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s', display: 'flex', alignItems: 'center', gap: '16px' }}
-                         onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                         onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                      onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
                       <div style={{ background: 'rgba(139,92,246,0.1)', padding: '10px', borderRadius: '10px' }}>
                         <DollarSign size={20} style={{ color: 'var(--accent-purple)' }} />
                       </div>
@@ -1618,8 +1643,8 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
                     {/* Card 2: Collected */}
                     <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s', display: 'flex', alignItems: 'center', gap: '16px' }}
-                         onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                         onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                      onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
                       <div style={{ background: 'rgba(20,184,166,0.1)', padding: '10px', borderRadius: '10px' }}>
                         <ShieldCheck size={20} style={{ color: '#14b8a6' }} />
                       </div>
@@ -1631,8 +1656,8 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
                     {/* Card 3: Outstanding */}
                     <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s', display: 'flex', alignItems: 'center', gap: '16px' }}
-                         onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                         onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                      onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
                       <div style={{ background: 'rgba(245,158,11,0.1)', padding: '10px', borderRadius: '10px' }}>
                         <Activity size={20} style={{ color: '#f59e0b' }} />
                       </div>
@@ -1644,8 +1669,8 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
                     {/* Card 4: Paid vs Pending */}
                     <div className="glass-panel" style={{ padding: '16px 20px', transition: 'transform 0.2s', display: 'flex', alignItems: 'center', gap: '16px' }}
-                         onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                         onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                      onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
                       <div style={{ background: 'rgba(99,102,241,0.1)', padding: '10px', borderRadius: '10px' }}>
                         <FileText size={20} style={{ color: '#6366f1' }} />
                       </div>
@@ -1671,9 +1696,9 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 border: '1px solid var(--glass-border)'
               }}>
                 <div style={{ flex: 1, minWidth: '240px' }}>
-                  <input 
-                    type="text" 
-                    placeholder="Search invoices by invoice number, client name, or org ID..." 
+                  <input
+                    type="text"
+                    placeholder="Search invoices by invoice number, client name, or org ID..."
                     value={invoiceSearchQuery}
                     onChange={e => setInvoiceSearchQuery(e.target.value)}
                     style={{
@@ -1714,9 +1739,9 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       {(() => {
                         const filtered = invoices.filter(inv => {
                           const query = invoiceSearchQuery.toLowerCase();
-                          return (inv.invoice_number || '').toLowerCase().includes(query) || 
-                                 (inv.clientName || '').toLowerCase().includes(query) || 
-                                 (inv.organization_id || '').toLowerCase().includes(query);
+                          return (inv.invoice_number || '').toLowerCase().includes(query) ||
+                            (inv.clientName || '').toLowerCase().includes(query) ||
+                            (inv.organization_id || '').toLowerCase().includes(query);
                         });
 
                         if (filtered.length === 0) {
@@ -1731,8 +1756,8 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
                         return filtered.map(inv => (
                           <tr key={inv.id} style={{ borderBottom: '1px solid var(--divider)', transition: 'background 0.15s' }}
-                              onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
-                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                            onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                             <td style={{ padding: '14px 20px', fontWeight: 600 }}>{inv.invoice_number}</td>
                             <td style={{ padding: '14px 20px' }}>
                               <span style={{ fontWeight: 500 }}>{inv.clientName}</span>
@@ -1840,129 +1865,129 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 {/* Left Column: Staff Roster */}
                 <div>
 
-              {/* ── Existing Agents Grid ── */}
-              {loadingAgents ? (
-                <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                  <RefreshCw size={20} className="spin-anim" />
-                  <div style={{ marginTop: '8px', fontSize: '0.84rem' }}>Loading support agents...</div>
-                </div>
-              ) : agents.length > 0 ? (
-                <div className="glass-panel" style={{ overflow: 'hidden', padding: 0, marginBottom: '24px' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-                    <thead>
-                      <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--divider)', textAlign: 'left' }}>
-                        <th style={{ padding: '12px 16px' }}>Name</th>
-                        <th style={{ padding: '12px 16px' }}>Email</th>
-                        <th style={{ padding: '12px 16px' }}>Role</th>
-                        <th style={{ padding: '12px 16px' }}>Status</th>
-                        <th style={{ padding: '12px 16px', width: '130px' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {agents.map(agent => {
-                        const isMasterAdmin = agent.email === 'admin@evaops.crm';
-                        const isCurrentlyEditing = editingAgent?.id === agent.id;
-                        return (
-                          <tr key={agent.id} style={{ borderBottom: '1px solid var(--divider)', transition: 'background 0.15s' }}
-                              onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
-                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                            <td style={{ padding: '12px 16px', fontWeight: 600 }}>{agent.name}</td>
-                            <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{agent.email}</td>
-                            <td style={{ padding: '12px 16px' }}>
-                              <span style={{
-                                padding: '2px 8px',
-                                borderRadius: '4px',
-                                fontSize: '0.72rem',
-                                fontWeight: 600,
-                                textTransform: 'uppercase',
-                                background: agent.role === 'admin' ? 'rgba(139,92,246,0.1)' : 'rgba(59,130,246,0.1)',
-                                color: agent.role === 'admin' ? 'var(--accent-purple)' : '#60a5fa',
-                                border: agent.role === 'admin' ? '1px solid rgba(139,92,246,0.2)' : '1px solid rgba(59,130,246,0.2)'
-                              }}>
-                                {agent.role}
-                              </span>
-                            </td>
-                            <td style={{ padding: '12px 16px' }}>
-                              <span style={{
-                                padding: '2px 8px',
-                                borderRadius: '4px',
-                                fontSize: '0.72rem',
-                                fontWeight: 600,
-                                background: agent.is_disabled ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
-                                color: agent.is_disabled ? '#f87171' : '#4ade80',
-                                border: agent.is_disabled ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(34,197,94,0.2)'
-                              }}>
-                                {agent.is_disabled ? 'Disabled' : 'Active'}
-                              </span>
-                            </td>
-                            <td style={{ padding: '12px 16px' }}>
-                              <div style={{ display: 'flex', gap: '6px' }}>
-                                {!isCurrentlyEditing && (
-                                  <button
-                                    onClick={() => {
-                                      setEditingAgent(agent);
-                                      setEditName(agent.name);
-                                      setEditEmail(agent.email);
-                                      setEditRole(agent.role);
-                                      setEditIsDisabled(agent.is_disabled);
-                                      setEditPassword('');
-                                      setEditingMsg(null);
-                                    }}
-                                    style={{
-                                      padding: '4px 8px',
-                                      borderRadius: '4px',
-                                      border: '1px solid var(--glass-border)',
-                                      background: 'var(--glass-bg)',
-                                      color: 'var(--text-primary)',
-                                      fontSize: '0.72rem',
-                                      cursor: 'pointer',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '4px'
-                                    }}
-                                  >
-                                    <Edit3 size={12} /> Edit
-                                  </button>
-                                )}
-                                {!isMasterAdmin && !isCurrentlyEditing && (
-                                  <button
-                                    onClick={() => handleToggleAgentStatus(agent)}
-                                    style={{
-                                      padding: '4px 8px',
-                                      borderRadius: '4px',
-                                      border: agent.is_disabled ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(239,68,68,0.2)',
-                                      background: agent.is_disabled ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.05)',
-                                      color: agent.is_disabled ? '#4ade80' : '#f87171',
-                                      fontSize: '0.72rem',
-                                      fontWeight: 600,
-                                      cursor: 'pointer',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '4px'
-                                    }}
-                                  >
-                                    <Power size={12} />
-                                    {agent.is_disabled ? 'Enable' : 'Disable'}
-                                  </button>
-                                )}
-                                {isMasterAdmin && (
-                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontStyle: 'italic', padding: '4px 0' }}>
-                                    Protected
-                                  </span>
-                                )}
-                              </div>
-                            </td>
+                  {/* ── Existing Agents Grid ── */}
+                  {loadingAgents ? (
+                    <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                      <RefreshCw size={20} className="spin-anim" />
+                      <div style={{ marginTop: '8px', fontSize: '0.84rem' }}>Loading support agents...</div>
+                    </div>
+                  ) : agents.length > 0 ? (
+                    <div className="glass-panel" style={{ overflow: 'hidden', padding: 0, marginBottom: '24px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                        <thead>
+                          <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--divider)', textAlign: 'left' }}>
+                            <th style={{ padding: '12px 16px' }}>Name</th>
+                            <th style={{ padding: '12px 16px' }}>Email</th>
+                            <th style={{ padding: '12px 16px' }}>Role</th>
+                            <th style={{ padding: '12px 16px' }}>Status</th>
+                            <th style={{ padding: '12px 16px', width: '130px' }}>Actions</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.84rem', marginBottom: '24px' }}>
-                  No support agents found.
-                </div>
-              )}
+                        </thead>
+                        <tbody>
+                          {agents.map(agent => {
+                            const isMasterAdmin = agent.email === 'admin@evaops.crm';
+                            const isCurrentlyEditing = editingAgent?.id === agent.id;
+                            return (
+                              <tr key={agent.id} style={{ borderBottom: '1px solid var(--divider)', transition: 'background 0.15s' }}
+                                onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                <td style={{ padding: '12px 16px', fontWeight: 600 }}>{agent.name}</td>
+                                <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{agent.email}</td>
+                                <td style={{ padding: '12px 16px' }}>
+                                  <span style={{
+                                    padding: '2px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 600,
+                                    textTransform: 'uppercase',
+                                    background: agent.role === 'admin' ? 'rgba(139,92,246,0.1)' : 'rgba(59,130,246,0.1)',
+                                    color: agent.role === 'admin' ? 'var(--accent-purple)' : '#60a5fa',
+                                    border: agent.role === 'admin' ? '1px solid rgba(139,92,246,0.2)' : '1px solid rgba(59,130,246,0.2)'
+                                  }}>
+                                    {agent.role}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '12px 16px' }}>
+                                  <span style={{
+                                    padding: '2px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 600,
+                                    background: agent.is_disabled ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
+                                    color: agent.is_disabled ? '#f87171' : '#4ade80',
+                                    border: agent.is_disabled ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(34,197,94,0.2)'
+                                  }}>
+                                    {agent.is_disabled ? 'Disabled' : 'Active'}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '12px 16px' }}>
+                                  <div style={{ display: 'flex', gap: '6px' }}>
+                                    {!isCurrentlyEditing && (
+                                      <button
+                                        onClick={() => {
+                                          setEditingAgent(agent);
+                                          setEditName(agent.name);
+                                          setEditEmail(agent.email);
+                                          setEditRole(agent.role);
+                                          setEditIsDisabled(agent.is_disabled);
+                                          setEditPassword('');
+                                          setEditingMsg(null);
+                                        }}
+                                        style={{
+                                          padding: '4px 8px',
+                                          borderRadius: '4px',
+                                          border: '1px solid var(--glass-border)',
+                                          background: 'var(--glass-bg)',
+                                          color: 'var(--text-primary)',
+                                          fontSize: '0.72rem',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '4px'
+                                        }}
+                                      >
+                                        <Edit3 size={12} /> Edit
+                                      </button>
+                                    )}
+                                    {!isMasterAdmin && !isCurrentlyEditing && (
+                                      <button
+                                        onClick={() => handleToggleAgentStatus(agent)}
+                                        style={{
+                                          padding: '4px 8px',
+                                          borderRadius: '4px',
+                                          border: agent.is_disabled ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(239,68,68,0.2)',
+                                          background: agent.is_disabled ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.05)',
+                                          color: agent.is_disabled ? '#4ade80' : '#f87171',
+                                          fontSize: '0.72rem',
+                                          fontWeight: 600,
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '4px'
+                                        }}
+                                      >
+                                        <Power size={12} />
+                                        {agent.is_disabled ? 'Enable' : 'Disable'}
+                                      </button>
+                                    )}
+                                    {isMasterAdmin && (
+                                      <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontStyle: 'italic', padding: '4px 0' }}>
+                                        Protected
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.84rem', marginBottom: '24px' }}>
+                      No support agents found.
+                    </div>
+                  )}
 
                 </div>
 
@@ -1970,333 +1995,333 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 <div>
                   {/* ── Inline Edit Panel ── */}
                   {editingAgent && (
-                <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px', border: '1px solid rgba(139,92,246,0.3)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <h4 style={{ fontSize: '0.94rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Edit3 size={16} style={{ color: 'var(--accent-purple)' }} />
-                      Editing: {editingAgent.name}
-                    </h4>
-                    <button
-                      onClick={() => setEditingAgent(null)}
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        border: 'none',
-                        background: 'rgba(239,68,68,0.1)',
-                        color: '#f87171',
-                        fontSize: '0.72rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
+                    <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px', border: '1px solid rgba(139,92,246,0.3)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <h4 style={{ fontSize: '0.94rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Edit3 size={16} style={{ color: 'var(--accent-purple)' }} />
+                          Editing: {editingAgent.name}
+                        </h4>
+                        <button
+                          onClick={() => setEditingAgent(null)}
+                          style={{
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            border: 'none',
+                            background: 'rgba(239,68,68,0.1)',
+                            color: '#f87171',
+                            fontSize: '0.72rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
 
-                  {editingMsg && (
-                    <div style={{
-                      background: editingMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-                      border: `1px solid ${editingMsg.type === 'success' ? 'var(--success)' : 'var(--error)'}`,
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      color: editingMsg.type === 'success' ? '#a7f3d0' : '#fca5a5',
-                      fontSize: '0.8rem',
-                      marginBottom: '16px'
-                    }}>
-                      {editingMsg.text}
+                      {editingMsg && (
+                        <div style={{
+                          background: editingMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                          border: `1px solid ${editingMsg.type === 'success' ? 'var(--success)' : 'var(--error)'}`,
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          color: editingMsg.type === 'success' ? '#a7f3d0' : '#fca5a5',
+                          fontSize: '0.8rem',
+                          marginBottom: '16px'
+                        }}>
+                          {editingMsg.text}
+                        </div>
+                      )}
+
+                      <form onSubmit={handleUpdateAgent} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                          <div>
+                            <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                              Agent Name
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={editName}
+                              onChange={e => setEditName(e.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                background: 'var(--input-bg)',
+                                border: '1px solid var(--glass-border)',
+                                borderRadius: '8px',
+                                color: 'var(--text-primary)',
+                                fontSize: '0.86rem',
+                                outline: 'none',
+                                boxSizing: 'border-box'
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                              Agent Email
+                            </label>
+                            <input
+                              type="email"
+                              required
+                              value={editEmail}
+                              onChange={e => setEditEmail(e.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                background: 'var(--input-bg)',
+                                border: '1px solid var(--glass-border)',
+                                borderRadius: '8px',
+                                color: 'var(--text-primary)',
+                                fontSize: '0.86rem',
+                                outline: 'none',
+                                boxSizing: 'border-box'
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                          <div>
+                            <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                              Role
+                            </label>
+                            <select
+                              value={editRole}
+                              onChange={e => setEditRole(e.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                background: 'var(--input-bg)',
+                                border: '1px solid var(--glass-border)',
+                                borderRadius: '8px',
+                                color: 'var(--text-primary)',
+                                fontSize: '0.86rem',
+                                outline: 'none',
+                                boxSizing: 'border-box'
+                              }}
+                            >
+                              <option value="agent">Support Agent</option>
+                              <option value="admin">Administrator</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                              Password (leave blank to keep current)
+                            </label>
+                            <input
+                              type="password"
+                              value={editPassword}
+                              onChange={e => setEditPassword(e.target.value)}
+                              placeholder="Min 8 characters"
+                              style={{
+                                width: '100%',
+                                padding: '10px 12px',
+                                background: 'var(--input-bg)',
+                                border: '1px solid var(--glass-border)',
+                                borderRadius: '8px',
+                                color: 'var(--text-primary)',
+                                fontSize: '0.86rem',
+                                outline: 'none',
+                                boxSizing: 'border-box'
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <label style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                            <input
+                              type="checkbox"
+                              checked={editIsDisabled}
+                              onChange={e => setEditIsDisabled(e.target.checked)}
+                              disabled={editingAgent.email === 'admin@evaops.crm'}
+                              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                            />
+                            Account Disabled
+                          </label>
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={updatingAgent}
+                          style={{
+                            padding: '10px 16px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                            color: '#ffffff',
+                            fontWeight: 600,
+                            cursor: updatingAgent ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            fontSize: '0.86rem',
+                            alignSelf: 'flex-start',
+                            marginTop: '4px'
+                          }}
+                        >
+                          {updatingAgent ? (
+                            <><RefreshCw size={14} className="spin-anim" /> Saving...</>
+                          ) : (
+                            <><Save size={14} /> Save Changes</>
+                          )}
+                        </button>
+                      </form>
                     </div>
                   )}
 
-                  <form onSubmit={handleUpdateAgent} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                      <div>
-                        <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                          Agent Name
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={editName}
-                          onChange={e => setEditName(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            background: 'var(--input-bg)',
-                            border: '1px solid var(--glass-border)',
-                            borderRadius: '8px',
-                            color: 'var(--text-primary)',
-                            fontSize: '0.86rem',
-                            outline: 'none',
-                            boxSizing: 'border-box'
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                          Agent Email
-                        </label>
-                        <input
-                          type="email"
-                          required
-                          value={editEmail}
-                          onChange={e => setEditEmail(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            background: 'var(--input-bg)',
-                            border: '1px solid var(--glass-border)',
-                            borderRadius: '8px',
-                            color: 'var(--text-primary)',
-                            fontSize: '0.86rem',
-                            outline: 'none',
-                            boxSizing: 'border-box'
-                          }}
-                        />
-                      </div>
-                    </div>
+                  {/* ── Create New Agent ── */}
+                  <div className="glass-panel" style={{ padding: '28px' }}>
+                    <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <UserPlus size={16} style={{ color: 'var(--accent-purple)' }} />
+                      Create Support Agent Account
+                    </h4>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                      <div>
-                        <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                          Role
-                        </label>
-                        <select
-                          value={editRole}
-                          onChange={e => setEditRole(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            background: 'var(--input-bg)',
-                            border: '1px solid var(--glass-border)',
-                            borderRadius: '8px',
-                            color: 'var(--text-primary)',
-                            fontSize: '0.86rem',
-                            outline: 'none',
-                            boxSizing: 'border-box'
-                          }}
-                        >
-                          <option value="agent">Support Agent</option>
-                          <option value="admin">Administrator</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                          Password (leave blank to keep current)
-                        </label>
-                        <input
-                          type="password"
-                          value={editPassword}
-                          onChange={e => setEditPassword(e.target.value)}
-                          placeholder="Min 8 characters"
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            background: 'var(--input-bg)',
-                            border: '1px solid var(--glass-border)',
-                            borderRadius: '8px',
-                            color: 'var(--text-primary)',
-                            fontSize: '0.86rem',
-                            outline: 'none',
-                            boxSizing: 'border-box'
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <label style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={editIsDisabled}
-                          onChange={e => setEditIsDisabled(e.target.checked)}
-                          disabled={editingAgent.email === 'admin@evaops.crm'}
-                          style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                        />
-                        Account Disabled
-                      </label>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={updatingAgent}
-                      style={{
-                        padding: '10px 16px',
+                    {agentMsg && (
+                      <div style={{
+                        background: agentMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                        border: `1px solid ${agentMsg.type === 'success' ? 'var(--success)' : 'var(--error)'}`,
+                        padding: '10px 12px',
                         borderRadius: '8px',
-                        border: 'none',
-                        background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
-                        color: '#ffffff',
-                        fontWeight: 600,
-                        cursor: updatingAgent ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        fontSize: '0.86rem',
-                        alignSelf: 'flex-start',
-                        marginTop: '4px'
-                      }}
-                    >
-                      {updatingAgent ? (
-                        <><RefreshCw size={14} className="spin-anim" /> Saving...</>
-                      ) : (
-                        <><Save size={14} /> Save Changes</>
-                      )}
-                    </button>
-                  </form>
-                </div>
-              )}
+                        color: agentMsg.type === 'success' ? '#a7f3d0' : '#fca5a5',
+                        fontSize: '0.8rem',
+                        marginBottom: '20px'
+                      }}>
+                        {agentMsg.text}
+                      </div>
+                    )}
 
-              {/* ── Create New Agent ── */}
-              <div className="glass-panel" style={{ padding: '28px' }}>
-                <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <UserPlus size={16} style={{ color: 'var(--accent-purple)' }} />
-                  Create Support Agent Account
-                </h4>
+                    <form onSubmit={handleCreateAgent} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                            Agent Name
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={agentName}
+                            onChange={e => setAgentName(e.target.value)}
+                            placeholder="Jane Doe"
+                            style={{
+                              width: '100%',
+                              padding: '10px 12px',
+                              background: 'var(--input-bg)',
+                              border: '1px solid var(--glass-border)',
+                              borderRadius: '8px',
+                              color: 'var(--text-primary)',
+                              fontSize: '0.86rem',
+                              outline: 'none',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                            Agent Email
+                          </label>
+                          <input
+                            type="email"
+                            required
+                            value={agentEmail}
+                            onChange={e => setAgentEmail(e.target.value)}
+                            placeholder="jane.doe@evaops.crm"
+                            style={{
+                              width: '100%',
+                              padding: '10px 12px',
+                              background: 'var(--input-bg)',
+                              border: '1px solid var(--glass-border)',
+                              borderRadius: '8px',
+                              color: 'var(--text-primary)',
+                              fontSize: '0.86rem',
+                              outline: 'none',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                        </div>
+                      </div>
 
-                {agentMsg && (
-                  <div style={{
-                    background: agentMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-                    border: `1px solid ${agentMsg.type === 'success' ? 'var(--success)' : 'var(--error)'}`,
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    color: agentMsg.type === 'success' ? '#a7f3d0' : '#fca5a5',
-                    fontSize: '0.8rem',
-                    marginBottom: '20px'
-                  }}>
-                    {agentMsg.text}
-                  </div>
-                )}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                            Initial Password
+                          </label>
+                          <input
+                            type="password"
+                            required
+                            value={agentPassword}
+                            onChange={e => setAgentPassword(e.target.value)}
+                            placeholder="Min 8 characters"
+                            style={{
+                              width: '100%',
+                              padding: '10px 12px',
+                              background: 'var(--input-bg)',
+                              border: '1px solid var(--glass-border)',
+                              borderRadius: '8px',
+                              color: 'var(--text-primary)',
+                              fontSize: '0.86rem',
+                              outline: 'none',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                            Administrative Role
+                          </label>
+                          <select
+                            value={agentRole}
+                            onChange={e => setAgentRole(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '10px 12px',
+                              background: 'var(--input-bg)',
+                              border: '1px solid var(--glass-border)',
+                              borderRadius: '8px',
+                              color: 'var(--text-primary)',
+                              fontSize: '0.86rem',
+                              outline: 'none',
+                              boxSizing: 'border-box'
+                            }}
+                          >
+                            <option value="agent">Support Agent (Invoicing & Plan view)</option>
+                            <option value="admin">Administrator (Full Access & User creation)</option>
+                          </select>
+                        </div>
+                      </div>
 
-                <form onSubmit={handleCreateAgent} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                    <div>
-                      <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                        Agent Name
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={agentName}
-                        onChange={e => setAgentName(e.target.value)}
-                        placeholder="Jane Doe"
+                      <button
+                        type="submit"
+                        disabled={creatingAgent}
                         style={{
-                          width: '100%',
-                          padding: '10px 12px',
-                          background: 'var(--input-bg)',
-                          border: '1px solid var(--glass-border)',
+                          padding: '10px 16px',
                           borderRadius: '8px',
-                          color: 'var(--text-primary)',
+                          border: 'none',
+                          background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                          color: '#ffffff',
+                          fontWeight: 600,
+                          cursor: creatingAgent ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
                           fontSize: '0.86rem',
-                          outline: 'none',
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                        Agent Email
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        value={agentEmail}
-                        onChange={e => setAgentEmail(e.target.value)}
-                        placeholder="jane.doe@evaops.crm"
-                        style={{
-                          width: '100%',
-                          padding: '10px 12px',
-                          background: 'var(--input-bg)',
-                          border: '1px solid var(--glass-border)',
-                          borderRadius: '8px',
-                          color: 'var(--text-primary)',
-                          fontSize: '0.86rem',
-                          outline: 'none',
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                    <div>
-                      <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                        Initial Password
-                      </label>
-                      <input
-                        type="password"
-                        required
-                        value={agentPassword}
-                        onChange={e => setAgentPassword(e.target.value)}
-                        placeholder="Min 8 characters"
-                        style={{
-                          width: '100%',
-                          padding: '10px 12px',
-                          background: 'var(--input-bg)',
-                          border: '1px solid var(--glass-border)',
-                          borderRadius: '8px',
-                          color: 'var(--text-primary)',
-                          fontSize: '0.86rem',
-                          outline: 'none',
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                        Administrative Role
-                      </label>
-                      <select
-                        value={agentRole}
-                        onChange={e => setAgentRole(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '10px 12px',
-                          background: 'var(--input-bg)',
-                          border: '1px solid var(--glass-border)',
-                          borderRadius: '8px',
-                          color: 'var(--text-primary)',
-                          fontSize: '0.86rem',
-                          outline: 'none',
-                          boxSizing: 'border-box'
+                          alignSelf: 'flex-start',
+                          marginTop: '4px'
                         }}
                       >
-                        <option value="agent">Support Agent (Invoicing & Plan view)</option>
-                        <option value="admin">Administrator (Full Access & User creation)</option>
-                      </select>
-                    </div>
+                        {creatingAgent ? (
+                          <><RefreshCw size={14} className="spin-anim" /> Creating...</>
+                        ) : (
+                          <><Plus size={14} /> Register CRM User</>
+                        )}
+                      </button>
+                    </form>
                   </div>
-
-                  <button
-                    type="submit"
-                    disabled={creatingAgent}
-                    style={{
-                      padding: '10px 16px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
-                      color: '#ffffff',
-                      fontWeight: 600,
-                      cursor: creatingAgent ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      fontSize: '0.86rem',
-                      alignSelf: 'flex-start',
-                      marginTop: '4px'
-                    }}
-                  >
-                    {creatingAgent ? (
-                      <><RefreshCw size={14} className="spin-anim" /> Creating...</>
-                    ) : (
-                      <><Plus size={14} /> Register CRM User</>
-                    )}
-                  </button>
-                </form>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
         </div>
       </div>
     </div>
