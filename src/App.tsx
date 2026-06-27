@@ -5876,7 +5876,7 @@ function App() {
                         color: credentialAlerts.some(a => a.isExpired) ? '#ef4444' : '#f59e0b', 
                         flexShrink: 0 
                       }} />
-                      <div style={{ fontSize: '0.82rem', color: '#f8fafc', lineHeight: 1.4 }}>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', lineHeight: 1.4 }}>
                         {credentialAlerts.map((alert, idx) => {
                           const providerLabel = alert.provider === 'github' ? 'GitHub Platform Token' 
                             : alert.provider === 'azure_devops' ? 'Azure DevOps PAT'
@@ -5885,9 +5885,9 @@ function App() {
                           return (
                             <div key={idx} style={{ marginBottom: idx < credentialAlerts.length - 1 ? '4px' : 0 }}>
                               {alert.isExpired ? (
-                                <span>Your <strong>{providerLabel}</strong> has <strong style={{ color: '#f87171' }}>EXPIRED</strong>. Critical integrations are inactive.</span>
+                                <span>Your <strong>{providerLabel}</strong> has <strong style={{ color: '#ef4444' }}>EXPIRED</strong>. Critical integrations are inactive.</span>
                               ) : (
-                                <span>Your <strong>{providerLabel}</strong> will expire in <strong style={{ color: '#fbbf24' }}>{alert.daysRemaining} days</strong> (on {new Date(alert.expiresAt).toLocaleDateString()}).</span>
+                                <span>Your <strong>{providerLabel}</strong> will expire in <strong style={{ color: theme === 'light' ? '#b45309' : '#fbbf24' }}>{alert.daysRemaining} days</strong> (on {new Date(alert.expiresAt).toLocaleDateString()}).</span>
                               )}
                             </div>
                           );
@@ -5899,9 +5899,9 @@ function App() {
                         onClick={() => setActiveTab('credentials')}
                         style={{
                           padding: '6px 12px',
-                          background: 'rgba(255,255,255,0.08)',
-                          border: '1px solid rgba(255,255,255,0.15)',
-                          color: '#ffffff',
+                          background: 'var(--glass-bg)',
+                          border: '1px solid var(--glass-border)',
+                          color: 'var(--text-primary)',
                           borderRadius: '6px',
                           fontSize: '0.76rem',
                           fontWeight: 600,
@@ -5911,8 +5911,8 @@ function App() {
                           gap: '6px',
                           transition: 'all 0.2s'
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--divider)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'var(--glass-bg)'; }}
                       >
                         Manage Credentials
                       </button>
