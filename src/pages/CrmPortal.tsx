@@ -1139,11 +1139,8 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '28px' }}>
-                {/* Left Column: License Management with Visual Tier Cards */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', height: '100%' }}>
-
-                  {/* Licensing - Visual Tier Cards + Seat Config */}
-                  <div className="glass-panel" style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                {/* Licensing - Visual Tier Cards + Seat Config */}
+                <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', boxSizing: 'border-box' }}>
                     <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Shield size={16} style={{ color: 'var(--accent-purple)' }} />
                       License Plan Configuration
@@ -1359,7 +1356,6 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
                     </form>
                   </div>
-                </div>
 
                 {/* Right Column: Billing Summary + Invoice Generator */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
