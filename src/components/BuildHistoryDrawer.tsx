@@ -175,6 +175,38 @@ export const BuildHistoryDrawer: React.FC<BuildHistoryDrawerProps> = ({
     }
   };
 
+  const handleCancelOlderBuilds = async () => {
+    setActionLoading('cancel-older');
+    setActionError(null);
+    setActionSuccess(null);
+    try {
+      const token = localStorage.getItem('devops_token');
+      const res = await fetch(`${API_BASE}/apps/pipeline/cancel-older`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          organizationId,
+          pipelineId
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setActionSuccess(data.message || 'Successfully canceled older running builds.');
+        fetchBuildHistory();
+      } else {
+        throw new Error(data.message || 'Failed to cancel older builds.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setActionError(err.message || 'Error canceling older builds.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const handleActivateRevision = async (rev: ContainerRevision) => {
     setActionLoading('revision');
     setActionError(null);
@@ -234,6 +266,12 @@ export const BuildHistoryDrawer: React.FC<BuildHistoryDrawerProps> = ({
       setConfirmTarget(null);
     }
   };
+
+  const activeBuilds = builds.filter(b => {
+    const res = (b.result || '').toLowerCase();
+    return !['succeeded', 'failed', 'canceled', 'cancelled', 'partiallysucceeded'].includes(res);
+  });
+  const hasMultipleActive = activeBuilds.length > 1;
 
   const isProdBranch = (branchName: string) => {
     const b = (branchName || '').toLowerCase();
@@ -410,6 +448,53 @@ export const BuildHistoryDrawer: React.FC<BuildHistoryDrawerProps> = ({
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {hasMultipleActive && (
+                    <div style={{
+                      background: theme === 'dark' ? 'rgba(245, 158, 11, 0.1)' : '#fef3c7',
+                      border: '1px solid rgba(245, 158, 11, 0.35)',
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                      marginBottom: '8px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      boxSizing: 'border-box'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#d97706', fontSize: '0.85rem', fontWeight: 700 }}>
+                        <AlertTriangle size={16} />
+                        <span>Multiple Active Builds Detected ({activeBuilds.length})</span>
+                      </div>
+                      <p style={{ fontSize: '0.78rem', color: theme === 'dark' ? '#cbd5e1' : '#4b5563', margin: 0, lineHeight: '1.4' }}>
+                        Multiple concurrent builds are currently running. To optimize build queues and save billing costs, you can cancel all older running builds.
+                      </p>
+                      {canAct && (
+                        <button
+                          onClick={handleCancelOlderBuilds}
+                          disabled={actionLoading === 'cancel-older'}
+                          style={{
+                            alignSelf: 'flex-start',
+                            background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+                            color: '#ffffff',
+                            border: 'none',
+                            padding: '6px 14px',
+                            borderRadius: '6px',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: '0 2px 6px rgba(217, 119, 6, 0.25)',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {actionLoading === 'cancel-older' ? <RefreshCw size={12} className="spin-anim" /> : null}
+                          <span>Cancel Older Runs</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {builds.map((build) => {
                     const status = getStatusColor(build.result);
                     const isProd = isProdBranch(build.branch);
