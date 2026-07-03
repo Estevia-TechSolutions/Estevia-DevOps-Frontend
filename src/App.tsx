@@ -187,6 +187,60 @@ interface AppResource {
   azureResourceDetails?: any;
 }
 
+export const hasEnvSegment = (n: string, seg: string) =>
+  new RegExp(`-${seg}(-|$)`).test(n);
+
+export const branchToEnv = (branch: string): 'dev' | 'qa' | 'prod' | null => {
+  const b = branch.toLowerCase().trim();
+  if (b === 'main' || b === 'master' || b === 'prod' || b === 'production' || b === 'release') return 'prod';
+  if (b === 'dev' || b === 'develop' || b === 'development') return 'dev';
+  if (b === 'qa' || b === 'staging' || b === 'test' || b === 'testing') return 'qa';
+  return null;
+};
+
+export const resolveBranchName = (app: AppResource) => {
+  if (app.branch) {
+    const fromBranch = branchToEnv(app.branch);
+    if (fromBranch) {
+      const candidates = {
+        dev: ['dev', 'development', 'dev-main', 'dev-master'],
+        qa: ['qa', 'test', 'testing', 'staging'],
+        prod: ['main', 'master', 'prod', 'production', 'release']
+      };
+      const candidateList = candidates[fromBranch];
+      const availableBranches = app.branches || [];
+      const matched = availableBranches.find(b => candidateList.includes(b.name.toLowerCase()));
+      return matched?.name || app.branch;
+    }
+  }
+
+  const n = app.name.toLowerCase();
+
+  let envType: 'dev' | 'qa' | 'prod' = 'prod';
+  if (hasEnvSegment(n, 'dev') || hasEnvSegment(n, 'development')) envType = 'dev';
+  else if (hasEnvSegment(n, 'qa') || hasEnvSegment(n, 'staging') || hasEnvSegment(n, 'test') || hasEnvSegment(n, 'testing')) envType = 'qa';
+
+  const candidates = {
+    dev: ['dev', 'development', 'dev-main', 'dev-master'],
+    qa: ['qa', 'test', 'testing', 'staging'],
+    prod: ['main', 'master', 'prod', 'production', 'release']
+  };
+
+  const candidateList = candidates[envType];
+  const availableBranches = app.branches || [];
+
+  const matchedCandidate = candidateList.find((cand: string) =>
+    availableBranches.some(b => b.name.toLowerCase() === cand)
+  );
+
+  if (matchedCandidate) {
+    return availableBranches.find(b => b.name.toLowerCase() === matchedCandidate)!.name;
+  }
+
+  const defaultBranch = availableBranches.find(b => (b as any).default || (b as any).isDefault || b.protected);
+  return defaultBranch ? defaultBranch.name : candidateList[0];
+};
+
 interface AppGroup {
   key: string;
   label: string;          // prettified display name (e.g. "ProTrack Frontend")
@@ -703,7 +757,7 @@ function App() {
   const activeBuildsCount = useMemo(() => {
     return apps.filter(app => {
       const runId = app.pipelineRun?.id;
-      const pidKey = app.pipelineId ? `pid-${app.pipelineId}` : null;
+      const pidKey = app.pipelineId ? `pid-${app.pipelineId}-${resolveBranchName(app)}` : null;
       const liveRun =
         (pidKey && livePipelineRuns[pidKey]) ||
         (runId && livePipelineRuns[runId]) ||

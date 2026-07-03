@@ -39,6 +39,7 @@ import {
   ChevronsUp,
   XCircle
 } from 'lucide-react';
+import { resolveBranchName, hasEnvSegment, branchToEnv } from '../App';
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE || `http://${window.location.hostname}:5005/api`;
 
@@ -775,7 +776,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
         // Find the app name associated with this build ID
         const app = apps.find(a => a.pipelineRun?.id === runId) ||
-          apps.find(a => a.pipelineId && livePipelineRunsRef.current[`pid-${a.pipelineId}`]?.id === runId);
+          apps.find(a => a.pipelineId && livePipelineRunsRef.current[`pid-${a.pipelineId}-${resolveBranchName(a)}`]?.id === runId);
         const appName = app ? app.name : `Build #${currentRun.name}`;
 
         if (onBuildTransition) {
@@ -797,7 +798,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     return appGroups.map(group => {
       const updatedEnvs = group.envs.map(app => {
         const runId = app.pipelineRun?.id;
-        const pidKey = app.pipelineId ? `pid-${app.pipelineId}` : null;
+        const pidKey = app.pipelineId ? `pid-${app.pipelineId}-${resolveBranchName(app)}` : null;
         const liveRun =
           (pidKey && livePipelineRuns[pidKey]) ||
           (runId && livePipelineRuns[runId]) ||
@@ -823,7 +824,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     const ids = apps
       .map(app => {
         const runId = app.pipelineRun?.id;
-        const pidKey = app.pipelineId ? `pid-${app.pipelineId}` : null;
+        const pidKey = app.pipelineId ? `pid-${app.pipelineId}-${resolveBranchName(app)}` : null;
         const liveRun =
           (pidKey && livePipelineRuns[pidKey]) ||
           (runId && livePipelineRuns[runId]) ||
@@ -846,7 +847,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       .map(app => {
         const runId = app.pipelineRun?.id;
         // Primary lookup: by known runId from scan; secondary: by pipelineId (set by discovery poller)
-        const pidKey = app.pipelineId ? `pid-${app.pipelineId}` : null;
+        const pidKey = app.pipelineId ? `pid-${app.pipelineId}-${resolveBranchName(app)}` : null;
         const liveRun =
           (pidKey && livePipelineRunsRef.current[pidKey]) ||
           (runId && livePipelineRunsRef.current[runId]) ||
@@ -884,9 +885,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           const data = await res.json();
           console.log(`[DevOps Poller] Timeline API response for build ${build.buildId}:`, data);
           if (data.success && data.pipelineRun) {
-            const updates: Record<string, any> = { [build.buildId]: data.pipelineRun };
-            // Also update the pid- key so localAppGroups shows the fresh timeline
-            if (build.pipelineId) updates[`pid-${build.pipelineId}`] = data.pipelineRun;
+            const previousRun = livePipelineRunsRef.current[build.buildId];
+            const updatedRun = {
+              ...previousRun,
+              ...data.pipelineRun,
+              activeRunCount: previousRun?.activeRunCount ?? data.pipelineRun.activeRunCount,
+              queuePosition: previousRun?.queuePosition ?? data.pipelineRun.queuePosition
+            };
+            const updates: Record<string, any> = { [build.buildId]: updatedRun };
+            const targetApp = appsRef.current.find(a => a.name === build.appName);
+            const branchSuffix = targetApp ? `-${resolveBranchName(targetApp)}` : '';
+            if (build.pipelineId) updates[`pid-${build.pipelineId}${branchSuffix}`] = updatedRun;
             setLivePipelineRuns(prev => ({ ...prev, ...updates }));
 
             // If the task modal is open for a task under this build, update selectedTaskForModal!
@@ -979,7 +988,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           const latestRun = data.pipelineRun;
 
           // Check existing live run via primary (scan runId) or secondary (pid key) index
-          const pidKey = `pid-${pipelineId}`;
+          const branchName = resolveBranchName(app);
+          const pidKey = `pid-${pipelineId}-${branchName}`;
           const existingLiveId =
             app.pipelineRun?.id ||
             livePipelineRunsRef.current[pidKey]?.id;
@@ -993,9 +1003,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             setLivePipelineRuns(prev => ({
               ...prev,
               [latestRun.id]: latestRun,
-              // Also index by pipelineId so localAppGroups can find this even when
+              // Also index by pipelineId + branch so localAppGroups can find this even when
               // the scan-level pipelineRun is null (no runId to match on)
-              [`pid-${pipelineId}`]: latestRun
+              [`pid-${pipelineId}-${branchName}`]: latestRun
             }));
           }
         } catch (err) {
@@ -1213,20 +1223,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   };
 
 
-  // Match environment segments only when they are at the end of the string or followed by a hyphen
-  // This prevents false positives like 'evafusion-devhub-qa' matching as 'dev'.
-  const hasEnvSegment = (n: string, seg: string) =>
-    new RegExp(`-${seg}(-|$)`).test(n);
 
-  // Branch name → env key. Branch always takes priority over ACA resource name.
-  const branchToEnv = (branch: string): 'dev' | 'qa' | 'prod' | null => {
-    const b = branch.toLowerCase().trim();
-    if (b === 'main' || b === 'master' || b === 'prod' || b === 'production' || b === 'release') return 'prod';
-    if (b === 'dev' || b === 'develop' || b === 'development') return 'dev';
-    if (b === 'qa' || b === 'staging' || b === 'test' || b === 'testing') return 'qa';
-    // Branch names like "feature/dev-something" still get ignored — only exact/known names win
-    return null;
-  };
 
   const getVnetName = (app: AppResource): string | null => {
     if (app.type === 'frontend') {
@@ -1272,51 +1269,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     return null;
   };
 
-  const resolveBranchName = (app: AppResource) => {
-    // If the app already has an explicit branch, use it to determine env
-    if (app.branch) {
-      const fromBranch = branchToEnv(app.branch);
-      if (fromBranch) {
-        const n = app.name.toLowerCase();
-        let envType: 'dev' | 'qa' | 'prod' = fromBranch;
-        const candidates = {
-          dev: ['dev', 'development', 'dev-main', 'dev-master'],
-          qa: ['qa', 'test', 'testing', 'staging'],
-          prod: ['main', 'master', 'prod', 'production', 'release']
-        };
-        const candidateList = candidates[envType];
-        const availableBranches = app.branches || [];
-        const matched = availableBranches.find(b => candidateList.includes(b.name.toLowerCase()));
-        return matched?.name || app.branch;
-      }
-    }
 
-    const n = app.name.toLowerCase();
-
-    let envType: 'dev' | 'qa' | 'prod' = 'prod';
-    if (hasEnvSegment(n, 'dev') || hasEnvSegment(n, 'development')) envType = 'dev';
-    else if (hasEnvSegment(n, 'qa') || hasEnvSegment(n, 'staging') || hasEnvSegment(n, 'test') || hasEnvSegment(n, 'testing')) envType = 'qa';
-
-    const candidates = {
-      dev: ['dev', 'development', 'dev-main', 'dev-master'],
-      qa: ['qa', 'test', 'testing', 'staging'],
-      prod: ['main', 'master', 'prod', 'production', 'release']
-    };
-
-    const candidateList = candidates[envType];
-    const availableBranches = app.branches || [];
-
-    const matchedCandidate = candidateList.find((cand: string) =>
-      availableBranches.some(b => b.name.toLowerCase() === cand)
-    );
-
-    if (matchedCandidate) {
-      return availableBranches.find(b => b.name.toLowerCase() === matchedCandidate)!.name;
-    }
-
-    const defaultBranch = availableBranches.find(b => (b as any).default || (b as any).isDefault || b.protected);
-    return defaultBranch ? defaultBranch.name : candidateList[0];
-  };
 
   const checkNetworkWarnings = (
     item: AppResource,
@@ -5214,7 +5167,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                     {/* Right side Actions (CI/CD Pipeline Link + Cancel Previous) */}
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                       {/* Cancel Previous Builds — shown when build is active and user is not viewer */}
-                                                      {!isViewer && item.pipelineId && item.pipelineRun && isBuildActive(item.pipelineRun) && (
+                                                      {!isViewer && item.pipelineId && item.pipelineRun && isBuildActive(item.pipelineRun) && (item.pipelineRun.activeRunCount === undefined || item.pipelineRun.activeRunCount > 1) && (
                                                         <button
                                                           type="button"
                                                           onClick={(e) => {
