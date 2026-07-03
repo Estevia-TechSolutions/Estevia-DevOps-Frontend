@@ -34,7 +34,9 @@ import {
   Network,
   FileText,
   Info,
-  Activity
+  Activity,
+  ChevronsDown,
+  ChevronsUp
 } from 'lucide-react';
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE || `http://${window.location.hostname}:5005/api`;
@@ -613,6 +615,24 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   // Search and Filter States
   const [searchQuery, setSearchQuery] = React.useState('');
   const [selectedEnvFilter, setSelectedEnvFilter] = React.useState<'all' | 'dev' | 'qa' | 'prod'>('all');
+  const [statusFilter, setStatusFilter] = React.useState<'all' | 'running' | 'stopped'>('all');
+  const [healthFilter, setHealthFilter] = React.useState<'all' | 'healthy' | 'issues'>('all');
+
+  // Collapse All / Expand All helper
+  const allGroupsCollapsed = React.useMemo(() => {
+    if (Object.keys(collapsedScanGroups).length === 0) return false;
+    return Object.values(collapsedScanGroups).every(v => v === true);
+  }, [collapsedScanGroups]);
+
+  const toggleCollapseAll = React.useCallback(() => {
+    if (allGroupsCollapsed) {
+      setCollapsedScanGroups({});
+    } else {
+      const newMap: Record<string, boolean> = {};
+      for (const g of appGroups) newMap[g.key] = true;
+      setCollapsedScanGroups(newMap);
+    }
+  }, [allGroupsCollapsed, appGroups, setCollapsedScanGroups]);
 
   // Ref to hold live overrides and avoid dependency trigger loops in effect
   const livePipelineRunsRef = React.useRef(livePipelineRuns);
@@ -1695,15 +1715,43 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         const envTag = getEnvTag(app).label.toLowerCase();
         const matchesEnv = selectedEnvFilter === 'all' || envTag === selectedEnvFilter;
 
-        return matchesSearch && matchesEnv;
+        // Status filter: running / stopped
+        const appStatus = (app.status || '').toLowerCase();
+        const isRunning = appStatus === 'running' || appStatus === 'deployed' || appStatus === 'succeeded';
+        const isStopped = appStatus === 'stopped' || appStatus === 'sleep' || appStatus === 'deprovisioned';
+        const matchesStatus = statusFilter === 'all' ||
+          (statusFilter === 'running' && isRunning) ||
+          (statusFilter === 'stopped' && isStopped);
+
+        return matchesSearch && matchesEnv && matchesStatus;
       });
 
       return {
         ...group,
         envs: filteredEnvs
       };
-    }).filter(group => group.envs.length > 0);
-  }, [localAppGroups, searchQuery, selectedEnvFilter]);
+    }).filter(group => {
+      if (group.envs.length === 0) return false;
+
+      // Health filter: applied at group level using ymlHealthMap
+      if (healthFilter !== 'all') {
+        const health = ymlHealthMap?.[group.key];
+        // Groups without health data are neutral — only exclude on explicit health match fail
+        if (health) {
+          const overall = (health.overallHealth || '').toLowerCase();
+          const isHealthy = overall === 'healthy' || overall === 'passing' || overall === 'ok';
+          const hasIssues = overall === 'warning' || overall === 'error' || overall === 'failing' || overall === 'critical';
+          if (healthFilter === 'healthy' && !isHealthy) return false;
+          if (healthFilter === 'issues' && !hasIssues) return false;
+        } else if (healthFilter === 'healthy') {
+          // No health data => not confirmed healthy, skip for healthy filter
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [localAppGroups, searchQuery, selectedEnvFilter, statusFilter, healthFilter, ymlHealthMap]);
 
   const getCardStyles = (app: AppResource, theme: 'dark' | 'light') => {
     const isLight = theme === 'light';
@@ -1942,10 +1990,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 padding: '16px 20px',
                 marginBottom: '20px',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '16px',
-                flexWrap: 'wrap'
+                flexDirection: 'column',
+                gap: '12px'
               }}>
                 {/* Search Input wrapper */}
                 <div style={{ position: 'relative', flex: '1 1 300px' }}>
@@ -1998,69 +2044,184 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   )}
                 </div>
 
-                {/* Env Filter Buttons */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.03)',
-                  padding: '4px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--glass-border)'
-                }}>
-                  {(['all', 'dev', 'qa', 'prod'] as const).map((env) => {
-                    const isActive = selectedEnvFilter === env;
-                    // Env color styles for active filter
-                    const activeColor = env === 'dev' ? '#60a5fa'
-                      : env === 'qa' ? '#f59e0b'
-                        : env === 'prod' ? '#34d399'
-                          : 'var(--accent-purple)';
-                    const activeBg = env === 'dev' ? 'rgba(96,165,250,0.15)'
-                      : env === 'qa' ? 'rgba(245,158,11,0.15)'
-                        : env === 'prod' ? 'rgba(52,211,153,0.15)'
-                          : 'rgba(139,92,246,0.15)';
-                    const activeBorder = env === 'dev' ? 'rgba(96,165,250,0.3)'
-                      : env === 'qa' ? 'rgba(245,158,11,0.3)'
-                        : env === 'prod' ? 'rgba(52,211,153,0.3)'
-                          : 'rgba(139,92,246,0.3)';
-
-                    return (
-                      <button
-                        key={env}
-                        type="button"
-                        onClick={() => setSelectedEnvFilter(env)}
-                        style={{
-                          padding: '8px 16px',
+                {/* ── Row 1: Env filter + Collapse All ── */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  {/* Env label */}
+                  <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>Env</span>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.03)',
+                    padding: '3px',
+                    borderRadius: '10px',
+                    border: '1px solid var(--glass-border)'
+                  }}>
+                    {(['all', 'dev', 'qa', 'prod'] as const).map((env) => {
+                      const isActive = selectedEnvFilter === env;
+                      const activeColor = env === 'dev' ? '#60a5fa' : env === 'qa' ? '#f59e0b' : env === 'prod' ? '#34d399' : 'var(--accent-purple)';
+                      const activeBg = env === 'dev' ? 'rgba(96,165,250,0.15)' : env === 'qa' ? 'rgba(245,158,11,0.15)' : env === 'prod' ? 'rgba(52,211,153,0.15)' : 'rgba(139,92,246,0.15)';
+                      const activeBorder = env === 'dev' ? 'rgba(96,165,250,0.3)' : env === 'qa' ? 'rgba(245,158,11,0.3)' : env === 'prod' ? 'rgba(52,211,153,0.3)' : 'rgba(139,92,246,0.3)';
+                      return (
+                        <button key={env} type="button" onClick={() => setSelectedEnvFilter(env)} style={{
+                          padding: '6px 14px',
                           borderRadius: '8px',
                           border: isActive ? `1px solid ${activeBorder}` : '1px solid transparent',
                           background: isActive ? activeBg : 'transparent',
                           color: isActive ? activeColor : 'var(--text-secondary)',
-                          fontWeight: isActive ? 600 : 500,
-                          fontSize: '0.78rem',
+                          fontWeight: isActive ? 700 : 500,
+                          fontSize: '0.75rem',
                           textTransform: 'uppercase',
                           letterSpacing: '0.05em',
-                          height: '34px',
+                          height: '30px',
                           display: 'flex',
                           alignItems: 'center',
+                          cursor: 'pointer',
                           transition: 'all 0.2s ease'
                         }}
-                        onMouseEnter={(e) => {
-                          if (!isActive) {
-                            e.currentTarget.style.color = 'var(--text-primary)';
-                            e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isActive) {
-                            e.currentTarget.style.color = 'var(--text-secondary)';
-                            e.currentTarget.style.background = 'transparent';
-                          }
-                        }}
-                      >
-                        {env}
-                      </button>
-                    );
-                  })}
+                          onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; } }}
+                          onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'transparent'; } }}
+                        >{env}</button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Spacer */}
+                  <div style={{ flex: 1 }} />
+
+                  {/* Collapse All / Expand All Button */}
+                  <button
+                    type="button"
+                    onClick={toggleCollapseAll}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 14px',
+                      height: '30px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--glass-border)',
+                      background: allGroupsCollapsed
+                        ? (theme === 'light' ? 'rgba(139,92,246,0.08)' : 'rgba(139,92,246,0.12)')
+                        : (theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'),
+                      color: allGroupsCollapsed ? 'var(--accent-purple)' : 'var(--text-secondary)',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      flexShrink: 0
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent-purple)'; e.currentTarget.style.borderColor = 'rgba(139,92,246,0.4)'; e.currentTarget.style.background = 'rgba(139,92,246,0.1)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = allGroupsCollapsed ? 'var(--accent-purple)' : 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.background = allGroupsCollapsed ? (theme === 'light' ? 'rgba(139,92,246,0.08)' : 'rgba(139,92,246,0.12)') : (theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)'); }}
+                    title={allGroupsCollapsed ? 'Expand all resource groups' : 'Collapse all resource groups'}
+                  >
+                    {allGroupsCollapsed ? <ChevronsUp size={14} /> : <ChevronsDown size={14} />}
+                    {allGroupsCollapsed ? 'Expand All' : 'Collapse All'}
+                  </button>
+                </div>
+
+                {/* ── Row 2: Status + Health filters ── */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                  {/* Status filter */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>Status</span>
+                    <div style={{ display: 'flex', gap: '4px', background: theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.03)', padding: '3px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+                      {([
+                        { key: 'all', label: 'All', icon: null, color: 'var(--accent-purple)', bg: 'rgba(139,92,246,0.15)', border: 'rgba(139,92,246,0.3)' },
+                        { key: 'running', label: 'Running', icon: <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#34d399', display: 'inline-block', flexShrink: 0, boxShadow: '0 0 5px rgba(52,211,153,0.7)' }} />, color: '#34d399', bg: 'rgba(52,211,153,0.15)', border: 'rgba(52,211,153,0.3)' },
+                        { key: 'stopped', label: 'Stopped', icon: <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#f87171', display: 'inline-block', flexShrink: 0 }} />, color: '#f87171', bg: 'rgba(248,113,113,0.15)', border: 'rgba(248,113,113,0.3)' }
+                      ] as const).map(({ key, label, icon, color, bg, border }) => {
+                        const isActive = statusFilter === key;
+                        return (
+                          <button key={key} type="button" onClick={() => setStatusFilter(key)} style={{
+                            padding: '5px 12px',
+                            height: '28px',
+                            borderRadius: '6px',
+                            border: isActive ? `1px solid ${border}` : '1px solid transparent',
+                            background: isActive ? bg : 'transparent',
+                            color: isActive ? color : 'var(--text-secondary)',
+                            fontWeight: isActive ? 700 : 500,
+                            fontSize: '0.72rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                            onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; } }}
+                            onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'transparent'; } }}
+                          >
+                            {icon}{label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div style={{ width: '1px', height: '20px', background: 'var(--glass-border)', flexShrink: 0 }} />
+
+                  {/* Health filter */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>Health</span>
+                    <div style={{ display: 'flex', gap: '4px', background: theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.03)', padding: '3px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+                      {([
+                        { key: 'all', label: 'All', icon: null, color: 'var(--accent-purple)', bg: 'rgba(139,92,246,0.15)', border: 'rgba(139,92,246,0.3)' },
+                        { key: 'healthy', label: 'Healthy', icon: <CheckCircle2 size={11} />, color: '#34d399', bg: 'rgba(52,211,153,0.15)', border: 'rgba(52,211,153,0.3)' },
+                        { key: 'issues', label: 'Issues', icon: <AlertTriangle size={11} />, color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' }
+                      ] as const).map(({ key, label, icon, color, bg, border }) => {
+                        const isActive = healthFilter === key;
+                        return (
+                          <button key={key} type="button" onClick={() => setHealthFilter(key)} style={{
+                            padding: '5px 12px',
+                            height: '28px',
+                            borderRadius: '6px',
+                            border: isActive ? `1px solid ${border}` : '1px solid transparent',
+                            background: isActive ? bg : 'transparent',
+                            color: isActive ? color : 'var(--text-secondary)',
+                            fontWeight: isActive ? 700 : 500,
+                            fontSize: '0.72rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                            onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; } }}
+                            onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'transparent'; } }}
+                          >
+                            {icon}{label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Active filter count badge */}
+                  {(statusFilter !== 'all' || healthFilter !== 'all') && (
+                    <button
+                      type="button"
+                      onClick={() => { setStatusFilter('all'); setHealthFilter('all'); }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(248,113,113,0.3)',
+                        background: 'rgba(248,113,113,0.08)',
+                        color: '#f87171',
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        marginLeft: 'auto'
+                      }}
+                      title="Clear active filters"
+                    >
+                      <X size={11} /> Clear filters
+                    </button>
+                  )}
                 </div>
               </div>
 
