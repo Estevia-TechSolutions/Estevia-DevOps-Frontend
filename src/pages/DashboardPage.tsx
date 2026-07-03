@@ -2379,7 +2379,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>Health</span>
                         <div style={{ display: 'flex', gap: '4px', background: theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.03)', padding: '3px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                           {([
                             { key: 'all', label: 'All', icon: null, color: 'var(--accent-purple)', bg: 'rgba(139,92,246,0.15)', border: 'rgba(139,92,246,0.3)' },
