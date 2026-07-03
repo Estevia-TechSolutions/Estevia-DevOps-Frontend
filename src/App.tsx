@@ -4744,13 +4744,13 @@ function App() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {/* SSO Buttons — Hub-style side-by-side */}
-                <div style={{ display: 'flex', flexDirection: 'row', gap: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <button
                     onClick={handleMicrosoftLoginRedirect}
                     disabled={authLoading}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-                      flex: 1, padding: '13px 10px', borderRadius: '12px',
+                      width: '100%', padding: '13px 10px', borderRadius: '12px',
                       background: 'var(--bg-slate)', border: '1px solid var(--glass-border)',
                       color: 'var(--text-primary)', fontSize: '0.84rem', fontWeight: 700,
                       cursor: authLoading ? 'not-allowed' : 'pointer',
@@ -4771,34 +4771,6 @@ function App() {
                       </svg>
                     )}
                     <span>{ssoLoadingProvider === 'microsoft' ? 'Connecting...' : 'Microsoft 365'}</span>
-                  </button>
-
-                  <button
-                    onClick={handleGoogleLoginRedirect}
-                    disabled={authLoading}
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-                      flex: 1, padding: '13px 10px', borderRadius: '12px',
-                      background: 'var(--bg-slate)', border: '1px solid var(--glass-border)',
-                      color: 'var(--text-primary)', fontSize: '0.84rem', fontWeight: 700,
-                      cursor: authLoading ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.2s', opacity: authLoading ? 0.7 : 1,
-                      whiteSpace: 'nowrap',
-                    }}
-                    onMouseEnter={(e) => { if (!authLoading) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderColor = 'rgba(66,133,244,0.5)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(66,133,244,0.18)'; e.currentTarget.style.background = 'rgba(66,133,244,0.06)'; } }}
-                    onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.background = 'var(--bg-slate)'; }}
-                  >
-                    {ssoLoadingProvider === 'google' ? (
-                      <RefreshCw size={18} className="spin-anim" />
-                    ) : (
-                      <svg width="20" height="20" viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.9h6.69c-.29 1.5-1.14 2.8-2.43 3.66v3.05h3.9c2.29-2.1 3.6-5.2 3.6-8.9z"/>
-                        <path fill="#34A853" d="M12 24c3.24 0 5.97-1.08 7.96-2.91l-3.9-3.1c-1.08.72-2.47 1.16-4.06 1.16-3.13 0-5.78-2.11-6.73-4.96H1.21v3.2C3.19 21.88 7.27 24 12 24z"/>
-                        <path fill="#FBBC05" d="M5.27 14.19c-.24-.72-.38-1.49-.38-2.19s.14-1.47.38-2.19V6.61H1.21C.44 8.19 0 9.94 0 12s.44 3.81 1.21 5.39l4.06-3.2z"/>
-                        <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.96 1.19 15.24 0 12 0 7.27 0 3.19 2.12 1.21 5.39l4.06 3.2c.95-2.85 3.6-4.96 6.73-4.96z"/>
-                      </svg>
-                    )}
-                    <span>{ssoLoadingProvider === 'google' ? 'Connecting...' : 'Google Workspace'}</span>
                   </button>
                 </div>
 
