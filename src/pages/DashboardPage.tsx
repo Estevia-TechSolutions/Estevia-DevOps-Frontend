@@ -36,7 +36,8 @@ import {
   Info,
   Activity,
   ChevronsDown,
-  ChevronsUp
+  ChevronsUp,
+  XCircle
 } from 'lucide-react';
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE || `http://${window.location.hostname}:5005/api`;
@@ -1620,11 +1621,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
 
 
-  // Auto-switch tabs and auto-expand/collapse accordions based on active builds (concurrent-safe)
+  // Track active build groups — used for detection only; auto-expand and auto-tab-switch are intentionally disabled.
+  // Users prefer to stay on their current tab without interruption when a build starts.
   const prevActiveBuildGroupsRef = React.useRef<Record<string, boolean>>({});
   React.useEffect(() => {
     const nextActiveBuildGroups: Record<string, boolean> = {};
-    const newlyStartedGroups: string[] = [];
     const newlyFinishedGroups: string[] = [];
     const prevActive = prevActiveBuildGroupsRef.current;
 
@@ -1632,9 +1633,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       const hasActive = group.envs.some(app => app.pipelineRun && isBuildActive(app.pipelineRun));
       if (hasActive) {
         nextActiveBuildGroups[group.key] = true;
-        if (!prevActive[group.key]) {
-          newlyStartedGroups.push(group.key);
-        }
       } else {
         if (prevActive[group.key]) {
           newlyFinishedGroups.push(group.key);
@@ -1645,38 +1643,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     // Save active builds status map for the next run
     prevActiveBuildGroupsRef.current = nextActiveBuildGroups;
 
-    // 1. Handle newly started builds: auto-expand all of them and switch active tab to the first one
-    if (newlyStartedGroups.length > 0) {
-      const firstGroupKey = newlyStartedGroups[0];
-      const firstGroup = localAppGroups.find(g => g.key === firstGroupKey);
-      if (firstGroup) {
-        let matchedTab: 'swa' | 'aca' | 'vm' | 'cluster' | null = null;
-        if (firstGroup.type === 'frontend') matchedTab = 'swa';
-        else if (firstGroup.type === 'backend') matchedTab = 'aca';
-        else if (firstGroup.type === 'vm') matchedTab = 'vm';
-        else if (firstGroup.type === 'cluster') matchedTab = 'cluster';
-
-        if (matchedTab) {
-          setActiveDashboardTab(matchedTab);
-        }
-      }
-
-      setCollapsedScanGroups(prev => {
-        const next = { ...prev };
-        newlyStartedGroups.forEach(key => {
-          next[key] = false; // Expand
-        });
-        return next;
-      });
-    }
-
-    // 2. Handle newly completed builds: do not auto-collapse on complete as per user request to keep visibility of recent builds
+    // Handle newly completed builds: keep expanded for recent build visibility
     if (newlyFinishedGroups.length > 0) {
       newlyFinishedGroups.forEach(key => {
-        console.log(`[Dashboard Auto Collapse] Build completed for group ${key}. Keeping expanded for recent build visibility.`);
+        console.log(`[Dashboard] Build completed for group ${key}. Keeping expanded for recent build visibility.`);
       });
     }
-  }, [localAppGroups, setActiveDashboardTab, setCollapsedScanGroups]);
+  }, [localAppGroups]);
 
   // Auto-expand individual builds when they become active, and keep them expanded (do not close on complete)
   React.useEffect(() => {
@@ -5184,7 +5157,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                           ⚡ Prioritize
                                                         </button>
                                                       )}
-                                                      {runStatus === 'QUEUED' && item.pipelineRun.queuePosition != null && (
+                                                      {runStatus === 'QUEUED' && (
                                                         <span style={{
                                                           fontSize: '0.62rem',
                                                           fontWeight: 800,
@@ -5199,7 +5172,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                           marginLeft: '4px',
                                                           letterSpacing: '0.02em'
                                                         }}>
-                                                          Queue #{item.pipelineRun.queuePosition}
+                                                          {item.pipelineRun.queuePosition != null
+                                                            ? `Queue #${item.pipelineRun.queuePosition}`
+                                                            : 'Queued'}
                                                         </span>
                                                       )}
                                                       {item.pipelineRun.result === 'failed' && (
@@ -5214,8 +5189,50 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                       )}
                                                     </div>
 
-                                                    {/* Right side Actions (CI/CD Pipeline Link) */}
+                                                    {/* Right side Actions (CI/CD Pipeline Link + Cancel Previous) */}
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                      {/* Cancel Previous Builds — shown when build is active and user is not viewer */}
+                                                      {!isViewer && item.pipelineId && item.pipelineRun && isBuildActive(item.pipelineRun) && (
+                                                        <button
+                                                          type="button"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleCancelOlderBuilds(item.pipelineId);
+                                                          }}
+                                                          disabled={cancelingOlderForPipeline === item.pipelineId}
+                                                          title="Cancel all older builds for this pipeline, keeping only the latest"
+                                                          style={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '5px',
+                                                            padding: '4px 10px',
+                                                            borderRadius: '6px',
+                                                            fontSize: '0.68rem',
+                                                            fontWeight: 700,
+                                                            color: cancelingOlderForPipeline === item.pipelineId ? '#f59e0b' : '#ef4444',
+                                                            backgroundColor: isLight ? 'rgba(239,68,68,0.07)' : 'rgba(239,68,68,0.1)',
+                                                            border: `1px solid ${isLight ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.3)'}`,
+                                                            cursor: cancelingOlderForPipeline === item.pipelineId ? 'not-allowed' : 'pointer',
+                                                            opacity: cancelingOlderForPipeline === item.pipelineId ? 0.7 : 1,
+                                                            transition: 'all 0.2s',
+                                                            whiteSpace: 'nowrap'
+                                                          }}
+                                                          onMouseEnter={(e) => { if (cancelingOlderForPipeline !== item.pipelineId) e.currentTarget.style.backgroundColor = isLight ? 'rgba(239,68,68,0.14)' : 'rgba(239,68,68,0.2)'; }}
+                                                          onMouseLeave={(e) => { if (cancelingOlderForPipeline !== item.pipelineId) e.currentTarget.style.backgroundColor = isLight ? 'rgba(239,68,68,0.07)' : 'rgba(239,68,68,0.1)'; }}
+                                                        >
+                                                          {cancelingOlderForPipeline === item.pipelineId ? (
+                                                            <>
+                                                              <RefreshCw size={10} className="spin-anim" />
+                                                              <span>Cancelling...</span>
+                                                            </>
+                                                          ) : (
+                                                            <>
+                                                              <XCircle size={10} />
+                                                              <span>Cancel Previous Builds</span>
+                                                            </>
+                                                          )}
+                                                        </button>
+                                                      )}
                                                       {item.pipelineId ? (
                                                         <a
                                                           href={(() => {
