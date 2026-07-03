@@ -13,6 +13,7 @@ interface BuildRun {
   requestedFor: string;
   webUrl: string;
   commitMessage?: string;
+  queuePosition?: number | null;
 }
 
 interface ContainerRevision {
@@ -207,6 +208,39 @@ export const BuildHistoryDrawer: React.FC<BuildHistoryDrawerProps> = ({
     } catch (err: any) {
       console.error(err);
       setActionError(err.message || 'Error canceling older builds.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handlePrioritize = async (build: BuildRun) => {
+    setActionLoading('prioritize');
+    setActionError(null);
+    setActionSuccess(null);
+    try {
+      const token = localStorage.getItem('devops_token');
+      const res = await fetch(`${API_BASE}/apps/pipeline/prioritize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          organizationId,
+          pipelineId,
+          buildId: build.id
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setActionSuccess(data.message || `Build Run #${build.buildNumber} prioritized successfully!`);
+        fetchBuildHistory();
+      } else {
+        throw new Error(data.message || 'Failed to prioritize build.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setActionError(err.message || 'Error prioritizing build.');
     } finally {
       setActionLoading(null);
     }
@@ -543,6 +577,24 @@ export const BuildHistoryDrawer: React.FC<BuildHistoryDrawerProps> = ({
                               {!isQueued && !build.result && <RefreshCw size={9} className="spin-anim" style={{ color: buildStatusColorObj.color }} />}
                               {displayStatus}
                             </span>
+                            {isQueued && build.queuePosition != null && (
+                              <span style={{
+                                fontSize: '0.62rem',
+                                fontWeight: 800,
+                                backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                                color: '#f59e0b',
+                                border: '1px solid rgba(245, 158, 11, 0.3)',
+                                padding: '1px 7px',
+                                borderRadius: '4px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                letterSpacing: '0.02em'
+                              }}>
+                                <Clock size={9} />
+                                Queue #{build.queuePosition}
+                              </span>
+                            )}
                           </div>
 
                           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -588,26 +640,49 @@ export const BuildHistoryDrawer: React.FC<BuildHistoryDrawerProps> = ({
                           </div>
 
                           {canAct && (
-                            <button
-                              onClick={() => setConfirmTarget({ type: 'redeploy', build })}
-                              disabled={!canRedeployThis || actionLoading !== null}
-                              style={{
-                                background: isProd ? 'rgba(245, 158, 11, 0.08)' : 'rgba(59, 130, 246, 0.08)',
-                                border: `1px solid ${isProd ? 'rgba(245, 158, 11, 0.25)' : 'rgba(59, 130, 246, 0.25)'}`,
-                                color: isProd ? '#f59e0b' : 'var(--accent-blue)',
-                                padding: '4px 10px',
-                                borderRadius: '6px',
-                                fontSize: '0.72rem',
-                                cursor: canRedeployThis ? 'pointer' : 'not-allowed',
-                                opacity: canRedeployThis ? 1 : 0.4,
-                                fontWeight: 600,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                              }}
-                            >
-                              🔄 Re-deploy
-                            </button>
+                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                              {isQueued && (
+                                <button
+                                  onClick={() => handlePrioritize(build)}
+                                  disabled={actionLoading !== null}
+                                  style={{
+                                    background: 'rgba(245, 158, 11, 0.08)',
+                                    border: '1px solid rgba(245, 158, 11, 0.25)',
+                                    color: '#f59e0b',
+                                    padding: '4px 10px',
+                                    borderRadius: '6px',
+                                    fontSize: '0.72rem',
+                                    cursor: 'pointer',
+                                    fontWeight: 600,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}
+                                >
+                                  ⚡ Prioritize
+                                </button>
+                              )}
+                              <button
+                                onClick={() => setConfirmTarget({ type: 'redeploy', build })}
+                                disabled={!canRedeployThis || actionLoading !== null}
+                                style={{
+                                  background: isProd ? 'rgba(245, 158, 11, 0.08)' : 'rgba(59, 130, 246, 0.08)',
+                                  border: `1px solid ${isProd ? 'rgba(245, 158, 11, 0.25)' : 'rgba(59, 130, 246, 0.25)'}`,
+                                  color: isProd ? '#f59e0b' : 'var(--accent-blue)',
+                                  padding: '4px 10px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.72rem',
+                                  cursor: canRedeployThis ? 'pointer' : 'not-allowed',
+                                  opacity: canRedeployThis ? 1 : 0.4,
+                                  fontWeight: 600,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}
+                              >
+                                🔄 Re-deploy
+                              </button>
+                            </div>
                           )}
                         </div>
 

@@ -221,6 +221,48 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const isViewer = currentUser?.role === 'viewer';
   const organizationId = currentUser?.organization_id || 'estevia';
 
+  const [prioritizingBuildId, setPrioritizingBuildId] = React.useState<number | string | null>(null);
+
+  const handlePrioritizeBuild = async (pipelineId: number | string | undefined, buildId: number | string | undefined) => {
+    if (!pipelineId || !buildId) return;
+    setPrioritizingBuildId(buildId);
+    try {
+      const token = localStorage.getItem('devops_token');
+      const res = await fetch(`${API_BASE}/apps/pipeline/prioritize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          organizationId,
+          pipelineId,
+          buildId
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (onBuildTransition) {
+          onBuildTransition(
+            'Build Prioritized',
+            data.message || `Build run #${buildId} queue priority set to High successfully.`,
+            'success'
+          );
+        } else {
+          alert(data.message || 'Build prioritized successfully!');
+        }
+        handleScan();
+      } else {
+        alert(data.message || 'Failed to prioritize build.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert('Error prioritizing build: ' + (err.message || err));
+    } finally {
+      setPrioritizingBuildId(null);
+    }
+  };
+
   // ── License-tier enforcement helpers ───────────────────────────────
   const GROWTH_ALLOWED_RULES = new Set(['tagging', 'tls', 'network-security']);
   const isRuleLockedByTier = (ruleId: string) =>
@@ -3295,22 +3337,69 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                   const isQueued = ['notstarted', 'queued', 'waiting'].includes((item.pipelineRun.state || '').toLowerCase());
                                                   if (isQueued) {
                                                     return (
-                                                      <span style={{
-                                                        marginLeft: '8px',
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        gap: '4px',
-                                                        color: '#f59e0b',
-                                                        fontWeight: 600,
-                                                        fontSize: '0.68rem',
-                                                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                                                        padding: '1px 6px',
-                                                        borderRadius: '4px',
-                                                        border: '1px solid rgba(245, 158, 11, 0.2)'
-                                                      }}>
-                                                        <Clock size={10} />
-                                                        Build queued...
-                                                      </span>
+                                                      <>
+                                                        <span style={{
+                                                          marginLeft: '8px',
+                                                          display: 'inline-flex',
+                                                          alignItems: 'center',
+                                                          gap: '4px',
+                                                          color: '#f59e0b',
+                                                          fontWeight: 600,
+                                                          fontSize: '0.68rem',
+                                                          backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                                          padding: '1px 6px',
+                                                          borderRadius: '4px',
+                                                          border: '1px solid rgba(245, 158, 11, 0.2)'
+                                                        }}>
+                                                          <Clock size={10} />
+                                                          Build queued...
+                                                        </span>
+                                                        {item.pipelineRun.queuePosition != null && (
+                                                          <span style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '3px',
+                                                            color: '#f59e0b',
+                                                            fontWeight: 800,
+                                                            fontSize: '0.64rem',
+                                                            backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                                                            padding: '1px 7px',
+                                                            borderRadius: '4px',
+                                                            border: '1px solid rgba(245, 158, 11, 0.3)',
+                                                            letterSpacing: '0.02em'
+                                                          }}>
+                                                            Queue #{item.pipelineRun.queuePosition}
+                                                          </span>
+                                                        )}
+                                                        {!isViewer && item.pipelineId && item.pipelineRun && (
+                                                          <button
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              handlePrioritizeBuild(item.pipelineId, item.pipelineRun.id);
+                                                            }}
+                                                            disabled={prioritizingBuildId === item.pipelineRun.id}
+                                                            style={{
+                                                              marginLeft: '6px',
+                                                              display: 'inline-flex',
+                                                              alignItems: 'center',
+                                                              gap: '2px',
+                                                              color: '#fbbf24',
+                                                              backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                                                              border: '1px solid rgba(245, 158, 11, 0.25)',
+                                                              padding: '1px 6px',
+                                                              borderRadius: '4px',
+                                                              fontSize: '0.66rem',
+                                                              fontWeight: 700,
+                                                              cursor: 'pointer',
+                                                              transition: 'all 0.2s'
+                                                            }}
+                                                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.15)'; }}
+                                                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.08)'; }}
+                                                          >
+                                                            ⚡ Prioritize
+                                                          </button>
+                                                        )}
+                                                      </>
                                                     );
                                                   }
                                                   return (
@@ -4860,6 +4949,53 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                         {getStageIcon(item.pipelineRun.result, item.pipelineRun.state)}
                                                         {runStatus}
                                                       </span>
+                                                      {runStatus === 'QUEUED' && !isViewer && item.pipelineId && (
+                                                        <button
+                                                          type="button"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handlePrioritizeBuild(item.pipelineId, item.pipelineRun.id);
+                                                          }}
+                                                          disabled={prioritizingBuildId === item.pipelineRun.id}
+                                                          style={{
+                                                            background: 'rgba(245, 158, 11, 0.08)',
+                                                            border: '1px solid rgba(245, 158, 11, 0.25)',
+                                                            color: '#f59e0b',
+                                                            borderRadius: '4px',
+                                                            fontSize: '0.64rem',
+                                                            padding: '2px 8px',
+                                                            fontWeight: 700,
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.2s',
+                                                            marginLeft: '6px',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '3px'
+                                                          }}
+                                                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.15)'; }}
+                                                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(245, 158, 11, 0.08)'; }}
+                                                        >
+                                                          ⚡ Prioritize
+                                                        </button>
+                                                      )}
+                                                      {runStatus === 'QUEUED' && item.pipelineRun.queuePosition != null && (
+                                                        <span style={{
+                                                          fontSize: '0.62rem',
+                                                          fontWeight: 800,
+                                                          backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                                                          color: '#f59e0b',
+                                                          border: '1px solid rgba(245, 158, 11, 0.3)',
+                                                          padding: '1px 7px',
+                                                          borderRadius: '4px',
+                                                          display: 'inline-flex',
+                                                          alignItems: 'center',
+                                                          gap: '3px',
+                                                          marginLeft: '4px',
+                                                          letterSpacing: '0.02em'
+                                                        }}>
+                                                          Queue #{item.pipelineRun.queuePosition}
+                                                        </span>
+                                                      )}
                                                       {item.pipelineRun.result === 'failed' && (
                                                         <span style={{
                                                           fontSize: '0.68rem',
