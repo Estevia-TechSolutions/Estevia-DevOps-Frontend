@@ -5159,7 +5159,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                           ⚡ Prioritize
                                                         </button>
                                                       )}
-                                                      {runStatus === 'QUEUED' && (
+                                                      {runStatus === 'QUEUED' && item.pipelineRun.queuePosition != null && (
                                                         <span style={{
                                                           fontSize: '0.62rem',
                                                           fontWeight: 800,
@@ -5174,9 +5174,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                           marginLeft: '4px',
                                                           letterSpacing: '0.02em'
                                                         }}>
-                                                          {item.pipelineRun.queuePosition != null
-                                                            ? `Queue #${item.pipelineRun.queuePosition}`
-                                                            : 'Queued'}
+                                                          Queue #{item.pipelineRun.queuePosition}
                                                         </span>
                                                       )}
                                                       {item.pipelineRun.result === 'failed' && (
