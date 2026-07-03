@@ -173,6 +173,32 @@ const isBuildActive = (run: any) => {
   return s === 'inprogress' || s === 'running' || s === 'canceling' || s === 'cancelling' || s === 'notstarted' || s === 'queued' || s === 'waiting';
 };
 
+const getHealthErrorDetail = (message: string): { reason: string; fix: string } => {
+  const msg = (message || '').toLowerCase();
+  if (msg.includes('401') || msg.includes('403') || msg.includes('unauthorized') || msg.includes('expired') || msg.includes('credentials') || msg.includes('token')) {
+    return {
+      reason: 'GitHub integration token is unauthorized or expired.',
+      fix: 'Go to the "Credentials" settings tab and update/save a valid GitHub Personal Access Token (PAT) with repo scopes.'
+    };
+  }
+  if (msg.includes('404') || msg.includes('not found') || msg.includes('repo')) {
+    return {
+      reason: 'GitHub repository or branch not found.',
+      fix: 'Verify the repository path (Owner/Repo) and branch name under your application settings.'
+    };
+  }
+  if (msg.includes('timeout') || msg.includes('abort') || msg.includes('limit')) {
+    return {
+      reason: 'Health scan request timed out or was rate-limited.',
+      fix: 'Wait a moment and click the red retry spin icon to try scanning again.'
+    };
+  }
+  return {
+    reason: message || 'An unexpected scan failure occurred.',
+    fix: 'Verify the remote service is healthy or retry the scan.'
+  };
+};
+
 const COMPLIANT_REASONS: Record<string, string> = {
   tagging: "All active subscription resources are properly tagged with Environment, Owner, and CostCenter.",
   residency: "All resources reside within approved US-only sovereign regional boundaries.",
@@ -3062,11 +3088,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                     }}
                                   >
                                     <AlertCircle size={11} />
-                                    <span>
-                                      {health.message?.toLowerCase().includes('abort') || health.message?.toLowerCase().includes('timeout')
-                                        ? 'Cannot check (request timed out)'
-                                        : `Cannot check (${health.message || 'Check failed'})`}
-                                    </span>
+                                    <span>Cannot check</span>
                                     {refreshHealthForRepo && (
                                       <button
                                         type="button"
@@ -6855,34 +6877,43 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       {/* ── Group Header Error Fixed-Position Tooltip Portal ── */}
       {hoveredErrorTooltipData && (() => {
         const { errorMessage, top, left } = hoveredErrorTooltipData;
+        const errorDetail = getHealthErrorDetail(errorMessage);
         return (
           <div
             style={{
               position: 'fixed',
               top: `${top}px`,
               left: `${left}px`,
-              zIndex: 99999,
+              zIndex: 2147483647,
               transform: 'translate(-50%, -100%)',
-              backgroundColor: '#090d16',
+              backgroundColor: 'rgba(9, 13, 22, 0.95)',
               color: '#f87171',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
+              border: '1px solid rgba(239, 68, 68, 0.35)',
               borderRadius: '8px',
-              padding: '8px 12px',
+              padding: '10px 14px',
               fontSize: '0.72rem',
               fontWeight: 500,
               whiteSpace: 'normal',
               width: 'max-content',
-              maxWidth: '280px',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+              maxWidth: '300px',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.7)',
               pointerEvents: 'none',
               lineHeight: '1.4',
-              textAlign: 'center',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)'
+              textAlign: 'left',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)'
             }}
           >
-            <div style={{ fontWeight: 700, marginBottom: '2px', color: '#ef4444' }}>Scan Error Detail:</div>
-            {errorMessage || 'Check failed'}
+            <div style={{ fontWeight: 700, marginBottom: '4px', color: '#ef4444', borderBottom: '1px solid rgba(239, 68, 68, 0.15)', paddingBottom: '3px' }}>Scan Error Detail:</div>
+            <div style={{ wordBreak: 'break-word', color: '#fca5a5', marginBottom: '8px', fontSize: '0.70rem', opacity: 0.95 }}>{errorMessage || 'Check failed'}</div>
+            
+            <div style={{ borderTop: '1px solid rgba(239, 68, 68, 0.15)', paddingTop: '6px' }}>
+              <div style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: '2px' }}>Reason:</div>
+              <div style={{ color: '#f87171', fontSize: '0.68rem', marginBottom: '6px' }}>{errorDetail.reason}</div>
+              
+              <div style={{ color: '#10b981', fontWeight: 700, fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: '2px' }}>Recommended Fix:</div>
+              <div style={{ color: '#a7f3d0', fontSize: '0.68rem' }}>{errorDetail.fix}</div>
+            </div>
             {/* Arrow */}
             <div style={{
               position: 'absolute',
