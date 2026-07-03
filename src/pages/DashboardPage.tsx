@@ -170,7 +170,7 @@ interface DashboardPageProps {
 const isBuildActive = (run: any) => {
   if (!run || !run.state) return false;
   const s = run.state.toLowerCase();
-  return s === 'inprogress' || s === 'running' || s === 'canceling' || s === 'cancelling' || s === 'notstarted' || s === 'queued';
+  return s === 'inprogress' || s === 'running' || s === 'canceling' || s === 'cancelling' || s === 'notstarted' || s === 'queued' || s === 'waiting';
 };
 
 const COMPLIANT_REASONS: Record<string, string> = {
