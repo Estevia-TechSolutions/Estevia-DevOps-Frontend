@@ -701,18 +701,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   // Collapse All / Expand All helper
   const allGroupsCollapsed = React.useMemo(() => {
-    if (Object.keys(collapsedScanGroups).length === 0) return false;
-    return Object.values(collapsedScanGroups).every(v => v === true);
-  }, [collapsedScanGroups]);
+    // If every group has not been expanded (i.e. isCollapsed is true for all groups)
+    return appGroups.every(g => collapsedScanGroups[g.key] !== false);
+  }, [collapsedScanGroups, appGroups]);
 
   const toggleCollapseAll = React.useCallback(() => {
+    const newMap: Record<string, boolean> = {};
     if (allGroupsCollapsed) {
-      setCollapsedScanGroups({});
+      // Expand all groups (set collapse state to false)
+      for (const g of appGroups) newMap[g.key] = false;
     } else {
-      const newMap: Record<string, boolean> = {};
+      // Collapse all groups (set collapse state to true)
       for (const g of appGroups) newMap[g.key] = true;
-      setCollapsedScanGroups(newMap);
     }
+    setCollapsedScanGroups(newMap);
   }, [allGroupsCollapsed, appGroups, setCollapsedScanGroups]);
 
   // Ref to hold live overrides and avoid dependency trigger loops in effect

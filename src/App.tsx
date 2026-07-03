@@ -958,7 +958,9 @@ function App() {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [collapsedScanGroups, setCollapsedScanGroups] = useState<Record<string, boolean>>({});
   const toggleGroupScan = (key: string) => {
-    setCollapsedScanGroups(prev => ({ ...prev, [key]: !prev[key] }));
+    // isCollapsed = value !== false (undefined → true, false → false, true → true)
+    // So to toggle: we flip the isCollapsed result → set to !(current !== false)
+    setCollapsedScanGroups(prev => ({ ...prev, [key]: !(prev[key] !== false) }));
   };
   const [selectedStageForJobs, setSelectedStageForJobs] = useState<any | null>(null);
   const [selectedJobForDetails, setSelectedJobForDetails] = useState<any | null>(null);
