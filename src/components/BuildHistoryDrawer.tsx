@@ -577,7 +577,7 @@ export const BuildHistoryDrawer: React.FC<BuildHistoryDrawerProps> = ({
                               {!isQueued && !build.result && <RefreshCw size={9} className="spin-anim" style={{ color: buildStatusColorObj.color }} />}
                               {displayStatus}
                             </span>
-                            {isQueued && build.queuePosition != null && (
+                            {isQueued && (
                               <span style={{
                                 fontSize: '0.62rem',
                                 fontWeight: 800,
@@ -592,7 +592,7 @@ export const BuildHistoryDrawer: React.FC<BuildHistoryDrawerProps> = ({
                                 letterSpacing: '0.02em'
                               }}>
                                 <Clock size={9} />
-                                Queue #{build.queuePosition}
+                                {build.queuePosition != null ? `Queue #${build.queuePosition}` : 'Queued'}
                               </span>
                             )}
                           </div>
