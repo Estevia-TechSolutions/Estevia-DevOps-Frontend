@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { X, RefreshCw, GitBranch, User, Calendar, ExternalLink, AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { X, RefreshCw, GitBranch, User, Calendar, ExternalLink, AlertTriangle, CheckCircle2, ShieldAlert, Clock } from 'lucide-react';
 
 interface BuildRun {
-  id: number;
+  id: number | string;
   buildNumber: string;
   branch: string;
   result: string; // succeeded, failed, canceled, partiallySucceeded, inProgress
+  status?: string;
   startTime: string | null;
   finishTime: string | null;
   sourceVersion: string; // commit SHA
@@ -127,11 +128,15 @@ export const BuildHistoryDrawer: React.FC<BuildHistoryDrawerProps> = ({
     }
   }, [isOpen, pipelineId, appName]);
 
-  const getStatusColor = (result: string) => {
+  const getStatusColor = (result: string, buildStatus?: string) => {
     const r = (result || '').toLowerCase();
+    const s = (buildStatus || '').toLowerCase();
     if (r === 'succeeded') return { bg: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', border: 'rgba(34, 197, 94, 0.2)' };
     if (r === 'failed') return { bg: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'rgba(239, 68, 68, 0.2)' };
     if (r === 'canceled' || r === 'cancelled' || r === 'partiallysucceeded') return { bg: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', border: 'rgba(245, 158, 11, 0.2)' };
+    if (s === 'notstarted' || s === 'queued' || s === 'waiting' || s === 'pending') {
+      return { bg: 'rgba(245, 158, 11, 0.08)', color: '#f59e0b', border: 'rgba(245, 158, 11, 0.25)' };
+    }
     return { bg: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', border: 'rgba(59, 130, 246, 0.2)' }; // inProgress or running
   };
 
@@ -496,9 +501,12 @@ export const BuildHistoryDrawer: React.FC<BuildHistoryDrawerProps> = ({
                   )}
 
                   {builds.map((build) => {
-                    const status = getStatusColor(build.result);
+                    const buildStatusColorObj = getStatusColor(build.result, build.status);
                     const isProd = isProdBranch(build.branch);
                     const canRedeployThis = canAct && (!isProd || ['owner', 'admin'].includes(userRole));
+                    
+                    const isQueued = !build.result && ['notstarted', 'queued', 'waiting', 'pending'].includes((build.status || '').toLowerCase());
+                    const displayStatus = build.result ? build.result : (isQueued ? 'Queued' : 'Running');
 
                     return (
                       <div
@@ -522,13 +530,18 @@ export const BuildHistoryDrawer: React.FC<BuildHistoryDrawerProps> = ({
                               fontSize: '0.62rem',
                               fontWeight: 800,
                               textTransform: 'uppercase',
-                              backgroundColor: status.bg,
-                              color: status.color,
-                              border: `1px solid ${status.border}`,
+                              backgroundColor: buildStatusColorObj.bg,
+                              color: buildStatusColorObj.color,
+                              border: `1px solid ${buildStatusColorObj.border}`,
                               padding: '1px 6px',
-                              borderRadius: '4px'
+                              borderRadius: '4px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
                             }}>
-                              {build.result || 'Running'}
+                              {isQueued && <Clock size={10} style={{ color: buildStatusColorObj.color }} />}
+                              {!isQueued && !build.result && <RefreshCw size={9} className="spin-anim" style={{ color: buildStatusColorObj.color }} />}
+                              {displayStatus}
                             </span>
                           </div>
 

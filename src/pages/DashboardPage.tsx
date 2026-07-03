@@ -1657,8 +1657,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   };
 
   const getStageColor = (result: string | null, state: string) => {
-    if (state === 'inProgress') return 'var(--accent-purple)';
-    if (state === 'waiting') return 'var(--text-secondary)';
+    const s = (state || '').toLowerCase();
+    if (s === 'inprogress' || s === 'running') return 'var(--accent-purple)';
+    if (s === 'waiting' || s === 'queued' || s === 'notstarted') return '#f59e0b';
     if (result === 'succeeded') return 'var(--success)';
     if (result === 'failed') return 'var(--error)';
     if (result === 'canceled') return '#ef4444';
@@ -1667,8 +1668,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   };
 
   const getStageIcon = (result: string | null, state: string) => {
-    if (state === 'inProgress') {
+    const s = (state || '').toLowerCase();
+    if (s === 'inprogress' || s === 'running') {
       return <RefreshCw size={11} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />;
+    }
+    if (s === 'waiting' || s === 'queued' || s === 'notstarted') {
+      return <Clock size={11} style={{ color: '#f59e0b' }} />;
     }
     if (result === 'succeeded') {
       return <CheckCircle2 size={11} style={{ color: 'var(--success)' }} />;
@@ -2474,7 +2479,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         <span><strong style={{ color: activeCategory.color }}>{activeCategory.label} ({activeCategory.shortLabel}):</strong> {activeCategory.description}</span>
                       </div>
                     )}
-
                     {/* ── Active Tab Groups ── */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                       {(activeCategory?.groups ?? []).map((group) => {
@@ -2483,7 +2487,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         const accentGlow = group.type === 'vm' ? '0 0 10px rgba(245,158,11,0.4)' : (group.type === 'frontend' ? '0 0 10px var(--accent-purple-glow)' : '0 0 10px var(--accent-teal-glow)');
 
                         const isCollapsed = collapsedScanGroups[group.key] !== false;
-                        const groupHasActiveDeployment = group.envs.some(app => !!(app.pipelineRun && isBuildActive(app.pipelineRun)));
+                        const activeRuns = group.envs.filter(app => app.pipelineRun && isBuildActive(app.pipelineRun));
+                        const hasInProgress = activeRuns.some(app => {
+                          const s = (app.pipelineRun?.state || '').toLowerCase();
+                          return s !== 'notstarted' && s !== 'queued' && s !== 'waiting';
+                        });
+                        const hasQueued = activeRuns.some(app => {
+                          const s = (app.pipelineRun?.state || '').toLowerCase();
+                          return s === 'notstarted' || s === 'queued' || s === 'waiting';
+                        });
+                        const groupHasActiveDeployment = activeRuns.length > 0;
 
                         const health = ymlHealthMap?.[group.key];
                         const isLoading = ymlHealthLoading?.[group.key];
@@ -2567,7 +2580,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               </div>
 
                               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                {groupHasActiveDeployment && (
+                                 {hasInProgress && (
                                   <span style={{
                                     fontSize: '0.68rem',
                                     fontWeight: 700,
@@ -2583,6 +2596,24 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                   }}>
                                     <RefreshCw size={10} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
                                     BUILD IN PROGRESS
+                                  </span>
+                                )}
+                                {!hasInProgress && hasQueued && (
+                                  <span style={{
+                                    fontSize: '0.68rem',
+                                    fontWeight: 700,
+                                    color: '#f59e0b',
+                                    background: 'rgba(245, 158, 11, 0.12)',
+                                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                                    padding: '3px 8px',
+                                    borderRadius: '12px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    boxShadow: '0 0 8px rgba(245, 158, 11, 0.2)'
+                                  }}>
+                                    <Clock size={10} style={{ color: '#f59e0b' }} />
+                                    BUILD QUEUED
                                   </span>
                                 )}
 
@@ -3260,24 +3291,47 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                               <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
                                                 <GitBranch size={12} style={{ opacity: 0.7, color: 'var(--accent-purple)', flexShrink: 0 }} />
                                                 <span>Branch: <strong style={{ color: 'var(--text-primary)' }}>{resolveBranchName(item)}</strong></span>
-                                                {item.pipelineRun && isBuildActive(item.pipelineRun) && (
-                                                  <span style={{
-                                                    marginLeft: '8px',
-                                                    display: 'inline-flex',
-                                                    alignItems: 'center',
-                                                    gap: '4px',
-                                                    color: 'var(--accent-purple)',
-                                                    fontWeight: 600,
-                                                    fontSize: '0.68rem',
-                                                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                                                    padding: '1px 6px',
-                                                    borderRadius: '4px',
-                                                    border: '1px solid rgba(139, 92, 246, 0.2)'
-                                                  }}>
-                                                    <RefreshCw size={10} className="spin-anim" />
-                                                    Build in progress...
-                                                  </span>
-                                                )}
+                                                {item.pipelineRun && isBuildActive(item.pipelineRun) && (() => {
+                                                  const isQueued = ['notstarted', 'queued', 'waiting'].includes((item.pipelineRun.state || '').toLowerCase());
+                                                  if (isQueued) {
+                                                    return (
+                                                      <span style={{
+                                                        marginLeft: '8px',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px',
+                                                        color: '#f59e0b',
+                                                        fontWeight: 600,
+                                                        fontSize: '0.68rem',
+                                                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                                        padding: '1px 6px',
+                                                        borderRadius: '4px',
+                                                        border: '1px solid rgba(245, 158, 11, 0.2)'
+                                                      }}>
+                                                        <Clock size={10} />
+                                                        Build queued...
+                                                      </span>
+                                                    );
+                                                  }
+                                                  return (
+                                                    <span style={{
+                                                      marginLeft: '8px',
+                                                      display: 'inline-flex',
+                                                      alignItems: 'center',
+                                                      gap: '4px',
+                                                      color: 'var(--accent-purple)',
+                                                      fontWeight: 600,
+                                                      fontSize: '0.68rem',
+                                                      backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                                                      padding: '1px 6px',
+                                                      borderRadius: '4px',
+                                                      border: '1px solid rgba(139, 92, 246, 0.2)'
+                                                    }}>
+                                                      <RefreshCw size={10} className="spin-anim" />
+                                                      Build in progress...
+                                                    </span>
+                                                  );
+                                                })()}
                                                 {item.pipelineId && !item.pipelineRun && !loadedPipelines[item.pipelineId] && (
                                                   <span style={{
                                                     marginLeft: '8px',
@@ -4695,7 +4749,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                             }
 
                                             const isExpanded = expandedBuilds[item.name] ?? isBuildActive(item.pipelineRun);
-                                            const runStatus = isBuildActive(item.pipelineRun) ? 'BUILDING' : item.pipelineRun.result || item.pipelineRun.state;
+                                            const runState = (item.pipelineRun?.state || '').toLowerCase();
+                                            const runStatus = isBuildActive(item.pipelineRun) 
+                                               ? (runState === 'notstarted' || runState === 'queued' || runState === 'waiting' ? 'QUEUED' : 'BUILDING')
+                                               : item.pipelineRun.result || item.pipelineRun.state;
                                             const runStatusColor = getStageColor(item.pipelineRun.result, item.pipelineRun.state);
 
                                             return (
@@ -6341,10 +6398,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 statusColor = 'var(--accent-purple)';
               } else if (run) {
                 if (isBuildActive(run)) {
-                  timeLabel = '🔄 Building now…';
-                  timeColor = '#34d399';
-                  statusLabel = 'BUILDING';
-                  statusColor = '#34d399';
+                  const s = (run.state || '').toLowerCase();
+                  const isQueued = s === 'notstarted' || s === 'queued' || s === 'waiting';
+                  timeLabel = isQueued ? '⏳ Queued in pipeline…' : '🔄 Building now…';
+                  timeColor = isQueued ? '#fbbf24' : '#34d399';
+                  statusLabel = isQueued ? 'QUEUED' : 'BUILDING';
+                  statusColor = isQueued ? '#fbbf24' : '#34d399';
                 } else {
                   if (finishTime) {
                     try {
@@ -6417,6 +6476,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         gap: '3px'
                       }}>
                         {statusLabel === 'LOADING' && <RefreshCw size={8} className="spin-anim" />}
+                        {statusLabel === 'BUILDING' && <RefreshCw size={8} className="spin-anim" style={{ color: statusColor }} />}
+                        {statusLabel === 'QUEUED' && <Clock size={8} style={{ color: statusColor }} />}
                         {statusLabel}
                       </span>
                     )}
