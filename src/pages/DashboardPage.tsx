@@ -2378,7 +2378,40 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                         border: '1px solid var(--glass-border)'
                       }}
                     >
-                      {/* Keep your existing Health buttons here unchanged */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0 }}>Health</span>
+                        <div style={{ display: 'flex', gap: '4px', background: theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.03)', padding: '3px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+                          {([
+                            { key: 'all', label: 'All', icon: null, color: 'var(--accent-purple)', bg: 'rgba(139,92,246,0.15)', border: 'rgba(139,92,246,0.3)' },
+                            { key: 'healthy', label: 'Healthy', icon: <CheckCircle2 size={11} />, color: '#34d399', bg: 'rgba(52,211,153,0.15)', border: 'rgba(52,211,153,0.3)' },
+                            { key: 'issues', label: 'Issues', icon: <AlertTriangle size={11} />, color: '#f59e0b', bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)' }
+                          ] as const).map(({ key, label, icon, color, bg, border }) => {
+                            const isActive = healthFilter === key;
+                            return (
+                              <button key={key} type="button" onClick={() => setHealthFilter(key)} style={{
+                                padding: '5px 12px',
+                                height: '28px',
+                                borderRadius: '6px',
+                                border: isActive ? `1px solid ${border}` : '1px solid transparent',
+                                background: isActive ? bg : 'transparent',
+                                color: isActive ? color : 'var(--text-secondary)',
+                                fontWeight: isActive ? 700 : 500,
+                                fontSize: '0.72rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                              }}
+                                onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; } }}
+                                onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'transparent'; } }}
+                              >
+                                {icon}{label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -2443,6 +2476,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                     {allGroupsCollapsed ? 'Expand All' : 'Collapse All'}
                   </button>
                 </div>
+
               </div>
 
               {(() => {
