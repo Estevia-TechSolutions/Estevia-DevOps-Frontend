@@ -263,6 +263,44 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     }
   };
 
+  const [cancelingOlderForPipeline, setCancelingOlderForPipeline] = React.useState<number | string | null>(null);
+
+  const handleCancelOlderBuilds = async (pipelineId: number | string | undefined) => {
+    if (!pipelineId) return;
+    setCancelingOlderForPipeline(pipelineId);
+    try {
+      const token = localStorage.getItem('devops_token');
+      const res = await fetch(`${API_BASE}/apps/pipeline/cancel-older`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ organizationId, pipelineId })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (onBuildTransition) {
+          onBuildTransition(
+            'Older Builds Cancelled',
+            data.message || 'Older pipeline builds cancelled. Only the latest run continues.',
+            'success'
+          );
+        } else {
+          alert(data.message || 'Older builds cancelled successfully!');
+        }
+        handleScan();
+      } else {
+        alert(data.message || 'Failed to cancel older builds.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert('Error cancelling older builds: ' + (err.message || err));
+    } finally {
+      setCancelingOlderForPipeline(null);
+    }
+  };
+
   // ── License-tier enforcement helpers ───────────────────────────────
   const GROWTH_ALLOWED_RULES = new Set(['tagging', 'tls', 'network-security']);
   const isRuleLockedByTier = (ruleId: string) =>
@@ -2041,7 +2079,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                 gap: '12px'
               }}>
                 {/* Search Input wrapper */}
-                <div style={{ position: 'relative', flex: '1 1 300px' }}>
+                <div style={{ position: 'relative', display: 'flex' }}>
                   <Search size={18} style={{
                     position: 'absolute',
                     left: '14px',
@@ -2089,6 +2127,321 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                       <X size={16} />
                     </button>
                   )}
+                </div>
+
+                {/* ───────────────────── Single Toolbar ───────────────────── */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '16px',
+                    width: '100%',
+                    flexWrap: 'nowrap',
+                    overflowX: 'auto',
+                    paddingBottom: '2px'
+                  }}
+                >
+                  {/* ================= ENV ================= */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                    <span
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        color: 'var(--text-secondary)',
+                        letterSpacing: '0.04em',
+                        textTransform: 'uppercase'
+                      }}
+                    >
+                      Env
+                    </span>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background:
+                          theme === 'light'
+                            ? 'rgba(0,0,0,0.04)'
+                            : 'rgba(255,255,255,0.03)',
+                        padding: '3px',
+                        borderRadius: '10px',
+                        border: '1px solid var(--glass-border)'
+                      }}
+                    >
+                      {(['all', 'dev', 'qa', 'prod'] as const).map((env) => {
+                        const isActive = selectedEnvFilter === env;
+
+                        const activeColor =
+                          env === 'dev'
+                            ? '#60a5fa'
+                            : env === 'qa'
+                              ? '#f59e0b'
+                              : env === 'prod'
+                                ? '#34d399'
+                                : 'var(--accent-purple)';
+
+                        const activeBg =
+                          env === 'dev'
+                            ? 'rgba(96,165,250,0.15)'
+                            : env === 'qa'
+                              ? 'rgba(245,158,11,0.15)'
+                              : env === 'prod'
+                                ? 'rgba(52,211,153,0.15)'
+                                : 'rgba(139,92,246,0.15)';
+
+                        const activeBorder =
+                          env === 'dev'
+                            ? 'rgba(96,165,250,0.3)'
+                            : env === 'qa'
+                              ? 'rgba(245,158,11,0.3)'
+                              : env === 'prod'
+                                ? 'rgba(52,211,153,0.3)'
+                                : 'rgba(139,92,246,0.3)';
+
+                        return (
+                          <button
+                            key={env}
+                            type="button"
+                            onClick={() => setSelectedEnvFilter(env)}
+                            style={{
+                              padding: '6px 14px',
+                              borderRadius: '8px',
+                              border: isActive
+                                ? `1px solid ${activeBorder}`
+                                : '1px solid transparent',
+                              background: isActive ? activeBg : 'transparent',
+                              color: isActive ? activeColor : 'var(--text-secondary)',
+                              fontWeight: isActive ? 700 : 500,
+                              fontSize: '0.75rem',
+                              textTransform: 'uppercase',
+                              height: '30px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {env}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div
+                    style={{
+                      width: '1px',
+                      height: '20px',
+                      background: 'var(--glass-border)',
+                      flexShrink: 0
+                    }}
+                  />
+
+                  {/* ================= STATUS ================= */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                    <span
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        color: 'var(--text-secondary)',
+                        letterSpacing: '0.04em',
+                        textTransform: 'uppercase'
+                      }}
+                    >
+                      Status
+                    </span>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '4px',
+                        background:
+                          theme === 'light'
+                            ? 'rgba(0,0,0,0.04)'
+                            : 'rgba(255,255,255,0.03)',
+                        padding: '3px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--glass-border)'
+                      }}
+                    >
+                      {([
+                        {
+                          key: 'all',
+                          label: 'All',
+                          icon: null,
+                          color: 'var(--accent-purple)',
+                          bg: 'rgba(139,92,246,0.15)',
+                          border: 'rgba(139,92,246,0.3)'
+                        },
+                        {
+                          key: 'running',
+                          label: 'Running',
+                          icon: (
+                            <span
+                              style={{
+                                width: 7,
+                                height: 7,
+                                borderRadius: '50%',
+                                background: '#34d399'
+                              }}
+                            />
+                          ),
+                          color: '#34d399',
+                          bg: 'rgba(52,211,153,0.15)',
+                          border: 'rgba(52,211,153,0.3)'
+                        },
+                        {
+                          key: 'stopped',
+                          label: 'Stopped',
+                          icon: (
+                            <span
+                              style={{
+                                width: 7,
+                                height: 7,
+                                borderRadius: '50%',
+                                background: '#f87171'
+                              }}
+                            />
+                          ),
+                          color: '#f87171',
+                          bg: 'rgba(248,113,113,0.15)',
+                          border: 'rgba(248,113,113,0.3)'
+                        }
+                      ] as const).map(({ key, label, icon, color, bg, border }) => {
+                        const isActive = statusFilter === key;
+
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => setStatusFilter(key)}
+                            style={{
+                              padding: '5px 12px',
+                              height: '28px',
+                              borderRadius: '6px',
+                              border: isActive
+                                ? `1px solid ${border}`
+                                : '1px solid transparent',
+                              background: isActive ? bg : 'transparent',
+                              color: isActive ? color : 'var(--text-secondary)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              fontSize: '0.72rem',
+                              fontWeight: isActive ? 700 : 500,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {icon}
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div
+                    style={{
+                      width: '1px',
+                      height: '20px',
+                      background: 'var(--glass-border)',
+                      flexShrink: 0
+                    }}
+                  />
+
+                  {/* ================= HEALTH ================= */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                    <span
+                      style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        color: 'var(--text-secondary)',
+                        letterSpacing: '0.04em',
+                        textTransform: 'uppercase'
+                      }}
+                    >
+                      Health
+                    </span>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '4px',
+                        background:
+                          theme === 'light'
+                            ? 'rgba(0,0,0,0.04)'
+                            : 'rgba(255,255,255,0.03)',
+                        padding: '3px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--glass-border)'
+                      }}
+                    >
+                      {/* Keep your existing Health buttons here unchanged */}
+                    </div>
+                  </div>
+
+                  {/* Push buttons to right */}
+                  <div style={{ flex: 1 }} />
+
+                  {/* Clear Filters */}
+                  {(statusFilter !== 'all' || healthFilter !== 'all') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStatusFilter('all');
+                        setHealthFilter('all');
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(248,113,113,0.3)',
+                        background: 'rgba(248,113,113,0.08)',
+                        color: '#f87171',
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <X size={11} />
+                      Clear Filters
+                    </button>
+                  )}
+
+                  {/* Collapse All */}
+                  <button
+                    type="button"
+                    onClick={toggleCollapseAll}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 14px',
+                      height: '30px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--glass-border)',
+                      background: allGroupsCollapsed
+                        ? theme === 'light'
+                          ? 'rgba(139,92,246,0.08)'
+                          : 'rgba(139,92,246,0.12)'
+                        : theme === 'light'
+                          ? 'rgba(0,0,0,0.04)'
+                          : 'rgba(255,255,255,0.04)',
+                      color: allGroupsCollapsed
+                        ? 'var(--accent-purple)'
+                        : 'var(--text-secondary)',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {allGroupsCollapsed ? <ChevronsUp size={14} /> : <ChevronsDown size={14} />}
+                    {allGroupsCollapsed ? 'Expand All' : 'Collapse All'}
+                  </button>
                 </div>
 
                 {/* ── Row 1: Env filter + Collapse All ── */}
@@ -2622,7 +2975,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                               </div>
 
                               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                 {hasInProgress && (
+                                {hasInProgress && (
                                   <span style={{
                                     fontSize: '0.68rem',
                                     fontWeight: 700,
@@ -4839,9 +5192,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                                             const isExpanded = expandedBuilds[item.name] ?? isBuildActive(item.pipelineRun);
                                             const runState = (item.pipelineRun?.state || '').toLowerCase();
-                                            const runStatus = isBuildActive(item.pipelineRun) 
-                                               ? (runState === 'notstarted' || runState === 'queued' || runState === 'waiting' ? 'QUEUED' : 'BUILDING')
-                                               : item.pipelineRun.result || item.pipelineRun.state;
+                                            const runStatus = isBuildActive(item.pipelineRun)
+                                              ? (runState === 'notstarted' || runState === 'queued' || runState === 'waiting' ? 'QUEUED' : 'BUILDING')
+                                              : item.pipelineRun.result || item.pipelineRun.state;
                                             const runStatusColor = getStageColor(item.pipelineRun.result, item.pipelineRun.state);
 
                                             return (
@@ -5789,10 +6142,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                     ? 'rgba(255, 255, 255, 0.02)'
                                     : 'rgba(239, 68, 68, 0.04)',
                                 border: `1px solid ${rule.status === 'passed'
-                                    ? 'rgba(16, 185, 129, 0.15)'
-                                    : rule.status === 'disabled'
-                                      ? 'var(--glass-border)'
-                                      : 'rgba(239, 68, 68, 0.15)'
+                                  ? 'rgba(16, 185, 129, 0.15)'
+                                  : rule.status === 'disabled'
+                                    ? 'var(--glass-border)'
+                                    : 'rgba(239, 68, 68, 0.15)'
                                   }`,
                                 overflow: 'hidden',
                                 fontSize: '0.72rem',
