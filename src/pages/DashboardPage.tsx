@@ -1772,20 +1772,48 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     }).filter(group => {
       if (group.envs.length === 0) return false;
 
-      // Health filter: applied at group level using ymlHealthMap
+      // Health filter: applied at group level using ymlHealthMap and network checks
       if (healthFilter !== 'all') {
         const health = ymlHealthMap?.[group.key];
-        // Groups without health data are neutral — only exclude on explicit health match fail
-        if (health) {
-          const overall = (health.overallHealth || '').toLowerCase();
-          const isHealthy = overall === 'healthy' || overall === 'passing' || overall === 'ok';
-          const hasIssues = overall === 'warning' || overall === 'error' || overall === 'failing' || overall === 'critical';
-          if (healthFilter === 'healthy' && !isHealthy) return false;
-          if (healthFilter === 'issues' && !hasIssues) return false;
-        } else if (healthFilter === 'healthy') {
-          // No health data => not confirmed healthy, skip for healthy filter
+        
+        // 1. Resolve network issues (present on any active env of this group)
+        let hasNetworkIssues = false;
+        for (const app of group.envs) {
+          const validation = checkNetworkWarnings(app, group);
+          if (validation && (validation.status === 'critical' || validation.status === 'unverified' || validation.status === 'warning')) {
+            hasNetworkIssues = true;
+            break;
+          }
+        }
+
+        // 2. Resolve scan pending or scan error states
+        if (!health) {
+          // No health scan data yet -> cannot be confirmed healthy or confirmed having issues
           return false;
         }
+
+        if (health.error) {
+          // A failed scan is considered an issue
+          if (healthFilter === 'healthy') return false;
+          if (healthFilter === 'issues') return true;
+          return false;
+        }
+
+        // 3. Resolve YAML and Dockerfile health states
+        const yml = health.ymlHealth;
+        const docker = health.dockerfileHealth;
+
+        const isYmlHealthy = yml && (group.type === 'frontend' && !yml.exists ? true : (yml.exists && yml.valid && yml.warningCount === 0));
+        const isDockerHealthy = group.type !== 'backend' || !docker || !docker.exists || (docker.valid && docker.warningCount === 0);
+        
+        const isHealthy = isYmlHealthy && isDockerHealthy && !hasNetworkIssues;
+        
+        const hasYmlIssues = yml && yml.exists && (!yml.valid || yml.warningCount > 0);
+        const hasDockerIssues = docker && docker.exists && (!docker.valid || docker.warningCount > 0);
+        const hasIssues = hasYmlIssues || hasDockerIssues || hasNetworkIssues;
+
+        if (healthFilter === 'healthy' && !isHealthy) return false;
+        if (healthFilter === 'issues' && !hasIssues) return false;
       }
 
       return true;
