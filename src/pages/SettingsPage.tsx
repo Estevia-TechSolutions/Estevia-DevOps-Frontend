@@ -154,40 +154,50 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     const isINR = currency === 'INR';
     const type = (inv.invoice_type || '').toLowerCase();
     
+    const formatValue = (usdVal: number, inrVal: number, suffix = '') => {
+      const usdStr = `$${usdVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${suffix}`;
+      const inrStr = `₹${Math.round(inrVal).toLocaleString()}${suffix}`;
+      return isINR ? `${inrStr} (≈ ${usdStr})` : `${usdStr} (≈ ${inrStr})`;
+    };
+
     if (type === 'devops_package') {
       lines.push(
         { label: 'Item Type', value: '🚀 DevOps Sub-Package Fee' },
-        { label: 'Base Subscription Price', value: isINR ? '₹12,500 / month' : '$150.00 / month' },
-        { label: 'Total Billed', value: isINR ? `₹${amount.toLocaleString()}` : `$${amount.toLocaleString()} USD`, bold: true }
+        { label: 'Base Subscription Price', value: formatValue(150, 12500, ' / month') },
+        { label: 'Total Billed', value: formatValue(isINR ? amount / 83.3333 : amount, isINR ? amount : amount * 83.3333), bold: true }
       );
     } else if (type === 'developer_package') {
       lines.push(
         { label: 'Item Type', value: '💻 Developer Sub-Package Fee' },
-        { label: 'Base Subscription Price', value: isINR ? '₹8,250 / month' : '$99.00 / month' },
-        { label: 'Total Billed', value: isINR ? `₹${amount.toLocaleString()}` : `$${amount.toLocaleString()} USD`, bold: true }
+        { label: 'Base Subscription Price', value: formatValue(99, 8250, ' / month') },
+        { label: 'Total Billed', value: formatValue(isINR ? amount / 83.3333 : amount, isINR ? amount : amount * 83.3333), bold: true }
       );
     } else if (type === 'security_package') {
       lines.push(
         { label: 'Item Type', value: '🛡️ Security Sub-Package Fee' },
-        { label: 'Base Subscription Price', value: isINR ? '₹10,000 / month' : '$120.00 / month' },
-        { label: 'Total Billed', value: isINR ? `₹${amount.toLocaleString()}` : `$${amount.toLocaleString()} USD`, bold: true }
+        { label: 'Base Subscription Price', value: formatValue(120, 10000, ' / month') },
+        { label: 'Total Billed', value: formatValue(isINR ? amount / 83.3333 : amount, isINR ? amount : amount * 83.3333), bold: true }
       );
     } else {
-      const baseRate = isINR 
-        ? (licenseTier === 'growth' ? 83333 : licenseTier === 'enterprise' ? 166666 : 333333)
-        : (licenseTier === 'growth' ? 1000 : licenseTier === 'enterprise' ? 2000 : 4000);
-      const seatPrice = isINR ? (licenseTier === 'growth' ? 3333 : licenseTier === 'enterprise' ? 7500 : 2500)
-                              : (licenseTier === 'growth' ? 40 : licenseTier === 'enterprise' ? 90 : 30);
+      const baseRateUSD = licenseTier === 'growth' ? 1000 : licenseTier === 'enterprise' ? 2000 : 4000;
+      const baseRateINR = licenseTier === 'growth' ? 83333 : licenseTier === 'enterprise' ? 166666 : 333333;
+      const baseRate = isINR ? baseRateINR : baseRateUSD;
+
+      const seatPriceUSD = licenseTier === 'growth' ? 40 : licenseTier === 'enterprise' ? 90 : 30;
+      const seatPriceINR = licenseTier === 'growth' ? 3333 : licenseTier === 'enterprise' ? 7500 : 2500;
+      const seatPrice = isINR ? seatPriceINR : seatPriceUSD;
+
       const billedSeats = Math.max(0, Math.round((amount - baseRate) / seatPrice));
-      const seatTotal = billedSeats * seatPrice;
+      const seatTotalUSD = billedSeats * seatPriceUSD;
+      const seatTotalINR = billedSeats * seatPriceINR;
 
       lines.push(
         { label: 'Item Type', value: '🏢 Platform Seat & License Fee' },
-        { label: 'Base Platform Rate', value: isINR ? `₹${baseRate.toLocaleString()} / month` : `$${baseRate.toLocaleString()}.00 / month` },
+        { label: 'Base Platform Rate', value: formatValue(baseRateUSD, baseRateINR, ' / month') },
         { label: 'Seat Allocation', value: `${billedSeats} active seat${billedSeats !== 1 ? 's' : ''}` },
-        { label: 'Rate Per Seat', value: isINR ? `₹${seatPrice.toLocaleString()} / seat` : `$${seatPrice.toLocaleString()}.00 / seat` },
-        { label: 'Total Seat Surcharge', value: isINR ? `₹${seatTotal.toLocaleString()}` : `$${seatTotal.toLocaleString()}.00` },
-        { label: 'Total Amount Due', value: isINR ? `₹${amount.toLocaleString()}` : `$${amount.toLocaleString()} USD`, bold: true }
+        { label: 'Rate Per Seat', value: formatValue(seatPriceUSD, seatPriceINR, ' / seat') },
+        { label: 'Total Seat Surcharge', value: formatValue(seatTotalUSD, seatTotalINR) },
+        { label: 'Total Amount Due', value: formatValue(isINR ? amount / 83.3333 : amount, isINR ? amount : amount * 83.3333), bold: true }
       );
     }
     return lines;
@@ -1358,151 +1368,150 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                           </tr>
                         ) : (
                           invoices.map((inv: any) => (
-                            <tr key={inv.id} style={{ borderBottom: '1px solid var(--divider)' }}>
-                              <td style={{ padding: '14px 18px', fontWeight: 600 }}>{inv.invoice_number}</td>
-                              <td style={{ padding: '14px 18px' }}>
-                                <span style={{
-                                  padding: '3px 8px',
-                                  borderRadius: '4px',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 700,
-                                  textTransform: 'uppercase',
-                                  whiteSpace: 'nowrap',
-                                  background: inv.invoice_type === 'devops_package' ? 'rgba(59,130,246,0.08)'
-                                            : inv.invoice_type === 'developer_package' ? 'rgba(139,92,246,0.08)'
-                                            : inv.invoice_type === 'security_package' ? 'rgba(20,184,166,0.08)'
-                                            : 'rgba(251,191,36,0.08)',
-                                  color: inv.invoice_type === 'devops_package' ? '#60a5fa'
-                                       : inv.invoice_type === 'developer_package' ? '#c084fc'
-                                       : inv.invoice_type === 'security_package' ? '#2dd4bf'
-                                       : '#fbbf24',
-                                  border: inv.invoice_type === 'devops_package' ? '1px solid rgba(59,130,246,0.2)'
-                                        : inv.invoice_type === 'developer_package' ? '1px solid rgba(139,92,246,0.2)'
-                                        : inv.invoice_type === 'security_package' ? '1px solid rgba(20,184,166,0.2)'
-                                        : '1px solid rgba(251,191,36,0.2)'
-                                }}>
-                                  {inv.invoice_type === 'devops_package' ? '🚀 DevOps'
-                                   : inv.invoice_type === 'developer_package' ? '💻 Developer'
-                                   : inv.invoice_type === 'security_package' ? '🛡️ Security'
-                                   : '🏢 Platform'}
-                                </span>
-                              </td>
-                              <td style={{ padding: '14px 18px', position: 'relative' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
-                                  <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-                                    {inv.currency === 'INR' 
-                                      ? `₹${parseFloat(inv.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                      : `$${parseFloat(inv.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                    }
+                            <React.Fragment key={inv.id}>
+                              <tr style={{ borderBottom: expandedBreakdown[inv.id] ? 'none' : '1px solid var(--divider)' }}>
+                                <td style={{ padding: '14px 18px', fontWeight: 600 }}>{inv.invoice_number}</td>
+                                <td style={{ padding: '14px 18px' }}>
+                                  <span style={{
+                                    padding: '3px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                    whiteSpace: 'nowrap',
+                                    background: inv.invoice_type === 'devops_package' ? 'rgba(59,130,246,0.08)'
+                                              : inv.invoice_type === 'developer_package' ? 'rgba(139,92,246,0.08)'
+                                              : inv.invoice_type === 'security_package' ? 'rgba(20,184,166,0.08)'
+                                              : 'rgba(251,191,36,0.08)',
+                                    color: inv.invoice_type === 'devops_package' ? '#60a5fa'
+                                         : inv.invoice_type === 'developer_package' ? '#c084fc'
+                                         : inv.invoice_type === 'security_package' ? '#2dd4bf'
+                                         : '#fbbf24',
+                                    border: inv.invoice_type === 'devops_package' ? '1px solid rgba(59,130,246,0.2)'
+                                          : inv.invoice_type === 'developer_package' ? '1px solid rgba(139,92,246,0.2)'
+                                          : inv.invoice_type === 'security_package' ? '1px solid rgba(20,184,166,0.2)'
+                                          : '1px solid rgba(251,191,36,0.2)'
+                                  }}>
+                                    {inv.invoice_type === 'devops_package' ? '🚀 DevOps'
+                                     : inv.invoice_type === 'developer_package' ? '💻 Developer'
+                                     : inv.invoice_type === 'security_package' ? '🛡️ Security'
+                                     : '🏢 Platform'}
                                   </span>
-                                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                                    {inv.currency === 'INR'
-                                      ? `≈ $${(parseFloat(inv.amount) / 83.3333).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                      : `≈ ₹${Math.round(parseFloat(inv.amount) * 83.3333).toLocaleString(undefined, { minimumFractionDigits: 0 })}`
-                                    }
-                                  </span>
-                                </div>
-                                <button
-                                  type="button"
-                                  title="Show calculation breakdown"
-                                  onClick={(e) => {
-                                    setExpandedBreakdown(prev => ({
-                                      ...prev,
-                                      [inv.id]: !prev[inv.id]
-                                    }));
-                                  }}
-                                  style={{
-                                    background: expandedBreakdown[inv.id] ? 'rgba(99,102,241,0.12)' : 'rgba(245,158,11,0.08)',
-                                    border: `1.5px solid ${expandedBreakdown[inv.id] ? 'rgba(99,102,241,0.35)' : 'rgba(245,158,11,0.4)'}`,
-                                    borderRadius: '6px', padding: '3px 8px', cursor: 'pointer',
-                                    color: expandedBreakdown[inv.id] ? '#818cf8' : '#f59e0b',
-                                    display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                    fontSize: '0.68rem', fontWeight: 800, transition: 'all 0.15s',
-                                    marginTop: '4px', outline: 'none'
-                                  }}
-                                >
-                                  <Info size={11} />
-                                  <span>Breakdown</span>
-                                  {expandedBreakdown[inv.id] ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-                                </button>
-                                
-                                {expandedBreakdown[inv.id] && (() => {
-                                  const lines = getInvoiceBreakdown(inv);
-                                  return (
-                                    <div style={{
-                                      position: 'absolute',
-                                      top: 'calc(100% + 4px)',
-                                      left: '18px',
-                                      width: '280px',
-                                      background: 'rgba(15, 23, 42, 0.98)',
-                                      backdropFilter: 'blur(12px)',
-                                      border: '1.5px solid rgba(139, 92, 246, 0.3)',
-                                      borderRadius: '10px',
-                                      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
-                                      zIndex: 100,
-                                      color: '#f8fafc',
-                                      padding: '12px',
-                                      textAlign: 'left'
-                                    }}>
-                                      <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '4px' }}>
-                                        Calculation Breakup
-                                      </div>
-                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                        {lines.map((line, idx) => (
-                                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
-                                            <span style={{ fontSize: '0.74rem', color: line.dim ? 'var(--text-muted)' : 'var(--text-secondary)' }}>
-                                              {line.label}
-                                            </span>
-                                            <span style={{ fontSize: '0.74rem', color: line.bold ? 'var(--accent-purple)' : 'var(--text-primary)', fontWeight: line.bold ? 800 : 600, whiteSpace: 'nowrap' }}>
-                                              {line.value}
-                                            </span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  );
-                                })()}
-                              </td>
-                              <td style={{ padding: '14px 18px' }}>{new Date(inv.due_date).toLocaleDateString()}</td>
-                              <td style={{ padding: '14px 18px' }}>
-                                <span style={{
-                                  padding: '2px 8px',
-                                  borderRadius: '4px',
-                                  fontSize: '0.68rem',
-                                  fontWeight: 700,
-                                  textTransform: 'uppercase',
-                                  background: inv.status === 'Paid' ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)',
-                                  color: inv.status === 'Paid' ? 'var(--success)' : 'var(--warning)',
-                                  border: inv.status === 'Paid' ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(245,158,11,0.2)'
-                                }}>
-                                  {inv.status}
-                                </span>
-                              </td>
-                              <td style={{ padding: '14px 18px' }}>
-                                {inv.status === 'Pending' ? (
+                                </td>
+                                <td style={{ padding: '14px 18px', position: 'relative' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                                    <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                                      {inv.currency === 'INR' 
+                                        ? `₹${parseFloat(inv.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                        : `$${parseFloat(inv.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                      }
+                                    </span>
+                                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                      {inv.currency === 'INR'
+                                        ? `≈ $${(parseFloat(inv.amount) / 83.3333).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                        : `≈ ₹${Math.round(parseFloat(inv.amount) * 83.3333).toLocaleString(undefined, { minimumFractionDigits: 0 })}`
+                                      }
+                                    </span>
+                                  </div>
                                   <button
                                     type="button"
-                                    onClick={() => { setPayingInvoiceId(inv.id); setPayError(null); }}
+                                    title="Show calculation breakdown"
+                                    onClick={(e) => {
+                                      setExpandedBreakdown(prev => ({
+                                        ...prev,
+                                        [inv.id]: !prev[inv.id]
+                                      }));
+                                    }}
                                     style={{
-                                      padding: '5px 12px',
-                                      borderRadius: '6px',
-                                      border: 'none',
-                                      background: 'linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-blue) 100%)',
-                                      color: '#ffffff',
-                                      fontSize: '0.74rem',
-                                      fontWeight: 600,
-                                      cursor: 'pointer'
+                                      background: expandedBreakdown[inv.id] ? 'rgba(99,102,241,0.12)' : 'rgba(245,158,11,0.08)',
+                                      border: `1.5px solid ${expandedBreakdown[inv.id] ? 'rgba(99,102,241,0.35)' : 'rgba(245,158,11,0.4)'}`,
+                                      borderRadius: '6px', padding: '3px 8px', cursor: 'pointer',
+                                      color: expandedBreakdown[inv.id] ? '#818cf8' : '#f59e0b',
+                                      display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                      fontSize: '0.68rem', fontWeight: 800, transition: 'all 0.15s',
+                                      marginTop: '4px', outline: 'none'
                                     }}
                                   >
-                                    Pay Now
+                                    <Info size={11} />
+                                    <span>Breakdown</span>
+                                    {expandedBreakdown[inv.id] ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
                                   </button>
-                                ) : (
-                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.76rem' }}>
-                                    Settled
+                                </td>
+                                <td style={{ padding: '14px 18px' }}>{new Date(inv.due_date).toLocaleDateString()}</td>
+                                <td style={{ padding: '14px 18px' }}>
+                                  <span style={{
+                                    padding: '2px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.68rem',
+                                    fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                    background: inv.status === 'Paid' ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)',
+                                    color: inv.status === 'Paid' ? 'var(--success)' : 'var(--warning)',
+                                    border: inv.status === 'Paid' ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(245,158,11,0.2)'
+                                  }}>
+                                    {inv.status}
                                   </span>
-                                )}
-                              </td>
-                            </tr>
+                                </td>
+                                <td style={{ padding: '14px 18px' }}>
+                                  {inv.status === 'Pending' ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => { setPayingInvoiceId(inv.id); setPayError(null); }}
+                                      style={{
+                                        padding: '5px 12px',
+                                        borderRadius: '6px',
+                                        border: 'none',
+                                        background: 'linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-blue) 100%)',
+                                        color: '#ffffff',
+                                        fontSize: '0.74rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      Pay Now
+                                    </button>
+                                  ) : (
+                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.76rem' }}>
+                                      Settled
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                              {expandedBreakdown[inv.id] && (() => {
+                                const lines = getInvoiceBreakdown(inv);
+                                return (
+                                  <tr style={{ background: 'rgba(255,255,255,0.015)', borderBottom: '1px solid var(--divider)' }}>
+                                    <td colSpan={6} style={{ padding: '4px 18px 16px 18px' }}>
+                                      <div style={{
+                                        background: 'rgba(15, 23, 42, 0.98)',
+                                        backdropFilter: 'blur(12px)',
+                                        border: '1.5px solid rgba(139, 92, 246, 0.3)',
+                                        borderRadius: '10px',
+                                        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
+                                        padding: '12px',
+                                        textAlign: 'left'
+                                      }}>
+                                        <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '4px' }}>
+                                          Calculation Breakup
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                          {lines.map((line, idx) => (
+                                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
+                                              <span style={{ fontSize: '0.74rem', color: line.dim ? 'var(--text-muted)' : 'var(--text-secondary)' }}>
+                                                {line.label}
+                                              </span>
+                                              <span style={{ fontSize: '0.74rem', color: line.bold ? 'var(--accent-purple)' : 'var(--text-primary)', fontWeight: line.bold ? 800 : 600, whiteSpace: 'nowrap' }}>
+                                                {line.value}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })()}
+                            </React.Fragment>
                           ))
                         )}
                       </tbody>
