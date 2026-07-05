@@ -36,7 +36,8 @@ import {
   Terminal,
   Sliders,
   Activity,
-  Download
+  Download,
+  Crown
 } from 'lucide-react';
 import './App.css';
 
@@ -3044,7 +3045,7 @@ function App() {
         }
         setUpgradePackageModal(null);
         fetchOrgSettings();
-        fetchCostAndBillingData();
+        fetchCostData();
       } else {
         alert(data.message || 'Upgrade failed.');
       }
