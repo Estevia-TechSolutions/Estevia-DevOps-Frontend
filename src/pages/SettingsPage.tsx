@@ -280,8 +280,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   };
 
   // Projected cost
-  const projectedUSD = activePricing.baseUSD + activePricing.seatUSD * operatorSeatsLimit;
-  const projectedINR = Math.round(projectedUSD * usdToInrRate);
+  const devopsPriceUSD = subPackageDevops ? 150 : 0;
+  const developerPriceUSD = subPackageDeveloper ? 99 : 0;
+  const securityPriceUSD = subPackageSecurity ? 120 : 0;
+
+  const devopsPriceINR = subPackageDevops ? 12500 : 0;
+  const developerPriceINR = subPackageDeveloper ? 8250 : 0;
+  const securityPriceINR = subPackageSecurity ? 10000 : 0;
+
+  const projectedUSD = activePricing.baseUSD + activePricing.seatUSD * operatorSeatsLimit + devopsPriceUSD + developerPriceUSD + securityPriceUSD;
+  const projectedINR = Math.round((activePricing.baseUSD + activePricing.seatUSD * operatorSeatsLimit) * usdToInrRate) + devopsPriceINR + developerPriceINR + securityPriceINR;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1200px', margin: '0 auto', padding: '10px 0' }}>
@@ -406,6 +414,24 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 <span>{operatorSeatsLimit} seats × ${activePricing.seatUSD}</span>
                 <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>${(activePricing.seatUSD * operatorSeatsLimit).toLocaleString()}</span>
               </div>
+              {subPackageDevops && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                  <span>🚀 DevOps Sub-Package</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>+$150</span>
+                </div>
+              )}
+              {subPackageDeveloper && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                  <span>💻 Developer Sub-Package</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>+$99</span>
+                </div>
+              )}
+              {subPackageSecurity && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                  <span>🛡️ Security Sub-Package</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>+$120</span>
+                </div>
+              )}
               <div style={{ height: '1px', background: 'var(--glass-border)', margin: '2px 0' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem', fontWeight: 700 }}>
                 <span style={{ color: 'var(--text-primary)' }}>Total /mo</span>
