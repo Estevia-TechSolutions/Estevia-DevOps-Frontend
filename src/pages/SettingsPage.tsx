@@ -157,23 +157,20 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     if (type === 'devops_package') {
       lines.push(
         { label: 'Item Type', value: '🚀 DevOps Sub-Package Fee' },
-        { label: 'Base Subscription', value: isINR ? '₹12,500 / month' : '$150.00 / month' },
-        { label: 'Included Capabilities', value: 'SWA & ACA wizard, Pipeline trigger', dim: true },
-        { label: 'Total Charged', value: isINR ? `₹${amount.toLocaleString()}` : `$${amount.toLocaleString()} USD`, bold: true }
+        { label: 'Base Subscription Price', value: isINR ? '₹12,500 / month' : '$150.00 / month' },
+        { label: 'Total Billed', value: isINR ? `₹${amount.toLocaleString()}` : `$${amount.toLocaleString()} USD`, bold: true }
       );
     } else if (type === 'developer_package') {
       lines.push(
         { label: 'Item Type', value: '💻 Developer Sub-Package Fee' },
-        { label: 'Base Subscription', value: isINR ? '₹8,250 / month' : '$99.00 / month' },
-        { label: 'Included Capabilities', value: 'Flex DB, Dockerfile/YML validation', dim: true },
-        { label: 'Total Charged', value: isINR ? `₹${amount.toLocaleString()}` : `$${amount.toLocaleString()} USD`, bold: true }
+        { label: 'Base Subscription Price', value: isINR ? '₹8,250 / month' : '$99.00 / month' },
+        { label: 'Total Billed', value: isINR ? `₹${amount.toLocaleString()}` : `$${amount.toLocaleString()} USD`, bold: true }
       );
     } else if (type === 'security_package') {
       lines.push(
         { label: 'Item Type', value: '🛡️ Security Sub-Package Fee' },
-        { label: 'Base Subscription', value: isINR ? '₹10,000 / month' : '$120.00 / month' },
-        { label: 'Included Capabilities', value: 'Policy scanners, Eva AI advisor rules', dim: true },
-        { label: 'Total Charged', value: isINR ? `₹${amount.toLocaleString()}` : `$${amount.toLocaleString()} USD`, bold: true }
+        { label: 'Base Subscription Price', value: isINR ? '₹10,000 / month' : '$120.00 / month' },
+        { label: 'Total Billed', value: isINR ? `₹${amount.toLocaleString()}` : `$${amount.toLocaleString()} USD`, bold: true }
       );
     } else {
       const baseRate = isINR 
@@ -182,12 +179,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       const seatPrice = isINR ? (licenseTier === 'growth' ? 3333 : licenseTier === 'enterprise' ? 7500 : 2500)
                               : (licenseTier === 'growth' ? 40 : licenseTier === 'enterprise' ? 90 : 30);
       const billedSeats = Math.max(0, Math.round((amount - baseRate) / seatPrice));
+      const seatTotal = billedSeats * seatPrice;
 
       lines.push(
         { label: 'Item Type', value: '🏢 Platform Seat & License Fee' },
-        { label: 'Base Platform Rate', value: isINR ? '₹83,333 / month' : '$1,000 / month' },
+        { label: 'Base Platform Rate', value: isINR ? `₹${baseRate.toLocaleString()} / month` : `$${baseRate.toLocaleString()}.00 / month` },
         { label: 'Seat Allocation', value: `${billedSeats} active seat${billedSeats !== 1 ? 's' : ''}` },
-        { label: 'Total Billed', value: isINR ? `₹${amount.toLocaleString()}` : `$${amount.toLocaleString()} USD`, bold: true }
+        { label: 'Rate Per Seat', value: isINR ? `₹${seatPrice.toLocaleString()} / seat` : `$${seatPrice.toLocaleString()}.00 / seat` },
+        { label: 'Total Seat Surcharge', value: isINR ? `₹${seatTotal.toLocaleString()}` : `$${seatTotal.toLocaleString()}.00` },
+        { label: 'Total Amount Due', value: isINR ? `₹${amount.toLocaleString()}` : `$${amount.toLocaleString()} USD`, bold: true }
       );
     }
     return lines;
