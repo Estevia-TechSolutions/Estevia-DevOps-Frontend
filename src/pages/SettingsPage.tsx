@@ -47,6 +47,15 @@ interface SettingsPageProps {
   invoices?: any[];
   onPayInvoice?: (invoiceId: number) => Promise<boolean>;
   isOrgDisabled?: boolean;
+  // Sub-package billing props
+  billingCurrency?: string;
+  setBillingCurrency?: (val: string) => void;
+  subPackageDevops?: boolean;
+  setSubPackageDevops?: (val: boolean) => void;
+  subPackageDeveloper?: boolean;
+  setSubPackageDeveloper?: (val: boolean) => void;
+  subPackageSecurity?: boolean;
+  setSubPackageSecurity?: (val: boolean) => void;
 }
 
 // ── Primary color family aligned with app design tokens ──────────────────────
@@ -84,6 +93,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   invoices = [],
   onPayInvoice,
   isOrgDisabled = false,
+  billingCurrency = 'USD',
+  setBillingCurrency,
+  subPackageDevops = false,
+  setSubPackageDevops,
+  subPackageDeveloper = false,
+  setSubPackageDeveloper,
+  subPackageSecurity = false,
+  setSubPackageSecurity,
 }) => {
   const isOwnerOrAdmin = userRole === 'owner' || userRole === 'admin';
   const activeTier = pendingLicenseTier ?? licenseTier;
@@ -122,10 +139,18 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   // Save confirmation prompt state
   const [showSaveConfirmPrompt, setShowSaveConfirmPrompt] = React.useState(false);
   const [originalSeatsLimit] = React.useState(operatorSeatsLimit);
+  const [originalCurrency] = React.useState(billingCurrency);
+  const [originalDevopsSub] = React.useState(subPackageDevops);
+  const [originalDevSub] = React.useState(subPackageDeveloper);
+  const [originalSecSub] = React.useState(subPackageSecurity);
 
   const hasTierChange = pendingLicenseTier !== null && pendingLicenseTier !== undefined && pendingLicenseTier !== licenseTier;
   const hasSeatsChange = operatorSeatsLimit !== originalSeatsLimit;
-  const hasAnyChange = hasTierChange || hasSeatsChange;
+  const hasCurrencyChange = billingCurrency !== originalCurrency;
+  const hasDevopsChange = subPackageDevops !== originalDevopsSub;
+  const hasDevChange = subPackageDeveloper !== originalDevSub;
+  const hasSecChange = subPackageSecurity !== originalSecSub;
+  const hasAnyChange = hasTierChange || hasSeatsChange || hasCurrencyChange || hasDevopsChange || hasDevChange || hasSecChange;
 
   // Downgrade detection (needed to decide whether to show confirm prompt vs downgrade modal)
   const tierRank: Record<string, number> = { growth: 1, enterprise: 2, sovereign: 3 };
@@ -642,7 +667,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               })}
             </div>
 
-            {/* ── SEAT CONFIGURATION ── */}
+            {/* ── SEAT & CURRENCY CONFIGURATION ── */}
             <div style={{
               background: 'rgba(255,255,255,0.01)',
               border: '1px solid var(--glass-border)',
@@ -650,7 +675,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               padding: '22px',
               marginBottom: '16px',
             }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', alignItems: 'center' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '32px', alignItems: 'center' }}>
 
                 {/* Utilization Bar */}
                 <div>
@@ -705,8 +730,229 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       }}
                     />
                     <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                      Seat limit changes apply to the active billing cycle immediately.
+                      Changes apply to your active billing cycle.
                     </span>
+                  </div>
+                </div>
+
+                {/* Preferred Currency Selector */}
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 600 }}>
+                    <CreditCard size={14} style={{ color: 'var(--accent-purple)' }} />
+                    Preferred Billing Currency
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <select
+                      disabled={!isOwnerOrAdmin || isOrgDisabled}
+                      value={billingCurrency}
+                      onChange={e => {
+                        setBillingCurrency?.(e.target.value);
+                        setShowSaveConfirmPrompt(false);
+                      }}
+                      style={{
+                        padding: '10px 14px', borderRadius: '8px',
+                        background: 'var(--input-bg)', border: '1px solid var(--glass-border)',
+                        color: 'var(--text-primary)', fontSize: '0.88rem', width: '120px',
+                        outline: 'none', boxSizing: 'border-box',
+                      }}
+                    >
+                      <option value="USD">USD ($)</option>
+                      <option value="INR">INR (₹)</option>
+                    </select>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                      Currency for sub-package invoices.
+                    </span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* ── SUB-PACKAGES CONFIGURATION ── */}
+            <div style={{
+              background: 'rgba(255,255,255,0.01)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '12px',
+              padding: '22px',
+              marginBottom: '24px',
+            }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', fontWeight: 800, margin: '0 0 8px 0', color: 'var(--text-primary)' }}>
+                <Crown size={18} style={{ color: 'var(--accent-purple)' }} />
+                DevOps Sub-Packages & Features
+              </h3>
+              <p style={{ margin: '0 0 20px 0', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                Enable or disable feature categories for your organization. Activating a package adds it to your active billing cycle immediately.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                {/* DevOps Package Card */}
+                <div style={{
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: `1.5px solid ${subPackageDevops ? 'var(--accent-blue)' : 'var(--glass-border)'}`,
+                  background: subPackageDevops ? 'rgba(99,102,241,0.04)' : 'rgba(255,255,255,0.005)',
+                  transition: 'all 0.25s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  minHeight: '220px'
+                }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--text-primary)' }}>🚀 DevOps Package</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{
+                          fontSize: '0.64rem', fontWeight: 700, padding: '2px 8px', borderRadius: '20px',
+                          background: subPackageDevops ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
+                          color: subPackageDevops ? '#4ade80' : 'var(--text-secondary)',
+                          border: subPackageDevops ? '1px solid rgba(34,197,94,0.25)' : '1px solid var(--glass-border)'
+                        }}>
+                          {subPackageDevops ? 'Subscribed' : 'Inactive'}
+                        </span>
+                        <input 
+                          type="checkbox"
+                          checked={subPackageDevops}
+                          disabled={!isOwnerOrAdmin || isOrgDisabled}
+                          onChange={(e) => {
+                            setSubPackageDevops?.(e.target.checked);
+                            setShowSaveConfirmPrompt(false);
+                          }}
+                          style={{ width: '16px', height: '16px', cursor: (isOwnerOrAdmin && !isOrgDisabled) ? 'pointer' : 'default' }}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '14px' }}>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)' }}>
+                        {billingCurrency === 'INR' ? '₹12,500' : '$150.00'}
+                      </span>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>/ month</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                      {[
+                        'Provision SWA and Container Apps',
+                        'Run, Prioritize, and Redeploy pipelines',
+                        'Setup Custom Domains and Teams Hooks'
+                      ].map((f, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Check size={12} style={{ color: 'var(--accent-blue)', flexShrink: 0 }} />
+                          <span>{f}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Developer Package Card */}
+                <div style={{
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: `1.5px solid ${subPackageDeveloper ? 'var(--accent-purple)' : 'var(--glass-border)'}`,
+                  background: subPackageDeveloper ? 'rgba(139,92,246,0.04)' : 'rgba(255,255,255,0.005)',
+                  transition: 'all 0.25s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  minHeight: '220px'
+                }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--text-primary)' }}>💻 Developer Package</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{
+                          fontSize: '0.64rem', fontWeight: 700, padding: '2px 8px', borderRadius: '20px',
+                          background: subPackageDeveloper ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
+                          color: subPackageDeveloper ? '#4ade80' : 'var(--text-secondary)',
+                          border: subPackageDeveloper ? '1px solid rgba(34,197,94,0.25)' : '1px solid var(--glass-border)'
+                        }}>
+                          {subPackageDeveloper ? 'Subscribed' : 'Inactive'}
+                        </span>
+                        <input 
+                          type="checkbox"
+                          checked={subPackageDeveloper}
+                          disabled={!isOwnerOrAdmin || isOrgDisabled}
+                          onChange={(e) => {
+                            setSubPackageDeveloper?.(e.target.checked);
+                            setShowSaveConfirmPrompt(false);
+                          }}
+                          style={{ width: '16px', height: '16px', cursor: (isOwnerOrAdmin && !isOrgDisabled) ? 'pointer' : 'default' }}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '14px' }}>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)' }}>
+                        {billingCurrency === 'INR' ? '₹8,250' : '$99.00'}
+                      </span>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>/ month</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                      {[
+                        'Register Database Servers & Instances',
+                        'Execute SQL Queries in DB Catalog explorer',
+                        'Edit and Validate Dockerfiles & YMLs'
+                      ].map((f, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Check size={12} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
+                          <span>{f}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Security Package Card */}
+                <div style={{
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: `1.5px solid ${subPackageSecurity ? 'var(--accent-teal)' : 'var(--glass-border)'}`,
+                  background: subPackageSecurity ? 'rgba(20,184,166,0.04)' : 'rgba(255,255,255,0.005)',
+                  transition: 'all 0.25s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  minHeight: '220px'
+                }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--text-primary)' }}>🛡️ Security Package</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{
+                          fontSize: '0.64rem', fontWeight: 700, padding: '2px 8px', borderRadius: '20px',
+                          background: subPackageSecurity ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
+                          color: subPackageSecurity ? '#4ade80' : 'var(--text-secondary)',
+                          border: subPackageSecurity ? '1px solid rgba(34,197,94,0.25)' : '1px solid var(--glass-border)'
+                        }}>
+                          {subPackageSecurity ? 'Subscribed' : 'Inactive'}
+                        </span>
+                        <input 
+                          type="checkbox"
+                          checked={subPackageSecurity}
+                          disabled={!isOwnerOrAdmin || isOrgDisabled}
+                          onChange={(e) => {
+                            setSubPackageSecurity?.(e.target.checked);
+                            setShowSaveConfirmPrompt(false);
+                          }}
+                          style={{ width: '16px', height: '16px', cursor: (isOwnerOrAdmin && !isOrgDisabled) ? 'pointer' : 'default' }}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '14px' }}>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)' }}>
+                        {billingCurrency === 'INR' ? '₹10,000' : '$120.00'}
+                      </span>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>/ month</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                      {[
+                        'Run Azure Policy Compliance scans',
+                        'Configure security auto-remediations',
+                        'Query Eva AI for cost optimization suggestions'
+                      ].map((f, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Check size={12} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
+                          <span>{f}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -788,6 +1034,101 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                           color: 'var(--accent-purple)', fontWeight: 700,
                         }}>
                           {operatorSeatsLimit} seats
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {hasCurrencyChange && (
+                    <div style={{
+                      background: 'rgba(255,255,255,0.02)',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                    }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '8px' }}>
+                        💵 Billing Currency
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{
+                          background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)',
+                          borderRadius: '6px', padding: '3px 10px', fontSize: '0.8rem', color: 'var(--text-secondary)'
+                        }}>
+                          {originalCurrency}
+                        </span>
+                        <ArrowRight size={14} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
+                        <span style={{
+                          background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.28)',
+                          borderRadius: '6px', padding: '3px 10px', fontSize: '0.8rem',
+                          color: 'var(--accent-purple)', fontWeight: 700,
+                        }}>
+                          {billingCurrency}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {hasDevopsChange && (
+                    <div style={{
+                      background: 'rgba(255,255,255,0.02)',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                    }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '8px' }}>
+                        🚀 DevOps Package
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          {originalDevopsSub ? 'Subscribed' : 'Inactive'}
+                        </span>
+                        <ArrowRight size={14} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
+                        <span style={{ fontSize: '0.8rem', color: 'var(--accent-purple)', fontWeight: 700 }}>
+                          {subPackageDevops ? 'Subscribed (Invoice Issued)' : 'Inactive'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {hasDevChange && (
+                    <div style={{
+                      background: 'rgba(255,255,255,0.02)',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                    }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '8px' }}>
+                        💻 Developer Package
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          {originalDevSub ? 'Subscribed' : 'Inactive'}
+                        </span>
+                        <ArrowRight size={14} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
+                        <span style={{ fontSize: '0.8rem', color: 'var(--accent-purple)', fontWeight: 700 }}>
+                          {subPackageDeveloper ? 'Subscribed (Invoice Issued)' : 'Inactive'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {hasSecChange && (
+                    <div style={{
+                      background: 'rgba(255,255,255,0.02)',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                    }}>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: '8px' }}>
+                        🛡️ Security Package
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          {originalSecSub ? 'Subscribed' : 'Inactive'}
+                        </span>
+                        <ArrowRight size={14} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
+                        <span style={{ fontSize: '0.8rem', color: 'var(--accent-purple)', fontWeight: 700 }}>
+                          {subPackageSecurity ? 'Subscribed (Invoice Issued)' : 'Inactive'}
                         </span>
                       </div>
                     </div>

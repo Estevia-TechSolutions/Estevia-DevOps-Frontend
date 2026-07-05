@@ -1673,6 +1673,11 @@ function App() {
   // ── CRM Portal & Suspension Gate States ────────────────────────────────────
   const [showCrm, setShowCrm] = useState(() => window.location.hash === '#crm');
   const [isOrgDisabled, setIsOrgDisabled] = useState(false);
+  const [billingCurrency, setBillingCurrency] = useState('USD');
+  const [subPackageDevops, setSubPackageDevops] = useState(false);
+  const [subPackageDeveloper, setSubPackageDeveloper] = useState(false);
+  const [subPackageSecurity, setSubPackageSecurity] = useState(false);
+  const [upgradePackageModal, setUpgradePackageModal] = useState<string | null>(null);
   // ── End License / Credential Gate States ──────────────────────────────────
 
   const checkCredentialGateStatus = async (authTokenToCheck?: string) => {
@@ -1747,6 +1752,10 @@ function App() {
   const [onboardStep, setOnboardStep] = useState(1);
   const [onboardOrgName, setOnboardOrgName] = useState('');
   const [onboardAdminEmail, setOnboardAdminEmail] = useState(user?.email || '');
+  const [onboardBillingCurrency, setOnboardBillingCurrency] = useState('USD');
+  const [onboardDevopsSub, setOnboardDevopsSub] = useState(false);
+  const [onboardDevSub, setOnboardDevSub] = useState(false);
+  const [onboardSecSub, setOnboardSecSub] = useState(false);
 
   const [onboardAzureSubId, setOnboardAzureSubId] = useState('');
   const [onboardAzureTenantId, setOnboardAzureTenantId] = useState(user?.tenant_id || '');
@@ -2184,7 +2193,14 @@ function App() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ name: onboardOrgName, adminEmail: onboardAdminEmail })
+        body: JSON.stringify({ 
+          name: onboardOrgName, 
+          adminEmail: onboardAdminEmail,
+          billingCurrency: onboardBillingCurrency,
+          subPackageDevops: onboardDevopsSub,
+          subPackageDeveloper: onboardDevSub,
+          subPackageSecurity: onboardSecSub
+        })
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -2831,6 +2847,10 @@ function App() {
         if (data.settings.operator_seats_limit != null) setOperatorSeatsLimit(data.settings.operator_seats_limit);
         if (data.settings.currentWriteUsers != null) setCurrentWriteUsers(data.settings.currentWriteUsers);
         if (data.settings.downgrade_pending) setDowngradeComplianceDebt({ pending: true });
+        if (data.settings.billing_currency) setBillingCurrency(data.settings.billing_currency);
+        setSubPackageDevops(data.settings.sub_package_devops === 1 || data.settings.sub_package_devops === true);
+        setSubPackageDeveloper(data.settings.sub_package_developer === 1 || data.settings.sub_package_developer === true);
+        setSubPackageSecurity(data.settings.sub_package_security === 1 || data.settings.sub_package_security === true);
         // ─────────────────────────────────────────────────────────────────
         
         // Auto-configure default inputs
@@ -2942,7 +2962,12 @@ function App() {
           // License fields
           licenseTier: pendingLicenseTier ?? licenseTier,
           operatorSeatsLimit,
-          downgradeConfirmToken: isDowngrade ? downgradeConfirmInput : undefined
+          downgradeConfirmToken: isDowngrade ? downgradeConfirmInput : undefined,
+          // Sub-package fields
+          billingCurrency,
+          subPackageDevops,
+          subPackageDeveloper,
+          subPackageSecurity
         })
       });
       const data = await res.json();
@@ -2986,6 +3011,45 @@ function App() {
       setSettingsMsg({ type: 'error', text: e.message || 'Error saving organization settings.' });
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  const handleConfirmUpgrade = async () => {
+    if (!upgradePackageModal) return;
+    try {
+      const fieldName = upgradePackageModal === 'DevOps' ? 'subPackageDevops' 
+                      : upgradePackageModal === 'Developer' ? 'subPackageDeveloper' 
+                      : 'subPackageSecurity';
+      const payload = {
+        organizationId: organizationId,
+        [fieldName]: true
+      };
+      
+      const res = await window.fetch(`${API_BASE}/apps/organization-settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (upgradePackageModal === 'DevOps') {
+          setSubPackageDevops(true);
+          setActiveTab('provision');
+        } else if (upgradePackageModal === 'Developer') {
+          setSubPackageDeveloper(true);
+          setActiveTab('databases');
+        } else if (upgradePackageModal === 'Security') {
+          setSubPackageSecurity(true);
+          setActiveTab('cost');
+        }
+        setUpgradePackageModal(null);
+        fetchOrgSettings();
+        fetchCostAndBillingData();
+      } else {
+        alert(data.message || 'Upgrade failed.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error occurred during upgrade.');
     }
   };
 
@@ -4532,6 +4596,10 @@ function App() {
   };
 
   const openPipelineModal = (app: AppResource, group?: AppGroup) => {
+    if (!subPackageDevops) {
+      setUpgradePackageModal('DevOps');
+      return;
+    }
     setPipelineApp(app);
     setPipelineSuccess(null);
     setPipelineError(null);
@@ -4631,6 +4699,10 @@ function App() {
   };
 
   const openDockerfileEditor = async (app: AppResource, group?: AppGroup) => {
+    if (!subPackageDeveloper) {
+      setUpgradePackageModal('Developer');
+      return;
+    }
     setDockerfileEditApp(app);
     setDockerfileContent('');
     setDockerfileValidation(null);
@@ -5327,7 +5399,7 @@ function App() {
                     />
                   </div>
 
-                  <div style={{ marginBottom: '24px' }}>
+                  <div style={{ marginBottom: '16px' }}>
                     <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Administrator Email Address</label>
                     <input
                       type="email"
@@ -5335,6 +5407,114 @@ function App() {
                       onChange={(e) => setOnboardAdminEmail(e.target.value)}
                       placeholder="admin@yourdomain.com"
                     />
+                  </div>
+
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 600 }}>Billing Currency</label>
+                    <select
+                      value={onboardBillingCurrency}
+                      onChange={(e) => setOnboardBillingCurrency(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        background: 'var(--input-bg)',
+                        border: '1px solid var(--glass-border)',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.88rem',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="USD">USD ($) — International Pricing</option>
+                      <option value="INR">INR (₹) — India Regional Pricing</option>
+                    </select>
+                  </div>
+
+                  <div style={{ marginBottom: '24px' }}>
+                    <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '10px', fontWeight: 600 }}>Choose Initial Packages</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                      {/* DevOps Package Card */}
+                      <div
+                        onClick={() => setOnboardDevopsSub(!onboardDevopsSub)}
+                        style={{
+                          padding: '14px',
+                          borderRadius: '10px',
+                          border: `1px solid ${onboardDevopsSub ? 'var(--accent-blue)' : 'var(--glass-border)'}`,
+                          background: onboardDevopsSub ? 'rgba(99,102,241,0.06)' : 'rgba(255,255,255,0.005)',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>🚀 DevOps Package</span>
+                          <input type="checkbox" checked={onboardDevopsSub} readOnly style={{ cursor: 'pointer' }} />
+                        </div>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                          {onboardBillingCurrency === 'USD' ? '$150.00 / mo' : '₹12,500 / mo'}
+                        </span>
+                        <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>
+                          SWA/ACA Provisioning, Pipelines, Domains
+                        </span>
+                      </div>
+
+                      {/* Developer Package Card */}
+                      <div
+                        onClick={() => setOnboardDevSub(!onboardDevSub)}
+                        style={{
+                          padding: '14px',
+                          borderRadius: '10px',
+                          border: `1px solid ${onboardDevSub ? 'var(--accent-purple)' : 'var(--glass-border)'}`,
+                          background: onboardDevSub ? 'rgba(139,92,246,0.06)' : 'rgba(255,255,255,0.005)',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>💻 Developer Package</span>
+                          <input type="checkbox" checked={onboardDevSub} readOnly style={{ cursor: 'pointer' }} />
+                        </div>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                          {onboardBillingCurrency === 'USD' ? '$99.00 / mo' : '₹8,250 / mo'}
+                        </span>
+                        <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>
+                          Databases, SQL Exec, Git Explorer, YML Templates
+                        </span>
+                      </div>
+
+                      {/* Security Package Card */}
+                      <div
+                        onClick={() => setOnboardSecSub(!onboardSecSub)}
+                        style={{
+                          padding: '14px',
+                          borderRadius: '10px',
+                          border: `1px solid ${onboardSecSub ? 'var(--accent-teal)' : 'var(--glass-border)'}`,
+                          background: onboardSecSub ? 'rgba(20,184,166,0.06)' : 'rgba(255,255,255,0.005)',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>🛡️ Security Package</span>
+                          <input type="checkbox" checked={onboardSecSub} readOnly style={{ cursor: 'pointer' }} />
+                        </div>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                          {onboardBillingCurrency === 'USD' ? '$120.00 / mo' : '₹10,000 / mo'}
+                        </span>
+                        <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>
+                          Compliance Scanner, Remediation, Eva AI Costs
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -6062,9 +6242,19 @@ function App() {
 
                 {/* Bottom Row: Tab buttons grid */}
                 <div className="premium-tabs-grid">
-                  <button className={`premium-tab-btn ${activeTab === 'scan' ? 'active' : ''}`} onClick={() => setActiveTab('scan')} disabled={requiresCredentialSetup || isOrgDisabled}>
+                  <button 
+                    className={`premium-tab-btn ${activeTab === 'scan' ? 'active' : ''}`} 
+                    onClick={() => {
+                      if (!subPackageDevops) {
+                        setUpgradePackageModal('DevOps');
+                      } else {
+                        setActiveTab('scan');
+                      }
+                    }} 
+                    disabled={requiresCredentialSetup || isOrgDisabled}
+                  >
                     <Server size={16} />
-                    <span>Cloud Scanning</span>
+                    <span>Cloud Scanning {!subPackageDevops && '🔒'}</span>
                     {tabLoadingMap.scan && (
                       <span className="tab-loading-spin" title="Scanning cloud..." />
                     )}
@@ -6072,40 +6262,71 @@ function App() {
                       <span className="tab-build-spin" title={`${activeBuildsCount} build(s) in progress`} />
                     )}
                     <div className="menu-hover-card menu-hover-card-left">
-                      <div className="menu-hover-card-title"><Server size={12} /> Cloud Scanning</div>
+                      <div className="menu-hover-card-title"><Server size={12} /> Cloud Scanning {!subPackageDevops && '🔒'}</div>
                       <div className="menu-hover-card-desc">Scan and monitor all your Azure Static Web Apps, backend APIs, and virtual machines across environments.</div>
                     </div>
                   </button>
-                  <button className={`premium-tab-btn ${activeTab === 'provision' ? 'active' : ''}`} onClick={() => setActiveTab('provision')} disabled={requiresCredentialSetup || isOrgDisabled}>
+                  <button 
+                    className={`premium-tab-btn ${activeTab === 'provision' ? 'active' : ''}`} 
+                    onClick={() => {
+                      if (!subPackageDevops) {
+                        setUpgradePackageModal('DevOps');
+                      } else {
+                        setActiveTab('provision');
+                      }
+                    }} 
+                    disabled={requiresCredentialSetup || isOrgDisabled}
+                  >
                     <PlusCircle size={16} />
-                    <span>Provision App</span>
+                    <span>Provision App {!subPackageDevops && '🔒'}</span>
                     {tabLoadingMap.provision && (
                       <span className="tab-loading-spin" title="Loading..." />
                     )}
                     <div className="menu-hover-card">
-                      <div className="menu-hover-card-title"><PlusCircle size={12} /> Provision App</div>
+                      <div className="menu-hover-card-title"><PlusCircle size={12} /> Provision App {!subPackageDevops && '🔒'}</div>
                       <div className="menu-hover-card-desc">Launch new Azure Static Web Apps or backend containers with guided step-by-step provisioning wizard.</div>
                     </div>
                   </button>
-                  <button className={`premium-tab-btn ${activeTab === 'cost' ? 'active' : ''}`} onClick={() => { setActiveTab('cost'); setCostTab('breakdown'); }} disabled={requiresCredentialSetup || isOrgDisabled}>
+                  <button 
+                    className={`premium-tab-btn ${activeTab === 'cost' ? 'active' : ''}`} 
+                    onClick={() => {
+                      if (!subPackageSecurity) {
+                        setUpgradePackageModal('Security');
+                      } else {
+                        setActiveTab('cost'); 
+                        setCostTab('breakdown');
+                      }
+                    }} 
+                    disabled={requiresCredentialSetup || isOrgDisabled}
+                  >
                     <TrendingDown size={16} />
-                    <span>Cost Management</span>
+                    <span>Cost Management {!subPackageSecurity && '🔒'}</span>
                     {(tabLoadingMap.cost || tabLoadingMap.optimization) && (
                       <span className="tab-loading-spin" title="Loading costs..." />
                     )}
                     <div className="menu-hover-card">
-                      <div className="menu-hover-card-title"><TrendingDown size={12} /> Cost Management</div>
+                      <div className="menu-hover-card-title"><TrendingDown size={12} /> Cost Management {!subPackageSecurity && '🔒'}</div>
                       <div className="menu-hover-card-desc">View a detailed Azure cost breakdown, billing invoices, and AI-driven recommendations to right-size resources, configure schedules, and optimize cloud spend.</div>
                     </div>
                   </button>
-                  <button className={`premium-tab-btn ${activeTab === 'databases' ? 'active' : ''}`} onClick={() => setActiveTab('databases')} disabled={requiresCredentialSetup || isOrgDisabled}>
+                  <button 
+                    className={`premium-tab-btn ${activeTab === 'databases' ? 'active' : ''}`} 
+                    onClick={() => {
+                      if (!subPackageDeveloper) {
+                        setUpgradePackageModal('Developer');
+                      } else {
+                        setActiveTab('databases');
+                      }
+                    }} 
+                    disabled={requiresCredentialSetup || isOrgDisabled}
+                  >
                     <Database size={16} />
-                    <span>DB Hub</span>
+                    <span>DB Hub {!subPackageDeveloper && '🔒'}</span>
                     {tabLoadingMap.databases && (
                       <span className="tab-loading-spin" title="Loading databases..." />
                     )}
                     <div className="menu-hover-card">
-                      <div className="menu-hover-card-title"><Database size={12} /> DB Hub</div>
+                      <div className="menu-hover-card-title"><Database size={12} /> DB Hub {!subPackageDeveloper && '🔒'}</div>
                       <div className="menu-hover-card-desc">Browse and manage your connected database catalog — schemas, tables, and connection health at a glance.</div>
                     </div>
                   </button>
@@ -6141,9 +6362,19 @@ function App() {
                     </button>
                   )}
 
-                  <button className={`premium-tab-btn ${activeTab === 'events' ? 'active' : ''}`} onClick={() => setActiveTab('events')} disabled={requiresCredentialSetup || isOrgDisabled}>
+                  <button 
+                    className={`premium-tab-btn ${activeTab === 'events' ? 'active' : ''}`} 
+                    onClick={() => {
+                      if (!subPackageDevops) {
+                        setUpgradePackageModal('DevOps');
+                      } else {
+                        setActiveTab('events');
+                      }
+                    }} 
+                    disabled={requiresCredentialSetup || isOrgDisabled}
+                  >
                     <Activity size={16} />
-                    <span>Events Feed</span>
+                    <span>Events Feed {!subPackageDevops && '🔒'}</span>
                     {tabLoadingMap.events && (
                       <span className="tab-loading-spin" title="Loading events..." />
                     )}
@@ -6153,7 +6384,7 @@ function App() {
                       </span>
                     )}
                     <div className="menu-hover-card">
-                      <div className="menu-hover-card-title"><Activity size={12} /> Events Feed</div>
+                      <div className="menu-hover-card-title"><Activity size={12} /> Events Feed {!subPackageDevops && '🔒'}</div>
                       <div className="menu-hover-card-desc">Real-time stream of build triggers, power actions, scans, and credential changes across the platform.</div>
                     </div>
                   </button>
@@ -6659,6 +6890,14 @@ function App() {
             userRole={user?.role}
             organizationId={organizationId}
             isOrgDisabled={isOrgDisabled}
+            billingCurrency={billingCurrency}
+            setBillingCurrency={setBillingCurrency}
+            subPackageDevops={subPackageDevops}
+            setSubPackageDevops={setSubPackageDevops}
+            subPackageDeveloper={subPackageDeveloper}
+            setSubPackageDeveloper={setSubPackageDeveloper}
+            subPackageSecurity={subPackageSecurity}
+            setSubPackageSecurity={setSubPackageSecurity}
             invoices={invoices}
             onPayInvoice={handlePayInvoice}
           />
@@ -8739,6 +8978,185 @@ function App() {
                 isViewer={user?.role === 'viewer'}
                 API_BASE={API_BASE}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Premium Upgrade Modal Overlay */}
+      {upgradePackageModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(2, 6, 23, 0.8)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+          animation: 'fade-in-anim 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+        }}>
+          <div className="glass-panel" style={{
+            maxWidth: '480px',
+            width: '100%',
+            padding: '30px',
+            border: '1.5px solid rgba(139, 92, 246, 0.25)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(139, 92, 246, 0.15)',
+            borderRadius: '16px',
+            position: 'relative',
+            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.9) 100%)'
+          }}>
+            <button
+              onClick={() => setUpgradePackageModal(null)}
+              style={{
+                position: 'absolute',
+                top: '18px',
+                right: '18px',
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                padding: '6px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.color = 'var(--text-primary)';
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.color = 'var(--text-secondary)';
+                e.currentTarget.style.background = 'none';
+              }}
+            >
+              <X size={16} />
+            </button>
+
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(99, 102, 241, 0.2))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px auto',
+                border: '1px solid rgba(139, 92, 246, 0.3)',
+                boxShadow: '0 0 20px rgba(139, 92, 246, 0.2)'
+              }}>
+                <Crown size={26} style={{ color: 'var(--accent-purple)' }} />
+              </div>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '1.4rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.02em' }}>
+                Activate {upgradePackageModal} Package
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                Unlock premium capabilities for your team. You will be billed instantly upon activation.
+              </p>
+            </div>
+
+            {/* Package Features List */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: '12px',
+              padding: '16px',
+              marginBottom: '24px'
+            }}>
+              <div style={{ fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '12px' }}>
+                Included Features
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {upgradePackageModal === 'DevOps' && [
+                  'Provision SWA and Container Apps',
+                  'Run, Prioritize, and Redeploy pipelines',
+                  'Setup Custom Domains and Teams Hooks',
+                  'Trigger App Delete and Power Controls'
+                ].map((f, idx) => (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    <Check size={14} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
+                    <span>{f}</span>
+                  </div>
+                ))}
+                {upgradePackageModal === 'Developer' && [
+                  'Register Database Servers',
+                  'Provision PostgreSQL/MySQL DBs',
+                  'Execute SQL Queries in DB Catalog explorer',
+                  'Edit and Validate Dockerfiles & YMLs'
+                ].map((f, idx) => (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    <Check size={14} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
+                    <span>{f}</span>
+                  </div>
+                ))}
+                {upgradePackageModal === 'Security' && [
+                  'Run Azure Policy Compliance scans',
+                  'Configure scanner security rules',
+                  'Auto-remediate resource violations',
+                  'Query Eva AI for cost optimization suggestions'
+                ].map((f, idx) => (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    <Check size={14} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
+                    <span>{f}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Pricing details */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              justifyContent: 'center',
+              gap: '6px',
+              marginBottom: '28px'
+            }}>
+              <span style={{ fontSize: '1.8rem', fontWeight: 900, color: '#f8fafc', lineHeight: 1 }}>
+                {upgradePackageModal === 'DevOps' ? (billingCurrency === 'INR' ? '₹12,500' : '$150.00')
+                  : upgradePackageModal === 'Developer' ? (billingCurrency === 'INR' ? '₹8,250' : '$99.00')
+                  : (billingCurrency === 'INR' ? '₹10,000' : '$120.00')}
+              </span>
+              <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                / month ({billingCurrency === 'INR' ? 'INR' : 'USD'})
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setUpgradePackageModal(null)}
+                style={{ flex: 1, padding: '12px', fontWeight: 600, fontSize: '0.88rem' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmUpgrade}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
+                  boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
+                  cursor: 'pointer'
+                }}
+              >
+                Confirm Upgrade
+              </button>
             </div>
           </div>
         </div>
