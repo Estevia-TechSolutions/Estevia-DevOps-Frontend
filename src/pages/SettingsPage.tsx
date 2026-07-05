@@ -1797,7 +1797,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 </div>
 
               </div>
-            )}
+            )})()}
           <div style={{ height: '2px' }} />
         </div>
       </div>
