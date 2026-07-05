@@ -6258,7 +6258,28 @@ function App() {
                     <Server size={16} />
                     <span>Cloud Scanning</span>
                     {!subPackageDevops && (
-                      <Lock size={10} style={{ position: 'absolute', top: '5px', right: '5px', color: '#ef4444' }} />
+                      <div style={{
+                        position: 'absolute',
+                        top: '-8px',
+                        right: '8px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '2px 6px',
+                        borderRadius: '6px',
+                        backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                        border: '1px solid rgba(239, 68, 68, 0.4)',
+                        color: '#ef4444',
+                        fontSize: '0.64rem',
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        boxShadow: '0 0 8px rgba(239, 68, 68, 0.25)',
+                        boxSizing: 'border-box'
+                      }}>
+                        <Lock size={9} />
+                        <span>Locked</span>
+                      </div>
                     )}
                     {tabLoadingMap.scan && (
                       <span className="tab-loading-spin" title="Scanning cloud..." />
@@ -6285,7 +6306,28 @@ function App() {
                     <PlusCircle size={16} />
                     <span>Provision App</span>
                     {!subPackageDevops && (
-                      <Lock size={10} style={{ position: 'absolute', top: '5px', right: '5px', color: '#ef4444' }} />
+                      <div style={{
+                        position: 'absolute',
+                        top: '-8px',
+                        right: '8px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '2px 6px',
+                        borderRadius: '6px',
+                        backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                        border: '1px solid rgba(239, 68, 68, 0.4)',
+                        color: '#ef4444',
+                        fontSize: '0.64rem',
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        boxShadow: '0 0 8px rgba(239, 68, 68, 0.25)',
+                        boxSizing: 'border-box'
+                      }}>
+                        <Lock size={9} />
+                        <span>Locked</span>
+                      </div>
                     )}
                     {tabLoadingMap.provision && (
                       <span className="tab-loading-spin" title="Loading..." />
@@ -6310,7 +6352,28 @@ function App() {
                     <TrendingDown size={16} />
                     <span>Cost Management</span>
                     {!subPackageSecurity && (
-                      <Lock size={10} style={{ position: 'absolute', top: '5px', right: '5px', color: '#ef4444' }} />
+                      <div style={{
+                        position: 'absolute',
+                        top: '-8px',
+                        right: '8px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '2px 6px',
+                        borderRadius: '6px',
+                        backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                        border: '1px solid rgba(239, 68, 68, 0.4)',
+                        color: '#ef4444',
+                        fontSize: '0.64rem',
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        boxShadow: '0 0 8px rgba(239, 68, 68, 0.25)',
+                        boxSizing: 'border-box'
+                      }}>
+                        <Lock size={9} />
+                        <span>Locked</span>
+                      </div>
                     )}
                     {(tabLoadingMap.cost || tabLoadingMap.optimization) && (
                       <span className="tab-loading-spin" title="Loading costs..." />
@@ -6334,7 +6397,28 @@ function App() {
                     <Database size={16} />
                     <span>DB Hub</span>
                     {!subPackageDeveloper && (
-                      <Lock size={10} style={{ position: 'absolute', top: '5px', right: '5px', color: '#ef4444' }} />
+                      <div style={{
+                        position: 'absolute',
+                        top: '-8px',
+                        right: '8px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '2px 6px',
+                        borderRadius: '6px',
+                        backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                        border: '1px solid rgba(239, 68, 68, 0.4)',
+                        color: '#ef4444',
+                        fontSize: '0.64rem',
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        boxShadow: '0 0 8px rgba(239, 68, 68, 0.25)',
+                        boxSizing: 'border-box'
+                      }}>
+                        <Lock size={9} />
+                        <span>Locked</span>
+                      </div>
                     )}
                     {tabLoadingMap.databases && (
                       <span className="tab-loading-spin" title="Loading databases..." />
@@ -6390,7 +6474,28 @@ function App() {
                     <Activity size={16} />
                     <span>Events Feed</span>
                     {!subPackageDevops && (
-                      <Lock size={10} style={{ position: 'absolute', top: '5px', right: '5px', color: '#ef4444' }} />
+                      <div style={{
+                        position: 'absolute',
+                        top: '-8px',
+                        right: '8px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '2px 6px',
+                        borderRadius: '6px',
+                        backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                        border: '1px solid rgba(239, 68, 68, 0.4)',
+                        color: '#ef4444',
+                        fontSize: '0.64rem',
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        boxShadow: '0 0 8px rgba(239, 68, 68, 0.25)',
+                        boxSizing: 'border-box'
+                      }}>
+                        <Lock size={9} />
+                        <span>Locked</span>
+                      </div>
                     )}
                     {tabLoadingMap.events && (
                       <span className="tab-loading-spin" title="Loading events..." />
