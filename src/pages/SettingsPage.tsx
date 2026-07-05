@@ -1483,15 +1483,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                                   <tr style={{ background: 'rgba(255,255,255,0.015)', borderBottom: '1px solid var(--divider)' }}>
                                     <td colSpan={6} style={{ padding: '4px 18px 16px 18px' }}>
                                       <div style={{
-                                        background: 'rgba(15, 23, 42, 0.98)',
+                                        background: 'var(--bg-secondary)',
                                         backdropFilter: 'blur(12px)',
-                                        border: '1.5px solid rgba(139, 92, 246, 0.3)',
+                                        border: '1.5px solid var(--glass-border)',
                                         borderRadius: '10px',
-                                        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
+                                        boxShadow: 'var(--modal-shadow)',
                                         padding: '12px',
                                         textAlign: 'left'
                                       }}>
-                                        <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '4px' }}>
+                                        <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '8px', borderBottom: '1px solid var(--divider)', paddingBottom: '4px' }}>
                                           Calculation Breakup
                                         </div>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
