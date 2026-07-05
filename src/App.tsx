@@ -6963,6 +6963,7 @@ function App() {
               handleUpdateRole={handleUpdateRole}
               theme={theme}
               API_BASE={API_BASE}
+              operatorSeatsLimit={operatorSeatsLimit}
             />
           </div>
         )}

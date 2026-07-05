@@ -19,6 +19,7 @@ interface TeamPageProps {
   handleUpdateRole: (userId: string, newRole: string) => Promise<boolean>;
   theme: 'dark' | 'light';
   API_BASE: string;
+  operatorSeatsLimit: number;
 }
 
 export const TeamPage: React.FC<TeamPageProps> = ({
@@ -29,7 +30,8 @@ export const TeamPage: React.FC<TeamPageProps> = ({
   handleSyncTeam,
   handleUpdateRole,
   theme,
-  API_BASE
+  API_BASE,
+  operatorSeatsLimit
 }) => {
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [updateMsg, setUpdateMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -38,6 +40,10 @@ export const TeamPage: React.FC<TeamPageProps> = ({
 
   const isLight = theme === 'light';
   const canManageRoles = currentUser?.role === 'owner' || currentUser?.role === 'admin';
+
+  const writeUsers = users.filter(u => ['owner', 'admin', 'contributor'].includes(u.role?.toLowerCase()));
+  const currentSeatsUsed = writeUsers.length;
+  const isLimitReached = currentSeatsUsed >= (operatorSeatsLimit || 10);
 
   const onSyncClick = async () => {
     setUpdateMsg(null);
@@ -193,9 +199,19 @@ export const TeamPage: React.FC<TeamPageProps> = ({
             <button 
               type="button" 
               className="btn-primary" 
-              disabled={syncingTeam}
+              disabled={syncingTeam || isLimitReached}
               onClick={onSyncClick}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '36px', padding: '0 16px', fontSize: '0.82rem' }}
+              title={isLimitReached ? "Operator seats limit reached. Upgrade license or remove users to sync new members." : ""}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px', 
+                height: '36px', 
+                padding: '0 16px', 
+                fontSize: '0.82rem',
+                opacity: isLimitReached ? 0.5 : 1,
+                cursor: isLimitReached ? 'not-allowed' : 'pointer'
+              }}
             >
               <RefreshCw size={14} className={syncingTeam ? 'spin-anim' : ''} />
               {syncingTeam ? 'Syncing Team...' : 'Sync with Azure AD'}
@@ -217,6 +233,68 @@ export const TeamPage: React.FC<TeamPageProps> = ({
           {updateMsg.text}
         </div>
       )}
+
+      {/* Operator Seat Limit Progress Alert */}
+      {(() => {
+        const writeUsers = users.filter(u => ['owner', 'admin', 'contributor'].includes(u.role?.toLowerCase()));
+        const currentSeatsUsed = writeUsers.length;
+        const limit = operatorSeatsLimit || 10;
+        const percent = Math.min(100, (currentSeatsUsed / limit) * 100);
+        const isNearLimit = percent >= 80;
+        
+        return (
+          <div className="glass-panel" style={{
+            padding: '16px 24px',
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '20px',
+            background: isLight 
+              ? 'rgba(139, 92, 246, 0.03)' 
+              : 'rgba(139, 92, 246, 0.05)',
+            border: isNearLimit 
+              ? '1px solid rgba(239, 68, 68, 0.3)' 
+              : '1px solid rgba(139, 92, 246, 0.25)',
+            borderRadius: '12px'
+          }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <span style={{ 
+                  display: 'inline-block', 
+                  width: '8px', 
+                  height: '8px', 
+                  borderRadius: '50%', 
+                  backgroundColor: isNearLimit ? '#ef4444' : '#10b981',
+                  boxShadow: `0 0 8px ${isNearLimit ? '#ef4444' : '#10b981'}`
+                }} />
+                <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Operator Seats Limit: {currentSeatsUsed} / {limit} Seats Allocated
+                </span>
+              </div>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                Owner, Admin, and Contributor roles consume operator seats. Viewers do not consume any seats and are completely free.
+              </p>
+            </div>
+            
+            <div style={{ width: '150px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ height: '6px', width: '100%', background: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden' }}>
+                <div style={{ 
+                  height: '100%', 
+                  width: `${percent}%`, 
+                  background: isNearLimit 
+                    ? 'linear-gradient(to right, #f97316, #ef4444)' 
+                    : 'linear-gradient(to right, #8b5cf6, #d946ef)', 
+                  borderRadius: '3px' 
+                }} />
+              </div>
+              <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textAlign: 'right', fontWeight: 600 }}>
+                {Math.round(percent)}% Utilized
+              </span>
+            </div>
+          </div>
+        );
+      })()}
 
       {loadingUsers ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-secondary)', padding: '20px 0' }}>
