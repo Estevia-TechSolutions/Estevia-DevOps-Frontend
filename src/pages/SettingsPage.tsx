@@ -1,5 +1,5 @@
 import React from 'react';
-import { Crown, ShieldAlert, AlertTriangle, Check, ShieldCheck, Zap, CreditCard, ChevronDown, ChevronUp, AlertCircle, ArrowRight, Info } from 'lucide-react';
+import { Crown, ShieldAlert, AlertTriangle, Check, ShieldCheck, Zap, CreditCard, ChevronDown, ChevronUp, AlertCircle, ArrowRight, Info, TrendingUp } from 'lucide-react';
 
 interface SettingsPageProps {
   azureSubscriptionId: string;
@@ -109,7 +109,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const activePricing = PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth;
 
   // Sub-tab navigation and simulated payment states
-  const [activeSubTab, setActiveSubTab] = React.useState<'licensing' | 'billing'>('licensing');
+  const [activeSubTab, setActiveSubTab] = React.useState<'licensing' | 'billing' | 'forecast'>('licensing');
   const [payingInvoiceId, setPayingInvoiceId] = React.useState<number | null>(null);
   const [payError, setPayError] = React.useState<string | null>(null);
 
@@ -143,6 +143,48 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const [originalDevopsSub] = React.useState(subPackageDevops);
   const [originalDevSub] = React.useState(subPackageDeveloper);
   const [originalSecSub] = React.useState(subPackageSecurity);
+
+  const [expandedBreakdown, setExpandedBreakdown] = React.useState<Record<string, boolean>>({});
+
+  interface BreakdownLine { label: string; value: string; bold?: boolean; dim?: boolean; }
+  const getInvoiceBreakdown = (inv: any): BreakdownLine[] => {
+    const lines: BreakdownLine[] = [];
+    const amount = parseFloat(inv.amount || '0');
+    const currency = inv.currency || 'USD';
+    const isINR = currency === 'INR';
+    const type = (inv.invoice_type || '').toLowerCase();
+    
+    if (type === 'devops_package') {
+      lines.push(
+        { label: 'Item Type', value: '🚀 DevOps Sub-Package Fee' },
+        { label: 'Base Subscription', value: isINR ? '₹12,500 / month' : '$150.00 / month' },
+        { label: 'Included Capabilities', value: 'SWA & ACA wizard, Pipeline trigger', dim: true },
+        { label: 'Total Charged', value: isINR ? `₹${amount.toLocaleString()}` : `$${amount.toLocaleString()} USD`, bold: true }
+      );
+    } else if (type === 'developer_package') {
+      lines.push(
+        { label: 'Item Type', value: '💻 Developer Sub-Package Fee' },
+        { label: 'Base Subscription', value: isINR ? '₹8,250 / month' : '$99.00 / month' },
+        { label: 'Included Capabilities', value: 'Flex DB, Dockerfile/YML validation', dim: true },
+        { label: 'Total Charged', value: isINR ? `₹${amount.toLocaleString()}` : `$${amount.toLocaleString()} USD`, bold: true }
+      );
+    } else if (type === 'security_package') {
+      lines.push(
+        { label: 'Item Type', value: '🛡️ Security Sub-Package Fee' },
+        { label: 'Base Subscription', value: isINR ? '₹10,000 / month' : '$120.00 / month' },
+        { label: 'Included Capabilities', value: 'Policy scanners, Eva AI advisor rules', dim: true },
+        { label: 'Total Charged', value: isINR ? `₹${amount.toLocaleString()}` : `$${amount.toLocaleString()} USD`, bold: true }
+      );
+    } else {
+      lines.push(
+        { label: 'Item Type', value: '🏢 Platform Seat & License Fee' },
+        { label: 'Base Platform Rate', value: isINR ? '₹83,333 / month' : '$1,000 / month' },
+        { label: 'Seat Allocation', value: `${operatorSeatsLimit} seats` },
+        { label: 'Total Billed', value: isINR ? `₹${amount.toLocaleString()}` : `$${amount.toLocaleString()} USD`, bold: true }
+      );
+    }
+    return lines;
+  };
 
   const hasTierChange = pendingLicenseTier !== null && pendingLicenseTier !== undefined && pendingLicenseTier !== licenseTier;
   const hasSeatsChange = operatorSeatsLimit !== originalSeatsLimit;
@@ -536,6 +578,27 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   {invoices.filter((inv: any) => inv.status === 'Pending').length}
                 </span>
               )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('forecast')}
+              style={{
+                padding: '10px 18px',
+                background: 'none',
+                border: 'none',
+                borderBottom: `2px solid ${activeSubTab === 'forecast' ? 'var(--accent-purple)' : 'transparent'}`,
+                color: activeSubTab === 'forecast' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                fontWeight: activeSubTab === 'forecast' ? 700 : 500,
+                fontSize: '0.86rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <TrendingUp size={15} style={{ color: activeSubTab === 'forecast' ? 'var(--accent-purple)' : 'var(--text-muted)' }} />
+              Forecast Projections
             </button>
           </div>
 
@@ -1240,12 +1303,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                 
                 {/* Invoices list */}
-                <div style={{ flex: payingInvoiceId ? 1.2 : 1, minWidth: '300px' }}>
+                <div style={{ flex: 1, minWidth: '300px' }}>
                   <div className="glass-panel" style={{ overflow: 'hidden', padding: 0 }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem', textAlign: 'left' }}>
                       <thead>
                         <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--divider)' }}>
                           <th style={{ padding: '14px 18px' }}>Invoice Number</th>
+                          <th style={{ padding: '14px 18px' }}>Billing Type</th>
                           <th style={{ padding: '14px 18px' }}>Amount</th>
                           <th style={{ padding: '14px 18px' }}>Due Date</th>
                           <th style={{ padding: '14px 18px' }}>Status</th>
@@ -1255,7 +1319,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       <tbody>
                         {invoices.length === 0 ? (
                           <tr>
-                            <td colSpan={5} style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                            <td colSpan={6} style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
                               No invoices generated for your organization.
                             </td>
                           </tr>
@@ -1263,7 +1327,108 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                           invoices.map((inv: any) => (
                             <tr key={inv.id} style={{ borderBottom: '1px solid var(--divider)' }}>
                               <td style={{ padding: '14px 18px', fontWeight: 600 }}>{inv.invoice_number}</td>
-                              <td style={{ padding: '14px 18px' }}>${parseFloat(inv.amount).toLocaleString()}</td>
+                              <td style={{ padding: '14px 18px' }}>
+                                <span style={{
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  textTransform: 'uppercase',
+                                  background: inv.invoice_type === 'devops_package' ? 'rgba(59,130,246,0.08)'
+                                            : inv.invoice_type === 'developer_package' ? 'rgba(139,92,246,0.08)'
+                                            : inv.invoice_type === 'security_package' ? 'rgba(20,184,166,0.08)'
+                                            : 'rgba(251,191,36,0.08)',
+                                  color: inv.invoice_type === 'devops_package' ? '#60a5fa'
+                                       : inv.invoice_type === 'developer_package' ? '#c084fc'
+                                       : inv.invoice_type === 'security_package' ? '#2dd4bf'
+                                       : '#fbbf24',
+                                  border: inv.invoice_type === 'devops_package' ? '1px solid rgba(59,130,246,0.2)'
+                                        : inv.invoice_type === 'developer_package' ? '1px solid rgba(139,92,246,0.2)'
+                                        : inv.invoice_type === 'security_package' ? '1px solid rgba(20,184,166,0.2)'
+                                        : '1px solid rgba(251,191,36,0.2)'
+                                }}>
+                                  {inv.invoice_type === 'devops_package' ? '🚀 DevOps'
+                                   : inv.invoice_type === 'developer_package' ? '💻 Developer'
+                                   : inv.invoice_type === 'security_package' ? '🛡️ Security'
+                                   : '🏢 Platform'}
+                                </span>
+                              </td>
+                              <td style={{ padding: '14px 18px', position: 'relative' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                                  <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                                    {inv.currency === 'INR' 
+                                      ? `₹${parseFloat(inv.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                      : `$${parseFloat(inv.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                    }
+                                  </span>
+                                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                    {inv.currency === 'INR'
+                                      ? `≈ $${(parseFloat(inv.amount) / 83.3333).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                      : `≈ ₹${Math.round(parseFloat(inv.amount) * 83.3333).toLocaleString(undefined, { minimumFractionDigits: 0 })}`
+                                    }
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  title="Show calculation breakdown"
+                                  onClick={(e) => {
+                                    setExpandedBreakdown(prev => ({
+                                      ...prev,
+                                      [inv.id]: !prev[inv.id]
+                                    }));
+                                  }}
+                                  style={{
+                                    background: expandedBreakdown[inv.id] ? 'rgba(99,102,241,0.12)' : 'rgba(245,158,11,0.08)',
+                                    border: `1.5px solid ${expandedBreakdown[inv.id] ? 'rgba(99,102,241,0.35)' : 'rgba(245,158,11,0.4)'}`,
+                                    borderRadius: '6px', padding: '3px 8px', cursor: 'pointer',
+                                    color: expandedBreakdown[inv.id] ? '#818cf8' : '#f59e0b',
+                                    display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                    fontSize: '0.68rem', fontWeight: 800, transition: 'all 0.15s',
+                                    marginTop: '4px', outline: 'none'
+                                  }}
+                                >
+                                  <Info size={11} />
+                                  <span>Breakdown</span>
+                                  {expandedBreakdown[inv.id] ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                                </button>
+                                
+                                {expandedBreakdown[inv.id] && (() => {
+                                  const lines = getInvoiceBreakdown(inv);
+                                  return (
+                                    <div style={{
+                                      position: 'absolute',
+                                      top: 'calc(100% + 4px)',
+                                      left: '18px',
+                                      width: '280px',
+                                      background: 'rgba(15, 23, 42, 0.98)',
+                                      backdropFilter: 'blur(12px)',
+                                      border: '1.5px solid rgba(139, 92, 246, 0.3)',
+                                      borderRadius: '10px',
+                                      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
+                                      zIndex: 100,
+                                      color: '#f8fafc',
+                                      padding: '12px',
+                                      textAlign: 'left'
+                                    }}>
+                                      <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '4px' }}>
+                                        Calculation Breakup
+                                      </div>
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        {lines.map((line, idx) => (
+                                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
+                                            <span style={{ fontSize: '0.74rem', color: line.dim ? 'var(--text-muted)' : 'var(--text-secondary)' }}>
+                                              {line.label}
+                                            </span>
+                                            <span style={{ fontSize: '0.74rem', color: line.bold ? 'var(--accent-purple)' : 'var(--text-primary)', fontWeight: line.bold ? 800 : 600, whiteSpace: 'nowrap' }}>
+                                              {line.value}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                              </td>
                               <td style={{ padding: '14px 18px' }}>{new Date(inv.due_date).toLocaleDateString()}</td>
                               <td style={{ padding: '14px 18px' }}>
                                 <span style={{
@@ -1311,10 +1476,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   </div>
                 </div>
 
-                {/* Checkout simulation form */}
                 {payingInvoiceId && (
-                  <div style={{ flex: 0.8, minWidth: '280px' }}>
-                    <div className="glass-panel" style={{ padding: '24px', animation: 'fade-in-anim 0.2s ease-out' }}>
+                  <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    zIndex: 9999,
+                    background: 'rgba(0,0,0,0.75)',
+                    backdropFilter: 'blur(8px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '24px'
+                  }}>
+                    <div className="glass-panel" style={{ maxWidth: '440px', width: '100%', padding: '28px', border: '1px solid var(--glass-border)', borderRadius: '16px', background: 'linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(15,23,42,0.99) 100%)', boxShadow: '0 12px 40px rgba(0, 0, 0, 0.6)', animation: 'fade-in-anim 0.25s ease-out' }}>
                       <h4 style={{ fontSize: '0.92rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <CreditCard size={15} style={{ color: 'var(--accent-purple)' }} />
                         SaaS Checkout Simulator
@@ -1343,8 +1517,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         fontSize: '0.82rem'
                       }}>
                         <div style={{ color: 'var(--text-secondary)' }}>Outstanding Balance</div>
-                        <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '2px' }}>
-                          ${parseFloat(invoices.find((i: any) => i.id === payingInvoiceId)?.amount || '0').toLocaleString()} USD
+                        <div style={{ fontSize: '1.35rem', fontWeight: 800, marginTop: '2px', color: 'var(--text-primary)' }}>
+                          {(() => {
+                            const inv = invoices.find((i: any) => i.id === payingInvoiceId);
+                            if (!inv) return '—';
+                            const amt = parseFloat(inv.amount || '0');
+                            return inv.currency === 'INR'
+                              ? `₹${amt.toLocaleString()} (≈ $${(amt / 83.3333).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`
+                              : `$${amt.toLocaleString()} (≈ ₹${Math.round(amt * 83.3333).toLocaleString()})`;
+                          })()}
                         </div>
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                           Reference: {invoices.find((i: any) => i.id === payingInvoiceId)?.invoice_number}
@@ -1428,6 +1609,196 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               </div>
             </div>
           )}
+
+          {activeSubTab === 'forecast' && (() => {
+            const basePriceUSD = licenseTier === 'growth' ? 1000 : licenseTier === 'enterprise' ? 2000 : 4000;
+            const basePriceINR = licenseTier === 'growth' ? 83333 : licenseTier === 'enterprise' ? 166666 : 333333;
+            
+            const seatPriceUSD = licenseTier === 'growth' ? 40 : licenseTier === 'enterprise' ? 90 : 30;
+            const seatPriceINR = licenseTier === 'growth' ? 3333 : licenseTier === 'enterprise' ? 7500 : 2500;
+            
+            const devopsPriceUSD = subPackageDevops ? 150 : 0;
+            const devopsPriceINR = subPackageDevops ? 12500 : 0;
+            
+            const developerPriceUSD = subPackageDeveloper ? 99 : 0;
+            const developerPriceINR = subPackageDeveloper ? 8250 : 0;
+            
+            const securityPriceUSD = subPackageSecurity ? 120 : 0;
+            const securityPriceINR = subPackageSecurity ? 10000 : 0;
+            
+            const totalUSD = basePriceUSD + (operatorSeatsLimit * seatPriceUSD) + devopsPriceUSD + developerPriceUSD + securityPriceUSD;
+            const totalINR = basePriceINR + (operatorSeatsLimit * seatPriceINR) + devopsPriceINR + developerPriceINR + securityPriceINR;
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fade-in-anim 0.2s ease-out' }}>
+                
+                {/* Projected summary card */}
+                <div className="glass-panel" style={{
+                  padding: '24px',
+                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(99, 102, 241, 0.04) 100%)',
+                  border: '1.5px solid rgba(16, 185, 129, 0.25)',
+                  borderRadius: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '20px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981', flexShrink: 0 }}>
+                      <TrendingUp size={24} />
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.78rem', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.06em', color: '#10b981' }}>
+                        Month-End Spend Forecast
+                      </span>
+                      <h2 style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-primary)', margin: '4px 0 0 0', display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+                        <span>${totalUSD.toLocaleString()} USD</span>
+                        <span style={{ fontSize: '1.15rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
+                          (≈ ₹{totalINR.toLocaleString('en-IN')})
+                        </span>
+                      </h2>
+                    </div>
+                  </div>
+                  <div style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid var(--glass-border)',
+                    color: 'var(--text-secondary)'
+                  }}>
+                    Estevia Platform Billing Cycle: Monthly
+                  </div>
+                </div>
+
+                {/* Calculation breakdown */}
+                <div className="glass-panel" style={{ padding: '24px' }}>
+                  <h3 style={{ fontSize: '0.96rem', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: '1px dashed var(--glass-border)', paddingBottom: '10px', marginBottom: '16px' }}>
+                    Consolidated Projections Breakdown
+                  </h3>
+                  
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ color: 'var(--text-secondary)', borderBottom: '1.5px solid var(--glass-border)' }}>
+                          <th style={{ padding: '10px 14px' }}>Line Item</th>
+                          <th style={{ padding: '10px 14px' }}>Quantity</th>
+                          <th style={{ padding: '10px 14px' }}>Rate (USD)</th>
+                          <th style={{ padding: '10px 14px' }}>Rate (INR equivalent)</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'right' }}>Total (USD)</th>
+                          <th style={{ padding: '10px 14px', textAlign: 'right' }}>Total (INR)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <td style={{ padding: '12px 14px', fontWeight: 600 }}>Base Platform Fee ({licenseTier.toUpperCase()})</td>
+                          <td style={{ padding: '12px 14px' }}>1 organization</td>
+                          <td style={{ padding: '12px 14px' }}>${basePriceUSD.toLocaleString()}/mo</td>
+                          <td style={{ padding: '12px 14px' }}>₹{basePriceINR.toLocaleString('en-IN')}/mo</td>
+                          <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>${basePriceUSD.toLocaleString()}</td>
+                          <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>₹{basePriceINR.toLocaleString('en-IN')}</td>
+                        </tr>
+                        <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <td style={{ padding: '12px 14px', fontWeight: 600 }}>Operator Seats Allocation</td>
+                          <td style={{ padding: '12px 14px' }}>{operatorSeatsLimit} seat{operatorSeatsLimit !== 1 ? 's' : ''}</td>
+                          <td style={{ padding: '12px 14px' }}>${seatPriceUSD.toLocaleString()}/seat/mo</td>
+                          <td style={{ padding: '12px 14px' }}>₹{seatPriceINR.toLocaleString('en-IN')}/seat/mo</td>
+                          <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>${(operatorSeatsLimit * seatPriceUSD).toLocaleString()}</td>
+                          <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>₹{(operatorSeatsLimit * seatPriceINR).toLocaleString('en-IN')}</td>
+                        </tr>
+                        
+                        {subPackageDevops && (
+                          <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                            <td style={{ padding: '12px 14px', fontWeight: 600 }}>🚀 DevOps Sub-Package</td>
+                            <td style={{ padding: '12px 14px' }}>Active</td>
+                            <td style={{ padding: '12px 14px' }}>$150/mo</td>
+                            <td style={{ padding: '12px 14px' }}>₹12,500/mo</td>
+                            <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>$150</td>
+                            <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>₹12,500</td>
+                          </tr>
+                        )}
+                        {subPackageDeveloper && (
+                          <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                            <td style={{ padding: '12px 14px', fontWeight: 600 }}>💻 Developer Sub-Package</td>
+                            <td style={{ padding: '12px 14px' }}>Active</td>
+                            <td style={{ padding: '12px 14px' }}>$99/mo</td>
+                            <td style={{ padding: '12px 14px' }}>₹8,250/mo</td>
+                            <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>$99</td>
+                            <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>₹8,250</td>
+                          </tr>
+                        )}
+                        {subPackageSecurity && (
+                          <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                            <td style={{ padding: '12px 14px', fontWeight: 600 }}>🛡️ Security Sub-Package</td>
+                            <td style={{ padding: '12px 14px' }}>Active</td>
+                            <td style={{ padding: '12px 14px' }}>$120/mo</td>
+                            <td style={{ padding: '12px 14px' }}>₹10,000/mo</td>
+                            <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>$120</td>
+                            <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>₹10,000</td>
+                          </tr>
+                        )}
+
+                        <tr style={{ borderTop: '2px solid var(--glass-border)' }}>
+                          <td colSpan={4} style={{ padding: '16px 14px', fontWeight: 800, fontSize: '0.9rem' }}>Projected Monthly Total</td>
+                          <td style={{ padding: '16px 14px', textAlign: 'right', fontWeight: 900, color: 'var(--accent-purple)', fontSize: '0.94rem' }}>
+                            ${totalUSD.toLocaleString()}
+                          </td>
+                          <td style={{ padding: '16px 14px', textAlign: 'right', fontWeight: 900, color: 'var(--accent-purple)', fontSize: '0.94rem' }}>
+                            ₹{totalINR.toLocaleString('en-IN')}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* 3-6-12 Month Projections cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                  {[
+                    { label: '3-Month Projected Spend', multiplier: 3 },
+                    { label: '6-Month Projected Spend', multiplier: 6 },
+                    { label: '12-Month Projected Spend', multiplier: 12 }
+                  ].map((proj, idx) => (
+                    <div key={idx} className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)' }}>{proj.label}</span>
+                      <div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                          ${(totalUSD * proj.multiplier).toLocaleString()} USD
+                        </div>
+                        <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          ≈ ₹{(totalINR * proj.multiplier).toLocaleString('en-IN')} INR
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Savings and recommendations box */}
+                <div style={{
+                  padding: '16px 20px',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(251, 191, 36, 0.25)',
+                  background: 'rgba(251, 191, 36, 0.04)',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px'
+                }}>
+                  <Info size={16} style={{ color: '#fbbf24', marginTop: '2px', flexShrink: 0 }} />
+                  <div>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#fbbf24', display: 'block', marginBottom: '4px' }}>
+                      Eva AI Advisor Cost Optimization Forecast
+                    </span>
+                    <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                      We project that applying VM scale policies and database size corrections could reduce your platform expenditure by up to 15% (estimated monthly savings of ${Math.round(totalUSD * 0.15)} USD / ≈ ₹{Math.round(totalINR * 0.15).toLocaleString('en-IN')} INR). Go to the <strong>Optimization Recommendations</strong> tab to check VM scaling details.
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+            )}
+          <div style={{ height: '2px' }} />
         </div>
       </div>
 
