@@ -176,10 +176,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         { label: 'Total Charged', value: isINR ? `₹${amount.toLocaleString()}` : `$${amount.toLocaleString()} USD`, bold: true }
       );
     } else {
+      const baseRate = isINR ? 83333 : 1000;
+      const seatPrice = isINR ? (licenseTier === 'growth' ? 3333 : licenseTier === 'enterprise' ? 7500 : 2500)
+                              : (licenseTier === 'growth' ? 40 : licenseTier === 'enterprise' ? 90 : 30);
+      const billedSeats = Math.max(0, Math.round((amount - baseRate) / seatPrice));
+
       lines.push(
         { label: 'Item Type', value: '🏢 Platform Seat & License Fee' },
         { label: 'Base Platform Rate', value: isINR ? '₹83,333 / month' : '$1,000 / month' },
-        { label: 'Seat Allocation', value: `${operatorSeatsLimit} seats` },
+        { label: 'Seat Allocation', value: `${billedSeats} active seat${billedSeats !== 1 ? 's' : ''}` },
         { label: 'Total Billed', value: isINR ? `₹${amount.toLocaleString()}` : `$${amount.toLocaleString()} USD`, bold: true }
       );
     }
@@ -288,8 +293,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const developerPriceINR = subPackageDeveloper ? 8250 : 0;
   const securityPriceINR = subPackageSecurity ? 10000 : 0;
 
-  const projectedUSD = activePricing.baseUSD + activePricing.seatUSD * operatorSeatsLimit + devopsPriceUSD + developerPriceUSD + securityPriceUSD;
-  const projectedINR = Math.round((activePricing.baseUSD + activePricing.seatUSD * operatorSeatsLimit) * usdToInrRate) + devopsPriceINR + developerPriceINR + securityPriceINR;
+  const projectedUSD = activePricing.baseUSD + activePricing.seatUSD * currentWriteUsers + devopsPriceUSD + developerPriceUSD + securityPriceUSD;
+  const projectedINR = Math.round((activePricing.baseUSD + activePricing.seatUSD * currentWriteUsers) * usdToInrRate) + devopsPriceINR + developerPriceINR + securityPriceINR;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1200px', margin: '0 auto', padding: '10px 0' }}>
@@ -411,8 +416,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>${activePricing.baseUSD.toLocaleString()}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
-                <span>{operatorSeatsLimit} seats × ${activePricing.seatUSD}</span>
-                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>${(activePricing.seatUSD * operatorSeatsLimit).toLocaleString()}</span>
+                <span>{currentWriteUsers} active seat{currentWriteUsers !== 1 ? 's' : ''} × ${activePricing.seatUSD}</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>${(activePricing.seatUSD * currentWriteUsers).toLocaleString()}</span>
               </div>
               {subPackageDevops && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
@@ -1652,8 +1657,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             const securityPriceUSD = subPackageSecurity ? 120 : 0;
             const securityPriceINR = subPackageSecurity ? 10000 : 0;
             
-            const totalUSD = basePriceUSD + (operatorSeatsLimit * seatPriceUSD) + devopsPriceUSD + developerPriceUSD + securityPriceUSD;
-            const totalINR = basePriceINR + (operatorSeatsLimit * seatPriceINR) + devopsPriceINR + developerPriceINR + securityPriceINR;
+            const totalUSD = basePriceUSD + (currentWriteUsers * seatPriceUSD) + devopsPriceUSD + developerPriceUSD + securityPriceUSD;
+            const totalINR = basePriceINR + (currentWriteUsers * seatPriceINR) + devopsPriceINR + developerPriceINR + securityPriceINR;
 
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fade-in-anim 0.2s ease-out' }}>
@@ -1728,11 +1733,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         </tr>
                         <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                           <td style={{ padding: '12px 14px', fontWeight: 600 }}>Operator Seats Allocation</td>
-                          <td style={{ padding: '12px 14px' }}>{operatorSeatsLimit} seat{operatorSeatsLimit !== 1 ? 's' : ''}</td>
+                          <td style={{ padding: '12px 14px' }}>{currentWriteUsers} active seat{currentWriteUsers !== 1 ? 's' : ''}</td>
                           <td style={{ padding: '12px 14px' }}>${seatPriceUSD.toLocaleString()}/seat/mo</td>
                           <td style={{ padding: '12px 14px' }}>₹{seatPriceINR.toLocaleString('en-IN')}/seat/mo</td>
-                          <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>${(operatorSeatsLimit * seatPriceUSD).toLocaleString()}</td>
-                          <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>₹{(operatorSeatsLimit * seatPriceINR).toLocaleString('en-IN')}</td>
+                          <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>${(currentWriteUsers * seatPriceUSD).toLocaleString()}</td>
+                          <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>₹{(currentWriteUsers * seatPriceINR).toLocaleString('en-IN')}</td>
                         </tr>
                         
                         {subPackageDevops && (
