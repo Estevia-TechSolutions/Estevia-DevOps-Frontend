@@ -821,11 +821,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         />
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '14px' }}>
-                      <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)' }}>
-                        {billingCurrency === 'INR' ? '₹12,500' : '$150.00'}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)' }}>
+                          {billingCurrency === 'INR' ? '₹12,500' : '$150.00'}
+                        </span>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>/ month</span>
+                      </div>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                        {billingCurrency === 'INR' ? '≈ $150.00 / month' : '≈ ₹12,500 / month'}
                       </span>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>/ month</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
                       {[
@@ -878,11 +883,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         />
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '14px' }}>
-                      <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)' }}>
-                        {billingCurrency === 'INR' ? '₹8,250' : '$99.00'}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)' }}>
+                          {billingCurrency === 'INR' ? '₹8,250' : '$99.00'}
+                        </span>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>/ month</span>
+                      </div>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                        {billingCurrency === 'INR' ? '≈ $99.00 / month' : '≈ ₹8,250 / month'}
                       </span>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>/ month</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
                       {[
@@ -935,11 +945,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         />
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '14px' }}>
-                      <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)' }}>
-                        {billingCurrency === 'INR' ? '₹10,000' : '$120.00'}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)' }}>
+                          {billingCurrency === 'INR' ? '₹10,000' : '$120.00'}
+                        </span>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>/ month</span>
+                      </div>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                        {billingCurrency === 'INR' ? '≈ $120.00 / month' : '≈ ₹10,000 / month'}
                       </span>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>/ month</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
                       {[
