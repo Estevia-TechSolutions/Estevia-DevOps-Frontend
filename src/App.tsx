@@ -37,7 +37,8 @@ import {
   Sliders,
   Activity,
   Download,
-  Crown
+  Crown,
+  Lock
 } from 'lucide-react';
 import './App.css';
 
@@ -6255,7 +6256,10 @@ function App() {
                     disabled={requiresCredentialSetup || isOrgDisabled}
                   >
                     <Server size={16} />
-                    <span>Cloud Scanning {!subPackageDevops && '🔒'}</span>
+                    <span>Cloud Scanning</span>
+                    {!subPackageDevops && (
+                      <Lock size={10} style={{ position: 'absolute', top: '5px', right: '5px', color: '#ef4444' }} />
+                    )}
                     {tabLoadingMap.scan && (
                       <span className="tab-loading-spin" title="Scanning cloud..." />
                     )}
@@ -6279,7 +6283,10 @@ function App() {
                     disabled={requiresCredentialSetup || isOrgDisabled}
                   >
                     <PlusCircle size={16} />
-                    <span>Provision App {!subPackageDevops && '🔒'}</span>
+                    <span>Provision App</span>
+                    {!subPackageDevops && (
+                      <Lock size={10} style={{ position: 'absolute', top: '5px', right: '5px', color: '#ef4444' }} />
+                    )}
                     {tabLoadingMap.provision && (
                       <span className="tab-loading-spin" title="Loading..." />
                     )}
@@ -6301,7 +6308,10 @@ function App() {
                     disabled={requiresCredentialSetup || isOrgDisabled}
                   >
                     <TrendingDown size={16} />
-                    <span>Cost Management {!subPackageSecurity && '🔒'}</span>
+                    <span>Cost Management</span>
+                    {!subPackageSecurity && (
+                      <Lock size={10} style={{ position: 'absolute', top: '5px', right: '5px', color: '#ef4444' }} />
+                    )}
                     {(tabLoadingMap.cost || tabLoadingMap.optimization) && (
                       <span className="tab-loading-spin" title="Loading costs..." />
                     )}
@@ -6322,7 +6332,10 @@ function App() {
                     disabled={requiresCredentialSetup || isOrgDisabled}
                   >
                     <Database size={16} />
-                    <span>DB Hub {!subPackageDeveloper && '🔒'}</span>
+                    <span>DB Hub</span>
+                    {!subPackageDeveloper && (
+                      <Lock size={10} style={{ position: 'absolute', top: '5px', right: '5px', color: '#ef4444' }} />
+                    )}
                     {tabLoadingMap.databases && (
                       <span className="tab-loading-spin" title="Loading databases..." />
                     )}
@@ -6375,7 +6388,10 @@ function App() {
                     disabled={requiresCredentialSetup || isOrgDisabled}
                   >
                     <Activity size={16} />
-                    <span>Events Feed {!subPackageDevops && '🔒'}</span>
+                    <span>Events Feed</span>
+                    {!subPackageDevops && (
+                      <Lock size={10} style={{ position: 'absolute', top: '5px', right: '5px', color: '#ef4444' }} />
+                    )}
                     {tabLoadingMap.events && (
                       <span className="tab-loading-spin" title="Loading events..." />
                     )}

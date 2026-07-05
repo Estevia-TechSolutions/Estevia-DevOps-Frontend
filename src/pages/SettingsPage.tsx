@@ -176,7 +176,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         { label: 'Total Charged', value: isINR ? `₹${amount.toLocaleString()}` : `$${amount.toLocaleString()} USD`, bold: true }
       );
     } else {
-      const baseRate = isINR ? 83333 : 1000;
+      const baseRate = isINR 
+        ? (licenseTier === 'growth' ? 83333 : licenseTier === 'enterprise' ? 166666 : 333333)
+        : (licenseTier === 'growth' ? 1000 : licenseTier === 'enterprise' ? 2000 : 4000);
       const seatPrice = isINR ? (licenseTier === 'growth' ? 3333 : licenseTier === 'enterprise' ? 7500 : 2500)
                               : (licenseTier === 'growth' ? 40 : licenseTier === 'enterprise' ? 90 : 30);
       const billedSeats = Math.max(0, Math.round((amount - baseRate) / seatPrice));
@@ -1340,7 +1342,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       <thead>
                         <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--divider)' }}>
                           <th style={{ padding: '14px 18px' }}>Invoice Number</th>
-                          <th style={{ padding: '14px 18px' }}>Billing Type</th>
+                          <th style={{ padding: '14px 18px', whiteSpace: 'nowrap' }}>Billing Type</th>
                           <th style={{ padding: '14px 18px' }}>Amount</th>
                           <th style={{ padding: '14px 18px' }}>Due Date</th>
                           <th style={{ padding: '14px 18px' }}>Status</th>
