@@ -1367,6 +1367,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                                   fontSize: '0.72rem',
                                   fontWeight: 700,
                                   textTransform: 'uppercase',
+                                  whiteSpace: 'nowrap',
                                   background: inv.invoice_type === 'devops_package' ? 'rgba(59,130,246,0.08)'
                                             : inv.invoice_type === 'developer_package' ? 'rgba(139,92,246,0.08)'
                                             : inv.invoice_type === 'security_package' ? 'rgba(20,184,166,0.08)'
