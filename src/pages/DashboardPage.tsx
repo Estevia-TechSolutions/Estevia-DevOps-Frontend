@@ -293,7 +293,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   const [cancelingOlderForPipeline, setCancelingOlderForPipeline] = React.useState<number | string | null>(null);
 
-  const handleCancelOlderBuilds = async (pipelineId: number | string | undefined) => {
+  const handleCancelOlderBuilds = async (pipelineId: number | string | undefined, branchName?: string) => {
     if (!pipelineId) return;
     setCancelingOlderForPipeline(pipelineId);
     try {
@@ -304,7 +304,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({ organizationId, pipelineId })
+        body: JSON.stringify({ organizationId, pipelineId, branch: branchName })
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -5195,15 +5195,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                     {/* Right side Actions (CI/CD Pipeline Link + Cancel Previous) */}
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                       {/* Cancel Previous Builds — shown when build is active and user is not viewer */}
-                                                      {!isViewer && item.pipelineId && item.pipelineRun && isBuildActive(item.pipelineRun) && (item.pipelineRun.activeRunCount === undefined || item.pipelineRun.activeRunCount > 1) && (
+                                                      {!isViewer && item.pipelineId && item.pipelineRun && isBuildActive(item.pipelineRun) && item.pipelineRun.activeRunCount > 1 && (
                                                         <button
                                                           type="button"
                                                           onClick={(e) => {
                                                             e.stopPropagation();
-                                                            handleCancelOlderBuilds(item.pipelineId);
+                                                            handleCancelOlderBuilds(item.pipelineId, `refs/heads/${resolveBranchName(item)}`);
                                                           }}
                                                           disabled={cancelingOlderForPipeline === item.pipelineId}
-                                                          title="Cancel all older builds for this pipeline, keeping only the latest"
+                                                          title="Cancel all older builds for this branch, keeping only the latest"
                                                           style={{
                                                             display: 'flex',
                                                             alignItems: 'center',

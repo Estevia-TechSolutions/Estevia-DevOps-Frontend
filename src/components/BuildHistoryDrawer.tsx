@@ -33,6 +33,7 @@ interface BuildHistoryDrawerProps {
   currentUser: { role: string } | null;
   theme: 'dark' | 'light';
   API_BASE: string;
+  branchName?: string;
   onReDeployQueued?: (newBuildId: number) => void;
   onClose: () => void;
 }
@@ -46,6 +47,7 @@ export const BuildHistoryDrawer: React.FC<BuildHistoryDrawerProps> = ({
   currentUser,
   theme,
   API_BASE,
+  branchName,
   onReDeployQueued,
   onClose
 }) => {
@@ -195,7 +197,8 @@ export const BuildHistoryDrawer: React.FC<BuildHistoryDrawerProps> = ({
         },
         body: JSON.stringify({
           organizationId,
-          pipelineId
+          pipelineId,
+          branch: branchName ? `refs/heads/${branchName.replace(/^refs\/heads\//, '')}` : undefined
         })
       });
       const data = await res.json();
@@ -310,7 +313,15 @@ export const BuildHistoryDrawer: React.FC<BuildHistoryDrawerProps> = ({
     const res = (b.result || '').toLowerCase();
     return !['succeeded', 'failed', 'canceled', 'cancelled', 'partiallysucceeded'].includes(res);
   });
-  const hasMultipleActive = activeBuilds.length > 1;
+  
+  // Only show cancel button if the active branch itself has multiple active/queued runs
+  const activeBranchName = branchName || '';
+  const activeBuildsForBranch = activeBuilds.filter(b => {
+    const bBranch = (b.branch || '').toLowerCase().replace('refs/heads/', '');
+    const aBranch = activeBranchName.toLowerCase().replace('refs/heads/', '');
+    return bBranch === aBranch;
+  });
+  const hasMultipleActive = activeBuildsForBranch.length > 1;
 
   const isProdBranch = (branchName: string) => {
     const b = (branchName || '').toLowerCase();

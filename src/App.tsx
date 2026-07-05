@@ -7824,6 +7824,7 @@ function App() {
           currentUser={user}
           theme={theme}
           API_BASE={API_BASE}
+          branchName={resolveBranchName(buildHistoryDrawerApp)}
           onClose={() => setBuildHistoryDrawerApp(null)}
           onReDeployQueued={(newBuildId) => {
             showToast('Deployment Queued', `Successfully queued new build run #${newBuildId}`, 'success');
