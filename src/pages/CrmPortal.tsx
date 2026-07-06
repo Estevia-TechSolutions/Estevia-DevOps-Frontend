@@ -932,7 +932,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
         {/* ── Content Panel ── */}
         <div style={{ flex: 1, padding: '36px', overflowY: 'auto', background: 'transparent' }}>
-          {/* TAB 1: CLIENTS LIST */
+          {/* TAB 1: CLIENTS LIST */}
           {activeTab === 'clients' && !selectedClient && (() => {
             const totalCustomers = clients.length;
             const totalActiveSeats = clients.reduce((acc, c) => acc + (c.activeSeats || 0), 0);
@@ -2525,13 +2525,20 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                           <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
                             Administrative Role
                           </label>
-                              outline: 'none',
-                              boxSizing: 'border-box'
-                            }}
-                          >
-                            <option value="agent">Support Agent (Invoicing & Plan view)</option>
-                            <option value="admin">Administrator (Full Access & User creation)</option>
-                          </select>
+                          <div style={{ display: 'flex', gap: '10px' }}>
+                            {[
+                              { id: 'agent', label: 'Support Agent', desc: 'Invoicing & plan view only', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)' },
+                              { id: 'admin', label: 'Administrator', desc: 'Full access & user creation', color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)' }
+                            ].map(r => {
+                              const isSel = agentRole === r.id;
+                              return (
+                                <div key={r.id} onClick={() => setAgentRole(r.id)} style={{ flex: 1, padding: '10px 12px', borderRadius: '10px', border: `2px solid ${isSel ? r.color : 'var(--glass-border)'}`, background: isSel ? r.bg : 'transparent', cursor: 'pointer', transition: 'all 0.2s', boxShadow: isSel ? `0 0 12px ${r.bg}` : 'none' }}>
+                                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: isSel ? r.color : 'var(--text-primary)', marginBottom: '2px' }}>{r.label}</div>
+                                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{r.desc}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
 
