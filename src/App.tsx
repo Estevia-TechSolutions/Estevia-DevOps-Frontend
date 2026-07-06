@@ -39,8 +39,7 @@ import {
   Download,
   Crown,
   Lock,
-  Cloud,
-  Globe
+  Cloud
 } from 'lucide-react';
 import './App.css';
 
@@ -48,6 +47,7 @@ import './App.css';
 import { ConfirmationModal } from './components/ConfirmationModal';
 import { SiteHeader, ControlBanner } from './components/DevOpsHeader';
 import { BuildHistoryDrawer } from './components/BuildHistoryDrawer';
+import { EsteviaLoginBadge } from './components/shared/EsteviaLoginBadge';
 import { NotificationDrawer } from './components/NotificationDrawer';
 import type { AppNotification } from './components/NotificationDrawer';
 import { NotificationDetailModal } from './components/NotificationDetailModal';
@@ -3955,6 +3955,15 @@ function App() {
     }
   };
 
+  const openDockerfileEditor = async (app: AppResource, group?: AppGroup) => {
+    setDockerfileEditApp(app);
+    setDockerfileContent('');
+    setDockerfileValidation(null);
+    const repo = app.repositoryUrl?.replace('https://github.com/', '').replace(/\/$/, '') || group?.repoPath || '';
+    const branch = app.branch || 'main';
+    await fetchDockerfileContent(repo, branch);
+  };
+
   const handleMoveToStep2 = async () => {
     if (appType === 'cluster' || appType === 'database') {
       setProvisionStep(4);
@@ -4885,7 +4894,7 @@ function App() {
             boxSizing: 'border-box'
           }}>
             <div style={{ maxWidth: '400px', width: '100%', margin: '0 auto' }}>
-              <div style={{ marginBottom: '28px', display: 'flex', alignItems: 'flex-start', justifycontent: 'space-between', gap: '16px' }}>
+              <div style={{ marginBottom: '28px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div style={{ flex: 1 }}>
                   <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px', margin: 0 }}>Access Portal</h3>
                   <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', margin: 0 }}>Authenticate using your corporate account to deploy and track workspaces.</p>
