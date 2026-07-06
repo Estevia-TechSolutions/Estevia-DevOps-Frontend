@@ -2627,7 +2627,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: crmUser.role === 'admin' ? 'repeat(auto-fit, minmax(360px, 1fr))' : '1fr', gap: '28px', alignItems: 'start' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '28px', alignItems: 'start' }}>
                 {/* Left/Main Column: Staff Roster */}
                 <div style={{ maxHeight: '680px', display: 'flex', flexDirection: 'column' }}>
                   {/* ── Existing Agents Grid ── */}
@@ -2781,9 +2781,10 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   )}
                 </div>
 
-                {/* Right Column: Register & Edit Forms (Admins Only) */}
-                {crmUser.role === 'admin' && (
-                  <div>
+                {/* Right Column: Forms & Compliance Info */}
+                <div>
+                  {crmUser.role === 'admin' && (
+                    <>
                     {/* ── Inline Edit Panel ── */}
                     {editingAgent && (
                       <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px', border: '1px solid rgba(139,92,246,0.3)' }}>
@@ -3105,63 +3106,64 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                         </button>
                       </form>
                     </div>
+                  </>
+                )}
 
-                    {/* ── Staff Compliance Guidelines Panel ── */}
-                    <div className="glass-panel" style={{
-                      padding: '24px',
-                      marginTop: '24px',
-                      background: 'rgba(99, 102, 241, 0.02)',
-                      border: '1.5px dashed rgba(139, 92, 246, 0.25)',
-                      textAlign: 'left'
-                    }}>
-                      <h4 style={{
-                        fontSize: '0.94rem',
-                        fontWeight: 800,
-                        marginBottom: '16px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        color: 'var(--text-primary)'
-                      }}>
-                        <Shield size={16} style={{ color: 'var(--accent-purple)' }} />
-                        Roster Compliance & Access Audit Guidelines
-                      </h4>
-                      
-                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: '0 0 16px 0' }}>
-                        This administrative console governs seat allocations, licensing plans, and active agent directories across the DevOps fleet. Please adhere strictly to Estevia core security protocols.
-                      </p>
+                {/* ── Staff Compliance Guidelines Panel (Visible to All Roles) ── */}
+                <div className="glass-panel" style={{
+                  padding: '24px',
+                  marginTop: crmUser.role === 'admin' ? '24px' : '0px',
+                  background: 'rgba(99, 102, 241, 0.02)',
+                  border: '1.5px dashed rgba(139, 92, 246, 0.25)',
+                  textAlign: 'left'
+                }}>
+                  <h4 style={{
+                    fontSize: '0.94rem',
+                    fontWeight: 800,
+                    marginBottom: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    color: 'var(--text-primary)'
+                  }}>
+                    <Shield size={16} style={{ color: 'var(--accent-purple)' }} />
+                    Roster Compliance & Access Audit Guidelines
+                  </h4>
+                  
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: '0 0 16px 0' }}>
+                    This administrative console governs seat allocations, licensing plans, and active agent directories across the DevOps fleet. Please adhere strictly to Estevia core security protocols.
+                  </p>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                        <div style={{ borderLeft: '3px solid var(--accent-purple)', paddingLeft: '12px' }}>
-                          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                            1. Azure AD Sync & Identity Rules
-                          </div>
-                          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                            Synchronizing with Azure AD updates staff profiles via Microsoft Graph. Disabling an agent profile in your primary Active Directory tenant automatically blocks their CRM login access upon the next synchronization.
-                          </div>
-                        </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div style={{ borderLeft: '3px solid var(--accent-purple)', paddingLeft: '12px' }}>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                        1. Azure AD Sync & Identity Rules
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                        Synchronizing with Azure AD updates staff profiles via Microsoft Graph. Disabling an agent profile in your primary Active Directory tenant automatically blocks their CRM login access upon the next synchronization.
+                      </div>
+                    </div>
 
-                        <div style={{ borderLeft: '3px solid #2dd4bf', paddingLeft: '12px' }}>
-                          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                            2. Dynamic Role Bypass Audits
-                          </div>
-                          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                            Bypass logins map CRM users to client workspace accounts dynamically. CRM Administrators are granted <strong style={{ color: 'var(--text-primary)' }}>admin</strong> roles (full edit/override access), while Support Agents receive a read-only <strong style={{ color: 'var(--text-primary)' }}>viewer</strong> (developer viewer) role.
-                          </div>
-                        </div>
+                    <div style={{ borderLeft: '3px solid #2dd4bf', paddingLeft: '12px' }}>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                        2. Dynamic Role Bypass Audits
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                        Bypass logins map CRM users to client workspace accounts dynamically. CRM Administrators are granted <strong style={{ color: 'var(--text-primary)' }}>admin</strong> roles (full edit/override access), while Support Agents receive a read-only <strong style={{ color: 'var(--text-primary)' }}>viewer</strong> (developer viewer) role.
+                      </div>
+                    </div>
 
-                        <div style={{ borderLeft: '3px solid #fbbf24', paddingLeft: '12px' }}>
-                          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                            3. Access Revocation & Policy Controls
-                          </div>
-                          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                            Access tokens expire automatically. Administrators are required to perform a quarterly roster audit and manually toggle inactive support accounts to <code style={{ background: 'var(--input-bg)', padding: '2px 4px', borderRadius: '4px', border: '1px solid var(--glass-border)' }}>Disabled</code> to prevent credential leak risks.
-                          </div>
-                        </div>
+                    <div style={{ borderLeft: '3px solid #fbbf24', paddingLeft: '12px' }}>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                        3. Access Revocation & Policy Controls
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                        Access tokens expire automatically. Administrators are required to perform a quarterly roster audit and manually toggle inactive support accounts to <code style={{ background: 'var(--input-bg)', padding: '2px 4px', borderRadius: '4px', border: '1px solid var(--glass-border)' }}>Disabled</code> to prevent credential leak risks.
                       </div>
                     </div>
                   </div>
-                )}
+                </div>
+              </div>
               </div>
             </div>
           )}
