@@ -102,9 +102,15 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
   const [tierFilter, setTierFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [invoiceSearchQuery, setInvoiceSearchQuery] = useState('');
+  const [expandedOrgs, setExpandedOrgs] = useState<Record<string, boolean>>({});
+  const [agentPage, setAgentPage] = useState(1);
   const [agentSearchQuery, setAgentSearchQuery] = useState('');
   const [agentRoleFilter, setAgentRoleFilter] = useState('all');
   const [agentStatusFilter, setAgentStatusFilter] = useState('all');
+
+  useEffect(() => {
+    setAgentPage(1);
+  }, [agentSearchQuery, agentRoleFilter, agentStatusFilter]);
 
   // Support Agents list & edit state
   const [agents, setAgents] = useState<any[]>([]);
@@ -2368,186 +2374,259 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   <div>Loading system invoices...</div>
                 </div>
               ) : (
-                <div className="glass-panel" style={{ overflow: 'hidden', padding: 0 }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
-                    <thead>
-                      <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--divider)', textAlign: 'left' }}>
-                        <th style={{ padding: '14px 20px' }}>Invoice Number</th>
-                        <th style={{ padding: '14px 20px' }}>Client Organization</th>
-                        <th style={{ padding: '14px 20px', whiteSpace: 'nowrap' }}>Billing Type</th>
-                        <th style={{ padding: '14px 20px' }}>Amount</th>
-                        <th style={{ padding: '14px 20px' }}>Issue Date</th>
-                        <th style={{ padding: '14px 20px' }}>Due Date</th>
-                        <th style={{ padding: '14px 20px' }}>Status</th>
-                        <th style={{ padding: '14px 20px', width: '120px' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        const filtered = invoices.filter(inv => {
-                          const query = invoiceSearchQuery.toLowerCase();
-                          return (inv.invoice_number || '').toLowerCase().includes(query) ||
-                            (inv.clientName || '').toLowerCase().includes(query) ||
-                            (inv.organization_id || '').toLowerCase().includes(query);
-                        });
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {(() => {
+                    const filtered = invoices.filter(inv => {
+                      const query = invoiceSearchQuery.toLowerCase();
+                      return (inv.invoice_number || '').toLowerCase().includes(query) ||
+                        (inv.clientName || '').toLowerCase().includes(query) ||
+                        (inv.organization_id || '').toLowerCase().includes(query);
+                    });
 
-                        if (filtered.length === 0) {
-                          return (
-                            <tr>
-                              <td colSpan={8} style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                No invoices match the search query.
-                              </td>
-                            </tr>
-                          );
-                        }
+                    if (filtered.length === 0) {
+                      return (
+                        <div className="glass-panel" style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                          No invoices match the search query.
+                        </div>
+                      );
+                    }
 
-                        return filtered.map(inv => (
-                          <React.Fragment key={inv.id}>
-                            <tr style={{ borderBottom: expandedBreakdown[inv.id] ? 'none' : '1px solid var(--divider)', transition: 'background 0.15s' }}
-                              onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
-                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                              <td style={{ padding: '14px 20px', fontWeight: 600 }}>{inv.invoice_number}</td>
-                              <td style={{ padding: '14px 20px' }}>
-                                <span style={{ fontWeight: 500 }}>{inv.clientName}</span>
-                                <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>({inv.organization_id})</span>
-                              </td>
-                              <td style={{ padding: '14px 20px' }}>
-                                <span style={{
-                                  padding: '3px 8px',
-                                  borderRadius: '4px',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 700,
-                                  whiteSpace: 'nowrap',
-                                  background: inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? 'rgba(59,130,246,0.08)'
-                                            : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? 'rgba(139,92,246,0.08)'
-                                            : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? 'rgba(20,184,166,0.08)'
-                                            : 'rgba(251,191,36,0.08)',
-                                  color: inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? '#60a5fa'
-                                       : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? '#c084fc'
-                                       : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? '#2dd4bf'
-                                       : '#fbbf24',
-                                  border: inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? '1px solid rgba(59,130,246,0.2)'
-                                        : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? '1px solid rgba(139,92,246,0.2)'
-                                        : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? '1px solid rgba(20,184,166,0.2)'
-                                        : '1px solid rgba(251,191,36,0.2)'
-                                }}>
-                                  {inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? '🚀 DevOps'
-                                   : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? '💻 Developer'
-                                   : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? '🛡️ Security'
-                                   : '🏢 Platform'}
-                                </span>
-                              </td>
-                              <td style={{ padding: '14px 20px' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
-                                  <span>{renderDualCurrency(inv.amount, inv.currency || 'USD')}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => setExpandedBreakdown(prev => ({ ...prev, [inv.id]: !prev[inv.id] }))}
-                                    style={{
-                                      background: 'none', border: 'none', padding: 0, color: 'var(--accent-purple)',
-                                      fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer', outline: 'none',
-                                      display: 'inline-flex', alignItems: 'center', gap: '3px'
-                                    }}
-                                  >
-                                    <span>{expandedBreakdown[inv.id] ? 'Hide' : 'Show'} Breakdown</span>
-                                    <span>{expandedBreakdown[inv.id] ? '▲' : '▼'}</span>
-                                  </button>
-                                </div>
-                              </td>
-                              <td style={{ padding: '14px 20px' }}>{new Date(inv.issue_date).toLocaleDateString()}</td>
-                              <td style={{ padding: '14px 20px' }}>{new Date(inv.due_date).toLocaleDateString()}</td>
-                              <td style={{ padding: '14px 20px' }}>
-                                <span style={{
-                                  padding: '3px 8px',
-                                  borderRadius: '4px',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 700,
-                                  textTransform: 'uppercase',
-                                  background: inv.status === 'Paid' ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)',
-                                  color: inv.status === 'Paid' ? 'var(--success)' : 'var(--warning)',
-                                  border: inv.status === 'Paid' ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(245,158,11,0.2)'
-                                }}>
-                                  {inv.status}
-                                </span>
-                              </td>
-                              <td style={{ padding: '14px 20px' }}>
-                                {inv.status === 'Pending' ? (
-                                  <div style={{ display: 'flex', gap: '8px' }}>
-                                    <button
-                                      onClick={() => handleUpdateInvoiceStatus(inv.id, 'Paid', 'global')}
-                                      style={{
-                                        padding: '4px 8px',
-                                        borderRadius: '4px',
-                                        border: '1px solid rgba(34,197,94,0.3)',
-                                        background: 'rgba(34,197,94,0.1)',
-                                        color: '#4ade80',
-                                        fontSize: '0.72rem',
-                                        fontWeight: 600,
-                                        cursor: 'pointer'
-                                      }}
-                                    >
-                                      Mark Paid
-                                    </button>
-                                    <button
-                                      onClick={() => handleUpdateInvoiceStatus(inv.id, 'Void', 'global')}
-                                      style={{
-                                        padding: '4px 8px',
-                                        borderRadius: '4px',
-                                        border: '1px solid rgba(239,68,68,0.2)',
-                                        background: 'rgba(239,68,68,0.05)',
-                                        color: '#f87171',
-                                        fontSize: '0.72rem',
-                                        fontWeight: 600,
-                                        cursor: 'pointer'
-                                      }}
-                                    >
-                                      Void
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                                    {inv.status === 'Paid' ? `Settled on ${new Date(inv.payment_date).toLocaleDateString()}` : 'No Action'}
+                    // Group by organization
+                    const groups: Record<string, { orgId: string; clientName: string; invoices: any[] }> = {};
+                    filtered.forEach(inv => {
+                      const orgId = inv.organization_id || 'unknown';
+                      if (!groups[orgId]) {
+                        groups[orgId] = {
+                          orgId,
+                          clientName: inv.clientName || orgId,
+                          invoices: []
+                        };
+                      }
+                      groups[orgId].invoices.push(inv);
+                    });
+
+                    const orgList = Object.values(groups);
+
+                    return orgList.map(group => {
+                      const isExpanded = !!expandedOrgs[group.orgId];
+                      const totalAmt = group.invoices.reduce((acc, inv) => {
+                        const amt = parseFloat(inv.amount) || 0;
+                        const isINR = inv.currency === 'INR';
+                        return acc + (isINR ? amt / 83 : amt);
+                      }, 0);
+                      const pendingCount = group.invoices.filter(i => i.status === 'Pending').length;
+
+                      return (
+                        <div key={group.orgId} className="glass-panel" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--glass-border)', borderRadius: '10px' }}>
+                          {/* Accordion Header */}
+                          <div 
+                            onClick={() => setExpandedOrgs(prev => ({ ...prev, [group.orgId]: !isExpanded }))}
+                            style={{
+                              padding: '16px 20px',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              cursor: 'pointer',
+                              background: isExpanded ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.01)',
+                              userSelect: 'none',
+                              transition: 'background 0.2s',
+                              borderBottom: isExpanded ? '1px solid var(--divider)' : 'none'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                              <span style={{
+                                fontSize: '0.74rem',
+                                transition: 'transform 0.2s',
+                                transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                                color: 'var(--accent-purple)',
+                                display: 'inline-block'
+                              }}>
+                                ▶
+                              </span>
+                              <div>
+                                <span style={{ fontWeight: 800, fontSize: '0.94rem', color: 'var(--text-primary)' }}>{group.clientName}</span>
+                                <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Org ID: {group.orgId}</span>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                              <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {group.invoices.length} {group.invoices.length === 1 ? 'Invoice' : 'Invoices'}
+                                {pendingCount > 0 && (
+                                  <span style={{ padding: '2px 6px', borderRadius: '4px', background: 'rgba(245,158,11,0.08)', color: 'var(--warning)', border: '1px solid rgba(245,158,11,0.2)', fontSize: '0.68rem', fontWeight: 700 }}>
+                                    {pendingCount} Pending
                                   </span>
                                 )}
-                              </td>
-                            </tr>
-                            {expandedBreakdown[inv.id] && (() => {
-                              const lines = getInvoiceBreakdown(inv, inv.clientTier || 'growth');
-                              return (
-                                <tr style={{ background: 'rgba(255,255,255,0.015)' }}>
-                                  <td colSpan={8} style={{ padding: '4px 20px 12px 20px' }}>
-                                    <div style={{
-                                      background: 'rgba(30, 41, 59, 0.4)',
-                                      border: '1.5px solid var(--glass-border)',
-                                      borderRadius: '8px',
-                                      padding: '12px',
-                                      textAlign: 'left'
-                                    }}>
-                                      <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '8px', borderBottom: '1px solid var(--divider)', paddingBottom: '4px' }}>
-                                        Calculation Breakup
-                                      </div>
-                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                        {lines.map((line, idx) => (
-                                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
-                                            <span style={{ fontSize: '0.74rem', color: line.dim ? 'var(--text-muted)' : 'var(--text-secondary)' }}>
-                                              {line.label}
-                                            </span>
-                                            <span style={{ fontSize: '0.74rem', color: line.bold ? 'var(--accent-purple)' : 'var(--text-primary)', fontWeight: line.bold ? 800 : 600, whiteSpace: 'nowrap' }}>
-                                              {line.value}
-                                            </span>
+                              </span>
+                              <span style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                                Total: {renderDualCurrency(totalAmt)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Accordion Content Table */}
+                          {isExpanded && (
+                            <div style={{ overflowX: 'auto' }}>
+                              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                                <thead>
+                                  <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--divider)', textAlign: 'left' }}>
+                                    <th style={{ padding: '12px 20px', fontWeight: 600 }}>Invoice Number</th>
+                                    <th style={{ padding: '12px 20px', fontWeight: 600 }}>Billing Type</th>
+                                    <th style={{ padding: '12px 20px', fontWeight: 600 }}>Amount</th>
+                                    <th style={{ padding: '12px 20px', fontWeight: 600 }}>Issue Date</th>
+                                    <th style={{ padding: '12px 20px', fontWeight: 600 }}>Due Date</th>
+                                    <th style={{ padding: '12px 20px', fontWeight: 600 }}>Status</th>
+                                    <th style={{ padding: '12px 20px', fontWeight: 600, width: '120px' }}>Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {group.invoices.map(inv => (
+                                    <React.Fragment key={inv.id}>
+                                      <tr style={{ borderBottom: expandedBreakdown[inv.id] ? 'none' : '1px solid var(--divider)', transition: 'background 0.15s' }}
+                                        onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                        <td style={{ padding: '12px 20px', fontWeight: 600 }}>{inv.invoice_number}</td>
+                                        <td style={{ padding: '12px 20px' }}>
+                                          <span style={{
+                                            padding: '3px 8px',
+                                            borderRadius: '4px',
+                                            fontSize: '0.72rem',
+                                            fontWeight: 700,
+                                            whiteSpace: 'nowrap',
+                                            background: inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? 'rgba(59,130,246,0.08)'
+                                                      : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? 'rgba(139,92,246,0.08)'
+                                                      : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? 'rgba(20,184,166,0.08)'
+                                                      : 'rgba(251,191,36,0.08)',
+                                            color: inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? '#60a5fa'
+                                                 : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? '#c084fc'
+                                                 : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? '#2dd4bf'
+                                                 : '#fbbf24',
+                                            border: inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? '1px solid rgba(59,130,246,0.2)'
+                                                  : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? '1px solid rgba(139,92,246,0.2)'
+                                                  : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? '1px solid rgba(20,184,166,0.2)'
+                                                  : '1px solid rgba(251,191,36,0.2)'
+                                          }}>
+                                            {inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? '🚀 DevOps'
+                                             : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? '💻 Developer'
+                                             : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? '🛡️ Security'
+                                             : '🏢 Platform'}
+                                          </span>
+                                        </td>
+                                        <td style={{ padding: '12px 20px' }}>
+                                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
+                                            <span>{renderDualCurrency(inv.amount, inv.currency || 'USD')}</span>
+                                            <button
+                                              type="button"
+                                              onClick={() => setExpandedBreakdown(prev => ({ ...prev, [inv.id]: !prev[inv.id] }))}
+                                              style={{
+                                                background: 'none', border: 'none', padding: 0, color: 'var(--accent-purple)',
+                                                fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer', outline: 'none',
+                                                display: 'inline-flex', alignItems: 'center', gap: '3px'
+                                              }}
+                                            >
+                                              <span>{expandedBreakdown[inv.id] ? 'Hide' : 'Show'} Breakdown</span>
+                                              <span>{expandedBreakdown[inv.id] ? '▲' : '▼'}</span>
+                                            </button>
                                           </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })()}
-                          </React.Fragment>
-                        ));
-                      })()}
-                    </tbody>
-                  </table>
+                                        </td>
+                                        <td style={{ padding: '12px 20px' }}>{new Date(inv.issue_date).toLocaleDateString()}</td>
+                                        <td style={{ padding: '12px 20px' }}>{new Date(inv.due_date).toLocaleDateString()}</td>
+                                        <td style={{ padding: '12px 20px' }}>
+                                          <span style={{
+                                            padding: '3px 8px',
+                                            borderRadius: '4px',
+                                            fontSize: '0.72rem',
+                                            fontWeight: 700,
+                                            textTransform: 'uppercase',
+                                            background: inv.status === 'Paid' ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)',
+                                            color: inv.status === 'Paid' ? 'var(--success)' : 'var(--warning)',
+                                            border: inv.status === 'Paid' ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(245,158,11,0.2)'
+                                          }}>
+                                            {inv.status}
+                                          </span>
+                                        </td>
+                                        <td style={{ padding: '12px 20px' }}>
+                                          {inv.status === 'Pending' ? (
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                              <button
+                                                onClick={() => handleUpdateInvoiceStatus(inv.id, 'Paid', 'global')}
+                                                style={{
+                                                  padding: '4px 8px',
+                                                  borderRadius: '4px',
+                                                  border: '1px solid rgba(34,197,94,0.3)',
+                                                  background: 'rgba(34,197,94,0.1)',
+                                                  color: '#4ade80',
+                                                  fontSize: '0.72rem',
+                                                  fontWeight: 600,
+                                                  cursor: 'pointer'
+                                                }}
+                                              >
+                                                Mark Paid
+                                              </button>
+                                              <button
+                                                onClick={() => handleUpdateInvoiceStatus(inv.id, 'Void', 'global')}
+                                                style={{
+                                                  padding: '4px 8px',
+                                                  borderRadius: '4px',
+                                                  border: '1px solid rgba(239,68,68,0.2)',
+                                                  background: 'rgba(239,68,68,0.05)',
+                                                  color: '#f87171',
+                                                  fontSize: '0.72rem',
+                                                  fontWeight: 600,
+                                                  cursor: 'pointer'
+                                                }}
+                                              >
+                                                Void
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                                              {inv.status === 'Paid' ? `Settled on ${new Date(inv.payment_date).toLocaleDateString()}` : 'No Action'}
+                                            </span>
+                                          )}
+                                        </td>
+                                      </tr>
+                                      {expandedBreakdown[inv.id] && (() => {
+                                        const lines = getInvoiceBreakdown(inv, inv.clientTier || 'growth');
+                                        return (
+                                          <tr style={{ background: 'rgba(255,255,255,0.015)' }}>
+                                            <td colSpan={7} style={{ padding: '4px 20px 12px 20px' }}>
+                                              <div style={{
+                                                background: 'rgba(30, 41, 59, 0.4)',
+                                                border: '1.5px solid var(--glass-border)',
+                                                borderRadius: '8px',
+                                                padding: '12px',
+                                                textAlign: 'left'
+                                              }}>
+                                                <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '8px', borderBottom: '1px solid var(--divider)', paddingBottom: '4px' }}>
+                                                  Calculation Breakup
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                  {lines.map((line, idx) => (
+                                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
+                                                      <span style={{ fontSize: '0.74rem', color: line.dim ? 'var(--text-muted)' : 'var(--text-secondary)' }}>
+                                                        {line.label}
+                                                      </span>
+                                                      <span style={{ fontSize: '0.74rem', color: line.bold ? 'var(--accent-purple)' : 'var(--text-primary)', fontWeight: line.bold ? 800 : 600, whiteSpace: 'nowrap' }}>
+                                                        {line.value}
+                                                      </span>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })()}
+                                    </React.Fragment>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               )}
             </div>
@@ -2722,108 +2801,187 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                                 );
                               }
 
-                              return filtered.map(agent => {
-                                const isMasterAdmin = agent.email === 'admin@evaops.crm';
-                                const isCurrentlyEditing = editingAgent?.id === agent.id;
-                                return (
-                                  <tr key={agent.id} style={{ borderBottom: '1px solid var(--divider)', transition: 'background 0.15s' }}
-                                    onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
-                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                                    <td style={{ padding: '12px 16px', fontWeight: 600 }}>{agent.name}</td>
-                                    <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{agent.email}</td>
-                                    <td style={{ padding: '12px 16px' }}>
-                                      <span style={{
-                                        padding: '2px 8px',
-                                        borderRadius: '4px',
-                                        fontSize: '0.72rem',
-                                        fontWeight: 600,
-                                        textTransform: 'uppercase',
-                                        background: agent.role === 'admin' ? 'rgba(139,92,246,0.1)' : 'rgba(59,130,246,0.1)',
-                                        color: agent.role === 'admin' ? 'var(--accent-purple)' : '#60a5fa',
-                                        border: agent.role === 'admin' ? '1px solid rgba(139,92,246,0.2)' : '1px solid rgba(59,130,246,0.2)'
-                                      }}>
-                                        {agent.role}
-                                      </span>
-                                    </td>
-                                    <td style={{ padding: '12px 16px' }}>
-                                      <span style={{
-                                        padding: '2px 8px',
-                                        borderRadius: '4px',
-                                        fontSize: '0.72rem',
-                                        fontWeight: 600,
-                                        background: agent.is_disabled ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
-                                        color: agent.is_disabled ? '#f87171' : '#4ade80',
-                                        border: agent.is_disabled ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(34,197,94,0.2)'
-                                      }}>
-                                        {agent.is_disabled ? 'Disabled' : 'Active'}
-                                      </span>
-                                    </td>
-                                    {crmUser.role === 'admin' && (
-                                      <td style={{ padding: '12px 16px' }}>
-                                        <div style={{ display: 'flex', gap: '6px' }}>
-                                          {!isCurrentlyEditing && (
-                                            <button
-                                              onClick={() => {
-                                                setEditingAgent(agent);
-                                                setEditName(agent.name);
-                                                setEditEmail(agent.email);
-                                                setEditRole(agent.role);
-                                                setEditIsDisabled(agent.is_disabled);
-                                                setEditPassword('');
-                                                setEditingMsg(null);
-                                              }}
-                                              style={{
-                                                padding: '4px 8px',
-                                                borderRadius: '4px',
-                                                border: '1px solid var(--glass-border)',
-                                                background: 'var(--glass-bg)',
-                                                color: 'var(--text-primary)',
-                                                fontSize: '0.72rem',
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '4px'
-                                              }}
-                                            >
-                                              <Edit3 size={12} /> Edit
-                                            </button>
-                                          )}
-                                          {!isMasterAdmin && !isCurrentlyEditing && (
-                                            <button
-                                              onClick={() => handleToggleAgentStatus(agent)}
-                                              style={{
-                                                padding: '4px 8px',
-                                                borderRadius: '4px',
-                                                border: agent.is_disabled ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(239,68,68,0.2)',
-                                                background: agent.is_disabled ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.05)',
-                                                color: agent.is_disabled ? '#4ade80' : '#f87171',
-                                                fontSize: '0.72rem',
-                                                fontWeight: 600,
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '4px'
-                                              }}
-                                            >
-                                              <Power size={12} />
-                                              {agent.is_disabled ? 'Enable' : 'Disable'}
-                                            </button>
-                                          )}
-                                          {isMasterAdmin && (
-                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontStyle: 'italic', padding: '4px 0' }}>
-                                              Protected
-                                            </span>
-                                          )}
-                                        </div>
-                                      </td>
-                                    )}
-                                  </tr>
-                                );
-                              });
+                              const itemsPerPage = 10;
+                              const totalPages = Math.ceil(filtered.length / itemsPerPage);
+                              // Ensure current page is valid in case list shrunk
+                              const currentPage = Math.min(agentPage, totalPages || 1);
+                              const paginatedAgents = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+                              return (
+                                <>
+                                  {paginatedAgents.map(agent => {
+                                    const isMasterAdmin = agent.email === 'admin@evaops.crm';
+                                    const isCurrentlyEditing = editingAgent?.id === agent.id;
+                                    return (
+                                      <tr key={agent.id} style={{ borderBottom: '1px solid var(--divider)', transition: 'background 0.15s' }}
+                                        onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                        <td style={{ padding: '12px 16px', fontWeight: 600 }}>{agent.name}</td>
+                                        <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{agent.email}</td>
+                                        <td style={{ padding: '12px 16px' }}>
+                                          <span style={{
+                                            padding: '2px 8px',
+                                            borderRadius: '4px',
+                                            fontSize: '0.72rem',
+                                            fontWeight: 600,
+                                            textTransform: 'uppercase',
+                                            background: agent.role === 'admin' ? 'rgba(139,92,246,0.1)' : 'rgba(59,130,246,0.1)',
+                                            color: agent.role === 'admin' ? 'var(--accent-purple)' : '#60a5fa',
+                                            border: agent.role === 'admin' ? '1px solid rgba(139,92,246,0.2)' : '1px solid rgba(59,130,246,0.2)'
+                                          }}>
+                                            {agent.role}
+                                          </span>
+                                        </td>
+                                        <td style={{ padding: '12px 16px' }}>
+                                          <span style={{
+                                            padding: '2px 8px',
+                                            borderRadius: '4px',
+                                            fontSize: '0.72rem',
+                                            fontWeight: 600,
+                                            background: agent.is_disabled ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
+                                            color: agent.is_disabled ? '#f87171' : '#4ade80',
+                                            border: agent.is_disabled ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(34,197,94,0.2)'
+                                          }}>
+                                            {agent.is_disabled ? 'Disabled' : 'Active'}
+                                          </span>
+                                        </td>
+                                        {crmUser.role === 'admin' && (
+                                          <td style={{ padding: '12px 16px' }}>
+                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                              {!isCurrentlyEditing && (
+                                                <button
+                                                  onClick={() => {
+                                                    setEditingAgent(agent);
+                                                    setEditName(agent.name);
+                                                    setEditEmail(agent.email);
+                                                    setEditRole(agent.role);
+                                                    setEditIsDisabled(agent.is_disabled);
+                                                    setEditPassword('');
+                                                    setEditingMsg(null);
+                                                  }}
+                                                  style={{
+                                                    padding: '4px 8px',
+                                                    borderRadius: '4px',
+                                                    border: '1px solid var(--glass-border)',
+                                                    background: 'var(--glass-bg)',
+                                                    color: 'var(--text-primary)',
+                                                    fontSize: '0.72rem',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px'
+                                                  }}
+                                                >
+                                                  <Edit3 size={12} /> Edit
+                                                </button>
+                                              )}
+                                              {!isMasterAdmin && !isCurrentlyEditing && (
+                                                <button
+                                                  onClick={() => handleToggleAgentStatus(agent)}
+                                                  style={{
+                                                    padding: '4px 8px',
+                                                    borderRadius: '4px',
+                                                    border: agent.is_disabled ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(239,68,68,0.2)',
+                                                    background: agent.is_disabled ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.05)',
+                                                    color: agent.is_disabled ? '#4ade80' : '#f87171',
+                                                    fontSize: '0.72rem',
+                                                    fontWeight: 600,
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px'
+                                                  }}
+                                                >
+                                                  <Power size={12} />
+                                                  {agent.is_disabled ? 'Enable' : 'Disable'}
+                                                </button>
+                                              )}
+                                              {isMasterAdmin && (
+                                                <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontStyle: 'italic', padding: '4px 0' }}>
+                                                  Protected
+                                                </span>
+                                              )}
+                                            </div>
+                                          </td>
+                                        )}
+                                      </tr>
+                                    );
+                                  })}
+                                </>
+                              );
                             })()}
                           </tbody>
                         </table>
                       </div>
+                      
+                      {/* Roster Pagination Bar */}
+                      {(() => {
+                        const filtered = agents.filter(agent => {
+                          const matchesSearch = 
+                            (agent.name || '').toLowerCase().includes(agentSearchQuery.toLowerCase()) ||
+                            (agent.email || '').toLowerCase().includes(agentSearchQuery.toLowerCase());
+                          const matchesRole = agentRoleFilter === 'all' || agent.role === agentRoleFilter;
+                          const matchesStatus = agentStatusFilter === 'all' || 
+                            (agentStatusFilter === 'disabled' ? !!agent.is_disabled : !agent.is_disabled);
+                          return matchesSearch && matchesRole && matchesStatus;
+                        });
+                        const itemsPerPage = 10;
+                        const totalPages = Math.ceil(filtered.length / itemsPerPage);
+                        if (totalPages <= 1) return null;
+                        
+                        return (
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '12px 16px',
+                            borderTop: '1px solid var(--divider)',
+                            background: 'rgba(255, 255, 255, 0.01)',
+                            fontSize: '0.74rem'
+                          }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>
+                              Showing {((agentPage - 1) * itemsPerPage) + 1} to {Math.min(agentPage * itemsPerPage, filtered.length)} of {filtered.length} agents
+                            </span>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <button
+                                type="button"
+                                disabled={agentPage === 1}
+                                onClick={() => setAgentPage(prev => Math.max(1, prev - 1))}
+                                style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '4px',
+                                  border: '1px solid var(--glass-border)',
+                                  background: 'var(--glass-bg)',
+                                  color: agentPage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+                                  cursor: agentPage === 1 ? 'not-allowed' : 'pointer',
+                                  fontSize: '0.72rem'
+                                }}
+                              >
+                                Previous
+                              </button>
+                              <span style={{ fontWeight: 700, color: 'var(--text-primary)', padding: '0 4px' }}>
+                                {agentPage} / {totalPages}
+                              </span>
+                              <button
+                                type="button"
+                                disabled={agentPage === totalPages}
+                                onClick={() => setAgentPage(prev => Math.min(totalPages, prev + 1))}
+                                style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '4px',
+                                  border: '1px solid var(--glass-border)',
+                                  background: 'var(--glass-bg)',
+                                  color: agentPage === totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
+                                  cursor: agentPage === totalPages ? 'not-allowed' : 'pointer',
+                                  fontSize: '0.72rem'
+                                }}
+                              >
+                                Next
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   ) : (
                     <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.84rem', marginBottom: '24px' }}>
