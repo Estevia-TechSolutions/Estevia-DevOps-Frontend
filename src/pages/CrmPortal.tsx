@@ -794,179 +794,145 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'var(--bg-primary)',
+      background: 'var(--body-bg)',
+      backgroundAttachment: 'fixed',
       color: 'var(--text-primary)',
       display: 'flex',
       flexDirection: 'column'
     }}>
-      {/* Top Navbar */}
-      <nav style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '14px 28px',
-        borderBottom: '1px solid var(--divider)',
-        background: 'var(--bg-header)',
-        backdropFilter: 'blur(10px)',
-        boxShadow: 'var(--header-shadow)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '6px',
-            background: 'linear-gradient(135deg, #a78bfa, #3b82f6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Building2 size={15} style={{ color: '#ffffff' }} />
+      {/* Global CRM animations */}
+      <style>{`
+        @keyframes crm-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .crm-tab-panel { animation: crm-fade-in 0.25s ease-out; }
+        @keyframes crm-pulse-dot { 0%,100% { opacity:1; box-shadow:0 0 6px currentColor; } 50% { opacity:0.6; box-shadow:0 0 12px currentColor; } }
+        .crm-pulse { animation: crm-pulse-dot 2.5s infinite; }
+        .crm-sidebar-btn { display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;border-radius:10px;border:1px solid transparent;font-size:0.86rem;font-weight:600;cursor:pointer;text-align:left;transition:all 0.22s cubic-bezier(0.4,0,0.2,1);background:transparent;position:relative; }
+        .crm-sidebar-btn:hover { background:rgba(255,255,255,0.04); border-color:var(--glass-border); }
+        .crm-sidebar-btn.active-clients { background:rgba(139,92,246,0.12); border-color:rgba(139,92,246,0.3); color:#a78bfa; box-shadow:0 2px 12px rgba(139,92,246,0.15); }
+        .crm-sidebar-btn.active-invoices { background:rgba(20,184,166,0.1); border-color:rgba(20,184,166,0.3); color:#2dd4bf; box-shadow:0 2px 12px rgba(20,184,166,0.12); }
+        .crm-sidebar-btn.active-agents { background:rgba(245,158,11,0.1); border-color:rgba(245,158,11,0.3); color:#fbbf24; box-shadow:0 2px 12px rgba(245,158,11,0.12); }
+        .crm-sidebar-btn .crm-tooltip { visibility:hidden;opacity:0;position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%);min-width:200px;max-width:240px;background:linear-gradient(135deg,rgba(15,23,42,0.97) 0%,rgba(30,10,60,0.96) 100%);border:1px solid rgba(139,92,246,0.35);border-radius:12px;padding:12px 14px;box-shadow:0 8px 32px rgba(0,0,0,0.5),0 0 20px rgba(139,92,246,0.15);transition:opacity 0.22s,visibility 0.22s,transform 0.22s;z-index:9999;pointer-events:none; }
+        .crm-sidebar-btn:hover .crm-tooltip { visibility:visible;opacity:1; }
+        .crm-tooltip-title { font-size:0.78rem;font-weight:700;color:#a78bfa;margin-bottom:4px;display:flex;align-items:center;gap:6px; }
+        .crm-tooltip-desc { font-size:0.73rem;color:rgba(148,163,184,0.9);line-height:1.4;font-weight:400; }
+        .crm-section-label { font-size:0.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;padding:0 14px;margin-bottom:4px;margin-top:8px; }
+        .crm-overdue-row td:first-child { border-left:3px solid #ef4444; }
+        .crm-near-due-row td:first-child { border-left:3px solid #f59e0b; }
+      `}</style>
+
+      {/* ── Premium Site Header ── */}
+      <header className="site-header" style={{ position: 'sticky', top: 0, zIndex: 100, background: 'linear-gradient(135deg, #0f172a 0%, #020617 55%, #1a0533 100%)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(139,92,246,0.25)', boxShadow: '0 1px 24px rgba(0,0,0,0.4), 0 0 50px rgba(139,92,246,0.08)' }}>
+        <div style={{ maxWidth: '100%', padding: '0 28px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+          {/* Brand */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', padding: '4px', boxShadow: '0 0 16px rgba(139,92,246,0.35)', flexShrink: 0 }}>
+              <img src="/evaops-logo.png" alt="EvaOps" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </div>
+            <div>
+              <div style={{ fontSize: '1rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.02em', lineHeight: 1.1 }}>EvaOps</div>
+              <div style={{ fontSize: '0.6rem', color: 'rgba(148,163,184,0.8)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1 }}>CRM Control Plane</div>
+            </div>
+            <div style={{ width: '1px', height: '32px', background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
+            {/* CRM Badge */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 12px', borderRadius: '8px', background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)', flexShrink: 0 }}>
+              <div className="crm-pulse" style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'var(--success)', color: 'var(--success)', flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: '0.68rem', color: 'rgba(148,163,184,0.8)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Operations</div>
+                <div style={{ fontSize: '0.84rem', fontWeight: 600, color: '#f8fafc' }}>CRM Admin Portal</div>
+              </div>
+            </div>
           </div>
-          <span style={{ fontSize: '1.1rem', fontWeight: 800, letterSpacing: '-0.02em' }}>EvaOps CRM Portal</span>
-        </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              backgroundColor: 'var(--success)'
-            }}></div>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-              {crmUser.name} <span style={{ textTransform: 'uppercase', fontSize: '0.7rem', opacity: 0.6 }}>({crmUser.role})</span>
-            </span>
+          {/* Right: User Chip + Logout */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 4px 4px 12px', borderRadius: '40px', background: 'rgba(30,41,59,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#f8fafc', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{crmUser.name}</div>
+                <div style={{ fontSize: '0.68rem', color: 'rgba(148,163,184,0.8)', textTransform: 'capitalize' }}>{crmUser.role}</div>
+              </div>
+              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: crmUser.role === 'admin' ? 'linear-gradient(135deg,#8b5cf6,#6366f1)' : 'linear-gradient(135deg,#3b82f6,#0ea5e9)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                {crmUser.name?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+            </div>
+            <button
+              onClick={handleCrmLogout}
+              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, padding: '6px 12px', borderRadius: '8px', transition: 'all 0.2s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)'; }}
+            >
+              <LogOut size={13} />
+              Sign Out
+            </button>
           </div>
-
-          <div style={{ width: '1px', height: '16px', background: 'var(--divider)' }}></div>
-
-          <button
-            onClick={handleCrmLogout}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--error)',
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontWeight: 500
-            }}
-          >
-            <LogOut size={13} />
-            Logout
-          </button>
         </div>
-      </nav>
+      </header>
 
       {/* Main Workspace Layout */}
       <div style={{ display: 'flex', flex: 1 }}>
-        {/* Sidebar Tabs Navigation */}
-        <div style={{
-          width: '240px',
-          borderRight: '1px solid var(--divider)',
-          background: 'var(--bg-secondary)',
-          padding: '24px 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-          flexShrink: 0
-        }}>
+        {/* ── Premium Sidebar ── */}
+        <div style={{ width: '248px', borderRight: '1px solid var(--divider)', background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(12px)', padding: '20px 12px', display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0 }}>
+          <div className="crm-section-label">MANAGE</div>
+
           <button
+            className={`crm-sidebar-btn ${activeTab === 'clients' ? 'active-clients' : ''}`}
             onClick={() => { setActiveTab('clients'); setSelectedClient(null); }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              width: '100%',
-              padding: '10px 14px',
-              borderRadius: '8px',
-              border: 'none',
-              fontSize: '0.86rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              textAlign: 'left',
-              background: activeTab === 'clients' ? 'var(--badge-bg)' : 'transparent',
-              color: activeTab === 'clients' ? 'var(--accent-purple)' : 'var(--text-secondary)',
-              transition: 'all 0.2s'
-            }}
+            style={{ color: activeTab === 'clients' ? '#a78bfa' : 'var(--text-secondary)' }}
           >
             <Building2 size={16} />
             Client Organizations
+            <div className="crm-tooltip">
+              <div className="crm-tooltip-title"><Building2 size={11} /> Client Directory</div>
+              <div className="crm-tooltip-desc">Browse all registered client orgs, manage licensing tiers, seat allocations, and account suspension.</div>
+            </div>
           </button>
 
           <button
+            className={`crm-sidebar-btn ${activeTab === 'invoices' ? 'active-invoices' : ''}`}
             onClick={() => { setActiveTab('invoices'); setSelectedClient(null); }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              width: '100%',
-              padding: '10px 14px',
-              borderRadius: '8px',
-              border: 'none',
-              fontSize: '0.86rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              textAlign: 'left',
-              background: activeTab === 'invoices' ? 'var(--badge-bg)' : 'transparent',
-              color: activeTab === 'invoices' ? 'var(--accent-purple)' : 'var(--text-secondary)',
-              transition: 'all 0.2s'
-            }}
+            style={{ color: activeTab === 'invoices' ? '#2dd4bf' : 'var(--text-secondary)' }}
           >
             <FileText size={16} />
             Billing Invoices
+            <div className="crm-tooltip">
+              <div className="crm-tooltip-title" style={{ color: '#2dd4bf' }}><FileText size={11} /> Billing Invoices</div>
+              <div className="crm-tooltip-desc">Track all platform invoices, mark payments, view outstanding balances and billing collections.</div>
+            </div>
           </button>
 
           {crmUser.role === 'admin' && (
-            <button
-              onClick={() => { setActiveTab('agents'); setSelectedClient(null); }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                border: 'none',
-                fontSize: '0.86rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-                textAlign: 'left',
-                background: activeTab === 'agents' ? 'var(--badge-bg)' : 'transparent',
-                color: activeTab === 'agents' ? 'var(--accent-purple)' : 'var(--text-secondary)',
-                transition: 'all 0.2s'
-              }}
-            >
-              <UserPlus size={16} />
-              Support Agents
-            </button>
+            <>
+              <div className="crm-section-label" style={{ marginTop: '12px' }}>ADMINISTRATION</div>
+              <button
+                className={`crm-sidebar-btn ${activeTab === 'agents' ? 'active-agents' : ''}`}
+                onClick={() => { setActiveTab('agents'); setSelectedClient(null); }}
+                style={{ color: activeTab === 'agents' ? '#fbbf24' : 'var(--text-secondary)' }}
+              >
+                <UserPlus size={16} />
+                Support Agents
+                <div className="crm-tooltip">
+                  <div className="crm-tooltip-title" style={{ color: '#fbbf24' }}><UserPlus size={11} /> Support Staff</div>
+                  <div className="crm-tooltip-desc">Create and manage CRM agent accounts. Assign admin or support roles and toggle account access.</div>
+                </div>
+              </button>
+            </>
           )}
 
           <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--divider)' }}>
             <button
               onClick={onBackToApp}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                color: 'var(--text-secondary)',
-                fontSize: '0.78rem',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                textDecoration: 'underline'
-              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '9px 14px', borderRadius: '10px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.03)', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
             >
+              <ArrowRight size={13} style={{ transform: 'rotate(180deg)' }} />
               Back to Client Portal
             </button>
           </div>
         </div>
 
-        {/* Content Panel */}
-        <div style={{ flex: 1, padding: '36px', overflowY: 'auto' }}>
-          {/* TAB 1: CLIENTS LIST */}
+        {/* ── Content Panel ── */}
+        <div style={{ flex: 1, padding: '36px', overflowY: 'auto', background: 'transparent' }}>
+          {/* TAB 1: CLIENTS LIST */
           {activeTab === 'clients' && !selectedClient && (() => {
             const totalCustomers = clients.length;
             const totalActiveSeats = clients.reduce((acc, c) => acc + (c.activeSeats || 0), 0);
@@ -988,11 +954,14 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
             });
 
             return (
-              <div>
+              <div className="crm-tab-panel">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                   <div>
-                    <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>Client Directory</h3>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: '4px 0 0 0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                      <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, var(--text-primary) 40%, var(--accent-purple) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Client Directory</h3>
+                      <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700, background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)', color: '#a78bfa' }}>{clients.length} orgs</span>
+                    </div>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: 0 }}>
                       Monitor licensing tiers, resource seat allocations, active operations, and suspension locks.
                     </p>
                   </div>
@@ -1141,8 +1110,14 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       <tbody>
                         {filteredClients.length === 0 ? (
                           <tr>
-                            <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                              No organizations match the current filter criteria.
+                            <td colSpan={7}>
+                              <div style={{ padding: '48px', textAlign: 'center' }}>
+                                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto' }}>
+                                  <Building2 size={22} style={{ color: 'var(--accent-purple)' }} />
+                                </div>
+                                <div style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>No organizations found</div>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>No organizations match the current filter criteria.</div>
+                              </div>
                             </td>
                           </tr>
                         ) : (
@@ -1153,8 +1128,10 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                               style={{
                                 borderBottom: '1px solid var(--divider)',
                                 cursor: 'pointer',
-                                transition: 'background 0.15s'
+                                transition: 'all 0.15s'
                               }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.05)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                             >
                               <td style={{ padding: '16px 20px', fontWeight: 700, color: 'var(--text-primary)' }}>{client.id}</td>
                               <td style={{ padding: '16px 20px' }}>{client.name}</td>
@@ -1185,13 +1162,15 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                                   fontWeight: 700,
                                   background: client.is_disabled ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.12)',
                                   border: client.is_disabled ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(34,197,94,0.25)',
-                                  color: client.is_disabled ? '#ef4444' : '#22c55e'
+                                  color: client.is_disabled ? '#ef4444' : '#22c55e',
+                                  boxShadow: client.is_disabled ? '0 0 8px rgba(239,68,68,0.15)' : '0 0 8px rgba(34,197,94,0.15)'
                                 }}>
-                                  <span style={{
+                                  <span className="crm-pulse" style={{
                                     width: '6px',
                                     height: '6px',
                                     borderRadius: '50%',
-                                    backgroundColor: client.is_disabled ? '#ef4444' : '#22c55e'
+                                    backgroundColor: client.is_disabled ? '#ef4444' : '#22c55e',
+                                    color: client.is_disabled ? '#ef4444' : '#22c55e'
                                   }}></span>
                                   {client.is_disabled ? 'Suspended' : 'Active'}
                                 </span>
@@ -1214,8 +1193,8 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                                   <span style={{ color: 'var(--text-muted)' }}>None</span>
                                 )}
                               </td>
-                              <td style={{ padding: '16px 20px', color: '#a78bfa', fontWeight: 700 }}>
-                                Manage ↗
+                              <td style={{ padding: '16px 20px' }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#a78bfa', fontWeight: 700, fontSize: '0.82rem', padding: '5px 10px', borderRadius: '6px', background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)', transition: 'all 0.2s' }}>Manage ↗</span>
                               </td>
                             </tr>
                           ))
@@ -1230,7 +1209,14 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
           {/* TAB 1 DETAIL PANEL: MANAGE SPECIFIC CLIENT */}
           {activeTab === 'clients' && selectedClient && (
-            <div>
+            <div className="crm-tab-panel">
+              {/* Breadcrumb */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '16px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                <button onClick={() => setSelectedClient(null)} style={{ background: 'none', border: 'none', color: 'var(--accent-purple)', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 600, padding: 0 }}>Client Directory</button>
+                <span>/</span>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{selectedClient.name}</span>
+              </div>
+
               <button
                 onClick={() => setSelectedClient(null)}
                 style={{
@@ -1256,7 +1242,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px', marginBottom: '24px' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0 }}>
+                  <h3 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, var(--text-primary) 20%, var(--accent-purple) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                     {selectedClient.name}
                   </h3>
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
@@ -1824,10 +1810,10 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
           {/* TAB 2: INVOICES LIST (GLOBAL) */}
           {activeTab === 'invoices' && (
-            <div>
+            <div className="crm-tab-panel">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>System Billing Invoices</h3>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, var(--text-primary) 40%, #2dd4bf 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>System Billing Invoices</h3>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '4px 0 0 0' }}>
                     Track payments, view collections, and toggle invoice status across all platform customers.
                   </p>
@@ -2067,10 +2053,10 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
           {/* TAB 3: SUPPORT AGENTS MANAGEMENT (ADMIN ONLY) */}
           {activeTab === 'agents' && crmUser.role === 'admin' && (
-            <div>
+            <div className="crm-tab-panel">
               <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Manage Support Staff</h3>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, var(--text-primary) 40%, #fbbf24 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Manage Support Staff</h3>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '4px 0 0 0' }}>
                     Create secure administrator and support agent accounts to coordinate customer assistance.
                   </p>
@@ -2504,17 +2490,6 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                           <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
                             Administrative Role
                           </label>
-                          <select
-                            value={agentRole}
-                            onChange={e => setAgentRole(e.target.value)}
-                            style={{
-                              width: '100%',
-                              padding: '10px 12px',
-                              background: 'var(--input-bg)',
-                              border: '1px solid var(--glass-border)',
-                              borderRadius: '8px',
-                              color: 'var(--text-primary)',
-                              fontSize: '0.86rem',
                               outline: 'none',
                               boxSizing: 'border-box'
                             }}
