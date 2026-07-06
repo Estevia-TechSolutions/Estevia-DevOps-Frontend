@@ -4947,8 +4947,8 @@ function App() {
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
                     width: '100%', padding: '13px 10px', borderRadius: '12px',
-                    background: 'var(--bg-slate)', border: '1px solid var(--border-slate)',
-                    color: 'var(--text-primary)', fontSize: '0.84rem', fontWeight: 700,
+                    background: 'var(--sso-btn-bg)', border: '1px solid var(--sso-btn-border)',
+                    color: 'var(--sso-btn-color)', fontSize: '0.84rem', fontWeight: 700,
                     cursor: authLoading ? 'not-allowed' : 'pointer',
                     transition: 'all 0.2s', opacity: authLoading ? 0.7 : 1,
                     whiteSpace: 'nowrap',
