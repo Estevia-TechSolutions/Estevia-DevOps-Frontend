@@ -652,21 +652,42 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
   };
 
   if (!crmToken) {
+    const isDark = theme === 'dark';
+    const leftPanelBg = isDark
+      ? 'linear-gradient(155deg, #070a13 0%, #0d1525 60%, #070a13 100%)'
+      : 'linear-gradient(155deg, #0d1829 0%, #162035 60%, #0d1829 100%)';
+    const rightPanelBg = isDark ? 'rgba(8,12,22,0.6)' : '#ffffff';
+    const textPrimary = isDark ? '#f8fafc' : '#0f172a';
+    const textSecondary = isDark ? '#94a3b8' : '#475569';
+    const textMuted = isDark ? '#64748b' : '#94a3b8';
+    
+    const inputBg = isDark ? 'rgba(255,255,255,0.04)' : '#ffffff';
+    const inputBorder = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.12)';
+    const inputColor = isDark ? '#f8fafc' : '#0f172a';
+    
+    const separatorColor = isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0';
+    
+    const guideBg = isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc';
+    const guideBorder = isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0';
+    
+    const shellBorder = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+    const shellShadow = isDark ? '0 30px 80px rgba(0,0,0,0.5)' : '0 20px 60px rgba(0,0,0,0.06)';
+
     return (
       <div className="crm-login-root" style={{
         display: 'flex', minHeight: '100vh', width: '100%',
         backgroundImage: `
-          radial-gradient(at 15% 20%, rgba(124, 58, 237, 0.14) 0px, transparent 45%),
-          radial-gradient(at 85% 80%, rgba(124, 58, 237, 0.10) 0px, transparent 45%),
+          radial-gradient(at 15% 20%, rgba(124, 58, 237, ${isDark ? '0.18' : '0.14'}) 0px, transparent 45%),
+          radial-gradient(at 85% 80%, rgba(124, 58, 237, ${isDark ? '0.10' : '0.08'}) 0px, transparent 45%),
           radial-gradient(at 50% 50%, rgba(99, 102, 241, 0.06) 0px, transparent 60%)
         `,
         alignItems: 'center', justifyContent: 'center', padding: '24px',
-        color: '#0f172a', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+        color: textPrimary, fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       }}>
-        <div style={{ display: 'flex', width: '100%', maxWidth: '1180px', minHeight: '680px', borderRadius: '24px', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 20px 60px rgba(0,0,0,0.06)', background: '#ffffff', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+        <div style={{ display: 'flex', width: '100%', maxWidth: '1180px', minHeight: '680px', borderRadius: '24px', overflow: 'hidden', border: `1px solid ${shellBorder}`, boxShadow: shellShadow, background: rightPanelBg, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
 
-          {/* ── Left Brand Panel (always dark) ─────────────────────────────────── */}
-          <div style={{ flex: '1.1', background: 'linear-gradient(155deg, #070a13 0%, #0d1525 60%, #070a13 100%)', padding: '48px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRight: '1px solid rgba(255,255,255,0.06)', position: 'relative', overflow: 'hidden' }}>
+          {/* ── Left Brand Panel ─────────────────────────────────── */}
+          <div style={{ flex: '1.1', background: leftPanelBg, padding: '48px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRight: '1px solid rgba(255,255,255,0.06)', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', top: '-120px', left: '-120px', width: '340px', height: '340px', borderRadius: '50%', background: 'rgba(124,58,237,0.12)', filter: 'blur(90px)', pointerEvents: 'none' }} />
             <div style={{ position: 'absolute', bottom: '-80px', right: '-80px', width: '260px', height: '260px', borderRadius: '50%', background: 'rgba(124,58,237,0.08)', filter: 'blur(90px)', pointerEvents: 'none' }} />
 
@@ -708,22 +729,22 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
             </div>
           </div>
 
-          {/* ── Right Credential Panel (light theme) ────────────────────────────── */}
-          <div style={{ flex: '1.2', padding: '48px', display: 'flex', alignItems: 'center', background: '#ffffff' }}>
+          {/* ── Right Credential Panel ────────────────────────────── */}
+          <div style={{ flex: '1.2', padding: '48px', display: 'flex', alignItems: 'center', background: rightPanelBg }}>
             <div style={{ maxWidth: '400px', width: '100%', margin: '0 auto' }}>
               <div style={{ marginBottom: '28px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div>
-                  <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.75rem', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>CRM Sign In</h3>
-                  <p style={{ fontSize: '0.88rem', color: '#475569', margin: 0 }}>Access is restricted to authorized Estevia support personnel.</p>
+                  <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.75rem', fontWeight: 700, color: textPrimary, marginBottom: '6px' }}>CRM Sign In</h3>
+                  <p style={{ fontSize: '0.88rem', color: textSecondary, margin: 0 }}>Access is restricted to authorized Estevia support personnel.</p>
                 </div>
               </div>
 
               {loginError && (
                 <div style={{ 
                   padding: '12px 14px', 
-                  borderColor: '#f87171', 
-                  backgroundColor: '#fef2f2', 
-                  border: '1px solid #fca5a5',
+                  borderColor: isDark ? 'rgba(239, 68, 68, 0.3)' : '#fca5a5', 
+                  backgroundColor: isDark ? 'rgba(239, 68, 68, 0.08)' : '#fef2f2', 
+                  border: '1px solid',
                   borderRadius: '8px',
                   display: 'flex', 
                   alignItems: 'center', 
@@ -733,7 +754,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   textAlign: 'left'
                 }}>
                   <AlertCircle size={16} style={{ color: '#ef4444', flexShrink: 0 }} />
-                  <span style={{ color: '#991b1b', fontWeight: 500 }}>{loginError}</span>
+                  <span style={{ color: isDark ? '#f87171' : '#991b1b', fontWeight: 500 }}>{loginError}</span>
                 </div>
               )}
 
@@ -744,17 +765,18 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
                   width: '100%', padding: '13px 10px', borderRadius: '12px',
-                  background: '#f1f5f9', border: '1px solid rgba(15,23,42,0.12)',
-                  color: '#0f172a', fontSize: '0.84rem', fontWeight: 700,
+                  background: isDark ? 'rgba(255,255,255,0.03)' : '#f1f5f9',
+                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.12)'}`,
+                  color: isDark ? '#f1f5f9' : '#0f172a', fontSize: '0.84rem', fontWeight: 700,
                   cursor: (loginLoading || ssoLoading) ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s', opacity: (loginLoading || ssoLoading) ? 0.7 : 1,
                   whiteSpace: 'nowrap',
                 }}
-                onMouseEnter={(e) => { if (!loginLoading && !ssoLoading) { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.borderColor = '#94a3b8'; } }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = 'rgba(15,23,42,0.12)'; }}
+                onMouseEnter={(e) => { if (!loginLoading && !ssoLoading) { e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0'; e.currentTarget.style.borderColor = isDark ? 'rgba(255,255,255,0.15)' : '#94a3b8'; } }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.03)' : '#f1f5f9'; e.currentTarget.style.borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.12)'; }}
               >
                 {ssoLoading ? (
-                  <RefreshCw size={18} className="spin-anim" style={{ color: '#0f172a' }} />
+                  <RefreshCw size={18} className="spin-anim" style={{ color: isDark ? '#f1f5f9' : '#0f172a' }} />
                 ) : (
                   <svg width="20" height="20" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M0 0H11V11H0V0Z" fill="#F25022"/>
@@ -771,25 +793,25 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 alignItems: 'center', 
                 justifyContent: 'center', 
                 margin: '18px 0', 
-                color: '#64748b',
+                color: isDark ? '#475569' : '#64748b',
                 fontSize: '0.78rem' 
               }}>
-                <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
+                <div style={{ flex: 1, height: '1px', background: separatorColor }}></div>
                 <span style={{ padding: '0 8px', fontWeight: 500 }}>OR</span>
-                <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
+                <div style={{ flex: 1, height: '1px', background: separatorColor }}></div>
               </div>
 
               <form onSubmit={handleCrmLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ textAlign: 'left' }}>
-                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Support Email</label>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: isDark ? '#94a3b8' : '#475569', marginBottom: '6px' }}>Support Email</label>
                   <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="agent@evaops.crm"
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', color: '#0f172a', fontSize: '0.86rem', outline: 'none', boxSizing: 'border-box' }} />
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: inputBg, border: `1px solid ${inputBorder}`, color: inputColor, fontSize: '0.86rem', outline: 'none', boxSizing: 'border-box' }} />
                 </div>
                 <div style={{ textAlign: 'left' }}>
-                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Password</label>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: isDark ? '#94a3b8' : '#475569', marginBottom: '6px' }}>Password</label>
                   <div style={{ position: 'relative' }}>
                     <input type={showPassword ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••"
-                      style={{ width: '100%', padding: '10px 42px 10px 14px', borderRadius: '8px', background: '#ffffff', border: '1px solid rgba(15,23,42,0.12)', color: '#0f172a', fontSize: '0.86rem', outline: 'none', boxSizing: 'border-box' }} />
+                      style={{ width: '100%', padding: '10px 42px 10px 14px', borderRadius: '8px', background: inputBg, border: `1px solid ${inputBorder}`, color: inputColor, fontSize: '0.86rem', outline: 'none', boxSizing: 'border-box' }} />
                     <button type="button" onClick={() => setShowPassword(p => !p)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0 }}>
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
@@ -806,25 +828,25 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 marginTop: '24px',
                 padding: '16px',
                 borderRadius: '12px',
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
+                background: guideBg,
+                border: `1px solid ${guideBorder}`,
                 textAlign: 'left'
               }}>
-                <h4 style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px 0' }}>
+                <h4 style={{ fontSize: '0.82rem', fontWeight: 700, color: textPrimary, display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px 0' }}>
                   <Shield size={13} style={{ color: '#7c3aed' }} />
                   Client-Side Access Guide
                 </h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                     <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 800 }}>01</span>
-                    <div style={{ fontSize: '0.72rem', color: '#475569', lineHeight: 1.4 }}>
-                      <strong style={{ color: '#0f172a' }}>Developer Bypass:</strong> Toggle <code style={{ background: '#ffffff', border: '1px solid #e2e8f0', padding: '1px 4px', borderRadius: '4px', color: '#0f172a' }}>Developer Override</code> on the client login portal, input organization ID <code style={{ background: '#ffffff', border: '1px solid #e2e8f0', padding: '1px 4px', borderRadius: '4px', color: '#0f172a' }}>estevia</code>, and sign in.
+                    <div style={{ fontSize: '0.72rem', color: textSecondary, lineHeight: 1.4 }}>
+                      <strong style={{ color: textPrimary }}>Developer Bypass:</strong> Toggle <code style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', border: `1px solid ${guideBorder}`, padding: '1px 4px', borderRadius: '4px', color: textPrimary }}>Developer Override</code> on the client login portal, input organization ID <code style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', border: `1px solid ${guideBorder}`, padding: '1px 4px', borderRadius: '4px', color: textPrimary }}>estevia</code>, and sign in.
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                     <span style={{ fontSize: '0.72rem', color: '#7c3aed', fontWeight: 800 }}>02</span>
-                    <div style={{ fontSize: '0.72rem', color: '#475569', lineHeight: 1.4 }}>
-                      <strong style={{ color: '#0f172a' }}>Admin SSO Login:</strong> Authenticate via Microsoft 365 on the client interface. The system maps organizational records and grants administrative write control options automatically.
+                    <div style={{ fontSize: '0.72rem', color: textSecondary, lineHeight: 1.4 }}>
+                      <strong style={{ color: textPrimary }}>Admin SSO Login:</strong> Authenticate via Microsoft 365 on the client interface. The system maps organizational records and grants administrative write control options automatically.
                     </div>
                   </div>
                 </div>
@@ -838,7 +860,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                     style={{
                       background: 'none',
                       border: 'none',
-                      color: '#64748b',
+                      color: textMuted,
                       fontSize: '0.82rem',
                       cursor: 'pointer',
                       textDecoration: 'underline',
