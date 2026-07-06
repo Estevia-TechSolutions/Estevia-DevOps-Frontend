@@ -38,7 +38,9 @@ import {
   Activity,
   Download,
   Crown,
-  Lock
+  Lock,
+  Cloud,
+  Globe
 } from 'lucide-react';
 import './App.css';
 
@@ -4787,10 +4789,10 @@ function App() {
               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '16px' }}>Platform Capabilities</span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {[
-                  { title: 'Cloud Discovery Scanning', desc: 'Auto-maps SWA and ACA environments' },
-                  { title: 'DNS Automation', desc: 'One-click CNAME binds via GoDaddy API' },
-                  { title: 'DevOps Pipelines', desc: 'Committer-driven YML setup templates' },
-                  { title: 'Cost Pulse Analytics', desc: 'Optimization insights & active cost tracking' }
+                  { title: 'Cloud Discovery Scanning', desc: 'Auto-maps SWA and ACA environments', icon: Cloud },
+                  { title: 'DNS Automation', desc: 'One-click CNAME binds via GoDaddy API', icon: Globe },
+                  { title: 'DevOps Pipelines', desc: 'Committer-driven YML setup templates', icon: Terminal },
+                  { title: 'Cost Pulse Analytics', desc: 'Optimization insights & active cost tracking', icon: TrendingDown }
                 ].map((f, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div style={{
@@ -4798,7 +4800,7 @@ function App() {
                       background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed', flexShrink: 0
                     }}>
-                      ✓
+                      <f.icon size={16} />
                     </div>
                     <div>
                       <h4 style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary, #f8fafc)', margin: 0 }}>{f.title}</h4>
