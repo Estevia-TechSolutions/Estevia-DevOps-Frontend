@@ -654,11 +654,12 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
     return (
       <div style={{
         minHeight: '100vh',
-        background: '#020617',
-        color: '#ffffff',
+        background: '#f8fafc',
+        color: '#0f172a',
         boxSizing: 'border-box',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       }}>
         {/* Top Navbar */}
         <nav style={{
@@ -666,17 +667,17 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: '20px 40px',
-          borderBottom: '1px solid var(--divider)',
+          borderBottom: '1px solid #e2e8f0',
           backdropFilter: 'blur(10px)',
-          background: 'rgba(2, 6, 23, 0.4)'
+          background: 'rgba(255, 255, 255, 0.8)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div className="site-header-logo" style={{ width: '32px', height: '32px', borderRadius: '8px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', padding: '4px', boxShadow: 'none' }}>
-              <img src="/evaops-logo.png" alt="EvaOps Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            <div className="site-header-logo" style={{ width: '32px', height: '32px', borderRadius: '8px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', padding: '6px', boxShadow: 'none' }}>
+              <img src="/evaops-logo.png" alt="EvaOps Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'invert(1)' }} />
             </div>
-            <span style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.02em' }}>EvaOps</span>
+            <span style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#0f172a' }}>EvaOps</span>
           </div>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+          <span style={{ fontSize: '0.8rem', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase', fontWeight: 600 }}>
             EvaOps — Platform Operations & Compliance
           </span>
         </nav>
@@ -701,9 +702,9 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 borderRadius: '20px',
                 fontSize: '0.78rem',
                 fontWeight: 600,
-                backgroundColor: 'rgba(139, 92, 246, 0.15)',
-                border: '1px solid rgba(139, 92, 246, 0.3)',
-                color: 'var(--accent-purple)',
+                backgroundColor: 'rgba(124, 58, 237, 0.08)',
+                border: '1px solid rgba(124, 58, 237, 0.2)',
+                color: '#6d28d9',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
                 marginBottom: '20px'
@@ -716,20 +717,20 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 lineHeight: 1.1,
                 letterSpacing: '-0.03em',
                 marginBottom: '20px',
-                background: 'linear-gradient(135deg, var(--text-primary) 30%, var(--text-secondary) 100%)',
+                background: 'linear-gradient(135deg, #0f172a 30%, #334155 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent'
               }}>
                 EvaOps Support. <br />
-                <span className="glow-purple" style={{ 
-                  background: 'linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-blue) 100%)',
+                <span style={{ 
+                  background: 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent'
                 }}>Compliance Desk.</span>
               </h1>
               <p style={{
                 fontSize: '1.1rem',
-                color: 'var(--text-secondary)',
+                color: '#475569',
                 lineHeight: 1.6,
                 marginBottom: '0px',
                 maxWidth: '520px'
@@ -749,43 +750,44 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 <div key={f.title} style={{ display: 'flex', gap: '10px' }}>
                   <div style={{
                     width: '20px', height: '20px', borderRadius: '50%', 
-                    backgroundColor: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34,197,94,0.3)',
-                    color: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34,197,94,0.25)',
+                    color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '0.75rem', fontWeight: 700, flexShrink: 0
                   }}>
                     ✓
                   </div>
                   <div>
-                    <h4 style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-primary)' }}>{f.title}</h4>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{f.desc}</p>
+                    <h4 style={{ fontSize: '0.92rem', fontWeight: 600, color: '#1e293b' }}>{f.title}</h4>
+                    <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>{f.desc}</p>
                   </div>
                 </div>
               ))}
             </div>
 
             {/* Client Guide */}
-            <div className="glass-panel" style={{
+            <div style={{
               padding: '20px',
               borderRadius: '12px',
-              background: 'rgba(255, 255, 255, 0.01)',
-              border: '1px solid var(--glass-border)',
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
               textAlign: 'left'
             }}>
-              <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '10px', margin: '0 0 8px 0' }}>
-                <Shield size={14} style={{ color: 'var(--accent-purple)' }} />
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '10px', margin: '0 0 8px 0' }}>
+                <Shield size={14} style={{ color: '#7c3aed' }} />
                 Client-Side Access Guide
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '0.76rem', color: '#60a5fa', fontWeight: 800 }}>01</span>
-                  <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                    <strong style={{ color: 'var(--text-primary)' }}>Developer Bypass:</strong> Toggle <code style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-primary)' }}>Developer Override</code> on the client login portal, input organization ID <code style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-primary)' }}>estevia</code>, and sign in.
+                  <span style={{ fontSize: '0.76rem', color: '#2563eb', fontWeight: 800 }}>01</span>
+                  <div style={{ fontSize: '0.76rem', color: '#475569', lineHeight: 1.4 }}>
+                    <strong style={{ color: '#0f172a' }}>Developer Bypass:</strong> Toggle <code style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '2px 6px', borderRadius: '4px', color: '#0f172a' }}>Developer Override</code> on the client login portal, input organization ID <code style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '2px 6px', borderRadius: '4px', color: '#0f172a' }}>estevia</code>, and sign in.
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '0.76rem', color: '#a78bfa', fontWeight: 800 }}>02</span>
-                  <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                    <strong style={{ color: 'var(--text-primary)' }}>Admin SSO Login:</strong> Authenticate via Microsoft 365 on the client interface. The system maps organizational records and grants administrative write control options automatically.
+                  <span style={{ fontSize: '0.76rem', color: '#7c3aed', fontWeight: 800 }}>02</span>
+                  <div style={{ fontSize: '0.76rem', color: '#475569', lineHeight: 1.4 }}>
+                    <strong style={{ color: '#0f172a' }}>Admin SSO Login:</strong> Authenticate via Microsoft 365 on the client interface. The system maps organizational records and grants administrative write control options automatically.
                   </div>
                 </div>
               </div>
@@ -794,26 +796,30 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
           {/* Right Column: Auth Portal Card */}
           <div style={{ flex: 0.8, display: 'flex', justifyContent: 'center' }}>
-            <div className="glass-panel" style={{
+            <div style={{
               width: '100%',
               maxWidth: '420px',
               padding: '40px',
               borderRadius: '16px',
-              background: 'var(--bg-card)',
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.08)',
               textAlign: 'center'
             }}>
               <div style={{ marginBottom: '30px' }}>
-                <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text-primary)' }}>CRM Sign In</h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.4 }}>
+                <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '8px', color: '#0f172a' }}>CRM Sign In</h2>
+                <p style={{ color: '#64748b', fontSize: '0.85rem', lineHeight: 1.4 }}>
                   Access is restricted to authorized Estevia support personnel.
                 </p>
               </div>
 
               {loginError && (
-                <div className="glass-panel" style={{ 
+                <div style={{ 
                   padding: '12px 14px', 
-                  borderColor: 'var(--error)', 
-                  backgroundColor: 'rgba(239, 68, 68, 0.1)', 
+                  borderColor: '#f87171', 
+                  backgroundColor: '#fef2f2', 
+                  border: '1px solid #fca5a5',
+                  borderRadius: '8px',
                   display: 'flex', 
                   alignItems: 'center', 
                   gap: '8px', 
@@ -821,8 +827,8 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   fontSize: '0.82rem',
                   textAlign: 'left'
                 }}>
-                  <AlertCircle size={16} style={{ color: 'var(--error)', flexShrink: 0 }} />
-                  <span style={{ color: '#fca5a5' }}>{loginError}</span>
+                  <AlertCircle size={16} style={{ color: '#ef4444', flexShrink: 0 }} />
+                  <span style={{ color: '#991b1b', fontWeight: 500 }}>{loginError}</span>
                 </div>
               )}
 
@@ -833,17 +839,17 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
                   width: '100%', padding: '13px 10px', borderRadius: '12px',
-                  background: 'var(--bg-slate)', border: '1px solid var(--glass-border)',
-                  color: 'var(--text-primary)', fontSize: '0.84rem', fontWeight: 700,
+                  background: '#f1f5f9', border: '1px solid #cbd5e1',
+                  color: '#0f172a', fontSize: '0.84rem', fontWeight: 700,
                   cursor: (loginLoading || ssoLoading) ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s', opacity: (loginLoading || ssoLoading) ? 0.7 : 1,
                   whiteSpace: 'nowrap',
                 }}
-                onMouseEnter={(e) => { if (!loginLoading && !ssoLoading) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderColor = 'rgba(0,114,240,0.5)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,114,240,0.18)'; e.currentTarget.style.background = 'rgba(0,114,240,0.06)'; } }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.background = 'var(--bg-slate)'; }}
+                onMouseEnter={(e) => { if (!loginLoading && !ssoLoading) { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.borderColor = '#94a3b8'; } }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
               >
                 {ssoLoading ? (
-                  <RefreshCw size={18} className="spin-anim" />
+                  <RefreshCw size={18} className="spin-anim" style={{ color: '#0f172a' }} />
                 ) : (
                   <svg width="20" height="20" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M0 0H11V11H0V0Z" fill="#F25022"/>
@@ -860,32 +866,32 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 alignItems: 'center', 
                 justifyContent: 'center', 
                 margin: '18px 0', 
-                color: 'var(--text-secondary)',
+                color: '#64748b',
                 fontSize: '0.78rem' 
               }}>
-                <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }}></div>
+                <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
                 <span style={{ padding: '0 8px', fontWeight: 500 }}>OR</span>
-                <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }}></div>
+                <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
               </div>
 
               <form onSubmit={handleCrmLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ textAlign: 'left' }}>
-                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Support Email</label>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Support Email</label>
                   <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="agent@evaops.crm"
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', fontSize: '0.86rem', outline: 'none', boxSizing: 'border-box' }} />
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a', fontSize: '0.86rem', outline: 'none', boxSizing: 'border-box' }} />
                 </div>
                 <div style={{ textAlign: 'left' }}>
-                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Password</label>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Password</label>
                   <div style={{ position: 'relative' }}>
                     <input type={showPassword ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••"
-                      style={{ width: '100%', padding: '10px 42px 10px 14px', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', fontSize: '0.86rem', outline: 'none', boxSizing: 'border-box' }} />
-                    <button type="button" onClick={() => setShowPassword(p => !p)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}>
+                      style={{ width: '100%', padding: '10px 42px 10px 14px', borderRadius: '8px', background: '#ffffff', border: '1px solid #cbd5e1', color: '#0f172a', fontSize: '0.86rem', outline: 'none', boxSizing: 'border-box' }} />
+                    <button type="button" onClick={() => setShowPassword(p => !p)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0 }}>
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
                 </div>
                 <button type="submit" disabled={loginLoading || ssoLoading}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', padding: '11px', borderRadius: '8px', background: 'linear-gradient(135deg, var(--accent-purple) 0%, #6366f1 100%)', color: '#ffffff', border: 'none', fontSize: '0.88rem', fontWeight: 700, cursor: (loginLoading || ssoLoading) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: (loginLoading || ssoLoading) ? 0.7 : 1 }}>
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', padding: '11px', borderRadius: '8px', background: 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)', color: '#ffffff', border: 'none', fontSize: '0.88rem', fontWeight: 700, cursor: (loginLoading || ssoLoading) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: (loginLoading || ssoLoading) ? 0.7 : 1 }}>
                   {loginLoading ? <RefreshCw size={16} className="spin-anim" /> : <><span>Sign In</span><ArrowRight size={16} /></>}
                 </button>
               </form>
@@ -898,7 +904,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                     style={{
                       background: 'none',
                       border: 'none',
-                      color: 'var(--text-secondary)',
+                      color: '#64748b',
                       fontSize: '0.82rem',
                       cursor: 'pointer',
                       textDecoration: 'underline',

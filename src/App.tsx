@@ -4789,11 +4789,12 @@ function App() {
     return (
       <div style={{ 
         minHeight: '100vh', 
-        background: 'var(--bg-primary)',
-        color: 'var(--text-primary)',
+        background: '#f8fafc',
+        color: '#0f172a',
         boxSizing: 'border-box',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       }}>
         {/* Simple top navbar for landing page */}
         <nav style={{
@@ -4801,17 +4802,17 @@ function App() {
           justifyContent: 'space-between',
           alignItems: 'center',
           padding: '20px 40px',
-          borderBottom: '1px solid var(--divider)',
+          borderBottom: '1px solid #e2e8f0',
           backdropFilter: 'blur(10px)',
-          background: 'rgba(2, 6, 23, 0.4)'
+          background: 'rgba(255, 255, 255, 0.8)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div className="site-header-logo" style={{ width: '32px', height: '32px', borderRadius: '8px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', padding: '4px', boxShadow: 'none' }}>
-              <img src="/evaops-logo.png" alt="EvaOps Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            <div className="site-header-logo" style={{ width: '32px', height: '32px', borderRadius: '8px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', padding: '6px', boxShadow: 'none' }}>
+              <img src="/evaops-logo.png" alt="EvaOps Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'invert(1)' }} />
             </div>
-            <span style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.02em' }}>EvaOps</span>
+            <span style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#0f172a' }}>EvaOps</span>
           </div>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+          <span style={{ fontSize: '0.8rem', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase', fontWeight: 600 }}>
             EvaOps — CloudOps Management & Governance
           </span>
         </nav>
@@ -4836,9 +4837,9 @@ function App() {
               borderRadius: '20px',
               fontSize: '0.78rem',
               fontWeight: 600,
-              backgroundColor: 'rgba(139, 92, 246, 0.15)',
-              border: '1px solid rgba(139, 92, 246, 0.3)',
-              color: 'var(--accent-purple)',
+              backgroundColor: 'rgba(124, 58, 237, 0.08)',
+              border: '1px solid rgba(124, 58, 237, 0.2)',
+              color: '#6d28d9',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
               marginBottom: '20px'
@@ -4851,20 +4852,20 @@ function App() {
               lineHeight: 1.1,
               letterSpacing: '-0.03em',
               marginBottom: '20px',
-              background: 'linear-gradient(135deg, var(--text-primary) 30%, var(--text-secondary) 100%)',
+              background: 'linear-gradient(135deg, #0f172a 30%, #334155 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent'
             }}>
               Code to Cloud. <br />
-              <span className="glow-purple" style={{ 
-                background: 'linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-blue) 100%)',
+              <span style={{ 
+                background: 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent'
               }}>Zero Friction.</span>
             </h1>
             <p style={{
               fontSize: '1.1rem',
-              color: 'var(--text-secondary)',
+              color: '#475569',
               lineHeight: 1.6,
               marginBottom: '32px',
               maxWidth: '520px'
@@ -4884,14 +4885,14 @@ function App() {
                   <div style={{
                     width: '20px', height: '20px', borderRadius: '50%', 
                     backgroundColor: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34,197,94,0.3)',
-                    color: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '0.75rem', fontWeight: 700, flexShrink: 0
                   }}>
                     ✓
                   </div>
                   <div>
-                    <h4 style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-primary)' }}>{f.title}</h4>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{f.desc}</p>
+                    <h4 style={{ fontSize: '0.92rem', fontWeight: 600, color: '#1e293b' }}>{f.title}</h4>
+                    <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>{f.desc}</p>
                   </div>
                 </div>
               ))}
@@ -4900,26 +4901,30 @@ function App() {
 
           {/* Right Column: Auth Portal */}
           <div style={{ flex: 0.8, display: 'flex', justifyContent: 'center' }}>
-            <div className="glass-panel" style={{
+            <div style={{
               width: '100%',
               maxWidth: '420px',
               padding: '40px',
               borderRadius: '16px',
-              background: 'var(--bg-card)',
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.08)',
               textAlign: 'center'
             }}>
               <div style={{ marginBottom: '30px' }}>
-                <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '8px' }}>Access Portal</h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '8px', color: '#0f172a' }}>Access Portal</h2>
+                <p style={{ color: '#64748b', fontSize: '0.85rem', lineHeight: 1.4 }}>
                   Authenticate using your corporate account to deploy and track workspaces.
                 </p>
               </div>
 
               {authError && (
-                <div className="glass-panel" style={{ 
+                <div style={{ 
                   padding: '12px 14px', 
-                  borderColor: 'var(--error)', 
-                  backgroundColor: 'rgba(239, 68, 68, 0.1)', 
+                  borderColor: '#f87171', 
+                  backgroundColor: '#fef2f2', 
+                  border: '1px solid #fca5a5',
+                  borderRadius: '8px',
                   display: 'flex', 
                   alignItems: 'center', 
                   gap: '8px', 
@@ -4927,13 +4932,13 @@ function App() {
                   fontSize: '0.82rem',
                   textAlign: 'left'
                 }}>
-                  <AlertCircle size={16} style={{ color: 'var(--error)', flexShrink: 0 }} />
-                  <span style={{ color: '#fca5a5' }}>{authError}</span>
+                  <AlertCircle size={16} style={{ color: '#ef4444', flexShrink: 0 }} />
+                  <span style={{ color: '#991b1b', fontWeight: 500 }}>{authError}</span>
                 </div>
               )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {/* SSO Buttons — Hub-style side-by-side */}
+                {/* SSO Buttons — Microsoft 365 */}
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <button
                     onClick={handleMicrosoftLoginRedirect}
@@ -4941,17 +4946,17 @@ function App() {
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
                       width: '100%', padding: '13px 10px', borderRadius: '12px',
-                      background: 'var(--bg-slate)', border: '1px solid var(--glass-border)',
-                      color: 'var(--text-primary)', fontSize: '0.84rem', fontWeight: 700,
+                      background: '#f1f5f9', border: '1px solid #cbd5e1',
+                      color: '#0f172a', fontSize: '0.84rem', fontWeight: 700,
                       cursor: authLoading ? 'not-allowed' : 'pointer',
                       transition: 'all 0.2s', opacity: authLoading ? 0.7 : 1,
                       whiteSpace: 'nowrap',
                     }}
-                    onMouseEnter={(e) => { if (!authLoading) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderColor = 'rgba(0,114,240,0.5)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,114,240,0.18)'; e.currentTarget.style.background = 'rgba(0,114,240,0.06)'; } }}
-                    onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.background = 'var(--bg-slate)'; }}
+                    onMouseEnter={(e) => { if (!authLoading) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderColor = '#94a3b8'; e.currentTarget.style.background = '#e2e8f0'; } }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = '#f1f5f9'; }}
                   >
                     {ssoLoadingProvider === 'microsoft' ? (
-                      <RefreshCw size={18} className="spin-anim" />
+                      <RefreshCw size={18} className="spin-anim" style={{ color: '#0f172a' }} />
                     ) : (
                       <svg width="20" height="20" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M0 0H11V11H0V0Z" fill="#F25022"/>
@@ -4969,12 +4974,12 @@ function App() {
                   alignItems: 'center', 
                   justifyContent: 'center', 
                   margin: '8px 0', 
-                  color: 'var(--text-secondary)',
+                  color: '#64748b',
                   fontSize: '0.78rem' 
                 }}>
-                  <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }}></div>
-                  <span style={{ padding: '0 8px' }}>OR</span>
-                  <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }}></div>
+                  <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
+                  <span style={{ padding: '0 8px', fontWeight: 500 }}>OR</span>
+                  <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
                 </div>
 
                 {/* Developer Override — viewer only */}
@@ -4983,8 +4988,8 @@ function App() {
                   disabled={authLoading}
                   style={{
                     background: showDevOverrideForm ? 'rgba(100,116,139,0.08)' : 'transparent',
-                    border: `1px dashed ${showDevOverrideForm ? 'rgba(100,116,139,0.4)' : 'var(--glass-border)'}`,
-                    color: showDevOverrideForm ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    border: `1px dashed ${showDevOverrideForm ? 'rgba(100,116,139,0.4)' : '#cbd5e1'}`,
+                    color: '#475569',
                     padding: '10px 20px',
                     borderRadius: '8px',
                     fontSize: '0.82rem',
@@ -4998,14 +5003,14 @@ function App() {
                   }}
                   onMouseEnter={(e) => {
                     if (!showDevOverrideForm) {
-                      e.currentTarget.style.borderColor = 'rgba(100,116,139,0.5)';
-                      e.currentTarget.style.color = 'var(--text-primary)';
+                      e.currentTarget.style.borderColor = '#94a3b8';
+                      e.currentTarget.style.color = '#0f172a';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!showDevOverrideForm) {
-                      e.currentTarget.style.borderColor = 'var(--glass-border)';
-                      e.currentTarget.style.color = 'var(--text-secondary)';
+                      e.currentTarget.style.borderColor = '#cbd5e1';
+                      e.currentTarget.style.color = '#475569';
                     }
                   }}
                 >
@@ -5016,18 +5021,18 @@ function App() {
                 {/* Developer Override inline form */}
                 {showDevOverrideForm && (
                   <div style={{
-                    background: 'var(--bg-primary)',
-                    border: '1px solid rgba(148, 163, 184, 0.2)',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                     borderRadius: '10px',
                     padding: '16px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '10px',
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
                     animation: 'fade-in-anim 0.2s ease-out'
                   }}>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Building2 size={12} style={{ color: 'var(--text-secondary)' }} />
+                    <div style={{ fontSize: '0.75rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Building2 size={12} style={{ color: '#64748b' }} />
                       Enter your Organisation ID for Developer Override
                     </div>
                     <input
@@ -5038,20 +5043,20 @@ function App() {
                       onKeyDown={(e) => { if (e.key === 'Enter') handleBypassLogin(); }}
                       autoComplete="off"
                       style={{
-                        background: 'var(--input-bg)',
-                        border: '1px solid var(--glass-border)',
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
                         borderRadius: '8px',
-                        color: 'var(--text-primary)',
+                        color: '#0f172a',
                         fontSize: '0.86rem',
                         padding: '10px 14px',
                         outline: 'none',
                         transition: 'border-color 0.2s'
                       }}
-                      onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(100,116,139,0.5)'}
-                      onBlur={(e) => e.currentTarget.style.borderColor = 'var(--glass-border)'}
+                      onFocus={(e) => e.currentTarget.style.borderColor = '#94a3b8'}
+                      onBlur={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
                     />
                     {devOverrideError && (
-                      <div style={{ fontSize: '0.8rem', color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ fontSize: '0.8rem', color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <AlertCircle size={13} />
                         {devOverrideError}
                       </div>
@@ -5060,9 +5065,9 @@ function App() {
                       onClick={handleBypassLogin}
                       disabled={authLoading}
                       style={{
-                        background: 'linear-gradient(135deg, rgba(148, 163, 184, 0.25), rgba(148, 163, 184, 0.15))',
-                        border: '1px solid rgba(148, 163, 184, 0.5)',
-                        color: 'var(--text-primary)',
+                        background: 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)',
+                        border: 'none',
+                        color: '#ffffff',
                         borderRadius: '8px',
                         padding: '10px 16px',
                         fontSize: '0.86rem',
@@ -5090,8 +5095,8 @@ function App() {
                   disabled={authLoading}
                   style={{
                     background: showAdminOverrideForm ? 'rgba(234,88,12,0.08)' : 'transparent',
-                    border: `1px dashed ${showAdminOverrideForm ? 'rgba(234,88,12,0.4)' : 'var(--glass-border)'}`,
-                    color: showAdminOverrideForm ? '#ea580c' : 'var(--text-secondary)',
+                    border: `1px dashed ${showAdminOverrideForm ? 'rgba(234,88,12,0.4)' : '#cbd5e1'}`,
+                    color: '#ea580c',
                     padding: '10px 20px',
                     borderRadius: '8px',
                     fontSize: '0.82rem',
@@ -5105,14 +5110,14 @@ function App() {
                   }}
                   onMouseEnter={(e) => {
                     if (!showAdminOverrideForm) {
-                      e.currentTarget.style.borderColor = 'rgba(234,88,12,0.35)';
+                      e.currentTarget.style.borderColor = 'rgba(234,88,12,0.5)';
                       e.currentTarget.style.color = '#ea580c';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!showAdminOverrideForm) {
-                      e.currentTarget.style.borderColor = 'var(--glass-border)';
-                      e.currentTarget.style.color = 'var(--text-secondary)';
+                      e.currentTarget.style.borderColor = '#cbd5e1';
+                      e.currentTarget.style.color = '#ea580c';
                     }
                   }}
                 >
@@ -5123,17 +5128,17 @@ function App() {
                 {/* Admin Override inline form */}
                 {showAdminOverrideForm && (
                   <div style={{
-                    background: 'var(--bg-primary)',
+                    background: '#f8fafc',
                     border: '1px solid rgba(234,88,12,0.25)',
                     borderRadius: '10px',
                     padding: '16px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '10px',
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
                     animation: 'fade-in-anim 0.2s ease-out'
                   }}>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <ShieldCheck size={12} style={{ color: '#ea580c' }} />
                       Enter your Organisation ID and admin override password
                     </div>
@@ -5144,17 +5149,17 @@ function App() {
                       onChange={(e) => setAdminOverrideOrgId(e.target.value)}
                       autoComplete="off"
                       style={{
-                        background: 'var(--input-bg)',
-                        border: '1px solid var(--glass-border)',
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
                         borderRadius: '8px',
-                        color: 'var(--text-primary)',
+                        color: '#0f172a',
                         fontSize: '0.86rem',
                         padding: '10px 14px',
                         outline: 'none',
                         transition: 'border-color 0.2s'
                       }}
                       onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(234,88,12,0.5)'}
-                      onBlur={(e) => e.currentTarget.style.borderColor = 'var(--glass-border)'}
+                      onBlur={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
                     />
                     <input
                       type="password"
@@ -5164,20 +5169,20 @@ function App() {
                       onKeyDown={(e) => { if (e.key === 'Enter') handleAdminOverride(); }}
                       autoComplete="new-password"
                       style={{
-                        background: 'var(--input-bg)',
-                        border: '1px solid var(--glass-border)',
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
                         borderRadius: '8px',
-                        color: 'var(--text-primary)',
+                        color: '#0f172a',
                         fontSize: '0.86rem',
                         padding: '10px 14px',
                         outline: 'none',
                         transition: 'border-color 0.2s'
                       }}
                       onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(234,88,12,0.5)'}
-                      onBlur={(e) => e.currentTarget.style.borderColor = 'var(--glass-border)'}
+                      onBlur={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
                     />
                     {adminOverrideError && (
-                      <div style={{ fontSize: '0.8rem', color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ fontSize: '0.8rem', color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <AlertCircle size={13} />
                         {adminOverrideError}
                       </div>
@@ -5186,9 +5191,9 @@ function App() {
                       onClick={handleAdminOverride}
                       disabled={adminOverrideLoading}
                       style={{
-                        background: 'linear-gradient(135deg, rgba(234,88,12,0.25), rgba(234,88,12,0.15))',
-                        border: '1px solid rgba(234,88,12,0.5)',
-                        color: '#ea580c',
+                        background: 'linear-gradient(135deg, #ea580c 0%, #d97706 100%)',
+                        border: 'none',
+                        color: '#ffffff',
                         borderRadius: '8px',
                         padding: '10px 16px',
                         fontSize: '0.86rem',
@@ -5212,7 +5217,7 @@ function App() {
 
                 {/* Onboarding Guide Collapsible */}
                 <div style={{
-                  borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderTop: '1px solid #e2e8f0',
                   paddingTop: '16px',
                   textAlign: 'left'
                 }}>
@@ -5221,7 +5226,7 @@ function App() {
                     style={{
                       background: 'none',
                       border: 'none',
-                      color: 'var(--text-secondary)',
+                      color: '#475569',
                       fontSize: '0.82rem',
                       fontWeight: 500,
                       cursor: 'pointer',
@@ -5233,10 +5238,10 @@ function App() {
                       justifyContent: 'center',
                       transition: 'color 0.2s'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
-                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+                    onMouseEnter={(e) => e.currentTarget.style.color = '#0f172a'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = '#475569'}
                   >
-                    <Info size={14} style={{ color: 'var(--accent-purple)' }} />
+                    <Info size={14} style={{ color: '#7c3aed' }} />
                     <span>New to EvaOps? Onboarding Steps</span>
                     {showOnboardingGuide ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                   </button>
@@ -5260,9 +5265,9 @@ function App() {
                             width: '20px',
                             height: '20px',
                             borderRadius: '50%',
-                            backgroundColor: 'rgba(139, 92, 246, 0.12)',
-                            border: '1px solid rgba(139, 92, 246, 0.3)',
-                            color: 'var(--accent-purple)',
+                            backgroundColor: 'rgba(124, 58, 237, 0.08)',
+                            border: '1px solid rgba(124, 58, 237, 0.2)',
+                            color: '#7c3aed',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
