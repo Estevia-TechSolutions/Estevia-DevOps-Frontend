@@ -3486,19 +3486,28 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                   </div>
                                                 )}
                                               </div>
-                                              {item.dnsDetails?.fqdn && (
-                                                <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
-                                                  <Globe size={12} style={{ opacity: 0.7, color: 'var(--accent-purple)', flexShrink: 0 }} />
-                                                  <span>Domain: <a
-                                                    href={`https://${item.dnsDetails.fqdn}`}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    style={{ color: 'var(--accent-purple)', textDecoration: 'none', fontWeight: 600 }}
-                                                  >
-                                                    {item.dnsDetails.fqdn}
-                                                  </a></span>
-                                                </div>
-                                              )}
+                                              {item.dnsDetails?.fqdn && (() => {
+                                                 const fqdns = item.dnsDetails.fqdns || [item.dnsDetails.fqdn];
+                                                 return (
+                                                   <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
+                                                     <Globe size={12} style={{ opacity: 0.7, color: 'var(--accent-purple)', flexShrink: 0 }} />
+                                                     <span>Domains: </span>
+                                                     {fqdns.map((fqdn: string, idx: number) => (
+                                                       <span key={fqdn}>
+                                                         <a
+                                                           href={`https://${fqdn}`}
+                                                           target="_blank"
+                                                           rel="noreferrer"
+                                                           style={{ color: 'var(--accent-purple)', textDecoration: 'none', fontWeight: 600 }}
+                                                         >
+                                                           {fqdn}
+                                                         </a>
+                                                         {idx < fqdns.length - 1 && ', '}
+                                                       </span>
+                                                     ))}
+                                                   </div>
+                                                 );
+                                               })()}
                                               {item.repositoryUrl && (
                                                 <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
                                                   <Github size={12} style={{ opacity: 0.7, color: 'var(--accent-blue)', flexShrink: 0 }} />
@@ -7426,7 +7435,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)' }}>
                     <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Current Domain Mapping:</span>
                     <strong style={{ fontSize: '0.84rem', color: 'var(--accent-purple)' }}>
-                      {bgDrawerApp.dnsDetails?.fqdn || 'No custom domain bound yet'}
+                      {bgDrawerApp.dnsDetails?.fqdns && bgDrawerApp.dnsDetails.fqdns.length > 0 ? bgDrawerApp.dnsDetails.fqdns.join(', ') : (bgDrawerApp.dnsDetails?.fqdn || 'No custom domain bound yet')}
                     </strong>
                   </div>
 
@@ -7461,7 +7470,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                           <option value="">-- Choose target app --</option>
                           {targets.map(t => (
                             <option key={t.name} value={t.name}>
-                              {t.name} ({t.dnsDetails?.fqdn})
+                              {t.name} ({t.dnsDetails?.fqdns && t.dnsDetails.fqdns.length > 0 ? t.dnsDetails.fqdns.join(', ') : t.dnsDetails?.fqdn})
                             </option>
                           ))}
                         </select>

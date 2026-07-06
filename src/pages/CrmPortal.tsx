@@ -21,7 +21,12 @@ import {
   Search,
   DollarSign,
   Activity,
-  Shield
+  Shield,
+  Mail,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Globe
 } from 'lucide-react';
 
 interface CrmPortalProps {
@@ -42,6 +47,8 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginLoading, setLoginLoading] = useState(false);
+  const [ssoLoading, setSsoLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Dashboard layout tabs
   const [activeTab, setActiveTab] = useState<'clients' | 'invoices' | 'agents'>('clients');
@@ -134,6 +141,73 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
       setLoginLoading(false);
     }
   };
+
+  const handleMicrosoftSSO = async () => {
+    setSsoLoading(true);
+    setLoginError(null);
+    try {
+      const redirectUriParam = window.location.origin + window.location.pathname;
+      const res = await fetch(`${API_BASE}/crm/auth/login-url?redirectUri=${encodeURIComponent(redirectUriParam)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          throw new Error('No login URL returned from server');
+        }
+      } else {
+        throw new Error('Failed to retrieve login URL from server');
+      }
+    } catch (err: any) {
+      setLoginError(err.message || 'Failed to initiate Microsoft login.');
+      setSsoLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const errorParam = params.get('error');
+    if (errorParam) {
+      setLoginError(`Microsoft SSO Login failed: ${errorParam}`);
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return;
+    }
+    if (!code) return;
+
+    const exchangeSsoCode = async () => {
+      setSsoLoading(true);
+      setLoginError(null);
+      try {
+        const response = await fetch(`${API_BASE}/crm/auth/microsoft`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code,
+            redirectUri: window.location.origin + window.location.pathname
+          })
+        });
+        const data = await response.json();
+        if (response.ok && data.token) {
+          localStorage.setItem('evaops_crm_token', data.token);
+          localStorage.setItem('evaops_crm_user', JSON.stringify(data.user));
+          setCrmToken(data.token);
+          setCrmUser(data.user);
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } else {
+          throw new Error(data.error || data.message || 'Failed to authenticate via Microsoft Entra ID');
+        }
+      } catch (err: any) {
+        console.error('[CRM Auth] Microsoft callback login failed:', err);
+        setLoginError(err.message || 'Failed to complete Microsoft authentication.');
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } finally {
+        setSsoLoading(false);
+      }
+    };
+
+    exchangeSsoCode();
+  }, [API_BASE]);
 
   const handleCrmLogout = () => {
     localStorage.removeItem('evaops_crm_token');
@@ -262,6 +336,32 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
       setSelectedClient((prev: any) => ({ ...prev, is_disabled: nextDisabledState }));
     } catch (err) {
       alert('Failed to update client status.');
+    }
+  };
+
+  const handleImpersonateClient = async () => {
+    if (!selectedClient) return;
+    try {
+      const res = await window.fetch(`${API_BASE}/auth/bypass`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organizationId: selectedClient.id })
+      });
+      const data = await res.json();
+      if (res.ok && data.token) {
+        localStorage.setItem('devops_token', data.token);
+        localStorage.setItem('devops_user', JSON.stringify(data.user));
+        localStorage.setItem('devops_requires_onboarding', String(data.requiresOnboarding));
+        if (data.organization && data.organization.id) {
+          localStorage.setItem('devops_organization_id', data.organization.id);
+          localStorage.setItem('devops_organization_name', data.organization.name || data.organization.id);
+        }
+        window.open(window.location.origin + '/', '_blank');
+      } else {
+        throw new Error(data.error || 'Failed to authenticate via bypass');
+      }
+    } catch (err: any) {
+      alert('Failed to launch impersonation session: ' + err.message);
     }
   };
 
@@ -418,158 +518,274 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
   // ── RENDER CRM LOGIN SCREEN ──────────────────────────────────────────────────
   if (!crmToken) {
+    const ACCENT = 'var(--accent-purple)';
+
     return (
       <div style={{
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'radial-gradient(ellipse at top, #1e1b4b, #0f172a, #020617)',
-        padding: '20px',
-        color: '#f8fafc'
+        background: 'var(--bg-primary)',
+        color: 'var(--text-primary)',
+        position: 'relative',
+        overflow: 'hidden'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '32px' }}>
-          <div style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #a78bfa, #3b82f6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 0 16px rgba(167, 139, 250, 0.3)'
-          }}>
-            <Building2 size={20} style={{ color: '#ffffff' }} />
-          </div>
-          <span style={{ fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.02em' }}>EvaOps Admin Support</span>
-        </div>
-
-        <div className="glass-panel" style={{
-          width: '100%',
-          maxWidth: '400px',
-          padding: '36px',
-          borderRadius: '16px',
-          background: 'var(--glass-bg)',
-          textAlign: 'center',
-          border: '1px solid var(--glass-border)',
-          boxShadow: 'var(--modal-shadow)'
+        {/* Navigation Bar */}
+        <nav style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '20px 40px',
+          borderBottom: '1px solid var(--glass-border)',
+          background: 'rgba(2, 6, 23, 0.4)'
         }}>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '8px' }}>CRM Support Sign In</h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '24px' }}>
-            Provide local administrator credentials to access client controls.
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="site-header-logo" style={{ width: '32px', height: '32px', borderRadius: '8px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', padding: '4px', boxShadow: 'none' }}>
+              <img src="/evaops-logo.png" alt="EvaOps Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </div>
+            <span style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.02em' }}>EvaOps</span>
+          </div>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            CRM Support Control Plane
+          </span>
+        </nav>
 
-          {loginError && (
-            <div style={{
-              background: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid var(--error)',
-              padding: '10px 12px',
-              borderRadius: '8px',
-              color: '#fca5a5',
-              fontSize: '0.8rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              marginBottom: '20px',
-              textAlign: 'left'
+        {/* Main Body */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          maxWidth: '1200px',
+          margin: '0 auto',
+          padding: '60px 40px',
+          gap: '60px',
+          alignItems: 'center',
+          boxSizing: 'border-box',
+          width: '100%'
+        }}>
+          
+          {/* Left Column: Product pitch */}
+          <div style={{ flex: 1.2, textAlign: 'left' }}>
+            <span style={{
+              display: 'inline-block',
+              padding: '6px 12px',
+              borderRadius: '20px',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              backgroundColor: 'rgba(139, 92, 246, 0.15)',
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+              color: 'var(--accent-purple)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              marginBottom: '20px'
             }}>
-              <AlertCircle size={15} style={{ flexShrink: 0 }} />
-              <span>{loginError}</span>
-            </div>
-          )}
+              🛡️ Estevia Operations & Licensing
+            </span>
+            <h1 style={{
+              fontSize: '3.2rem',
+              fontWeight: 800,
+              lineHeight: 1.1,
+              letterSpacing: '-0.03em',
+              marginBottom: '20px',
+              background: 'linear-gradient(135deg, var(--text-primary) 30%, var(--text-secondary) 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}>
+              EvaOps Support. <br />
+              <span className="glow-purple" style={{ 
+                background: 'linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-blue) 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>Compliance Desk.</span>
+            </h1>
+            <p style={{
+              fontSize: '1.1rem',
+              color: 'var(--text-secondary)',
+              lineHeight: 1.6,
+              marginBottom: '32px',
+              maxWidth: '520px'
+            }}>
+              This operations terminal enables support agents to override seat allocations, generate custom subscription terms, update active domain bindings, and sync client directories from Active Directory.
+            </p>
 
-          <form onSubmit={handleCrmLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ textAlign: 'left' }}>
-              <label style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                Support Email
-              </label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="agent@evaops.crm"
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--glass-border)',
-                  borderRadius: '8px',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.86rem',
-                  outline: 'none'
-                }}
-              />
+            {/* Feature Checkmarks */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              {[
+                { title: 'Licensing Compliance', desc: 'Seat limit overrides & plan management' },
+                { title: 'DNS Control Plane', desc: 'Multi-domain matching & domain bindings' },
+                { title: 'Directory Syncing', desc: 'Sync users and permissions from Azure AD' },
+                { title: 'Support Directory', desc: 'Agent permission management & logs' }
+              ].map(f => (
+                <div key={f.title} style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{
+                    width: '20px', height: '20px', borderRadius: '50%', 
+                    backgroundColor: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34,197,94,0.3)',
+                    color: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '0.75rem', fontWeight: 700, flexShrink: 0
+                  }}>
+                    ✓
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{f.title}</h4>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>{f.desc}</p>
+                  </div>
+                </div>
+              ))}
             </div>
 
-            <div style={{ textAlign: 'left' }}>
-              <label style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                Secure Password
-              </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••••••"
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  background: 'var(--input-bg)',
-                  border: '1px solid var(--glass-border)',
-                  borderRadius: '8px',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.86rem',
-                  outline: 'none'
-                }}
-              />
+            {/* Client-Side Access Guide Panel */}
+            <div style={{
+              marginTop: '40px',
+              padding: '24px',
+              borderRadius: '16px',
+              background: 'rgba(99, 102, 241, 0.04)',
+              border: '1px solid rgba(99, 102, 241, 0.15)',
+              textAlign: 'left',
+              boxShadow: 'inset 0 0 20px rgba(99,102,241,0.02)'
+            }}>
+              <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '10px', margin: '0 0 10px 0' }}>
+                <Shield size={16} style={{ color: 'var(--accent-purple)' }} />
+                Client-Side Access Guide
+              </h4>
+              <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: '0 0 12px 0' }}>
+                Instructions for connecting to the main DevOps platform client interface:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--accent-blue)', fontWeight: 800 }}>01</span>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                    <strong style={{ color: 'var(--text-primary)' }}>Developer Bypass:</strong> Toggle <code style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-primary)' }}>Developer Override</code> on the client login portal, input organization ID <code style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-primary)' }}>estevia</code>, and sign in.
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--accent-purple)', fontWeight: 800 }}>02</span>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                    <strong style={{ color: 'var(--text-primary)' }}>Admin SSO Login:</strong> Authenticate via Microsoft 365 on the client interface. The system maps organizational records and grants administrative write control options automatically.
+                  </div>
+                </div>
+              </div>
             </div>
+          </div>
 
-            <button
-              type="submit"
-              disabled={loginLoading}
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '8px',
-                border: 'none',
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
-                color: '#ffffff',
-                fontWeight: 600,
-                cursor: loginLoading ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                fontSize: '0.9rem',
-                marginTop: '8px',
-                transition: 'opacity 0.2s'
-              }}
-            >
-              {loginLoading ? (
-                <><RefreshCw size={16} className="spin-anim" /> Connecting...</>
-              ) : (
-                <><Lock size={15} /> Sign In to CRM</>
+          {/* Right Column: Auth Portal */}
+          <div style={{ flex: 0.8, display: 'flex', justifyContent: 'center' }}>
+            <div className="glass-panel" style={{
+              width: '100%',
+              maxWidth: '420px',
+              padding: '40px',
+              borderRadius: '16px',
+              background: 'var(--bg-card)',
+              textAlign: 'center'
+            }}>
+              <div style={{ marginBottom: '30px' }}>
+                <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '8px' }}>CRM Sign In</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                  Access is restricted to authorized Estevia support personnel.
+                </p>
+              </div>
+
+              {loginError && (
+                <div className="glass-panel" style={{ 
+                  padding: '12px 14px', 
+                  borderColor: 'var(--error)', 
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px', 
+                  marginBottom: '20px',
+                  fontSize: '0.82rem',
+                  textAlign: 'left'
+                }}>
+                  <AlertCircle size={16} style={{ color: 'var(--error)', flexShrink: 0 }} />
+                  <span style={{ color: '#fca5a5' }}>{loginError}</span>
+                </div>
               )}
-            </button>
-          </form>
-        </div>
 
-        <button
-          onClick={onBackToApp}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-secondary)',
-            fontSize: '0.82rem',
-            marginTop: '24px',
-            cursor: 'pointer',
-            textDecoration: 'underline'
-          }}
-        >
-          Return to Client Access Portal
-        </button>
+              {/* Microsoft SSO button */}
+              <button
+                onClick={handleMicrosoftSSO}
+                disabled={loginLoading || ssoLoading}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                  width: '100%', padding: '13px 10px', borderRadius: '12px',
+                  background: 'var(--bg-slate)', border: '1px solid var(--glass-border)',
+                  color: 'var(--text-primary)', fontSize: '0.84rem', fontWeight: 700,
+                  cursor: (loginLoading || ssoLoading) ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s', opacity: (loginLoading || ssoLoading) ? 0.7 : 1,
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => { if (!loginLoading && !ssoLoading) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderColor = 'rgba(0,114,240,0.5)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,114,240,0.18)'; e.currentTarget.style.background = 'rgba(0,114,240,0.06)'; } }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.background = 'var(--bg-slate)'; }}
+              >
+                {ssoLoading ? (
+                  <RefreshCw size={18} className="spin-anim" />
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M0 0H11V11H0V0Z" fill="#F25022"/>
+                    <path d="M12 0H23V11H12V0Z" fill="#7FBA00"/>
+                    <path d="M0 12H11V23H0V12Z" fill="#00A1F1"/>
+                    <path d="M12 12H23V23H12V12Z" fill="#FFB900"/>
+                  </svg>
+                )}
+                <span>{ssoLoading ? 'Connecting...' : 'Microsoft 365'}</span>
+              </button>
+
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                margin: '18px 0', 
+                color: 'var(--text-secondary)',
+                fontSize: '0.78rem' 
+              }}>
+                <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }}></div>
+                <span style={{ padding: '0 8px' }}>OR</span>
+                <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }}></div>
+              </div>
+
+              <form onSubmit={handleCrmLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ textAlign: 'left' }}>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Support Email</label>
+                  <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="agent@evaops.crm"
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', fontSize: '0.86rem', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Password</label>
+                  <div style={{ position: 'relative' }}>
+                    <input type={showPassword ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••"
+                      style={{ width: '100%', padding: '10px 42px 10px 14px', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', fontSize: '0.86rem', outline: 'none', boxSizing: 'border-box' }} />
+                    <button type="button" onClick={() => setShowPassword(p => !p)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: 0 }}>
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+                <button type="submit" disabled={loginLoading || ssoLoading}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', padding: '11px', borderRadius: '8px', background: 'linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-blue) 100%)', color: '#ffffff', border: 'none', fontSize: '0.88rem', fontWeight: 700, cursor: (loginLoading || ssoLoading) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: (loginLoading || ssoLoading) ? 0.7 : 1 }}>
+                  {loginLoading ? <RefreshCw size={16} className="spin-anim" /> : <><span>Sign In</span><ArrowRight size={16} /></>}
+                </button>
+              </form>
+
+              {/* Return to App link */}
+              {window.location.hostname !== 'evaops-crm.esteviatech.com' && (
+                <div style={{ textAlign: 'center', marginTop: '24px' }}>
+                  <button
+                    onClick={onBackToApp}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-secondary)',
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    Return to Client Access Portal
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+        </div>
       </div>
     );
   }
@@ -1049,6 +1265,29 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px' }}>
+                  <button
+                    onClick={handleImpersonateClient}
+                    style={{
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--glass-border)',
+                      background: 'var(--glass-bg)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.84rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'var(--glass-bg)'}
+                  >
+                    <Globe size={14} style={{ color: 'var(--accent-purple)' }} />
+                    Launch Client DevOps Portal
+                  </button>
+
                   <button
                     onClick={handleToggleStatus}
                     style={{
