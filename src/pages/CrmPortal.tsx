@@ -101,6 +101,9 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
   const [tierFilter, setTierFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [invoiceSearchQuery, setInvoiceSearchQuery] = useState('');
+  const [agentSearchQuery, setAgentSearchQuery] = useState('');
+  const [agentRoleFilter, setAgentRoleFilter] = useState('all');
+  const [agentStatusFilter, setAgentStatusFilter] = useState('all');
 
   // Support Agents list & edit state
   const [agents, setAgents] = useState<any[]>([]);
@@ -2553,9 +2556,80 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 </div>
               )}
 
+              {/* Roster Filter Bar */}
+              <div className="glass-panel" style={{
+                padding: '12px 20px',
+                marginBottom: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '16px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '240px', position: 'relative' }}>
+                  <Search size={14} style={{ position: 'absolute', left: '12px', color: 'var(--text-secondary)' }} />
+                  <input
+                    type="text"
+                    value={agentSearchQuery}
+                    onChange={e => setAgentSearchQuery(e.target.value)}
+                    placeholder="Search agents by name or email..."
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px 8px 34px',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: '8px',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.84rem',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <select
+                    value={agentRoleFilter}
+                    onChange={e => setAgentRoleFilter(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: '8px',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.82rem',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="all">All Roles</option>
+                    <option value="admin">Administrators</option>
+                    <option value="agent">Support Agents</option>
+                  </select>
+
+                  <select
+                    value={agentStatusFilter}
+                    onChange={e => setAgentStatusFilter(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: '8px',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.82rem',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="active">Active Only</option>
+                    <option value="disabled">Disabled Only</option>
+                  </select>
+                </div>
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: crmUser.role === 'admin' ? 'repeat(auto-fit, minmax(360px, 1fr))' : '1fr', gap: '28px', alignItems: 'start' }}>
                 {/* Left/Main Column: Staff Roster */}
-                <div>
+                <div style={{ maxHeight: '680px', display: 'flex', flexDirection: 'column' }}>
                   {/* ── Existing Agents Grid ── */}
                   {loadingAgents ? (
                     <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
@@ -2563,118 +2637,142 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       <div style={{ marginTop: '8px', fontSize: '0.84rem' }}>Loading support agents...</div>
                     </div>
                   ) : agents.length > 0 ? (
-                    <div className="glass-panel" style={{ overflow: 'hidden', padding: 0, marginBottom: '24px' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-                        <thead>
-                          <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--divider)', textAlign: 'left' }}>
-                            <th style={{ padding: '12px 16px' }}>Name</th>
-                            <th style={{ padding: '12px 16px' }}>Email</th>
-                            <th style={{ padding: '12px 16px' }}>Role</th>
-                            <th style={{ padding: '12px 16px' }}>Status</th>
-                            {crmUser.role === 'admin' && <th style={{ padding: '12px 16px', width: '130px' }}>Actions</th>}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {agents.map(agent => {
-                            const isMasterAdmin = agent.email === 'admin@evaops.crm';
-                            const isCurrentlyEditing = editingAgent?.id === agent.id;
-                            return (
-                              <tr key={agent.id} style={{ borderBottom: '1px solid var(--divider)', transition: 'background 0.15s' }}
-                                onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
-                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                                <td style={{ padding: '12px 16px', fontWeight: 600 }}>{agent.name}</td>
-                                <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{agent.email}</td>
-                                <td style={{ padding: '12px 16px' }}>
-                                  <span style={{
-                                    padding: '2px 8px',
-                                    borderRadius: '4px',
-                                    fontSize: '0.72rem',
-                                    fontWeight: 600,
-                                    textTransform: 'uppercase',
-                                    background: agent.role === 'admin' ? 'rgba(139,92,246,0.1)' : 'rgba(59,130,246,0.1)',
-                                    color: agent.role === 'admin' ? 'var(--accent-purple)' : '#60a5fa',
-                                    border: agent.role === 'admin' ? '1px solid rgba(139,92,246,0.2)' : '1px solid rgba(59,130,246,0.2)'
-                                  }}>
-                                    {agent.role}
-                                  </span>
-                                </td>
-                                <td style={{ padding: '12px 16px' }}>
-                                  <span style={{
-                                    padding: '2px 8px',
-                                    borderRadius: '4px',
-                                    fontSize: '0.72rem',
-                                    fontWeight: 600,
-                                    background: agent.is_disabled ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
-                                    color: agent.is_disabled ? '#f87171' : '#4ade80',
-                                    border: agent.is_disabled ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(34,197,94,0.2)'
-                                  }}>
-                                    {agent.is_disabled ? 'Disabled' : 'Active'}
-                                  </span>
-                                </td>
-                                {crmUser.role === 'admin' && (
-                                  <td style={{ padding: '12px 16px' }}>
-                                    <div style={{ display: 'flex', gap: '6px' }}>
-                                      {!isCurrentlyEditing && (
-                                        <button
-                                          onClick={() => {
-                                            setEditingAgent(agent);
-                                            setEditName(agent.name);
-                                            setEditEmail(agent.email);
-                                            setEditRole(agent.role);
-                                            setEditIsDisabled(agent.is_disabled);
-                                            setEditPassword('');
-                                            setEditingMsg(null);
-                                          }}
-                                          style={{
-                                            padding: '4px 8px',
-                                            borderRadius: '4px',
-                                            border: '1px solid var(--glass-border)',
-                                            background: 'var(--glass-bg)',
-                                            color: 'var(--text-primary)',
-                                            fontSize: '0.72rem',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '4px'
-                                          }}
-                                        >
-                                          <Edit3 size={12} /> Edit
-                                        </button>
-                                      )}
-                                      {!isMasterAdmin && !isCurrentlyEditing && (
-                                        <button
-                                          onClick={() => handleToggleAgentStatus(agent)}
-                                          style={{
-                                            padding: '4px 8px',
-                                            borderRadius: '4px',
-                                            border: agent.is_disabled ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(239,68,68,0.2)',
-                                            background: agent.is_disabled ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.05)',
-                                            color: agent.is_disabled ? '#4ade80' : '#f87171',
-                                            fontSize: '0.72rem',
-                                            fontWeight: 600,
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '4px'
-                                          }}
-                                        >
-                                          <Power size={12} />
-                                          {agent.is_disabled ? 'Enable' : 'Disable'}
-                                        </button>
-                                      )}
-                                      {isMasterAdmin && (
-                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontStyle: 'italic', padding: '4px 0' }}>
-                                          Protected
-                                        </span>
-                                      )}
-                                    </div>
-                                  </td>
-                                )}
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                    <div className="glass-panel" style={{ overflow: 'hidden', padding: 0, marginBottom: '24px', maxHeight: '580px', display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ overflowY: 'auto', flex: 1 }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                          <thead>
+                            <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--divider)', textAlign: 'left', position: 'sticky', top: 0, zIndex: 10 }}>
+                              <th style={{ padding: '12px 16px', background: 'var(--bg-secondary)' }}>Name</th>
+                              <th style={{ padding: '12px 16px', background: 'var(--bg-secondary)' }}>Email</th>
+                              <th style={{ padding: '12px 16px', background: 'var(--bg-secondary)' }}>Role</th>
+                              <th style={{ padding: '12px 16px', background: 'var(--bg-secondary)' }}>Status</th>
+                              {crmUser.role === 'admin' && <th style={{ padding: '12px 16px', width: '130px', background: 'var(--bg-secondary)' }}>Actions</th>}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              const filtered = agents.filter(agent => {
+                                const matchesSearch = 
+                                  (agent.name || '').toLowerCase().includes(agentSearchQuery.toLowerCase()) ||
+                                  (agent.email || '').toLowerCase().includes(agentSearchQuery.toLowerCase());
+                                const matchesRole = agentRoleFilter === 'all' || agent.role === agentRoleFilter;
+                                const matchesStatus = agentStatusFilter === 'all' || 
+                                  (agentStatusFilter === 'disabled' ? !!agent.is_disabled : !agent.is_disabled);
+                                return matchesSearch && matchesRole && matchesStatus;
+                              });
+
+                              if (filtered.length === 0) {
+                                return (
+                                  <tr>
+                                    <td colSpan={crmUser.role === 'admin' ? 5 : 4} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                      No agents match the active filter criteria.
+                                    </td>
+                                  </tr>
+                                );
+                              }
+
+                              return filtered.map(agent => {
+                                const isMasterAdmin = agent.email === 'admin@evaops.crm';
+                                const isCurrentlyEditing = editingAgent?.id === agent.id;
+                                return (
+                                  <tr key={agent.id} style={{ borderBottom: '1px solid var(--divider)', transition: 'background 0.15s' }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                    <td style={{ padding: '12px 16px', fontWeight: 600 }}>{agent.name}</td>
+                                    <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{agent.email}</td>
+                                    <td style={{ padding: '12px 16px' }}>
+                                      <span style={{
+                                        padding: '2px 8px',
+                                        borderRadius: '4px',
+                                        fontSize: '0.72rem',
+                                        fontWeight: 600,
+                                        textTransform: 'uppercase',
+                                        background: agent.role === 'admin' ? 'rgba(139,92,246,0.1)' : 'rgba(59,130,246,0.1)',
+                                        color: agent.role === 'admin' ? 'var(--accent-purple)' : '#60a5fa',
+                                        border: agent.role === 'admin' ? '1px solid rgba(139,92,246,0.2)' : '1px solid rgba(59,130,246,0.2)'
+                                      }}>
+                                        {agent.role}
+                                      </span>
+                                    </td>
+                                    <td style={{ padding: '12px 16px' }}>
+                                      <span style={{
+                                        padding: '2px 8px',
+                                        borderRadius: '4px',
+                                        fontSize: '0.72rem',
+                                        fontWeight: 600,
+                                        background: agent.is_disabled ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
+                                        color: agent.is_disabled ? '#f87171' : '#4ade80',
+                                        border: agent.is_disabled ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(34,197,94,0.2)'
+                                      }}>
+                                        {agent.is_disabled ? 'Disabled' : 'Active'}
+                                      </span>
+                                    </td>
+                                    {crmUser.role === 'admin' && (
+                                      <td style={{ padding: '12px 16px' }}>
+                                        <div style={{ display: 'flex', gap: '6px' }}>
+                                          {!isCurrentlyEditing && (
+                                            <button
+                                              onClick={() => {
+                                                setEditingAgent(agent);
+                                                setEditName(agent.name);
+                                                setEditEmail(agent.email);
+                                                setEditRole(agent.role);
+                                                setEditIsDisabled(agent.is_disabled);
+                                                setEditPassword('');
+                                                setEditingMsg(null);
+                                              }}
+                                              style={{
+                                                padding: '4px 8px',
+                                                borderRadius: '4px',
+                                                border: '1px solid var(--glass-border)',
+                                                background: 'var(--glass-bg)',
+                                                color: 'var(--text-primary)',
+                                                fontSize: '0.72rem',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '4px'
+                                              }}
+                                            >
+                                              <Edit3 size={12} /> Edit
+                                            </button>
+                                          )}
+                                          {!isMasterAdmin && !isCurrentlyEditing && (
+                                            <button
+                                              onClick={() => handleToggleAgentStatus(agent)}
+                                              style={{
+                                                padding: '4px 8px',
+                                                borderRadius: '4px',
+                                                border: agent.is_disabled ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(239,68,68,0.2)',
+                                                background: agent.is_disabled ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.05)',
+                                                color: agent.is_disabled ? '#4ade80' : '#f87171',
+                                                fontSize: '0.72rem',
+                                                fontWeight: 600,
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '4px'
+                                              }}
+                                            >
+                                              <Power size={12} />
+                                              {agent.is_disabled ? 'Enable' : 'Disable'}
+                                            </button>
+                                          )}
+                                          {isMasterAdmin && (
+                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontStyle: 'italic', padding: '4px 0' }}>
+                                              Protected
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                    )}
+                                  </tr>
+                                );
+                              });
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   ) : (
                     <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.84rem', marginBottom: '24px' }}>
@@ -3006,6 +3104,61 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                           )}
                         </button>
                       </form>
+                    </div>
+
+                    {/* ── Staff Compliance Guidelines Panel ── */}
+                    <div className="glass-panel" style={{
+                      padding: '24px',
+                      marginTop: '24px',
+                      background: 'rgba(99, 102, 241, 0.02)',
+                      border: '1.5px dashed rgba(139, 92, 246, 0.25)',
+                      textAlign: 'left'
+                    }}>
+                      <h4 style={{
+                        fontSize: '0.94rem',
+                        fontWeight: 800,
+                        marginBottom: '16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        color: 'var(--text-primary)'
+                      }}>
+                        <Shield size={16} style={{ color: 'var(--accent-purple)' }} />
+                        Roster Compliance & Access Audit Guidelines
+                      </h4>
+                      
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: '0 0 16px 0' }}>
+                        This administrative console governs seat allocations, licensing plans, and active agent directories across the DevOps fleet. Please adhere strictly to Estevia core security protocols.
+                      </p>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        <div style={{ borderLeft: '3px solid var(--accent-purple)', paddingLeft: '12px' }}>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                            1. Azure AD Sync & Identity Rules
+                          </div>
+                          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                            Synchronizing with Azure AD updates staff profiles via Microsoft Graph. Disabling an agent profile in your primary Active Directory tenant automatically blocks their CRM login access upon the next synchronization.
+                          </div>
+                        </div>
+
+                        <div style={{ borderLeft: '3px solid #2dd4bf', paddingLeft: '12px' }}>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                            2. Dynamic Role Bypass Audits
+                          </div>
+                          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                            Bypass logins map CRM users to client workspace accounts dynamically. CRM Administrators are granted <strong style={{ color: 'var(--text-primary)' }}>admin</strong> roles (full edit/override access), while Support Agents receive a read-only <strong style={{ color: 'var(--text-primary)' }}>viewer</strong> (developer viewer) role.
+                          </div>
+                        </div>
+
+                        <div style={{ borderLeft: '3px solid #fbbf24', paddingLeft: '12px' }}>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                            3. Access Revocation & Policy Controls
+                          </div>
+                          <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                            Access tokens expire automatically. Administrators are required to perform a quarterly roster audit and manually toggle inactive support accounts to <code style={{ background: 'var(--input-bg)', padding: '2px 4px', borderRadius: '4px', border: '1px solid var(--glass-border)' }}>Disabled</code> to prevent credential leak risks.
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
