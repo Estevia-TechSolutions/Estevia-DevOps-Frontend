@@ -714,7 +714,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   { title: 'Support Ticket Desk', desc: 'Triages support requests, tickets, SLAs and logs dynamically', icon: Inbox },
                   { title: 'Sandbox Provisioning', desc: 'Deploys test environments and isolates tenant config templates', icon: Layers }
                 ].map((f, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
                     <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed', flexShrink: 0 }}>
                       <f.icon size={16} />
                     </div>
