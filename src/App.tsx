@@ -5153,6 +5153,7 @@ function App() {
 
         </div>
       </div>
+    );
   }
 
   const tabLoadingMap: Record<string, boolean> = {
