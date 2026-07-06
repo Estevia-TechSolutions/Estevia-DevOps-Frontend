@@ -115,7 +115,11 @@ const CopyButton: React.FC<{ text: string }> = ({ text }) => {
   );
 };
 
-const API_BASE = (import.meta.env.VITE_API_BASE as string) || `http://${window.location.hostname}:5005/api`;
+const _hostname = window.location.hostname;
+const _apiBaseFromEnv = import.meta.env.VITE_API_BASE as string | undefined;
+// When on the CRM subdomain, always point to the main backend (not :5005 on the CRM domain)
+const API_BASE = _apiBaseFromEnv
+  || (_hostname === 'evaops-crm.esteviatech.com' ? 'https://api-evaops.esteviatech.com/api' : `http://${_hostname}:5005/api`);
 
 const PREDEFINED_REPOS = [
   "Estevia-TechSolutions/protrack-frontend",

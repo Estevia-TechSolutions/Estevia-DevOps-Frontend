@@ -41,7 +41,7 @@ import {
 } from 'lucide-react';
 import { resolveBranchName, hasEnvSegment, branchToEnv } from '../App';
 
-const API_BASE = (import.meta as any).env?.VITE_API_BASE || `http://${window.location.hostname}:5005/api`;
+const API_BASE = (import.meta as any).env?.VITE_API_BASE || (window.location.hostname === 'evaops-crm.esteviatech.com' ? 'https://api-evaops.esteviatech.com/api' : `http://${window.location.hostname}:5005/api`);
 
 
 const Github = ({ size = 12, ...props }: { size?: number;[key: string]: any }) => (
@@ -75,6 +75,7 @@ interface AppResource {
     subdomain?: string;
     domain?: string;
     fqdn?: string;
+    fqdns?: string[];
     mappedAt?: string;
   };
   pipelineId?: string;
