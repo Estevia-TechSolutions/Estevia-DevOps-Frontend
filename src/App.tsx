@@ -4714,7 +4714,67 @@ function App() {
       setUseCustomRepo(false);
     } else {
       const repoNameOnly = defaultRepo.split('/').pop()?.toLowerCase();
-      matchByName = githubRepos.find(  if (!token) {
+      matchByName = githubRepos.find(r => r.fullName.split('/').pop()?.toLowerCase() === repoNameOnly);
+      if (matchByName) {
+        setGithubRepo(matchByName.fullName);
+        setUseCustomRepo(false);
+      } else {
+        setGithubRepo(defaultRepo);
+        setUseCustomRepo(true);
+      }
+    }
+
+    setDevopsOrgUrl(azureDevopsOrgUrl || import.meta.env.VITE_AZURE_DEVOPS_ORG_URL || '');
+    setDevopsProject(azureDevopsProject || '');
+    const initialProvider = app.pipelineId && String(app.pipelineId).startsWith('github-actions:') ? 'github_actions' : 'azure_devops';
+    setPipelineProvider(initialProvider);
+
+    // Resolve target branch based on app's actual branch, or fallback to app name suffix
+    let defaultBranch = app.branch || 'main';
+    if (!app.branch) {
+      const nameSegments = app.name.split('-');
+      if (nameSegments.length > 1) {
+        const last = nameSegments[nameSegments.length - 1];
+        if (['dev', 'qa', 'prod', 'main', 'master'].includes(last.toLowerCase())) {
+          defaultBranch = last;
+        }
+      }
+    }
+    setPipelineBranch(defaultBranch);
+
+    const activeRepo = matchingRepo?.fullName || matchByName?.fullName || defaultRepo;
+
+    // Find sibling apps sharing the same GitHub repo (other env deployments)
+    if (activeRepo) {
+      const normalizedRepo = activeRepo.toLowerCase();
+      const siblings = apps.filter(a =>
+        a.name !== app.name &&
+        a.repositoryUrl &&
+        a.repositoryUrl.replace('https://github.com/', '').replace(/\/$/, '').toLowerCase() === normalizedRepo
+      );
+      setSiblingApps(siblings);
+    } else {
+      setSiblingApps([]);
+    }
+
+    // Proactively check if azure-pipelines.yml exists and load content
+    if (activeRepo) {
+      checkYmlExists(activeRepo, initialProvider);
+      loadYmlForPipelineModal(activeRepo, defaultBranch, initialProvider);
+    }
+  };
+
+  if (showCrm) {
+    return (
+      <CrmPortal
+        API_BASE={API_BASE}
+        theme={theme}
+        onBackToApp={() => { setShowCrm(false); window.location.hash = ''; }}
+      />
+    );
+  }
+
+  if (!token) {
     return (
       <div style={{
         minHeight: '100vh',
