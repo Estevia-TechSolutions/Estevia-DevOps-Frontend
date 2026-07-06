@@ -1976,9 +1976,23 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
               {/* Dynamic Invoices Stats Bar */}
               {(() => {
-                const totalInvoiced = invoices.reduce((acc, inv) => acc + (inv.amount || 0), 0);
-                const collected = invoices.filter(inv => inv.status === 'Paid').reduce((acc, inv) => acc + (inv.amount || 0), 0);
-                const outstanding = invoices.filter(inv => inv.status === 'Pending').reduce((acc, inv) => acc + (inv.amount || 0), 0);
+                const totalInvoicedUSD = invoices.reduce((acc, inv) => {
+                  const amt = parseFloat(inv.amount) || 0;
+                  const isINR = inv.currency === 'INR';
+                  return acc + (isINR ? amt / 83 : amt);
+                }, 0);
+                
+                const collectedUSD = invoices.filter(inv => inv.status === 'Paid').reduce((acc, inv) => {
+                  const amt = parseFloat(inv.amount) || 0;
+                  const isINR = inv.currency === 'INR';
+                  return acc + (isINR ? amt / 83 : amt);
+                }, 0);
+                
+                const outstandingUSD = invoices.filter(inv => inv.status === 'Pending').reduce((acc, inv) => {
+                  const amt = parseFloat(inv.amount) || 0;
+                  const isINR = inv.currency === 'INR';
+                  return acc + (isINR ? amt / 83 : amt);
+                }, 0);
                 const paidCount = invoices.filter(inv => inv.status === 'Paid').length;
                 const pendingCount = invoices.filter(inv => inv.status === 'Pending').length;
 
@@ -1993,7 +2007,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       </div>
                       <div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Total Invoiced</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>${totalInvoiced.toLocaleString()}</div>
+                        <div style={{ fontSize: '1.05rem', fontWeight: 800 }}>{renderDualCurrency(totalInvoicedUSD)}</div>
                       </div>
                     </div>
 
@@ -2006,7 +2020,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       </div>
                       <div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Collected Volume</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#14b8a6' }}>${collected.toLocaleString()}</div>
+                        <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#14b8a6' }}>{renderDualCurrency(collectedUSD)}</div>
                       </div>
                     </div>
 
@@ -2019,7 +2033,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       </div>
                       <div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Outstanding Balance</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f59e0b' }}>${outstanding.toLocaleString()}</div>
+                        <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#f59e0b' }}>{renderDualCurrency(outstandingUSD)}</div>
                       </div>
                     </div>
 
