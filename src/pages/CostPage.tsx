@@ -205,7 +205,7 @@ export const CostPage: React.FC<CostPageProps> = ({
         const matchingBackend = allBackends.find(b => {
           const bHost = b.hostname || b.azureResourceDetails?.hostname || '';
           const bDns = b.fqdn || '';
-          const hasFqdnMatch = b.fqdns ? b.fqdns.some(f => f.toLowerCase().includes(host.toLowerCase())) : false;
+          const hasFqdnMatch = b.fqdns ? b.fqdns.some((f: string) => f.toLowerCase().includes(host.toLowerCase())) : false;
           return (
             bHost.toLowerCase().includes(host.toLowerCase()) ||
             bDns.toLowerCase().includes(host.toLowerCase()) ||
