@@ -68,6 +68,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
   const [clients, setClients] = useState<any[]>([]);
   const [loadingClients, setLoadingClients] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
+  const [showBypassCard, setShowBypassCard] = useState(false);
 
   // Client Details licensing forms
   const [licenseTier, setLicenseTier] = useState('growth');
@@ -1516,8 +1517,58 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   <h3 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, var(--text-primary) 20%, var(--accent-purple) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                     {selectedClient.name}
                   </h3>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                    Org Key: <code style={{ color: 'var(--text-primary)', background: 'var(--input-bg)', padding: '2px 5px', borderRadius: '4px', border: '1px solid var(--glass-border)' }}>{selectedClient.id}</code> | Admin Contact: {selectedClient.admin_email || 'N/A'}
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                    Org Key: <code style={{ color: 'var(--text-primary)', background: 'var(--input-bg)', padding: '2px 5px', borderRadius: '4px', border: '1px solid var(--glass-border)' }}>{selectedClient.id}</code>
+                    
+                    <span 
+                      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', marginLeft: '6px', marginRight: '6px', verticalAlign: 'middle' }}
+                      onMouseEnter={() => setShowBypassCard(true)}
+                      onMouseLeave={() => setShowBypassCard(false)}
+                    >
+                      <Info size={14} style={{ color: 'var(--accent-purple)', cursor: 'help' }} />
+                      {showBypassCard && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '22px',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          width: '320px',
+                          backgroundColor: 'var(--bg-secondary)',
+                          border: '1px solid var(--glass-border)',
+                          borderRadius: '8px',
+                          padding: '14px',
+                          boxShadow: '0 12px 30px rgba(0,0,0,0.6)',
+                          zIndex: 100,
+                          textAlign: 'left',
+                          color: 'var(--text-primary)',
+                          backdropFilter: 'blur(8px)'
+                        }}>
+                          <h4 style={{ margin: '0 0 8px 0', fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Lock size={12} style={{ color: 'var(--accent-purple)' }} />
+                            Bypass Credentials Guide
+                          </h4>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                            <div>
+                              <strong style={{ color: 'var(--text-primary)' }}>Developer Bypass:</strong>
+                              <div style={{ marginTop: '2px' }}>
+                                Toggle <code style={{ color: 'var(--text-primary)', background: 'rgba(255,255,255,0.06)', padding: '1px 4px', borderRadius: '3px' }}>Developer Override</code> on login. Use organization ID <code style={{ color: 'var(--text-primary)', background: 'rgba(255,255,255,0.06)', padding: '1px 4px', borderRadius: '3px' }}>{selectedClient.id}</code>.
+                              </div>
+                            </div>
+                            <div style={{ borderTop: '1px solid var(--divider)', paddingTop: '8px' }}>
+                              <strong style={{ color: 'var(--text-primary)' }}>Admin Bypass:</strong>
+                              <div style={{ marginTop: '2px' }}>
+                                Toggle <code style={{ color: 'var(--text-primary)', background: 'rgba(255,255,255,0.06)', padding: '1px 4px', borderRadius: '3px' }}>Admin Override</code> on login. Use Org ID <code style={{ color: 'var(--text-primary)', background: 'rgba(255,255,255,0.06)', padding: '1px 4px', borderRadius: '3px' }}>{selectedClient.id}</code>.
+                              </div>
+                              <div style={{ marginTop: '6px', fontWeight: 600, color: 'var(--accent-teal)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                Password: <code style={{ background: 'var(--input-bg)', padding: '1px 5px', borderRadius: '3px', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}>{selectedClient.id.replace(/[^a-z0-9]/gi, '').substring(0, 4).toUpperCase()}2026CbEt06</code>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </span>
+                    
+                    <span>| Admin Contact: {selectedClient.admin_email || 'N/A'}</span>
                   </span>
                 </div>
 
@@ -2627,9 +2678,9 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '28px', alignItems: 'start' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '28px', alignItems: 'stretch' }}>
                 {/* Left/Main Column: Staff Roster */}
-                <div style={{ maxHeight: '680px', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                   {/* ── Existing Agents Grid ── */}
                   {loadingAgents ? (
                     <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
@@ -2637,7 +2688,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       <div style={{ marginTop: '8px', fontSize: '0.84rem' }}>Loading support agents...</div>
                     </div>
                   ) : agents.length > 0 ? (
-                    <div className="glass-panel" style={{ overflow: 'hidden', padding: 0, marginBottom: '24px', maxHeight: '580px', display: 'flex', flexDirection: 'column' }}>
+                    <div className="glass-panel" style={{ overflow: 'hidden', padding: 0, marginBottom: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                       <div style={{ overflowY: 'auto', flex: 1 }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                           <thead>

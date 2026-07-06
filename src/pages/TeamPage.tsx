@@ -37,11 +37,38 @@ export const TeamPage: React.FC<TeamPageProps> = ({
   const [updateMsg, setUpdateMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showMatrixModal, setShowMatrixModal] = useState<boolean>(false);
   const [activeLogUser, setActiveLogUser] = useState<{ email: string; name: string } | null>(null);
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState<string | null>(null);
 
   const isLight = theme === 'light';
   const canManageRoles = currentUser?.role === 'owner' || currentUser?.role === 'admin';
 
-  const writeUsers = users.filter(u => ['owner', 'admin', 'contributor'].includes(u.role?.toLowerCase()));
+  const roleBreakdown = React.useMemo(() => {
+    const counts = {
+      total: users.length,
+      owner: 0,
+      admin: 0,
+      contributor: 0,
+      viewer: 0
+    };
+    users.forEach(u => {
+      const normalizedRole = u.role?.toLowerCase() === 'member' ? 'contributor' : (u.role?.toLowerCase() || 'viewer');
+      if (normalizedRole === 'owner') counts.owner++;
+      else if (normalizedRole === 'admin') counts.admin++;
+      else if (normalizedRole === 'contributor') counts.contributor++;
+      else counts.viewer++;
+    });
+    return counts;
+  }, [users]);
+
+  const filteredUsers = React.useMemo(() => {
+    if (!selectedRoleFilter) return users;
+    return users.filter(u => {
+      const normalizedRole = u.role?.toLowerCase() === 'member' ? 'contributor' : (u.role?.toLowerCase() || 'viewer');
+      return normalizedRole === selectedRoleFilter.toLowerCase();
+    });
+  }, [users, selectedRoleFilter]);
+
+  const writeUsers = users.filter(u => ['owner', 'admin', 'contributor', 'member'].includes(u.role?.toLowerCase()));
   const currentSeatsUsed = writeUsers.length;
   const isLimitReached = currentSeatsUsed >= (operatorSeatsLimit || 10);
 
@@ -236,7 +263,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
 
       {/* Operator Seat Limit Progress Alert */}
       {(() => {
-        const writeUsers = users.filter(u => ['owner', 'admin', 'contributor'].includes(u.role?.toLowerCase()));
+        const writeUsers = users.filter(u => ['owner', 'admin', 'contributor', 'member'].includes(u.role?.toLowerCase()));
         const currentSeatsUsed = writeUsers.length;
         const limit = operatorSeatsLimit || 10;
         const percent = Math.min(100, (currentSeatsUsed / limit) * 100);
@@ -244,12 +271,13 @@ export const TeamPage: React.FC<TeamPageProps> = ({
         
         return (
           <div className="glass-panel" style={{
-            padding: '16px 24px',
+            padding: '20px 24px',
             marginBottom: '20px',
             display: 'flex',
-            alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '20px',
+            alignItems: 'stretch',
+            gap: '32px',
+            flexWrap: 'wrap',
             background: isLight 
               ? 'rgba(139, 92, 246, 0.03)' 
               : 'rgba(139, 92, 246, 0.05)',
@@ -258,39 +286,165 @@ export const TeamPage: React.FC<TeamPageProps> = ({
               : '1px solid rgba(139, 92, 246, 0.25)',
             borderRadius: '12px'
           }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                <span style={{ 
-                  display: 'inline-block', 
-                  width: '8px', 
-                  height: '8px', 
-                  borderRadius: '50%', 
-                  backgroundColor: isNearLimit ? '#ef4444' : '#10b981',
-                  boxShadow: `0 0 8px ${isNearLimit ? '#ef4444' : '#10b981'}`
-                }} />
-                <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  Operator Seats Limit: {currentSeatsUsed} / {limit} Seats Allocated
+            {/* Column 1: Utilization details */}
+            <div style={{ flex: '1 1 320px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '12px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <span style={{ 
+                    display: 'inline-block', 
+                    width: '8px', 
+                    height: '8px', 
+                    borderRadius: '50%', 
+                    backgroundColor: isNearLimit ? '#ef4444' : '#10b981',
+                    boxShadow: `0 0 8px ${isNearLimit ? '#ef4444' : '#10b981'}`
+                  }} />
+                  <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    Operator Seats Limit: {currentSeatsUsed} / {limit} Seats Allocated
+                  </span>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  Owner, Admin, and Contributor roles consume operator seats. Viewers do not consume any seats and are completely free.
+                </p>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ 
+                    height: '100%', 
+                    width: `${percent}%`, 
+                    background: isNearLimit 
+                      ? 'linear-gradient(to right, #f97316, #ef4444)' 
+                      : 'linear-gradient(to right, #8b5cf6, #d946ef)', 
+                    borderRadius: '3px' 
+                  }} />
+                </div>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                  {Math.round(percent)}% Utilized
                 </span>
               </div>
-              <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                Owner, Admin, and Contributor roles consume operator seats. Viewers do not consume any seats and are completely free.
-              </p>
             </div>
-            
-            <div style={{ width: '150px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div style={{ height: '6px', width: '100%', background: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden' }}>
-                <div style={{ 
-                  height: '100%', 
-                  width: `${percent}%`, 
-                  background: isNearLimit 
-                    ? 'linear-gradient(to right, #f97316, #ef4444)' 
-                    : 'linear-gradient(to right, #8b5cf6, #d946ef)', 
-                  borderRadius: '3px' 
-                }} />
-              </div>
-              <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textAlign: 'right', fontWeight: 600 }}>
-                {Math.round(percent)}% Utilized
+
+            {/* Column 2: Role breakdown & interactive filter */}
+            <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: isLight ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)', paddingLeft: '24px' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Filter User Directory by Role:
               </span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {/* Total */}
+                <div 
+                  onClick={() => setSelectedRoleFilter(null)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    background: selectedRoleFilter === null ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                    border: selectedRoleFilter === null ? '1px solid rgba(139, 92, 246, 0.4)' : '1px solid var(--glass-border)',
+                    color: selectedRoleFilter === null ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    fontSize: '0.76rem',
+                    fontWeight: selectedRoleFilter === null ? 700 : 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <Users size={12} />
+                  <span>All Users</span>
+                  <span style={{ fontSize: '0.7rem', opacity: 0.65 }}>({roleBreakdown.total})</span>
+                </div>
+                
+                {/* Owner */}
+                <div 
+                  onClick={() => setSelectedRoleFilter('owner')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    background: selectedRoleFilter === 'owner' ? 'rgba(236, 72, 153, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                    border: selectedRoleFilter === 'owner' ? '1px solid rgba(236, 72, 153, 0.4)' : '1px solid var(--glass-border)',
+                    color: selectedRoleFilter === 'owner' ? '#ec4899' : 'var(--text-secondary)',
+                    fontSize: '0.76rem',
+                    fontWeight: selectedRoleFilter === 'owner' ? 700 : 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <Award size={12} style={{ color: '#ec4899' }} />
+                  <span>Owners</span>
+                  <span style={{ fontSize: '0.7rem', opacity: 0.65 }}>({roleBreakdown.owner})</span>
+                </div>
+
+                {/* Admin */}
+                <div 
+                  onClick={() => setSelectedRoleFilter('admin')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    background: selectedRoleFilter === 'admin' ? 'rgba(13, 148, 136, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                    border: selectedRoleFilter === 'admin' ? '1px solid rgba(13, 148, 136, 0.4)' : '1px solid var(--glass-border)',
+                    color: selectedRoleFilter === 'admin' ? 'var(--accent-teal)' : 'var(--text-secondary)',
+                    fontSize: '0.76rem',
+                    fontWeight: selectedRoleFilter === 'admin' ? 700 : 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <Shield size={12} style={{ color: 'var(--accent-teal)' }} />
+                  <span>Admins</span>
+                  <span style={{ fontSize: '0.7rem', opacity: 0.65 }}>({roleBreakdown.admin})</span>
+                </div>
+
+                {/* Contributor */}
+                <div 
+                  onClick={() => setSelectedRoleFilter('contributor')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    background: selectedRoleFilter === 'contributor' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+                    border: selectedRoleFilter === 'contributor' ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid var(--glass-border)',
+                    color: selectedRoleFilter === 'contributor' ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                    fontSize: '0.76rem',
+                    fontWeight: selectedRoleFilter === 'contributor' ? 700 : 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <UserCheck size={12} style={{ color: 'var(--accent-blue)' }} />
+                  <span>Contributors</span>
+                  <span style={{ fontSize: '0.7rem', opacity: 0.65 }}>({roleBreakdown.contributor})</span>
+                </div>
+
+                {/* Viewer */}
+                <div 
+                  onClick={() => setSelectedRoleFilter('viewer')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    background: selectedRoleFilter === 'viewer' ? 'rgba(229, 225, 224, 0.12)' : 'rgba(255, 255, 255, 0.03)',
+                    border: selectedRoleFilter === 'viewer' ? '1px solid rgba(229, 225, 224, 0.3)' : '1px solid var(--glass-border)',
+                    color: selectedRoleFilter === 'viewer' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    fontSize: '0.76rem',
+                    fontWeight: selectedRoleFilter === 'viewer' ? 700 : 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <Eye size={12} style={{ color: 'var(--text-secondary)' }} />
+                  <span>Viewers</span>
+                  <span style={{ fontSize: '0.7rem', opacity: 0.65 }}>({roleBreakdown.viewer})</span>
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -301,8 +455,8 @@ export const TeamPage: React.FC<TeamPageProps> = ({
           <RefreshCw size={20} className="spin-anim" />
           <span>Loading organization users...</span>
         </div>
-      ) : users.length === 0 ? (
-        <div style={{ color: 'var(--text-secondary)', padding: '20px 0' }}>No users found in organization.</div>
+      ) : filteredUsers.length === 0 ? (
+        <div style={{ color: 'var(--text-secondary)', padding: '20px 0' }}>No users found matching the selected role.</div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -316,7 +470,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => {
+              {filteredUsers.map((u) => {
                 const isSelf = u.id === currentUser?.id;
                 const badgeStyle = getRoleBadgeStyle(u.role);
                 const isTargetOwner = u.role === 'owner';
