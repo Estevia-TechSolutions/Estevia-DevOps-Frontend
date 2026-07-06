@@ -29,7 +29,10 @@ import {
   ArrowRight,
   Globe,
   Sun,
-  Moon
+  Moon,
+  CheckCircle,
+  Inbox,
+  Layers
 } from 'lucide-react';
 
 interface CrmPortalProps {
@@ -702,17 +705,18 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
             </div>
 
             <div style={{ position: 'relative', zIndex: 2, margin: '40px 0' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '16px' }}>CRM Capabilities</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '16px' }}>Platform Capabilities</span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {[
-                  { title: 'Licensing Compliance', desc: 'Seat limit overrides & plan management' },
-                  { title: 'DNS Control Plane', desc: 'Multi-domain matching & domain bindings' },
-                  { title: 'Directory Syncing', desc: 'Sync users and permissions from Azure AD' },
-                  { title: 'Support Directory', desc: 'Agent permission management & logs' }
+                  { title: 'Licensing Compliance', desc: 'Seat limit overrides, subscription pricing plans and validation', icon: CheckCircle },
+                  { title: 'DNS Control Plane', desc: 'CNAME endpoint checks, GoDaddy records and multi-domain routing', icon: Globe },
+                  { title: 'Directory Syncing', desc: 'Fetch and synchronize users, roles and policies from active AD', icon: Users },
+                  { title: 'Support Ticket Desk', desc: 'Triages support requests, tickets, SLAs and logs dynamically', icon: Inbox },
+                  { title: 'Sandbox Provisioning', desc: 'Deploys test environments and isolates tenant config templates', icon: Layers }
                 ].map((f, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed', flexShrink: 0 }}>
-                      <Check size={18} />
+                      <f.icon size={16} />
                     </div>
                     <div>
                       <h4 style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f1f5f9', margin: 0 }}>{f.title}</h4>
