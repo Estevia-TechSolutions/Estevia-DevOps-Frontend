@@ -41,7 +41,7 @@ import {
 } from 'lucide-react';
 import { resolveBranchName, hasEnvSegment, branchToEnv } from '../App';
 
-const API_BASE = (import.meta as any).env?.VITE_API_BASE || `http://${window.location.hostname}:5005/api`;
+const API_BASE = (import.meta as any).env?.VITE_API_BASE || (window.location.hostname === 'evaops-crm.esteviatech.com' ? 'https://api-evaops.esteviatech.com/api' : `http://${window.location.hostname}:5005/api`);
 
 
 const Github = ({ size = 12, ...props }: { size?: number;[key: string]: any }) => (
@@ -75,6 +75,7 @@ interface AppResource {
     subdomain?: string;
     domain?: string;
     fqdn?: string;
+    fqdns?: string[];
     mappedAt?: string;
   };
   pipelineId?: string;
@@ -2727,6 +2728,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                           return s === 'notstarted' || s === 'queued' || s === 'waiting';
                         });
                         const groupHasActiveDeployment = activeRuns.length > 0;
+                        const hasFailedBuild = group.envs.some(app => app.pipelineRun?.result === 'failed');
 
                         const health = ymlHealthMap?.[group.key];
                         const isLoading = ymlHealthLoading?.[group.key];
@@ -2844,6 +2846,25 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                   }}>
                                     <Clock size={10} style={{ color: '#f59e0b' }} />
                                     BUILD QUEUED
+                                  </span>
+                                )}
+
+                                {isCollapsed && hasFailedBuild && (
+                                  <span style={{
+                                    fontSize: '0.68rem',
+                                    fontWeight: 700,
+                                    color: 'var(--error)',
+                                    background: 'rgba(239, 68, 68, 0.12)',
+                                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                                    padding: '3px 8px',
+                                    borderRadius: '12px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    boxShadow: '0 0 8px rgba(239, 68, 68, 0.2)'
+                                  }}>
+                                    <AlertCircle size={10} style={{ color: 'var(--error)' }} />
+                                    LAST BUILD FAILED
                                   </span>
                                 )}
 

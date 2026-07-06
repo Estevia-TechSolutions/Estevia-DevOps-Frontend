@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { EsteviaLoginBadge } from '../components/shared/EsteviaLoginBadge';
 import {
   Building2,
   Users,
@@ -26,7 +27,12 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  Globe
+  Globe,
+  Sun,
+  Moon,
+  CheckCircle,
+  Inbox,
+  Layers
 } from 'lucide-react';
 
 interface CrmPortalProps {
@@ -41,6 +47,15 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
     const saved = localStorage.getItem('evaops_crm_user');
     return saved ? JSON.parse(saved) : null;
   });
+
+  const [localTheme, setLocalTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('devops_theme') as 'dark' | 'light') || theme || 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', localTheme);
+    localStorage.setItem('devops_theme', localTheme);
+  }, [localTheme]);
 
   // Login form state
   const [email, setEmail] = useState('');
@@ -57,6 +72,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
   const [clients, setClients] = useState<any[]>([]);
   const [loadingClients, setLoadingClients] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
+  const [showBypassCard, setShowBypassCard] = useState(false);
 
   // Client Details licensing forms
   const [licenseTier, setLicenseTier] = useState('growth');
@@ -90,6 +106,15 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
   const [tierFilter, setTierFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [invoiceSearchQuery, setInvoiceSearchQuery] = useState('');
+  const [expandedOrgs, setExpandedOrgs] = useState<Record<string, boolean>>({});
+  const [agentPage, setAgentPage] = useState(1);
+  const [agentSearchQuery, setAgentSearchQuery] = useState('');
+  const [agentRoleFilter, setAgentRoleFilter] = useState('all');
+  const [agentStatusFilter, setAgentStatusFilter] = useState('all');
+
+  useEffect(() => {
+    setAgentPage(1);
+  }, [agentSearchQuery, agentRoleFilter, agentStatusFilter]);
 
   // Support Agents list & edit state
   const [agents, setAgents] = useState<any[]>([]);
@@ -102,6 +127,95 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
   const [editIsDisabled, setEditIsDisabled] = useState(false);
   const [editingMsg, setEditingMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [updatingAgent, setUpdatingAgent] = useState(false);
+
+  // ── CRM Currency & Breakdown Helpers ──────────────────────────────────────────
+  const USD_TO_INR = 83;
+  const renderDualCurrency = (amount: number | string, baseCurrency: string = 'USD') => {
+    const parsed = parseFloat(String(amount)) || 0;
+    let usdVal = 0;
+    let inrVal = 0;
+    if (baseCurrency === 'INR' || String(amount).includes('₹')) {
+      inrVal = parsed;
+      usdVal = parsed / USD_TO_INR;
+    } else {
+      usdVal = parsed;
+      inrVal = parsed * USD_TO_INR;
+    }
+    return (
+      <span style={{ whiteSpace: 'nowrap' }}>
+        <strong>${usdVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+        <span style={{ fontSize: '0.85em', color: 'var(--text-secondary)', marginLeft: '6px' }}>
+          (₹{inrVal.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })})
+        </span>
+      </span>
+    );
+  };
+
+  interface BreakdownLine {
+    label: string;
+    value: string;
+    bold?: boolean;
+    dim?: boolean;
+  }
+
+  const getInvoiceBreakdown = (inv: any, clientTier: string = 'growth'): BreakdownLine[] => {
+    const lines: BreakdownLine[] = [];
+    const amount = parseFloat(inv.amount || '0');
+    const currency = inv.currency || 'USD';
+    const isINR = currency === 'INR';
+    const type = (inv.invoice_type || '').toLowerCase();
+    const tier = (clientTier || 'growth').toLowerCase();
+    
+    const formatValue = (usdVal: number, inrVal: number, suffix = '') => {
+      const usdStr = `$${usdVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${suffix}`;
+      const inrStr = `₹${Math.round(inrVal).toLocaleString()}${suffix}`;
+      return isINR ? `${inrStr} (≈ ${usdStr})` : `${usdStr} (≈ ${inrStr})`;
+    };
+
+    if (type === 'devops_package' || type === 'devops') {
+      lines.push(
+        { label: 'Item Type', value: '🚀 DevOps Sub-Package Fee' },
+        { label: 'Base Subscription Price', value: formatValue(150, 12500, ' / month') },
+        { label: 'Total Billed', value: formatValue(isINR ? amount / 83.3333 : amount, isINR ? amount : amount * 83.3333), bold: true }
+      );
+    } else if (type === 'developer_package' || type === 'developer') {
+      lines.push(
+        { label: 'Item Type', value: '💻 Developer Sub-Package Fee' },
+        { label: 'Base Subscription Price', value: formatValue(99, 8250, ' / month') },
+        { label: 'Total Billed', value: formatValue(isINR ? amount / 83.3333 : amount, isINR ? amount : amount * 83.3333), bold: true }
+      );
+    } else if (type === 'security_package' || type === 'security') {
+      lines.push(
+        { label: 'Item Type', value: '🛡️ Security Sub-Package Fee' },
+        { label: 'Base Subscription Price', value: formatValue(120, 10000, ' / month') },
+        { label: 'Total Billed', value: formatValue(isINR ? amount / 83.3333 : amount, isINR ? amount : amount * 83.3333), bold: true }
+      );
+    } else {
+      const baseRateUSD = tier === 'growth' ? 1000 : tier === 'enterprise' ? 2000 : 4000;
+      const baseRateINR = tier === 'growth' ? 83333 : tier === 'enterprise' ? 166666 : 333333;
+      const baseRate = isINR ? baseRateINR : baseRateUSD;
+
+      const seatPriceUSD = tier === 'growth' ? 40 : tier === 'enterprise' ? 90 : 30;
+      const seatPriceINR = tier === 'growth' ? 3333 : tier === 'enterprise' ? 7500 : 2500;
+      const seatPrice = isINR ? seatPriceINR : seatPriceUSD;
+
+      const billedSeats = Math.max(0, Math.round((amount - baseRate) / seatPrice));
+      const seatTotalUSD = billedSeats * seatPriceUSD;
+      const seatTotalINR = billedSeats * seatPriceINR;
+
+      lines.push(
+        { label: 'Item Type', value: '🏢 Platform Seat & License Fee' },
+        { label: 'Base Platform Rate', value: formatValue(baseRateUSD, baseRateINR, ' / month') },
+        { label: 'Seat Allocation', value: `${billedSeats} active seat${billedSeats !== 1 ? 's' : ''}` },
+        { label: 'Rate Per Seat', value: formatValue(seatPriceUSD, seatPriceINR, ' / seat') },
+        { label: 'Total Seat Surcharge', value: formatValue(seatTotalUSD, seatTotalINR) },
+        { label: 'Total Amount Due', value: formatValue(isINR ? amount / 83.3333 : amount, isINR ? amount : amount * 83.3333), bold: true }
+      );
+    }
+    return lines;
+  };
+
+  const [expandedBreakdown, setExpandedBreakdown] = useState<Record<number, boolean>>({});
 
   // ── CRM Helper request wrapper ────────────────────────────────────────────────
   const crmRequest = async (path: string, options: RequestInit = {}) => {
@@ -244,7 +358,6 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
   const fetchAllInvoices = async () => {
     setLoadingInvoices(true);
     try {
-      // In CRM panel, let's fetch clients list first, then query invoices for each to aggregate them
       const clientList = await crmRequest('/clients');
       const allInvoicesAggregate: any[] = [];
       for (const client of clientList) {
@@ -253,11 +366,11 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
           allInvoicesAggregate.push({
             ...inv,
             clientName: client.name,
-            clientId: client.id
+            clientId: client.id,
+            clientTier: client.license_tier || 'growth'
           });
         });
       }
-      // Sort by issue_date descending
       allInvoicesAggregate.sort((a, b) => new Date(b.issue_date).getTime() - new Date(a.issue_date).getTime());
       setInvoices(allInvoicesAggregate);
     } catch (err) {
@@ -345,18 +458,31 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
       const res = await window.fetch(`${API_BASE}/auth/bypass`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organizationId: selectedClient.id })
+        body: JSON.stringify({
+          organizationId: selectedClient.id,
+          requestedRole: crmUser?.role
+        })
       });
       const data = await res.json();
       if (res.ok && data.token) {
-        localStorage.setItem('devops_token', data.token);
-        localStorage.setItem('devops_user', JSON.stringify(data.user));
-        localStorage.setItem('devops_requires_onboarding', String(data.requiresOnboarding));
-        if (data.organization && data.organization.id) {
-          localStorage.setItem('devops_organization_id', data.organization.id);
-          localStorage.setItem('devops_organization_name', data.organization.name || data.organization.id);
+        let targetHost = window.location.origin;
+        if (targetHost.includes('-crm.esteviatech.com')) {
+          targetHost = targetHost.replace('-crm.esteviatech.com', '.esteviatech.com');
+        } else if (targetHost.includes('crm.esteviatech.com')) {
+          targetHost = targetHost.replace('crm.esteviatech.com', 'evaops.esteviatech.com');
         }
-        window.open(window.location.origin + '/', '_blank');
+
+        const queryParams = new URLSearchParams();
+        queryParams.set('bypassToken', data.token);
+        queryParams.set('bypassUser', JSON.stringify(data.user));
+        queryParams.set('requiresOnboarding', String(data.requiresOnboarding));
+        if (data.organization && data.organization.id) {
+          queryParams.set('orgId', data.organization.id);
+          queryParams.set('orgName', data.organization.name || data.organization.id);
+        }
+
+        const targetUrl = `${targetHost}/?${queryParams.toString()}`;
+        window.open(targetUrl, '_blank');
       } else {
         throw new Error(data.error || 'Failed to authenticate via bypass');
       }
@@ -462,6 +588,18 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
     }
   };
 
+  const handleSyncAzureAD = async () => {
+    setLoadingAgents(true);
+    try {
+      await crmRequest('/users/sync', { method: 'POST' });
+      await fetchAgents();
+    } catch (err: any) {
+      console.error('Failed to sync users with Azure AD:', err);
+    } finally {
+      setLoadingAgents(false);
+    }
+  };
+
   const handleUpdateAgent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingAgent) return;
@@ -516,178 +654,102 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
     }
   };
 
-  // ── RENDER CRM LOGIN SCREEN ──────────────────────────────────────────────────
   if (!crmToken) {
-    const ACCENT = 'var(--accent-purple)';
+    const isDark = theme === 'dark';
+    const leftPanelBg = isDark
+      ? 'linear-gradient(165deg, #020504 0%, #04150d 50%, #020504 100%)'
+      : 'linear-gradient(165deg, #040d0a 0%, #072417 50%, #040d0a 100%)';
+    const rightPanelBg = isDark ? 'rgba(8,12,22,0.6)' : '#ffffff';
+    const textPrimary = isDark ? '#f8fafc' : '#0f172a';
+    const textSecondary = isDark ? '#94a3b8' : '#475569';
+    const textMuted = isDark ? '#64748b' : '#94a3b8';
+    
+    const inputBg = isDark ? 'rgba(255,255,255,0.04)' : '#ffffff';
+    const inputBorder = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.12)';
+    const inputColor = isDark ? '#f8fafc' : '#0f172a';
+    
+    const separatorColor = isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0';
+    
+    const guideBg = isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc';
+    const guideBorder = isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0';
+    
+    const shellBorder = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+    const shellShadow = isDark ? '0 30px 80px rgba(0,0,0,0.5)' : '0 20px 60px rgba(0,0,0,0.06)';
 
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        background: 'var(--bg-primary)',
-        color: 'var(--text-primary)',
-        position: 'relative',
-        overflow: 'hidden'
+      <div className="crm-login-root" style={{
+        display: 'flex', minHeight: '100vh', width: '100%',
+        backgroundImage: `
+          radial-gradient(at 15% 20%, rgba(124, 58, 237, ${isDark ? '0.18' : '0.14'}) 0px, transparent 45%),
+          radial-gradient(at 85% 80%, rgba(124, 58, 237, ${isDark ? '0.10' : '0.08'}) 0px, transparent 45%),
+          radial-gradient(at 50% 50%, rgba(99, 102, 241, 0.06) 0px, transparent 60%)
+        `,
+        alignItems: 'center', justifyContent: 'center', padding: '24px',
+        color: textPrimary, fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
       }}>
-        {/* Navigation Bar */}
-        <nav style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '20px 40px',
-          borderBottom: '1px solid var(--glass-border)',
-          background: 'rgba(2, 6, 23, 0.4)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div className="site-header-logo" style={{ width: '32px', height: '32px', borderRadius: '8px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', padding: '4px', boxShadow: 'none' }}>
-              <img src="/evaops-logo.png" alt="EvaOps Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-            </div>
-            <span style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.02em' }}>EvaOps</span>
-          </div>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            CRM Support Control Plane
-          </span>
-        </nav>
+        <div style={{ display: 'flex', width: '100%', maxWidth: '1180px', minHeight: '680px', borderRadius: '24px', overflow: 'hidden', border: `1px solid ${shellBorder}`, boxShadow: shellShadow, background: rightPanelBg, backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
 
-        {/* Main Body */}
-        <div style={{
-          flex: 1,
-          display: 'flex',
-          maxWidth: '1200px',
-          margin: '0 auto',
-          padding: '60px 40px',
-          gap: '60px',
-          alignItems: 'center',
-          boxSizing: 'border-box',
-          width: '100%'
-        }}>
-          
-          {/* Left Column: Product pitch */}
-          <div style={{ flex: 1.2, textAlign: 'left' }}>
-            <span style={{
-              display: 'inline-block',
-              padding: '6px 12px',
-              borderRadius: '20px',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              backgroundColor: 'rgba(139, 92, 246, 0.15)',
-              border: '1px solid rgba(139, 92, 246, 0.3)',
-              color: 'var(--accent-purple)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: '20px'
-            }}>
-              🛡️ Estevia Operations & Licensing
-            </span>
-            <h1 style={{
-              fontSize: '3.2rem',
-              fontWeight: 800,
-              lineHeight: 1.1,
-              letterSpacing: '-0.03em',
-              marginBottom: '20px',
-              background: 'linear-gradient(135deg, var(--text-primary) 30%, var(--text-secondary) 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }}>
-              EvaOps Support. <br />
-              <span className="glow-purple" style={{ 
-                background: 'linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-blue) 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-              }}>Compliance Desk.</span>
-            </h1>
-            <p style={{
-              fontSize: '1.1rem',
-              color: 'var(--text-secondary)',
-              lineHeight: 1.6,
-              marginBottom: '32px',
-              maxWidth: '520px'
-            }}>
-              This operations terminal enables support agents to override seat allocations, generate custom subscription terms, update active domain bindings, and sync client directories from Active Directory.
-            </p>
+          {/* ── Left Brand Panel ─────────────────────────────────── */}
+          <div style={{ flex: '1.1', background: leftPanelBg, padding: '48px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRight: '1px solid rgba(255,255,255,0.06)', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: '-120px', left: '-120px', width: '340px', height: '340px', borderRadius: '50%', background: 'rgba(124,58,237,0.12)', filter: 'blur(90px)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', bottom: '-80px', right: '-80px', width: '260px', height: '260px', borderRadius: '50%', background: 'rgba(124,58,237,0.08)', filter: 'blur(90px)', pointerEvents: 'none' }} />
 
-            {/* Feature Checkmarks */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-              {[
-                { title: 'Licensing Compliance', desc: 'Seat limit overrides & plan management' },
-                { title: 'DNS Control Plane', desc: 'Multi-domain matching & domain bindings' },
-                { title: 'Directory Syncing', desc: 'Sync users and permissions from Azure AD' },
-                { title: 'Support Directory', desc: 'Agent permission management & logs' }
-              ].map(f => (
-                <div key={f.title} style={{ display: 'flex', gap: '10px' }}>
-                  <div style={{
-                    width: '20px', height: '20px', borderRadius: '50%', 
-                    backgroundColor: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34,197,94,0.3)',
-                    color: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '0.75rem', fontWeight: 700, flexShrink: 0
-                  }}>
-                    ✓
-                  </div>
-                  <div>
-                    <h4 style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{f.title}</h4>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>{f.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Client-Side Access Guide Panel */}
-            <div style={{
-              marginTop: '40px',
-              padding: '24px',
-              borderRadius: '16px',
-              background: 'rgba(99, 102, 241, 0.04)',
-              border: '1px solid rgba(99, 102, 241, 0.15)',
-              textAlign: 'left',
-              boxShadow: 'inset 0 0 20px rgba(99,102,241,0.02)'
-            }}>
-              <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '10px', margin: '0 0 10px 0' }}>
-                <Shield size={16} style={{ color: 'var(--accent-purple)' }} />
-                Client-Side Access Guide
-              </h4>
-              <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: '0 0 12px 0' }}>
-                Instructions for connecting to the main DevOps platform client interface:
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--accent-blue)', fontWeight: 800 }}>01</span>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                    <strong style={{ color: 'var(--text-primary)' }}>Developer Bypass:</strong> Toggle <code style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-primary)' }}>Developer Override</code> on the client login portal, input organization ID <code style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-primary)' }}>estevia</code>, and sign in.
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--accent-purple)', fontWeight: 800 }}>02</span>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                    <strong style={{ color: 'var(--text-primary)' }}>Admin SSO Login:</strong> Authenticate via Microsoft 365 on the client interface. The system maps organizational records and grants administrative write control options automatically.
-                  </div>
-                </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative', zIndex: 2 }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: '#0c0c1e', border: '1.5px solid rgba(124,58,237,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 16px rgba(124,58,237,0.35)' }}>
+                <Shield size={22} color="#7c3aed" />
+              </div>
+              <div>
+                <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.45rem', fontWeight: 800, letterSpacing: '-0.02em', background: 'linear-gradient(135deg, #ffffff 30%, #7c3aed 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: 0 }}>EvaOps CRM</h2>
+                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Operations Control Plane</span>
               </div>
             </div>
+
+            <div style={{ position: 'relative', zIndex: 2, margin: '40px 0' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '16px' }}>Platform Capabilities</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {[
+                  { title: 'Licensing Compliance', desc: 'Seat limit overrides, subscription pricing plans and validation', icon: CheckCircle },
+                  { title: 'DNS Control Plane', desc: 'CNAME endpoint checks, GoDaddy records and multi-domain routing', icon: Globe },
+                  { title: 'Directory Syncing', desc: 'Fetch and synchronize users, roles and policies from active AD', icon: Users },
+                  { title: 'Support Ticket Desk', desc: 'Triages support requests, tickets, SLAs and logs dynamically', icon: Inbox },
+                  { title: 'Sandbox Provisioning', desc: 'Deploys test environments and isolates tenant config templates', icon: Layers }
+                ].map((f, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed', flexShrink: 0 }}>
+                      <f.icon size={16} />
+                    </div>
+                    <div>
+                      <h4 style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f1f5f9', margin: 0 }}>{f.title}</h4>
+                      <p style={{ fontSize: '0.74rem', color: '#94a3b8', margin: 0 }}>{f.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ position: 'relative', zIndex: 2 }}>
+              <p style={{ fontSize: '0.74rem', color: '#64748b', margin: '0 0 16px 0' }}>Secured by OAuth2 federation and zero-trust credentials.</p>
+              <EsteviaLoginBadge appName="CRM Portal" category="Operations Desk" accentColor="#7c3aed" isInnovationCenter={true} />
+            </div>
           </div>
 
-          {/* Right Column: Auth Portal */}
-          <div style={{ flex: 0.8, display: 'flex', justifyContent: 'center' }}>
-            <div className="glass-panel" style={{
-              width: '100%',
-              maxWidth: '420px',
-              padding: '40px',
-              borderRadius: '16px',
-              background: 'var(--bg-card)',
-              textAlign: 'center'
-            }}>
-              <div style={{ marginBottom: '30px' }}>
-                <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '8px' }}>CRM Sign In</h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                  Access is restricted to authorized Estevia support personnel.
-                </p>
+          {/* ── Right Credential Panel ────────────────────────────── */}
+          <div style={{ flex: '1.2', padding: '48px', display: 'flex', alignItems: 'center', background: rightPanelBg }}>
+            <div style={{ maxWidth: '400px', width: '100%', margin: '0 auto' }}>
+              <div style={{ marginBottom: '28px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
+                <div>
+                  <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.75rem', fontWeight: 700, color: textPrimary, marginBottom: '6px' }}>CRM Sign In</h3>
+                  <p style={{ fontSize: '0.88rem', color: textSecondary, margin: 0 }}>Access is restricted to authorized Estevia support personnel.</p>
+                </div>
               </div>
 
               {loginError && (
-                <div className="glass-panel" style={{ 
+                <div style={{ 
                   padding: '12px 14px', 
-                  borderColor: 'var(--error)', 
-                  backgroundColor: 'rgba(239, 68, 68, 0.1)', 
+                  borderColor: isDark ? 'rgba(239, 68, 68, 0.3)' : '#fca5a5', 
+                  backgroundColor: isDark ? 'rgba(239, 68, 68, 0.08)' : '#fef2f2', 
+                  border: '1px solid',
+                  borderRadius: '8px',
                   display: 'flex', 
                   alignItems: 'center', 
                   gap: '8px', 
@@ -695,8 +757,8 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   fontSize: '0.82rem',
                   textAlign: 'left'
                 }}>
-                  <AlertCircle size={16} style={{ color: 'var(--error)', flexShrink: 0 }} />
-                  <span style={{ color: '#fca5a5' }}>{loginError}</span>
+                  <AlertCircle size={16} style={{ color: '#ef4444', flexShrink: 0 }} />
+                  <span style={{ color: isDark ? '#f87171' : '#991b1b', fontWeight: 500 }}>{loginError}</span>
                 </div>
               )}
 
@@ -707,17 +769,18 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
                   width: '100%', padding: '13px 10px', borderRadius: '12px',
-                  background: 'var(--bg-slate)', border: '1px solid var(--glass-border)',
-                  color: 'var(--text-primary)', fontSize: '0.84rem', fontWeight: 700,
+                  background: isDark ? 'rgba(255,255,255,0.03)' : '#f1f5f9',
+                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.12)'}`,
+                  color: isDark ? '#f1f5f9' : '#0f172a', fontSize: '0.84rem', fontWeight: 700,
                   cursor: (loginLoading || ssoLoading) ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s', opacity: (loginLoading || ssoLoading) ? 0.7 : 1,
                   whiteSpace: 'nowrap',
                 }}
-                onMouseEnter={(e) => { if (!loginLoading && !ssoLoading) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderColor = 'rgba(0,114,240,0.5)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,114,240,0.18)'; e.currentTarget.style.background = 'rgba(0,114,240,0.06)'; } }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.background = 'var(--bg-slate)'; }}
+                onMouseEnter={(e) => { if (!loginLoading && !ssoLoading) { e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.06)' : '#e2e8f0'; e.currentTarget.style.borderColor = isDark ? 'rgba(255,255,255,0.15)' : '#94a3b8'; } }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.03)' : '#f1f5f9'; e.currentTarget.style.borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.12)'; }}
               >
                 {ssoLoading ? (
-                  <RefreshCw size={18} className="spin-anim" />
+                  <RefreshCw size={18} className="spin-anim" style={{ color: isDark ? '#f1f5f9' : '#0f172a' }} />
                 ) : (
                   <svg width="20" height="20" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M0 0H11V11H0V0Z" fill="#F25022"/>
@@ -734,48 +797,78 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                 alignItems: 'center', 
                 justifyContent: 'center', 
                 margin: '18px 0', 
-                color: 'var(--text-secondary)',
+                color: isDark ? '#475569' : '#64748b',
                 fontSize: '0.78rem' 
               }}>
-                <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }}></div>
-                <span style={{ padding: '0 8px' }}>OR</span>
-                <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }}></div>
+                <div style={{ flex: 1, height: '1px', background: separatorColor }}></div>
+                <span style={{ padding: '0 8px', fontWeight: 500 }}>OR</span>
+                <div style={{ flex: 1, height: '1px', background: separatorColor }}></div>
               </div>
 
               <form onSubmit={handleCrmLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ textAlign: 'left' }}>
-                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Support Email</label>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: isDark ? '#94a3b8' : '#475569', marginBottom: '6px' }}>Support Email</label>
                   <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="agent@evaops.crm"
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', fontSize: '0.86rem', outline: 'none', boxSizing: 'border-box' }} />
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', background: inputBg, border: `1px solid ${inputBorder}`, color: inputColor, fontSize: '0.86rem', outline: 'none', boxSizing: 'border-box' }} />
                 </div>
                 <div style={{ textAlign: 'left' }}>
-                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Password</label>
+                  <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: isDark ? '#94a3b8' : '#475569', marginBottom: '6px' }}>Password</label>
                   <div style={{ position: 'relative' }}>
                     <input type={showPassword ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••"
-                      style={{ width: '100%', padding: '10px 42px 10px 14px', borderRadius: '8px', background: 'var(--input-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', fontSize: '0.86rem', outline: 'none', boxSizing: 'border-box' }} />
-                    <button type="button" onClick={() => setShowPassword(p => !p)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: 0 }}>
+                      style={{ width: '100%', padding: '10px 42px 10px 14px', borderRadius: '8px', background: inputBg, border: `1px solid ${inputBorder}`, color: inputColor, fontSize: '0.86rem', outline: 'none', boxSizing: 'border-box' }} />
+                    <button type="button" onClick={() => setShowPassword(p => !p)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0 }}>
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
                 </div>
                 <button type="submit" disabled={loginLoading || ssoLoading}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', padding: '11px', borderRadius: '8px', background: 'linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-blue) 100%)', color: '#ffffff', border: 'none', fontSize: '0.88rem', fontWeight: 700, cursor: (loginLoading || ssoLoading) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: (loginLoading || ssoLoading) ? 0.7 : 1 }}>
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', padding: '11px', borderRadius: '8px', background: 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)', color: '#ffffff', border: 'none', fontSize: '0.88rem', fontWeight: 700, cursor: (loginLoading || ssoLoading) ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: (loginLoading || ssoLoading) ? 0.7 : 1 }}>
                   {loginLoading ? <RefreshCw size={16} className="spin-anim" /> : <><span>Sign In</span><ArrowRight size={16} /></>}
                 </button>
               </form>
 
+              {/* Client Guide inside right panel */}
+              <div style={{
+                marginTop: '24px',
+                padding: '16px',
+                borderRadius: '12px',
+                background: guideBg,
+                border: `1px solid ${guideBorder}`,
+                textAlign: 'left'
+              }}>
+                <h4 style={{ fontSize: '0.82rem', fontWeight: 700, color: textPrimary, display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px 0' }}>
+                  <Shield size={13} style={{ color: '#7c3aed' }} />
+                  Client-Side Access Guide
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 800 }}>01</span>
+                    <div style={{ fontSize: '0.72rem', color: textSecondary, lineHeight: 1.4 }}>
+                      <strong style={{ color: textPrimary }}>Developer Bypass:</strong> Toggle <code style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', border: `1px solid ${guideBorder}`, padding: '1px 4px', borderRadius: '4px', color: textPrimary }}>Developer Override</code> on the client login portal, input organization ID <code style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#ffffff', border: `1px solid ${guideBorder}`, padding: '1px 4px', borderRadius: '4px', color: textPrimary }}>estevia</code>, and sign in.
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#7c3aed', fontWeight: 800 }}>02</span>
+                    <div style={{ fontSize: '0.72rem', color: textSecondary, lineHeight: 1.4 }}>
+                      <strong style={{ color: textPrimary }}>Admin SSO Login:</strong> Authenticate via Microsoft 365 on the client interface. The system maps organizational records and grants administrative write control options automatically.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Return to App link */}
               {window.location.hostname !== 'evaops-crm.esteviatech.com' && (
-                <div style={{ textAlign: 'center', marginTop: '24px' }}>
+                <div style={{ textAlign: 'center', marginTop: '20px' }}>
                   <button
                     onClick={onBackToApp}
                     style={{
                       background: 'none',
                       border: 'none',
-                      color: 'var(--text-secondary)',
+                      color: textMuted,
                       fontSize: '0.82rem',
                       cursor: 'pointer',
-                      textDecoration: 'underline'
+                      textDecoration: 'underline',
+                      fontWeight: 500
                     }}
                   >
                     Return to Client Access Portal
@@ -784,7 +877,6 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
               )}
             </div>
           </div>
-
         </div>
       </div>
     );
@@ -794,178 +886,261 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'var(--bg-primary)',
+      background: 'var(--body-bg)',
+      backgroundAttachment: 'fixed',
       color: 'var(--text-primary)',
       display: 'flex',
       flexDirection: 'column'
     }}>
-      {/* Top Navbar */}
-      <nav style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '14px 28px',
-        borderBottom: '1px solid var(--divider)',
-        background: 'var(--bg-header)',
-        backdropFilter: 'blur(10px)',
-        boxShadow: 'var(--header-shadow)'
+      {/* Global CRM animations */}
+      <style>{`
+        @keyframes crm-fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .crm-tab-panel { animation: crm-fade-in 0.25s ease-out; }
+        @keyframes crm-pulse-dot { 0%,100% { opacity:1; box-shadow:0 0 6px currentColor; } 50% { opacity:0.6; box-shadow:0 0 12px currentColor; } }
+        .crm-pulse { animation: crm-pulse-dot 2.5s infinite; }
+        .crm-sidebar-btn { display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;border-radius:10px;border:1px solid transparent;font-size:0.86rem;font-weight:600;cursor:pointer;text-align:left;transition:all 0.22s cubic-bezier(0.4,0,0.2,1);background:transparent;position:relative; }
+        .crm-sidebar-btn:hover { background:rgba(255,255,255,0.04); border-color:var(--glass-border); }
+        .crm-sidebar-btn.active-clients { background:rgba(139,92,246,0.12); border-color:rgba(139,92,246,0.3); color:#a78bfa; box-shadow:0 2px 12px rgba(139,92,246,0.15); }
+        .crm-sidebar-btn.active-invoices { background:rgba(20,184,166,0.1); border-color:rgba(20,184,166,0.3); color:#2dd4bf; box-shadow:0 2px 12px rgba(20,184,166,0.12); }
+        .crm-sidebar-btn.active-agents { background:rgba(245,158,11,0.1); border-color:rgba(245,158,11,0.3); color:#fbbf24; box-shadow:0 2px 12px rgba(245,158,11,0.12); }
+        .crm-sidebar-btn .crm-tooltip { visibility:hidden;opacity:0;position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%);min-width:200px;max-width:240px;background:linear-gradient(135deg,rgba(15,23,42,0.97) 0%,rgba(30,10,60,0.96) 100%);border:1px solid rgba(139,92,246,0.35);border-radius:12px;padding:12px 14px;box-shadow:0 8px 32px rgba(0,0,0,0.5),0 0 20px rgba(139,92,246,0.15);transition:opacity 0.22s,visibility 0.22s,transform 0.22s;z-index:9999;pointer-events:none; }
+        .crm-sidebar-btn:hover .crm-tooltip { visibility:visible;opacity:1; }
+        .crm-tooltip-title { font-size:0.78rem;font-weight:700;color:#a78bfa;margin-bottom:4px;display:flex;align-items:center;gap:6px; }
+        .crm-tooltip-desc { font-size:0.73rem;color:rgba(148,163,184,0.9);line-height:1.4;font-weight:400; }
+        .crm-section-label { font-size:0.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;padding:0 14px;margin-bottom:4px;margin-top:8px; }
+        .crm-overdue-row td:first-child { border-left:3px solid #ef4444; }
+        .crm-near-due-row td:first-child { border-left:3px solid #f59e0b; }
+
+        /* Downward Menu Hover Tooltip Cards */
+        .crm-menu-hover-card {
+          position: absolute;
+          top: calc(100% + 10px);
+          bottom: auto;
+          left: 50%;
+          transform: translateX(-50%) translateY(-6px);
+          min-width: 200px;
+          max-width: 240px;
+          background: linear-gradient(135deg, rgba(15, 23, 42, 0.97) 0%, rgba(30, 10, 60, 0.96) 100%);
+          border: 1px solid rgba(139, 92, 246, 0.35);
+          border-radius: 12px;
+          padding: 12px 14px;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(139, 92, 246, 0.15);
+          opacity: 0;
+          visibility: hidden;
+          pointer-events: none;
+          transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s;
+          z-index: 9999;
+          text-align: left;
+          white-space: normal;
+        }
+        [data-theme="light"] .crm-menu-hover-card {
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(237, 233, 254, 0.97) 100%);
+          border: 1px solid rgba(139, 92, 246, 0.25);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 0 20px rgba(139, 92, 246, 0.08);
+        }
+        .crm-menu-hover-card::after {
+          content: '';
+          position: absolute;
+          top: -5px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 10px;
+          height: 10px;
+          background: inherit;
+          border-left: 1px solid rgba(139, 92, 246, 0.35);
+          border-top: 1px solid rgba(139, 92, 246, 0.35);
+          clip-path: polygon(0 0, 100% 0, 0 100%);
+          transform: translateX(-50%) rotate(45deg);
+        }
+        [data-theme="light"] .crm-menu-hover-card::after {
+          border-left: 1px solid rgba(139, 92, 246, 0.25);
+          border-top: 1px solid rgba(139, 92, 246, 0.25);
+        }
+        .crm-menu-hover-card-left {
+          left: 0;
+          transform: translateX(0) translateY(-6px);
+        }
+        .crm-menu-hover-card-left::after {
+          left: 20px;
+          transform: translateX(0) rotate(45deg);
+        }
+        .crm-menu-hover-card-right {
+          left: auto;
+          right: 0;
+          transform: translateX(0) translateY(-6px);
+        }
+        .crm-menu-hover-card-right::after {
+          left: auto;
+          right: 20px;
+          transform: translateX(0) rotate(45deg);
+        }
+        .premium-tab-btn:hover .crm-menu-hover-card {
+          opacity: 1;
+          visibility: visible;
+          transform: translateX(-50%) translateY(0);
+        }
+        .premium-tab-btn:hover .crm-menu-hover-card-left {
+          transform: translateX(0) translateY(0);
+        }
+        .premium-tab-btn:hover .crm-menu-hover-card-right {
+          transform: translateX(0) translateY(0);
+        }
+      `}</style>
+
+      {/* ── Premium Site Header ── */}
+      <header className="site-header" style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        background: localTheme === 'light' ? 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 55%, #ede9fe 100%)' : 'linear-gradient(135deg, #0f172a 0%, #020617 55%, #1a0533 100%)',
+        backdropFilter: 'blur(20px)',
+        borderBottom: localTheme === 'light' ? '1px solid rgba(139,92,246,0.15)' : '1px solid rgba(139,92,246,0.25)',
+        boxShadow: localTheme === 'light' ? '0 1px 16px rgba(0,0,0,0.07), 0 0 30px rgba(139,92,246,0.05)' : '0 1px 24px rgba(0,0,0,0.4), 0 0 50px rgba(139,92,246,0.08)',
+        transition: 'background 0.3s ease, box-shadow 0.3s ease'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '6px',
-            background: 'linear-gradient(135deg, #a78bfa, #3b82f6)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Building2 size={15} style={{ color: '#ffffff' }} />
-          </div>
-          <span style={{ fontSize: '1.1rem', fontWeight: 800, letterSpacing: '-0.02em' }}>EvaOps CRM Portal</span>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              backgroundColor: 'var(--success)'
-            }}></div>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-              {crmUser.name} <span style={{ textTransform: 'uppercase', fontSize: '0.7rem', opacity: 0.6 }}>({crmUser.role})</span>
-            </span>
+        <div style={{ maxWidth: '100%', padding: '0 28px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+          {/* Brand */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', padding: '4px', boxShadow: '0 0 16px rgba(139,92,246,0.35)', flexShrink: 0 }}>
+              <img src="/evaops-logo.png" alt="EvaOps" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            </div>
+            <div>
+              <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>EvaOps</div>
+              <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1 }}>CRM Control Plane</div>
+            </div>
+            <div style={{ width: '1px', height: '32px', background: localTheme === 'light' ? '#cbd5e1' : 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
+            {/* CRM Badge */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 12px', borderRadius: '8px', background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)', flexShrink: 0 }}>
+              <div className="crm-pulse" style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'var(--success)', color: 'var(--success)', flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Operations</div>
+                <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)' }}>CRM Admin Portal</div>
+              </div>
+            </div>
           </div>
 
-          <div style={{ width: '1px', height: '16px', background: 'var(--divider)' }}></div>
-
-          <button
-            onClick={handleCrmLogout}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--error)',
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontWeight: 500
-            }}
-          >
-            <LogOut size={13} />
-            Logout
-          </button>
-        </div>
-      </nav>
-
-      {/* Main Workspace Layout */}
-      <div style={{ display: 'flex', flex: 1 }}>
-        {/* Sidebar Tabs Navigation */}
-        <div style={{
-          width: '240px',
-          borderRight: '1px solid var(--divider)',
-          background: 'var(--bg-secondary)',
-          padding: '24px 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px',
-          flexShrink: 0
-        }}>
-          <button
-            onClick={() => { setActiveTab('clients'); setSelectedClient(null); }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              width: '100%',
-              padding: '10px 14px',
-              borderRadius: '8px',
-              border: 'none',
-              fontSize: '0.86rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              textAlign: 'left',
-              background: activeTab === 'clients' ? 'var(--badge-bg)' : 'transparent',
-              color: activeTab === 'clients' ? 'var(--accent-purple)' : 'var(--text-secondary)',
-              transition: 'all 0.2s'
-            }}
-          >
-            <Building2 size={16} />
-            Client Organizations
-          </button>
-
-          <button
-            onClick={() => { setActiveTab('invoices'); setSelectedClient(null); }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              width: '100%',
-              padding: '10px 14px',
-              borderRadius: '8px',
-              border: 'none',
-              fontSize: '0.86rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              textAlign: 'left',
-              background: activeTab === 'invoices' ? 'var(--badge-bg)' : 'transparent',
-              color: activeTab === 'invoices' ? 'var(--accent-purple)' : 'var(--text-secondary)',
-              transition: 'all 0.2s'
-            }}
-          >
-            <FileText size={16} />
-            Billing Invoices
-          </button>
-
-          {crmUser.role === 'admin' && (
+          {/* Right: User Chip + Logout */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
             <button
-              onClick={() => { setActiveTab('agents'); setSelectedClient(null); }}
+              onClick={() => setLocalTheme(t => t === 'dark' ? 'light' : 'dark')}
               style={{
+                background: localTheme === 'light' ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.06)',
+                border: '1px solid var(--glass-border)',
+                color: 'var(--text-primary)',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                border: 'none',
-                fontSize: '0.86rem',
-                fontWeight: 600,
+                justifyContent: 'center',
                 cursor: 'pointer',
-                textAlign: 'left',
-                background: activeTab === 'agents' ? 'var(--badge-bg)' : 'transparent',
-                color: activeTab === 'agents' ? 'var(--accent-purple)' : 'var(--text-secondary)',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                outline: 'none'
               }}
+              title={`Switch to ${localTheme === 'dark' ? 'light' : 'dark'} mode`}
             >
-              <UserPlus size={16} />
-              Support Agents
+              {localTheme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
             </button>
-          )}
 
-          <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid var(--divider)' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '4px 4px 4px 12px',
+              borderRadius: '40px',
+              background: localTheme === 'light' ? '#f1f5f9' : 'rgba(30,41,59,0.6)',
+              border: localTheme === 'light' ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.08)'
+            }}>
+              <div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{crmUser.name}</div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'capitalize' }}>{crmUser.role}</div>
+              </div>
+              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: crmUser.role === 'admin' ? 'linear-gradient(135deg,#8b5cf6,#6366f1)' : 'linear-gradient(135deg,#3b82f6,#0ea5e9)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                {crmUser.name?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+            </div>
             <button
               onClick={onBackToApp}
               style={{
+                background: 'rgba(139,92,246,0.08)',
+                border: '1px solid rgba(139,92,246,0.25)',
+                color: 'var(--accent-purple)',
+                fontSize: '0.78rem',
+                cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                color: 'var(--text-secondary)',
-                fontSize: '0.78rem',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                textDecoration: 'underline'
+                gap: '6px',
+                fontWeight: 600,
+                padding: '6px 12px',
+                borderRadius: '8px',
+                transition: 'all 0.2s',
+                marginLeft: '6px'
               }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.15)'; e.currentTarget.style.borderColor = 'rgba(139,92,246,0.4)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.08)'; e.currentTarget.style.borderColor = 'rgba(139,92,246,0.25)'; }}
             >
-              Back to Client Portal
+              <ArrowRight size={13} style={{ transform: 'rotate(180deg)' }} />
+              Back to Portal
+            </button>
+            <button
+              onClick={handleCrmLogout}
+              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, padding: '6px 12px', borderRadius: '8px', transition: 'all 0.2s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.2)'; }}
+            >
+              <LogOut size={13} />
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Workspace Layout */}
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, padding: '36px', boxSizing: 'border-box' }}>
+        
+        {/* Horizontal Navigation Menu System */}
+        <div style={{ marginBottom: '28px', flexShrink: 0 }}>
+          <div className="premium-tabs-grid" style={{ display: 'flex', gap: '10px', width: 'fit-content' }}>
+            <button
+              className={`premium-tab-btn ${activeTab === 'clients' ? 'active' : ''}`}
+              onClick={() => { setActiveTab('clients'); setSelectedClient(null); }}
+            >
+              <Building2 size={16} />
+              <span>Client Organizations</span>
+              <div className="crm-menu-hover-card crm-menu-hover-card-left">
+                <div className="menu-hover-card-title"><Building2 size={11} /> Client Directory</div>
+                <div className="menu-hover-card-desc">Browse all registered client orgs, manage licensing tiers, seat allocations, and account suspension.</div>
+              </div>
+            </button>
+
+            <button
+              className={`premium-tab-btn ${activeTab === 'invoices' ? 'active' : ''}`}
+              onClick={() => { setActiveTab('invoices'); setSelectedClient(null); }}
+            >
+              <FileText size={16} />
+              <span>Billing Invoices</span>
+              <div className="crm-menu-hover-card">
+                <div className="menu-hover-card-title" style={{ color: '#2dd4bf' }}><FileText size={11} /> Billing Invoices</div>
+                <div className="menu-hover-card-desc">Track all platform invoices, mark payments, view outstanding balances and billing collections.</div>
+              </div>
+            </button>
+
+            <button
+              className={`premium-tab-btn ${activeTab === 'agents' ? 'active' : ''}`}
+              onClick={() => { setActiveTab('agents'); setSelectedClient(null); }}
+            >
+              <UserPlus size={16} />
+              <span>Support Agents</span>
+              <div className="crm-menu-hover-card crm-menu-hover-card-right">
+                <div className="menu-hover-card-title" style={{ color: '#fbbf24' }}><UserPlus size={11} /> Support Staff</div>
+                <div className="menu-hover-card-desc">Create and manage CRM agent accounts. Assign admin or support roles and toggle account access.</div>
+              </div>
             </button>
           </div>
         </div>
 
-        {/* Content Panel */}
-        <div style={{ flex: 1, padding: '36px', overflowY: 'auto' }}>
+        {/* ── Content Panel ── */}
+        <div style={{ flex: 1, overflowY: 'auto', background: 'transparent' }}>
           {/* TAB 1: CLIENTS LIST */}
           {activeTab === 'clients' && !selectedClient && (() => {
             const totalCustomers = clients.length;
@@ -988,11 +1163,14 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
             });
 
             return (
-              <div>
+              <div className="crm-tab-panel">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                   <div>
-                    <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>Client Directory</h3>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: '4px 0 0 0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                      <h3 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, var(--text-primary) 40%, var(--accent-purple) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Client Directory</h3>
+                      <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: 700, background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)', color: '#a78bfa' }}>{clients.length} orgs</span>
+                    </div>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: 0 }}>
                       Monitor licensing tiers, resource seat allocations, active operations, and suspension locks.
                     </p>
                   </div>
@@ -1021,25 +1199,60 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
                 {/* Metrics Cards */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '28px' }}>
-                  <div className="glass-panel" style={{ padding: '20px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)' }}>
-                    <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Total Customers</div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '6px' }}>{totalCustomers} Orgs</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>Registered Client Accounts</div>
+                  {/* Total Customers */}
+                  <div className="glass-panel" style={{ padding: '20px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '16px', transition: 'transform 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                    <div style={{ background: 'rgba(139,92,246,0.1)', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Building2 size={24} style={{ color: 'var(--accent-purple)' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Total Customers</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px' }}>{totalCustomers} Orgs</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>Registered Client Accounts</div>
+                    </div>
                   </div>
-                  <div className="glass-panel" style={{ padding: '20px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)' }}>
-                    <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Seat Allocations</div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#a78bfa', marginTop: '6px' }}>{totalActiveSeats} / {totalSeatLimit}</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>Used operator seats vs limit</div>
+
+                  {/* Seat Allocations */}
+                  <div className="glass-panel" style={{ padding: '20px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '16px', transition: 'transform 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                    <div style={{ background: 'rgba(59,130,246,0.1)', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Users size={24} style={{ color: 'var(--accent-blue)' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Seat Allocations</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#a78bfa', marginTop: '4px' }}>{totalActiveSeats} / {totalSeatLimit}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>Used operator seats vs limit</div>
+                    </div>
                   </div>
-                  <div className="glass-panel" style={{ padding: '20px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)' }}>
-                    <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Unpaid Invoices</div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f59e0b', marginTop: '6px' }}>{pendingInvoices} Pending</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>Awaiting support clearance</div>
+
+                  {/* Unpaid Invoices */}
+                  <div className="glass-panel" style={{ padding: '20px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '16px', transition: 'transform 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                    <div style={{ background: 'rgba(245,158,11,0.1)', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <FileText size={24} style={{ color: '#f59e0b' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Unpaid Invoices</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f59e0b', marginTop: '4px' }}>{pendingInvoices} Pending</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>Awaiting support clearance</div>
+                    </div>
                   </div>
-                  <div className="glass-panel" style={{ padding: '20px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)' }}>
-                    <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>MRR Projection</div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#2dd4bf', marginTop: '6px' }}>${revenueProjection.toLocaleString()}</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>Est. monthly recurring revenue</div>
+
+                  {/* MRR Projection */}
+                  <div className="glass-panel" style={{ padding: '20px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '16px', transition: 'transform 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                    <div style={{ background: 'rgba(20,184,166,0.1)', padding: '12px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <DollarSign size={24} style={{ color: '#2dd4bf' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>MRR Projection</div>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#2dd4bf', marginTop: '4px' }}>${revenueProjection.toLocaleString()}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>Est. monthly recurring revenue</div>
+                    </div>
                   </div>
                 </div>
 
@@ -1141,8 +1354,14 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       <tbody>
                         {filteredClients.length === 0 ? (
                           <tr>
-                            <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                              No organizations match the current filter criteria.
+                            <td colSpan={7}>
+                              <div style={{ padding: '48px', textAlign: 'center' }}>
+                                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto' }}>
+                                  <Building2 size={22} style={{ color: 'var(--accent-purple)' }} />
+                                </div>
+                                <div style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>No organizations found</div>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>No organizations match the current filter criteria.</div>
+                              </div>
                             </td>
                           </tr>
                         ) : (
@@ -1153,8 +1372,10 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                               style={{
                                 borderBottom: '1px solid var(--divider)',
                                 cursor: 'pointer',
-                                transition: 'background 0.15s'
+                                transition: 'all 0.15s'
                               }}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.05)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                             >
                               <td style={{ padding: '16px 20px', fontWeight: 700, color: 'var(--text-primary)' }}>{client.id}</td>
                               <td style={{ padding: '16px 20px' }}>{client.name}</td>
@@ -1185,13 +1406,15 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                                   fontWeight: 700,
                                   background: client.is_disabled ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.12)',
                                   border: client.is_disabled ? '1px solid rgba(239,68,68,0.25)' : '1px solid rgba(34,197,94,0.25)',
-                                  color: client.is_disabled ? '#ef4444' : '#22c55e'
+                                  color: client.is_disabled ? '#ef4444' : '#22c55e',
+                                  boxShadow: client.is_disabled ? '0 0 8px rgba(239,68,68,0.15)' : '0 0 8px rgba(34,197,94,0.15)'
                                 }}>
-                                  <span style={{
+                                  <span className="crm-pulse" style={{
                                     width: '6px',
                                     height: '6px',
                                     borderRadius: '50%',
-                                    backgroundColor: client.is_disabled ? '#ef4444' : '#22c55e'
+                                    backgroundColor: client.is_disabled ? '#ef4444' : '#22c55e',
+                                    color: client.is_disabled ? '#ef4444' : '#22c55e'
                                   }}></span>
                                   {client.is_disabled ? 'Suspended' : 'Active'}
                                 </span>
@@ -1214,8 +1437,8 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                                   <span style={{ color: 'var(--text-muted)' }}>None</span>
                                 )}
                               </td>
-                              <td style={{ padding: '16px 20px', color: '#a78bfa', fontWeight: 700 }}>
-                                Manage ↗
+                              <td style={{ padding: '16px 20px' }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#a78bfa', fontWeight: 700, fontSize: '0.82rem', padding: '5px 10px', borderRadius: '6px', background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)', transition: 'all 0.2s' }}>Manage ↗</span>
                               </td>
                             </tr>
                           ))
@@ -1230,7 +1453,14 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
           {/* TAB 1 DETAIL PANEL: MANAGE SPECIFIC CLIENT */}
           {activeTab === 'clients' && selectedClient && (
-            <div>
+            <div className="crm-tab-panel">
+              {/* Breadcrumb */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '16px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                <button onClick={() => setSelectedClient(null)} style={{ background: 'none', border: 'none', color: 'var(--accent-purple)', fontSize: '0.78rem', cursor: 'pointer', fontWeight: 600, padding: 0 }}>Client Directory</button>
+                <span>/</span>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{selectedClient.name}</span>
+              </div>
+
               <button
                 onClick={() => setSelectedClient(null)}
                 style={{
@@ -1256,11 +1486,61 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px', marginBottom: '24px' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0 }}>
+                  <h3 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, var(--text-primary) 20%, var(--accent-purple) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                     {selectedClient.name}
                   </h3>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                    Org Key: <code style={{ color: 'var(--text-primary)', background: 'var(--input-bg)', padding: '2px 5px', borderRadius: '4px', border: '1px solid var(--glass-border)' }}>{selectedClient.id}</code> | Admin Contact: {selectedClient.admin_email || 'N/A'}
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                    Org Key: <code style={{ color: 'var(--text-primary)', background: 'var(--input-bg)', padding: '2px 5px', borderRadius: '4px', border: '1px solid var(--glass-border)' }}>{selectedClient.id}</code>
+                    
+                    <span 
+                      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', marginLeft: '6px', marginRight: '6px', verticalAlign: 'middle' }}
+                      onMouseEnter={() => setShowBypassCard(true)}
+                      onMouseLeave={() => setShowBypassCard(false)}
+                    >
+                      <Info size={14} style={{ color: 'var(--accent-purple)', cursor: 'help' }} />
+                      {showBypassCard && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '22px',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          width: '320px',
+                          backgroundColor: 'var(--bg-secondary)',
+                          border: '1px solid var(--glass-border)',
+                          borderRadius: '8px',
+                          padding: '14px',
+                          boxShadow: '0 12px 30px rgba(0,0,0,0.6)',
+                          zIndex: 100,
+                          textAlign: 'left',
+                          color: 'var(--text-primary)',
+                          backdropFilter: 'blur(8px)'
+                        }}>
+                          <h4 style={{ margin: '0 0 8px 0', fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Lock size={12} style={{ color: 'var(--accent-purple)' }} />
+                            Bypass Credentials Guide
+                          </h4>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                            <div>
+                              <strong style={{ color: 'var(--text-primary)' }}>Developer Bypass:</strong>
+                              <div style={{ marginTop: '2px' }}>
+                                Toggle <code style={{ color: 'var(--text-primary)', background: 'rgba(255,255,255,0.06)', padding: '1px 4px', borderRadius: '3px' }}>Developer Override</code> on login. Use organization ID <code style={{ color: 'var(--text-primary)', background: 'rgba(255,255,255,0.06)', padding: '1px 4px', borderRadius: '3px' }}>{selectedClient.id}</code>.
+                              </div>
+                            </div>
+                            <div style={{ borderTop: '1px solid var(--divider)', paddingTop: '8px' }}>
+                              <strong style={{ color: 'var(--text-primary)' }}>Admin Bypass:</strong>
+                              <div style={{ marginTop: '2px' }}>
+                                Toggle <code style={{ color: 'var(--text-primary)', background: 'rgba(255,255,255,0.06)', padding: '1px 4px', borderRadius: '3px' }}>Admin Override</code> on login. Use Org ID <code style={{ color: 'var(--text-primary)', background: 'rgba(255,255,255,0.06)', padding: '1px 4px', borderRadius: '3px' }}>{selectedClient.id}</code>.
+                              </div>
+                              <div style={{ marginTop: '6px', fontWeight: 600, color: 'var(--accent-teal)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                Password: <code style={{ background: 'var(--input-bg)', padding: '1px 5px', borderRadius: '3px', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}>{selectedClient.id.replace(/[^a-z0-9]/gi, '').substring(0, 4).toUpperCase()}2026CbEt06</code>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </span>
+                    
+                    <span>| Admin Contact: {selectedClient.admin_email || 'N/A'}</span>
                   </span>
                 </div>
 
@@ -1285,7 +1565,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                     onMouseLeave={e => e.currentTarget.style.background = 'var(--glass-bg)'}
                   >
                     <Globe size={14} style={{ color: 'var(--accent-purple)' }} />
-                    Launch Client DevOps Portal
+                    Launch Client DevOps Portal {crmUser?.role === 'admin' ? '(as Admin)' : '(as Viewer)'}
                   </button>
 
                   <button
@@ -1403,9 +1683,9 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       {/* Tier Cards */}
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
                         {[
-                          { id: 'growth', name: 'Growth Plan', price: '$1,000', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.25)', glow: 'rgba(59,130,246,0.2)', features: ['10 Active Operators limit', 'Standard shared runners', 'Email support (business hours)', 'Base infra metrics tracking'] },
-                          { id: 'enterprise', name: 'Enterprise', price: '$2,000', color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.25)', glow: 'rgba(139,92,246,0.2)', features: ['30 Active Operators limit', 'Dedicated build runners', '24/7 Priority support SLAs', 'Advanced insights dashboard', 'Custom Key Vault integration'] },
-                          { id: 'sovereign', name: 'Sovereign', price: '$4,000', color: '#14b8a6', bg: 'rgba(20,184,166,0.08)', border: 'rgba(20,184,166,0.25)', glow: 'rgba(20,184,166,0.2)', features: ['Unlimited active operators', 'Self-hosted private nodes', 'Dedicated SLA guarantees', 'Audit logs & SSO authentication', 'Multi-tenant routing rules'] }
+                          { id: 'growth', name: 'Growth Plan', price: '$1,000 / ₹83,000', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.25)', glow: 'rgba(59,130,246,0.2)', features: ['10 Active Operators limit', 'Standard shared runners', 'Email support (business hours)', 'Base infra metrics tracking'] },
+                          { id: 'enterprise', name: 'Enterprise', price: '$2,000 / ₹1,66,000', color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.25)', glow: 'rgba(139,92,246,0.2)', features: ['30 Active Operators limit', 'Dedicated build runners', '24/7 Priority support SLAs', 'Advanced insights dashboard', 'Custom Key Vault integration'] },
+                          { id: 'sovereign', name: 'Sovereign', price: '$4,000 / ₹3,32,000', color: '#14b8a6', bg: 'rgba(20,184,166,0.08)', border: 'rgba(20,184,166,0.25)', glow: 'rgba(20,184,166,0.2)', features: ['Unlimited active operators', 'Self-hosted private nodes', 'Dedicated SLA guarantees', 'Audit logs & SSO authentication', 'Multi-tenant routing rules'] }
                         ].map(tier => {
                           const isSelected = licenseTier === tier.id;
                           return (
@@ -1587,7 +1867,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                         </div>
                         <ul style={{ margin: 0, paddingLeft: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           <li><strong>Base Fees:</strong> Flat subscription fees are charged monthly in advance relative to the selected tier plan.</li>
-                          <li><strong>Operator Seat Surcharges:</strong> Additional active user seats are billed at dynamic per-seat rates determined by the current tier ($40/seat on Growth, $90/seat on Enterprise, and $30/seat on Sovereign).</li>
+                          <li><strong>Operator Seat Surcharges:</strong> Additional active user seats are billed at dynamic per-seat rates determined by the current tier ($40 / ₹3,320 per seat on Growth, $90 / ₹7,470 per seat on Enterprise, and $30 / ₹2,490 per seat on Sovereign).</li>
                           <li><strong>Terms & Adjustments:</strong> Mid-cycle changes are pro-rated. Plan switches are applied instantly to platform quotas.</li>
                         </ul>
                       </div>
@@ -1597,7 +1877,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   </div>
 
                 {/* Right Column: Billing Summary + Invoice Generator */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', height: '100%' }}>
                   {/* Billing Summary */}
                   <div className="glass-panel" style={{ padding: '24px' }}>
                     <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1605,28 +1885,40 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       Billing Summary
                     </h4>
                     {(() => {
-                      const totalInvoiced = clientInvoices.reduce((s, i) => s + parseFloat(i.amount), 0);
-                      const totalPaid = clientInvoices.filter(i => i.status === 'Paid').reduce((s, i) => s + parseFloat(i.amount), 0);
-                      const totalPending = clientInvoices.filter(i => i.status === 'Pending').reduce((s, i) => s + parseFloat(i.amount), 0);
+                      const totalInvoicedUSD = clientInvoices.reduce((s, i) => {
+                        const amt = parseFloat(i.amount) || 0;
+                        const isINR = i.currency === 'INR';
+                        return s + (isINR ? amt / 83 : amt);
+                      }, 0);
+                      const totalPaidUSD = clientInvoices.filter(i => i.status === 'Paid').reduce((s, i) => {
+                        const amt = parseFloat(i.amount) || 0;
+                        const isINR = i.currency === 'INR';
+                        return s + (isINR ? amt / 83 : amt);
+                      }, 0);
+                      const totalPendingUSD = clientInvoices.filter(i => i.status === 'Pending').reduce((s, i) => {
+                        const amt = parseFloat(i.amount) || 0;
+                        const isINR = i.currency === 'INR';
+                        return s + (isINR ? amt / 83 : amt);
+                      }, 0);
                       const lastInv = clientInvoices.length > 0 ? clientInvoices[0] : null;
                       return (
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                           <div style={{ padding: '12px', background: 'var(--input-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Total Invoiced</div>
-                            <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '4px' }}>${totalInvoiced.toLocaleString()}</div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 700, marginTop: '4px' }}>{renderDualCurrency(totalInvoicedUSD)}</div>
                           </div>
                           <div style={{ padding: '12px', background: 'var(--input-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Total Collected</div>
-                            <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '4px', color: '#4ade80' }}>${totalPaid.toLocaleString()}</div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 700, marginTop: '4px', color: '#4ade80' }}>{renderDualCurrency(totalPaidUSD)}</div>
                           </div>
                           <div style={{ padding: '12px', background: 'var(--input-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Outstanding</div>
-                            <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '4px', color: totalPending > 0 ? 'var(--warning)' : 'var(--text-primary)' }}>${totalPending.toLocaleString()}</div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 700, marginTop: '4px', color: totalPendingUSD > 0 ? 'var(--warning)' : 'var(--text-primary)' }}>{renderDualCurrency(totalPendingUSD)}</div>
                           </div>
                           <div style={{ padding: '12px', background: 'var(--input-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Last Invoice</div>
-                            <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '4px' }}>
-                              {lastInv ? `$${parseFloat(lastInv.amount).toLocaleString()}` : '—'}
+                            <div style={{ fontSize: '0.9rem', fontWeight: 700, marginTop: '4px' }}>
+                              {lastInv ? renderDualCurrency(lastInv.amount, lastInv.currency || 'USD') : '—'}
                             </div>
                             <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
                               {lastInv ? new Date(lastInv.issue_date).toLocaleDateString() : ''}
@@ -1638,7 +1930,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   </div>
 
                   {/* Invoice Preview & Generate */}
-                  <div className="glass-panel" style={{ padding: '24px' }}>
+                  <div className="glass-panel" style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                     <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <FileText size={16} style={{ color: 'var(--accent-purple)' }} />
                       Generate Client Invoice
@@ -1674,25 +1966,25 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       const totalAmount = baseAmount + perSeatTotal;
 
                       return (
-                        <div>
+                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
                           <div style={{
                             background: 'var(--input-bg)', borderRadius: '8px', padding: '14px', marginBottom: '12px', border: '1px dashed var(--glass-border)'
                           }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                               <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Base ({tier})</span>
-                              <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>${baseAmount.toLocaleString()}</span>
+                              <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{renderDualCurrency(baseAmount)}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                               <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Seats ({seats} × ${p.perSeat}/seat)</span>
-                              <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>${perSeatTotal.toLocaleString()}</span>
+                              <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{renderDualCurrency(perSeatTotal)}</span>
                             </div>
                             <div style={{ borderTop: '1px dashed var(--divider)', marginTop: '8px', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <span style={{ fontSize: '0.82rem', fontWeight: 700 }}>Invoice Total</span>
-                              <span style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--accent-purple)' }}>${totalAmount.toLocaleString()}</span>
+                              <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--accent-purple)' }}>{renderDualCurrency(totalAmount)}</span>
                             </div>
                           </div>
 
-                          <form onSubmit={handleGenerateInvoice}>
+                          <form onSubmit={handleGenerateInvoice} style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
                             <div style={{ marginBottom: '14px' }}>
                               <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
                                 Payment Due Terms
@@ -1761,8 +2053,9 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       <thead>
                         <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--divider)', color: 'var(--text-secondary)' }}>
                           <th style={{ padding: '10px 14px' }}>Invoice #</th>
-                          <th style={{ padding: '10px 14px' }}>Issue Date</th>
+                          <th style={{ padding: '10px 14px' }}>Billing Type</th>
                           <th style={{ padding: '10px 14px' }}>Amount</th>
+                          <th style={{ padding: '10px 14px' }}>Issue Date</th>
                           <th style={{ padding: '10px 14px' }}>Due Date</th>
                           <th style={{ padding: '10px 14px' }}>Status</th>
                           <th style={{ padding: '10px 14px', width: '100px' }}>Action</th>
@@ -1770,49 +2063,125 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       </thead>
                       <tbody>
                         {clientInvoices.map(inv => (
-                          <tr key={inv.id} style={{ borderBottom: '1px solid var(--divider)', transition: 'background 0.15s' }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                            <td style={{ padding: '12px 14px', fontWeight: 600 }}>{inv.invoice_number}</td>
-                            <td style={{ padding: '12px 14px' }}>{new Date(inv.issue_date).toLocaleDateString()}</td>
-                            <td style={{ padding: '12px 14px' }}>${parseFloat(inv.amount).toLocaleString()}</td>
-                            <td style={{ padding: '12px 14px' }}>{new Date(inv.due_date).toLocaleDateString()}</td>
-                            <td style={{ padding: '12px 14px' }}>
-                              <span style={{
-                                padding: '3px 8px',
-                                borderRadius: '4px',
-                                fontSize: '0.7rem',
-                                fontWeight: 700,
-                                textTransform: 'uppercase',
-                                background: inv.status === 'Paid' ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)',
-                                color: inv.status === 'Paid' ? 'var(--success)' : 'var(--warning)',
-                                border: inv.status === 'Paid' ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(245,158,11,0.2)'
-                              }}>
-                                {inv.status}
-                              </span>
-                            </td>
-                            <td style={{ padding: '12px 14px' }}>
-                              {inv.status === 'Pending' ? (
-                                <button
-                                  onClick={() => handleUpdateInvoiceStatus(inv.id, 'Paid', 'detail')}
-                                  style={{
-                                    padding: '5px 10px',
-                                    borderRadius: '4px',
-                                    border: '1px solid rgba(34,197,94,0.3)',
-                                    background: 'rgba(34,197,94,0.1)',
-                                    color: '#4ade80',
-                                    fontSize: '0.72rem',
-                                    fontWeight: 600,
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  Mark Paid
-                                </button>
-                              ) : (
-                                <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>—</span>
-                              )}
-                            </td>
-                          </tr>
+                          <React.Fragment key={inv.id}>
+                            <tr style={{ borderBottom: expandedBreakdown[inv.id] ? 'none' : '1px solid var(--divider)', transition: 'background 0.15s' }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                              <td style={{ padding: '12px 14px', fontWeight: 600 }}>{inv.invoice_number}</td>
+                              <td style={{ padding: '12px 14px' }}>
+                                <span style={{
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  whiteSpace: 'nowrap',
+                                  background: inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? 'rgba(59,130,246,0.08)'
+                                            : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? 'rgba(139,92,246,0.08)'
+                                            : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? 'rgba(20,184,166,0.08)'
+                                            : 'rgba(251,191,36,0.08)',
+                                  color: inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? '#60a5fa'
+                                       : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? '#c084fc'
+                                       : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? '#2dd4bf'
+                                       : '#fbbf24',
+                                  border: inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? '1px solid rgba(59,130,246,0.2)'
+                                        : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? '1px solid rgba(139,92,246,0.2)'
+                                        : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? '1px solid rgba(20,184,166,0.2)'
+                                        : '1px solid rgba(251,191,36,0.2)'
+                                }}>
+                                  {inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? '🚀 DevOps'
+                                   : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? '💻 Developer'
+                                   : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? '🛡️ Security'
+                                   : '🏢 Platform'}
+                                </span>
+                              </td>
+                              <td style={{ padding: '12px 14px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
+                                  <span>{renderDualCurrency(inv.amount, inv.currency || 'USD')}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setExpandedBreakdown(prev => ({ ...prev, [inv.id]: !prev[inv.id] }))}
+                                    style={{
+                                      background: 'none', border: 'none', padding: 0, color: 'var(--accent-purple)',
+                                      fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer', outline: 'none',
+                                      display: 'inline-flex', alignItems: 'center', gap: '3px'
+                                    }}
+                                  >
+                                    <span>{expandedBreakdown[inv.id] ? 'Hide' : 'Show'} Breakdown</span>
+                                    <span>{expandedBreakdown[inv.id] ? '▲' : '▼'}</span>
+                                  </button>
+                                </div>
+                              </td>
+                              <td style={{ padding: '12px 14px' }}>{new Date(inv.issue_date).toLocaleDateString()}</td>
+                              <td style={{ padding: '12px 14px' }}>{new Date(inv.due_date).toLocaleDateString()}</td>
+                              <td style={{ padding: '12px 14px' }}>
+                                <span style={{
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 700,
+                                  textTransform: 'uppercase',
+                                  background: inv.status === 'Paid' ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)',
+                                  color: inv.status === 'Paid' ? 'var(--success)' : 'var(--warning)',
+                                  border: inv.status === 'Paid' ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(245,158,11,0.2)'
+                                }}>
+                                  {inv.status}
+                                </span>
+                              </td>
+                              <td style={{ padding: '12px 14px' }}>
+                                {inv.status === 'Pending' ? (
+                                  <button
+                                    onClick={() => handleUpdateInvoiceStatus(inv.id, 'Paid', 'detail')}
+                                    style={{
+                                      padding: '5px 10px',
+                                      borderRadius: '4px',
+                                      border: '1px solid rgba(34,197,94,0.3)',
+                                      background: 'rgba(34,197,94,0.1)',
+                                      color: '#4ade80',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 600,
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    Mark Paid
+                                  </button>
+                                ) : (
+                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>—</span>
+                                )}
+                              </td>
+                            </tr>
+                            {expandedBreakdown[inv.id] && (() => {
+                              const lines = getInvoiceBreakdown(inv, selectedClient.license_tier || 'growth');
+                              return (
+                                <tr style={{ background: 'rgba(255,255,255,0.015)' }}>
+                                  <td colSpan={7} style={{ padding: '4px 14px 12px 14px' }}>
+                                    <div style={{
+                                      background: 'rgba(30, 41, 59, 0.4)',
+                                      border: '1.5px solid var(--glass-border)',
+                                      borderRadius: '8px',
+                                      padding: '12px',
+                                      textAlign: 'left'
+                                    }}>
+                                      <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '8px', borderBottom: '1px solid var(--divider)', paddingBottom: '4px' }}>
+                                        Calculation Breakup
+                                      </div>
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        {lines.map((line, idx) => (
+                                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
+                                            <span style={{ fontSize: '0.74rem', color: line.dim ? 'var(--text-muted)' : 'var(--text-secondary)' }}>
+                                              {line.label}
+                                            </span>
+                                            <span style={{ fontSize: '0.74rem', color: line.bold ? 'var(--accent-purple)' : 'var(--text-primary)', fontWeight: line.bold ? 800 : 600, whiteSpace: 'nowrap' }}>
+                                              {line.value}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })()}
+                          </React.Fragment>
                         ))}
                       </tbody>
                     </table>
@@ -1824,10 +2193,10 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
           {/* TAB 2: INVOICES LIST (GLOBAL) */}
           {activeTab === 'invoices' && (
-            <div>
+            <div className="crm-tab-panel">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>System Billing Invoices</h3>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, var(--text-primary) 40%, #2dd4bf 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>System Billing Invoices</h3>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '4px 0 0 0' }}>
                     Track payments, view collections, and toggle invoice status across all platform customers.
                   </p>
@@ -1855,9 +2224,23 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
               {/* Dynamic Invoices Stats Bar */}
               {(() => {
-                const totalInvoiced = invoices.reduce((acc, inv) => acc + (inv.amount || 0), 0);
-                const collected = invoices.filter(inv => inv.status === 'Paid').reduce((acc, inv) => acc + (inv.amount || 0), 0);
-                const outstanding = invoices.filter(inv => inv.status === 'Pending').reduce((acc, inv) => acc + (inv.amount || 0), 0);
+                const totalInvoicedUSD = invoices.reduce((acc, inv) => {
+                  const amt = parseFloat(inv.amount) || 0;
+                  const isINR = inv.currency === 'INR';
+                  return acc + (isINR ? amt / 83 : amt);
+                }, 0);
+                
+                const collectedUSD = invoices.filter(inv => inv.status === 'Paid').reduce((acc, inv) => {
+                  const amt = parseFloat(inv.amount) || 0;
+                  const isINR = inv.currency === 'INR';
+                  return acc + (isINR ? amt / 83 : amt);
+                }, 0);
+                
+                const outstandingUSD = invoices.filter(inv => inv.status === 'Pending').reduce((acc, inv) => {
+                  const amt = parseFloat(inv.amount) || 0;
+                  const isINR = inv.currency === 'INR';
+                  return acc + (isINR ? amt / 83 : amt);
+                }, 0);
                 const paidCount = invoices.filter(inv => inv.status === 'Paid').length;
                 const pendingCount = invoices.filter(inv => inv.status === 'Pending').length;
 
@@ -1872,7 +2255,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       </div>
                       <div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Total Invoiced</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>${totalInvoiced.toLocaleString()}</div>
+                        <div style={{ fontSize: '1.05rem', fontWeight: 800 }}>{renderDualCurrency(totalInvoicedUSD)}</div>
                       </div>
                     </div>
 
@@ -1885,7 +2268,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       </div>
                       <div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Collected Volume</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#14b8a6' }}>${collected.toLocaleString()}</div>
+                        <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#14b8a6' }}>{renderDualCurrency(collectedUSD)}</div>
                       </div>
                     </div>
 
@@ -1898,7 +2281,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       </div>
                       <div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: '4px' }}>Outstanding Balance</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f59e0b' }}>${outstanding.toLocaleString()}</div>
+                        <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#f59e0b' }}>{renderDualCurrency(outstandingUSD)}</div>
                       </div>
                     </div>
 
@@ -1957,149 +2340,392 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   <div>Loading system invoices...</div>
                 </div>
               ) : (
-                <div className="glass-panel" style={{ overflow: 'hidden', padding: 0 }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
-                    <thead>
-                      <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--divider)', textAlign: 'left' }}>
-                        <th style={{ padding: '14px 20px' }}>Invoice Number</th>
-                        <th style={{ padding: '14px 20px' }}>Client Organization</th>
-                        <th style={{ padding: '14px 20px' }}>Amount</th>
-                        <th style={{ padding: '14px 20px' }}>Issue Date</th>
-                        <th style={{ padding: '14px 20px' }}>Due Date</th>
-                        <th style={{ padding: '14px 20px' }}>Status</th>
-                        <th style={{ padding: '14px 20px', width: '120px' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        const filtered = invoices.filter(inv => {
-                          const query = invoiceSearchQuery.toLowerCase();
-                          return (inv.invoice_number || '').toLowerCase().includes(query) ||
-                            (inv.clientName || '').toLowerCase().includes(query) ||
-                            (inv.organization_id || '').toLowerCase().includes(query);
-                        });
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {(() => {
+                    const filtered = invoices.filter(inv => {
+                      const query = invoiceSearchQuery.toLowerCase();
+                      return (inv.invoice_number || '').toLowerCase().includes(query) ||
+                        (inv.clientName || '').toLowerCase().includes(query) ||
+                        (inv.organization_id || '').toLowerCase().includes(query);
+                    });
 
-                        if (filtered.length === 0) {
-                          return (
-                            <tr>
-                              <td colSpan={7} style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                No invoices match the search query.
-                              </td>
-                            </tr>
-                          );
-                        }
+                    if (filtered.length === 0) {
+                      return (
+                        <div className="glass-panel" style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                          No invoices match the search query.
+                        </div>
+                      );
+                    }
 
-                        return filtered.map(inv => (
-                          <tr key={inv.id} style={{ borderBottom: '1px solid var(--divider)', transition: 'background 0.15s' }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                            <td style={{ padding: '14px 20px', fontWeight: 600 }}>{inv.invoice_number}</td>
-                            <td style={{ padding: '14px 20px' }}>
-                              <span style={{ fontWeight: 500 }}>{inv.clientName}</span>
-                              <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>({inv.organization_id})</span>
-                            </td>
-                            <td style={{ padding: '14px 20px' }}>${parseFloat(inv.amount).toLocaleString()}</td>
-                            <td style={{ padding: '14px 20px' }}>{new Date(inv.issue_date).toLocaleDateString()}</td>
-                            <td style={{ padding: '14px 20px' }}>{new Date(inv.due_date).toLocaleDateString()}</td>
-                            <td style={{ padding: '14px 20px' }}>
+                    // Group by organization
+                    const groups: Record<string, { orgId: string; clientName: string; invoices: any[] }> = {};
+                    filtered.forEach(inv => {
+                      const orgId = inv.organization_id || 'unknown';
+                      if (!groups[orgId]) {
+                        groups[orgId] = {
+                          orgId,
+                          clientName: inv.clientName || orgId,
+                          invoices: []
+                        };
+                      }
+                      groups[orgId].invoices.push(inv);
+                    });
+
+                    const orgList = Object.values(groups);
+
+                    return orgList.map(group => {
+                      const isExpanded = !!expandedOrgs[group.orgId];
+                      const totalAmt = group.invoices.reduce((acc, inv) => {
+                        const amt = parseFloat(inv.amount) || 0;
+                        const isINR = inv.currency === 'INR';
+                        return acc + (isINR ? amt / 83 : amt);
+                      }, 0);
+                      const pendingCount = group.invoices.filter(i => i.status === 'Pending').length;
+
+                      return (
+                        <div key={group.orgId} className="glass-panel" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--glass-border)', borderRadius: '10px' }}>
+                          {/* Accordion Header */}
+                          <div 
+                            onClick={() => setExpandedOrgs(prev => ({ ...prev, [group.orgId]: !isExpanded }))}
+                            style={{
+                              padding: '16px 20px',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              cursor: 'pointer',
+                              background: isExpanded ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.01)',
+                              userSelect: 'none',
+                              transition: 'background 0.2s',
+                              borderBottom: isExpanded ? '1px solid var(--divider)' : 'none'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                               <span style={{
-                                padding: '3px 8px',
-                                borderRadius: '4px',
-                                fontSize: '0.72rem',
-                                fontWeight: 700,
-                                textTransform: 'uppercase',
-                                background: inv.status === 'Paid' ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)',
-                                color: inv.status === 'Paid' ? 'var(--success)' : 'var(--warning)',
-                                border: inv.status === 'Paid' ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(245,158,11,0.2)'
+                                fontSize: '0.74rem',
+                                transition: 'transform 0.2s',
+                                transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                                color: 'var(--accent-purple)',
+                                display: 'inline-block'
                               }}>
-                                {inv.status}
+                                ▶
                               </span>
-                            </td>
-                            <td style={{ padding: '14px 20px' }}>
-                              {inv.status === 'Pending' ? (
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                  <button
-                                    onClick={() => handleUpdateInvoiceStatus(inv.id, 'Paid', 'global')}
-                                    style={{
-                                      padding: '4px 8px',
-                                      borderRadius: '4px',
-                                      border: '1px solid rgba(34,197,94,0.3)',
-                                      background: 'rgba(34,197,94,0.1)',
-                                      color: '#4ade80',
-                                      fontSize: '0.72rem',
-                                      fontWeight: 600,
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    Mark Paid
-                                  </button>
-                                  <button
-                                    onClick={() => handleUpdateInvoiceStatus(inv.id, 'Void', 'global')}
-                                    style={{
-                                      padding: '4px 8px',
-                                      borderRadius: '4px',
-                                      border: '1px solid rgba(239,68,68,0.2)',
-                                      background: 'rgba(239,68,68,0.05)',
-                                      color: '#f87171',
-                                      fontSize: '0.72rem',
-                                      fontWeight: 600,
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    Void
-                                  </button>
-                                </div>
-                              ) : (
-                                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                                  {inv.status === 'Paid' ? `Settled on ${new Date(inv.payment_date).toLocaleDateString()}` : 'No Action'}
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ));
-                      })()}
-                    </tbody>
-                  </table>
+                              <div>
+                                <span style={{ fontWeight: 800, fontSize: '0.94rem', color: 'var(--text-primary)' }}>{group.clientName}</span>
+                                <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Org ID: {group.orgId}</span>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                              <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {group.invoices.length} {group.invoices.length === 1 ? 'Invoice' : 'Invoices'}
+                                {pendingCount > 0 && (
+                                  <span style={{ padding: '2px 6px', borderRadius: '4px', background: 'rgba(245,158,11,0.08)', color: 'var(--warning)', border: '1px solid rgba(245,158,11,0.2)', fontSize: '0.68rem', fontWeight: 700 }}>
+                                    {pendingCount} Pending
+                                  </span>
+                                )}
+                              </span>
+                              <span style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                                Total: {renderDualCurrency(totalAmt)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Accordion Content Table */}
+                          {isExpanded && (
+                            <div style={{ overflowX: 'auto' }}>
+                              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                                <thead>
+                                  <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--divider)', textAlign: 'left' }}>
+                                    <th style={{ padding: '12px 20px', fontWeight: 600 }}>Invoice Number</th>
+                                    <th style={{ padding: '12px 20px', fontWeight: 600 }}>Billing Type</th>
+                                    <th style={{ padding: '12px 20px', fontWeight: 600 }}>Amount</th>
+                                    <th style={{ padding: '12px 20px', fontWeight: 600 }}>Issue Date</th>
+                                    <th style={{ padding: '12px 20px', fontWeight: 600 }}>Due Date</th>
+                                    <th style={{ padding: '12px 20px', fontWeight: 600 }}>Status</th>
+                                    <th style={{ padding: '12px 20px', fontWeight: 600, width: '120px' }}>Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {group.invoices.map(inv => (
+                                    <React.Fragment key={inv.id}>
+                                      <tr style={{ borderBottom: expandedBreakdown[inv.id] ? 'none' : '1px solid var(--divider)', transition: 'background 0.15s' }}
+                                        onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                        <td style={{ padding: '12px 20px', fontWeight: 600 }}>{inv.invoice_number}</td>
+                                        <td style={{ padding: '12px 20px' }}>
+                                          <span style={{
+                                            padding: '3px 8px',
+                                            borderRadius: '4px',
+                                            fontSize: '0.72rem',
+                                            fontWeight: 700,
+                                            whiteSpace: 'nowrap',
+                                            background: inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? 'rgba(59,130,246,0.08)'
+                                                      : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? 'rgba(139,92,246,0.08)'
+                                                      : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? 'rgba(20,184,166,0.08)'
+                                                      : 'rgba(251,191,36,0.08)',
+                                            color: inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? '#60a5fa'
+                                                 : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? '#c084fc'
+                                                 : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? '#2dd4bf'
+                                                 : '#fbbf24',
+                                            border: inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? '1px solid rgba(59,130,246,0.2)'
+                                                  : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? '1px solid rgba(139,92,246,0.2)'
+                                                  : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? '1px solid rgba(20,184,166,0.2)'
+                                                  : '1px solid rgba(251,191,36,0.2)'
+                                          }}>
+                                            {inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? '🚀 DevOps'
+                                             : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? '💻 Developer'
+                                             : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? '🛡️ Security'
+                                             : '🏢 Platform'}
+                                          </span>
+                                        </td>
+                                        <td style={{ padding: '12px 20px' }}>
+                                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
+                                            <span>{renderDualCurrency(inv.amount, inv.currency || 'USD')}</span>
+                                            <button
+                                              type="button"
+                                              onClick={() => setExpandedBreakdown(prev => ({ ...prev, [inv.id]: !prev[inv.id] }))}
+                                              style={{
+                                                background: 'none', border: 'none', padding: 0, color: 'var(--accent-purple)',
+                                                fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer', outline: 'none',
+                                                display: 'inline-flex', alignItems: 'center', gap: '3px'
+                                              }}
+                                            >
+                                              <span>{expandedBreakdown[inv.id] ? 'Hide' : 'Show'} Breakdown</span>
+                                              <span>{expandedBreakdown[inv.id] ? '▲' : '▼'}</span>
+                                            </button>
+                                          </div>
+                                        </td>
+                                        <td style={{ padding: '12px 20px' }}>{new Date(inv.issue_date).toLocaleDateString()}</td>
+                                        <td style={{ padding: '12px 20px' }}>{new Date(inv.due_date).toLocaleDateString()}</td>
+                                        <td style={{ padding: '12px 20px' }}>
+                                          <span style={{
+                                            padding: '3px 8px',
+                                            borderRadius: '4px',
+                                            fontSize: '0.72rem',
+                                            fontWeight: 700,
+                                            textTransform: 'uppercase',
+                                            background: inv.status === 'Paid' ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)',
+                                            color: inv.status === 'Paid' ? 'var(--success)' : 'var(--warning)',
+                                            border: inv.status === 'Paid' ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(245,158,11,0.2)'
+                                          }}>
+                                            {inv.status}
+                                          </span>
+                                        </td>
+                                        <td style={{ padding: '12px 20px' }}>
+                                          {inv.status === 'Pending' ? (
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                              <button
+                                                onClick={() => handleUpdateInvoiceStatus(inv.id, 'Paid', 'global')}
+                                                style={{
+                                                  padding: '4px 8px',
+                                                  borderRadius: '4px',
+                                                  border: '1px solid rgba(34,197,94,0.3)',
+                                                  background: 'rgba(34,197,94,0.1)',
+                                                  color: '#4ade80',
+                                                  fontSize: '0.72rem',
+                                                  fontWeight: 600,
+                                                  cursor: 'pointer'
+                                                }}
+                                              >
+                                                Mark Paid
+                                              </button>
+                                              <button
+                                                onClick={() => handleUpdateInvoiceStatus(inv.id, 'Void', 'global')}
+                                                style={{
+                                                  padding: '4px 8px',
+                                                  borderRadius: '4px',
+                                                  border: '1px solid rgba(239,68,68,0.2)',
+                                                  background: 'rgba(239,68,68,0.05)',
+                                                  color: '#f87171',
+                                                  fontSize: '0.72rem',
+                                                  fontWeight: 600,
+                                                  cursor: 'pointer'
+                                                }}
+                                              >
+                                                Void
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                                              {inv.status === 'Paid' ? `Settled on ${new Date(inv.payment_date).toLocaleDateString()}` : 'No Action'}
+                                            </span>
+                                          )}
+                                        </td>
+                                      </tr>
+                                      {expandedBreakdown[inv.id] && (() => {
+                                        const lines = getInvoiceBreakdown(inv, inv.clientTier || 'growth');
+                                        return (
+                                          <tr style={{ background: 'rgba(255,255,255,0.015)' }}>
+                                            <td colSpan={7} style={{ padding: '4px 20px 12px 20px' }}>
+                                              <div style={{
+                                                background: 'rgba(30, 41, 59, 0.4)',
+                                                border: '1.5px solid var(--glass-border)',
+                                                borderRadius: '8px',
+                                                padding: '12px',
+                                                textAlign: 'left'
+                                              }}>
+                                                <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '8px', borderBottom: '1px solid var(--divider)', paddingBottom: '4px' }}>
+                                                  Calculation Breakup
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                  {lines.map((line, idx) => (
+                                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
+                                                      <span style={{ fontSize: '0.74rem', color: line.dim ? 'var(--text-muted)' : 'var(--text-secondary)' }}>
+                                                        {line.label}
+                                                      </span>
+                                                      <span style={{ fontSize: '0.74rem', color: line.bold ? 'var(--accent-purple)' : 'var(--text-primary)', fontWeight: line.bold ? 800 : 600, whiteSpace: 'nowrap' }}>
+                                                        {line.value}
+                                                      </span>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })()}
+                                    </React.Fragment>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               )}
             </div>
           )}
 
-          {/* TAB 3: SUPPORT AGENTS MANAGEMENT (ADMIN ONLY) */}
-          {activeTab === 'agents' && crmUser.role === 'admin' && (
-            <div>
+          {/* TAB 3: SUPPORT AGENTS MANAGEMENT (READ-ONLY FOR AGENTS) */}
+          {activeTab === 'agents' && (
+            <div className="crm-tab-panel">
               <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Manage Support Staff</h3>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, var(--text-primary) 40%, #fbbf24 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Manage Support Staff</h3>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '4px 0 0 0' }}>
-                    Create secure administrator and support agent accounts to coordinate customer assistance.
+                    {crmUser.role === 'admin' 
+                      ? 'Create secure administrator and support agent accounts to coordinate customer assistance.'
+                      : 'View administrator and support agent accounts coordinating customer assistance.'}
                   </p>
                 </div>
-                <button
-                  onClick={fetchAgents}
-                  disabled={loadingAgents}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--glass-border)',
-                    background: 'var(--glass-bg)',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.8rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <RefreshCw size={13} className={loadingAgents ? 'spin-anim' : ''} />
-                  Refresh
-                </button>
+                {crmUser.role === 'admin' && (
+                  <button
+                    onClick={handleSyncAzureAD}
+                    disabled={loadingAgents}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--glass-border)',
+                      background: 'var(--glass-bg)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <RefreshCw size={13} className={loadingAgents ? 'spin-anim' : ''} />
+                    Sync with Azure AD
+                  </button>
+                )}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '28px', alignItems: 'start' }}>
-                {/* Left Column: Staff Roster */}
-                <div>
+              {crmUser.role !== 'admin' && (
+                <div style={{
+                  padding: '12px 16px',
+                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(245, 158, 11, 0.05)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  marginBottom: '20px',
+                  fontSize: '0.82rem',
+                  color: '#d97706',
+                  fontWeight: 500
+                }}>
+                  <AlertCircle size={16} style={{ color: '#fbbf24', flexShrink: 0 }} />
+                  <span>Read-Only View: Roster management and synchronization are restricted to system administrators.</span>
+                </div>
+              )}
 
+              {/* Roster Filter Bar */}
+              <div className="glass-panel" style={{
+                padding: '12px 20px',
+                marginBottom: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '16px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '240px', position: 'relative' }}>
+                  <Search size={14} style={{ position: 'absolute', left: '12px', color: 'var(--text-secondary)' }} />
+                  <input
+                    type="text"
+                    value={agentSearchQuery}
+                    onChange={e => setAgentSearchQuery(e.target.value)}
+                    placeholder="Search agents by name or email..."
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px 8px 34px',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: '8px',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.84rem',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <select
+                    value={agentRoleFilter}
+                    onChange={e => setAgentRoleFilter(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: '8px',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.82rem',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="all">All Roles</option>
+                    <option value="admin">Administrators</option>
+                    <option value="agent">Support Agents</option>
+                  </select>
+
+                  <select
+                    value={agentStatusFilter}
+                    onChange={e => setAgentStatusFilter(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: '8px',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.82rem',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="active">Active Only</option>
+                    <option value="disabled">Disabled Only</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '28px', alignItems: 'stretch' }}>
+                {/* Left/Main Column: Staff Roster */}
+                <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                   {/* ── Existing Agents Grid ── */}
                   {loadingAgents ? (
                     <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
@@ -2107,166 +2733,435 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       <div style={{ marginTop: '8px', fontSize: '0.84rem' }}>Loading support agents...</div>
                     </div>
                   ) : agents.length > 0 ? (
-                    <div className="glass-panel" style={{ overflow: 'hidden', padding: 0, marginBottom: '24px' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-                        <thead>
-                          <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--divider)', textAlign: 'left' }}>
-                            <th style={{ padding: '12px 16px' }}>Name</th>
-                            <th style={{ padding: '12px 16px' }}>Email</th>
-                            <th style={{ padding: '12px 16px' }}>Role</th>
-                            <th style={{ padding: '12px 16px' }}>Status</th>
-                            <th style={{ padding: '12px 16px', width: '130px' }}>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {agents.map(agent => {
-                            const isMasterAdmin = agent.email === 'admin@evaops.crm';
-                            const isCurrentlyEditing = editingAgent?.id === agent.id;
-                            return (
-                              <tr key={agent.id} style={{ borderBottom: '1px solid var(--divider)', transition: 'background 0.15s' }}
-                                onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
-                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                                <td style={{ padding: '12px 16px', fontWeight: 600 }}>{agent.name}</td>
-                                <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{agent.email}</td>
-                                <td style={{ padding: '12px 16px' }}>
-                                  <span style={{
-                                    padding: '2px 8px',
-                                    borderRadius: '4px',
-                                    fontSize: '0.72rem',
-                                    fontWeight: 600,
-                                    textTransform: 'uppercase',
-                                    background: agent.role === 'admin' ? 'rgba(139,92,246,0.1)' : 'rgba(59,130,246,0.1)',
-                                    color: agent.role === 'admin' ? 'var(--accent-purple)' : '#60a5fa',
-                                    border: agent.role === 'admin' ? '1px solid rgba(139,92,246,0.2)' : '1px solid rgba(59,130,246,0.2)'
-                                  }}>
-                                    {agent.role}
-                                  </span>
-                                </td>
-                                <td style={{ padding: '12px 16px' }}>
-                                  <span style={{
-                                    padding: '2px 8px',
-                                    borderRadius: '4px',
-                                    fontSize: '0.72rem',
-                                    fontWeight: 600,
-                                    background: agent.is_disabled ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
-                                    color: agent.is_disabled ? '#f87171' : '#4ade80',
-                                    border: agent.is_disabled ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(34,197,94,0.2)'
-                                  }}>
-                                    {agent.is_disabled ? 'Disabled' : 'Active'}
-                                  </span>
-                                </td>
-                                <td style={{ padding: '12px 16px' }}>
-                                  <div style={{ display: 'flex', gap: '6px' }}>
-                                    {!isCurrentlyEditing && (
-                                      <button
-                                        onClick={() => {
-                                          setEditingAgent(agent);
-                                          setEditName(agent.name);
-                                          setEditEmail(agent.email);
-                                          setEditRole(agent.role);
-                                          setEditIsDisabled(agent.is_disabled);
-                                          setEditPassword('');
-                                          setEditingMsg(null);
-                                        }}
-                                        style={{
-                                          padding: '4px 8px',
-                                          borderRadius: '4px',
-                                          border: '1px solid var(--glass-border)',
-                                          background: 'var(--glass-bg)',
-                                          color: 'var(--text-primary)',
-                                          fontSize: '0.72rem',
-                                          cursor: 'pointer',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: '4px'
-                                        }}
-                                      >
-                                        <Edit3 size={12} /> Edit
-                                      </button>
-                                    )}
-                                    {!isMasterAdmin && !isCurrentlyEditing && (
-                                      <button
-                                        onClick={() => handleToggleAgentStatus(agent)}
-                                        style={{
-                                          padding: '4px 8px',
-                                          borderRadius: '4px',
-                                          border: agent.is_disabled ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(239,68,68,0.2)',
-                                          background: agent.is_disabled ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.05)',
-                                          color: agent.is_disabled ? '#4ade80' : '#f87171',
-                                          fontSize: '0.72rem',
-                                          fontWeight: 600,
-                                          cursor: 'pointer',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          gap: '4px'
-                                        }}
-                                      >
-                                        <Power size={12} />
-                                        {agent.is_disabled ? 'Enable' : 'Disable'}
-                                      </button>
-                                    )}
-                                    {isMasterAdmin && (
-                                      <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontStyle: 'italic', padding: '4px 0' }}>
-                                        Protected
-                                      </span>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                    <div className="glass-panel" style={{ overflow: 'hidden', padding: 0, marginBottom: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ overflowY: 'auto', flex: 1 }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                          <thead>
+                            <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--divider)', textAlign: 'left', position: 'sticky', top: 0, zIndex: 10 }}>
+                              <th style={{ padding: '12px 16px', background: 'var(--bg-secondary)' }}>Name</th>
+                              <th style={{ padding: '12px 16px', background: 'var(--bg-secondary)' }}>Email</th>
+                              <th style={{ padding: '12px 16px', background: 'var(--bg-secondary)' }}>Role</th>
+                              <th style={{ padding: '12px 16px', background: 'var(--bg-secondary)' }}>Status</th>
+                              {crmUser.role === 'admin' && <th style={{ padding: '12px 16px', width: '130px', background: 'var(--bg-secondary)' }}>Actions</th>}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              const filtered = agents.filter(agent => {
+                                const matchesSearch = 
+                                  (agent.name || '').toLowerCase().includes(agentSearchQuery.toLowerCase()) ||
+                                  (agent.email || '').toLowerCase().includes(agentSearchQuery.toLowerCase());
+                                const matchesRole = agentRoleFilter === 'all' || agent.role === agentRoleFilter;
+                                const matchesStatus = agentStatusFilter === 'all' || 
+                                  (agentStatusFilter === 'disabled' ? !!agent.is_disabled : !agent.is_disabled);
+                                return matchesSearch && matchesRole && matchesStatus;
+                              });
+
+                              if (filtered.length === 0) {
+                                return (
+                                  <tr>
+                                    <td colSpan={crmUser.role === 'admin' ? 5 : 4} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                      No agents match the active filter criteria.
+                                    </td>
+                                  </tr>
+                                );
+                              }
+
+                              const itemsPerPage = 10;
+                              const totalPages = Math.ceil(filtered.length / itemsPerPage);
+                              // Ensure current page is valid in case list shrunk
+                              const currentPage = Math.min(agentPage, totalPages || 1);
+                              const paginatedAgents = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+                              return (
+                                <>
+                                  {paginatedAgents.map(agent => {
+                                    const isMasterAdmin = agent.email === 'admin@evaops.crm';
+                                    const isCurrentlyEditing = editingAgent?.id === agent.id;
+                                    return (
+                                      <tr key={agent.id} style={{ borderBottom: '1px solid var(--divider)', transition: 'background 0.15s' }}
+                                        onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                        <td style={{ padding: '12px 16px', fontWeight: 600 }}>{agent.name}</td>
+                                        <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{agent.email}</td>
+                                        <td style={{ padding: '12px 16px' }}>
+                                          <span style={{
+                                            padding: '2px 8px',
+                                            borderRadius: '4px',
+                                            fontSize: '0.72rem',
+                                            fontWeight: 600,
+                                            textTransform: 'uppercase',
+                                            background: agent.role === 'admin' ? 'rgba(139,92,246,0.1)' : 'rgba(59,130,246,0.1)',
+                                            color: agent.role === 'admin' ? 'var(--accent-purple)' : '#60a5fa',
+                                            border: agent.role === 'admin' ? '1px solid rgba(139,92,246,0.2)' : '1px solid rgba(59,130,246,0.2)'
+                                          }}>
+                                            {agent.role}
+                                          </span>
+                                        </td>
+                                        <td style={{ padding: '12px 16px' }}>
+                                          <span style={{
+                                            padding: '2px 8px',
+                                            borderRadius: '4px',
+                                            fontSize: '0.72rem',
+                                            fontWeight: 600,
+                                            background: agent.is_disabled ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
+                                            color: agent.is_disabled ? '#f87171' : '#4ade80',
+                                            border: agent.is_disabled ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(34,197,94,0.2)'
+                                          }}>
+                                            {agent.is_disabled ? 'Disabled' : 'Active'}
+                                          </span>
+                                        </td>
+                                        {crmUser.role === 'admin' && (
+                                          <td style={{ padding: '12px 16px' }}>
+                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                              {!isCurrentlyEditing && (
+                                                <button
+                                                  onClick={() => {
+                                                    setEditingAgent(agent);
+                                                    setEditName(agent.name);
+                                                    setEditEmail(agent.email);
+                                                    setEditRole(agent.role);
+                                                    setEditIsDisabled(agent.is_disabled);
+                                                    setEditPassword('');
+                                                    setEditingMsg(null);
+                                                  }}
+                                                  style={{
+                                                    padding: '4px 8px',
+                                                    borderRadius: '4px',
+                                                    border: '1px solid var(--glass-border)',
+                                                    background: 'var(--glass-bg)',
+                                                    color: 'var(--text-primary)',
+                                                    fontSize: '0.72rem',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px'
+                                                  }}
+                                                >
+                                                  <Edit3 size={12} /> Edit
+                                                </button>
+                                              )}
+                                              {!isMasterAdmin && !isCurrentlyEditing && (
+                                                <button
+                                                  onClick={() => handleToggleAgentStatus(agent)}
+                                                  style={{
+                                                    padding: '4px 8px',
+                                                    borderRadius: '4px',
+                                                    border: agent.is_disabled ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(239,68,68,0.2)',
+                                                    background: agent.is_disabled ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.05)',
+                                                    color: agent.is_disabled ? '#4ade80' : '#f87171',
+                                                    fontSize: '0.72rem',
+                                                    fontWeight: 600,
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px'
+                                                  }}
+                                                >
+                                                  <Power size={12} />
+                                                  {agent.is_disabled ? 'Enable' : 'Disable'}
+                                                </button>
+                                              )}
+                                              {isMasterAdmin && (
+                                                <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontStyle: 'italic', padding: '4px 0' }}>
+                                                  Protected
+                                                </span>
+                                              )}
+                                            </div>
+                                          </td>
+                                        )}
+                                      </tr>
+                                    );
+                                  })}
+                                </>
+                              );
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+                      
+                      {/* Roster Pagination Bar */}
+                      {(() => {
+                        const filtered = agents.filter(agent => {
+                          const matchesSearch = 
+                            (agent.name || '').toLowerCase().includes(agentSearchQuery.toLowerCase()) ||
+                            (agent.email || '').toLowerCase().includes(agentSearchQuery.toLowerCase());
+                          const matchesRole = agentRoleFilter === 'all' || agent.role === agentRoleFilter;
+                          const matchesStatus = agentStatusFilter === 'all' || 
+                            (agentStatusFilter === 'disabled' ? !!agent.is_disabled : !agent.is_disabled);
+                          return matchesSearch && matchesRole && matchesStatus;
+                        });
+                        const itemsPerPage = 10;
+                        const totalPages = Math.ceil(filtered.length / itemsPerPage);
+                        if (totalPages <= 1) return null;
+                        
+                        return (
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '12px 16px',
+                            borderTop: '1px solid var(--divider)',
+                            background: 'rgba(255, 255, 255, 0.01)',
+                            fontSize: '0.74rem'
+                          }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>
+                              Showing {((agentPage - 1) * itemsPerPage) + 1} to {Math.min(agentPage * itemsPerPage, filtered.length)} of {filtered.length} agents
+                            </span>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <button
+                                type="button"
+                                disabled={agentPage === 1}
+                                onClick={() => setAgentPage(prev => Math.max(1, prev - 1))}
+                                style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '4px',
+                                  border: '1px solid var(--glass-border)',
+                                  background: 'var(--glass-bg)',
+                                  color: agentPage === 1 ? 'var(--text-muted)' : 'var(--text-primary)',
+                                  cursor: agentPage === 1 ? 'not-allowed' : 'pointer',
+                                  fontSize: '0.72rem'
+                                }}
+                              >
+                                Previous
+                              </button>
+                              <span style={{ fontWeight: 700, color: 'var(--text-primary)', padding: '0 4px' }}>
+                                {agentPage} / {totalPages}
+                              </span>
+                              <button
+                                type="button"
+                                disabled={agentPage === totalPages}
+                                onClick={() => setAgentPage(prev => Math.min(totalPages, prev + 1))}
+                                style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '4px',
+                                  border: '1px solid var(--glass-border)',
+                                  background: 'var(--glass-bg)',
+                                  color: agentPage === totalPages ? 'var(--text-muted)' : 'var(--text-primary)',
+                                  cursor: agentPage === totalPages ? 'not-allowed' : 'pointer',
+                                  fontSize: '0.72rem'
+                                }}
+                              >
+                                Next
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   ) : (
-                    <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.84rem', marginBottom: '24px' }}>
+                    <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.84rem', marginBottom: 0 }}>
                       No support agents found.
                     </div>
                   )}
-
                 </div>
 
-                {/* Right Column: Register & Edit Forms */}
+                {/* Right Column: Forms & Compliance Info */}
                 <div>
-                  {/* ── Inline Edit Panel ── */}
-                  {editingAgent && (
-                    <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px', border: '1px solid rgba(139,92,246,0.3)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                        <h4 style={{ fontSize: '0.94rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <Edit3 size={16} style={{ color: 'var(--accent-purple)' }} />
-                          Editing: {editingAgent.name}
-                        </h4>
-                        <button
-                          onClick={() => setEditingAgent(null)}
-                          style={{
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            border: 'none',
-                            background: 'rgba(239,68,68,0.1)',
-                            color: '#f87171',
-                            fontSize: '0.72rem',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
+                  {crmUser.role === 'admin' && editingAgent && (
+                    <>
+                    {/* ── Inline Edit Panel ── */}
+                    {editingAgent && (
+                      <div className="glass-panel" style={{ padding: '24px', marginBottom: '24px', border: '1px solid rgba(139,92,246,0.3)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                          <h4 style={{ fontSize: '0.94rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Edit3 size={16} style={{ color: 'var(--accent-purple)' }} />
+                            Editing: {editingAgent.name}
+                          </h4>
+                          <button
+                            onClick={() => setEditingAgent(null)}
+                            style={{
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              border: 'none',
+                              background: 'rgba(239,68,68,0.1)',
+                              color: '#f87171',
+                              fontSize: '0.72rem',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
 
-                      {editingMsg && (
+                        {editingMsg && (
+                          <div style={{
+                            background: editingMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                            border: `1px solid ${editingMsg.type === 'success' ? 'var(--success)' : 'var(--error)'}`,
+                            padding: '10px 12px',
+                            borderRadius: '8px',
+                            color: editingMsg.type === 'success' ? '#a7f3d0' : '#fca5a5',
+                            fontSize: '0.8rem',
+                            marginBottom: '16px'
+                          }}>
+                            {editingMsg.text}
+                          </div>
+                        )}
+
+                        <form onSubmit={handleUpdateAgent} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                            <div>
+                              <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                                Agent Name
+                              </label>
+                              <input
+                                type="text"
+                                required
+                                value={editName}
+                                onChange={e => setEditName(e.target.value)}
+                                style={{
+                                  width: '100%',
+                                  padding: '10px 12px',
+                                  background: 'var(--input-bg)',
+                                  border: '1px solid var(--glass-border)',
+                                  borderRadius: '8px',
+                                  color: 'var(--text-primary)',
+                                  fontSize: '0.86rem',
+                                  outline: 'none',
+                                  boxSizing: 'border-box'
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                                Agent Email
+                              </label>
+                              <input
+                                type="email"
+                                required
+                                value={editEmail}
+                                onChange={e => setEditEmail(e.target.value)}
+                                style={{
+                                  width: '100%',
+                                  padding: '10px 12px',
+                                  background: 'var(--input-bg)',
+                                  border: '1px solid var(--glass-border)',
+                                  borderRadius: '8px',
+                                  color: 'var(--text-primary)',
+                                  fontSize: '0.86rem',
+                                  outline: 'none',
+                                  boxSizing: 'border-box'
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                            <div>
+                              <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                                Role
+                              </label>
+                              <select
+                                value={editRole}
+                                onChange={e => setEditRole(e.target.value)}
+                                style={{
+                                  width: '100%',
+                                  padding: '10px 12px',
+                                  background: 'var(--input-bg)',
+                                  border: '1px solid var(--glass-border)',
+                                  borderRadius: '8px',
+                                  color: 'var(--text-primary)',
+                                  fontSize: '0.86rem',
+                                  outline: 'none',
+                                  boxSizing: 'border-box'
+                                }}
+                              >
+                                <option value="agent">Support Agent</option>
+                                <option value="admin">Administrator</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                                Password (leave blank to keep current)
+                              </label>
+                              <input
+                                type="password"
+                                value={editPassword}
+                                onChange={e => setEditPassword(e.target.value)}
+                                placeholder="Min 8 characters"
+                                style={{
+                                  width: '100%',
+                                  padding: '10px 12px',
+                                  background: 'var(--input-bg)',
+                                  border: '1px solid var(--glass-border)',
+                                  borderRadius: '8px',
+                                  color: 'var(--text-primary)',
+                                  fontSize: '0.86rem',
+                                  outline: 'none',
+                                  boxSizing: 'border-box'
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <label style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                              <input
+                                type="checkbox"
+                                checked={editIsDisabled}
+                                onChange={e => setEditIsDisabled(e.target.checked)}
+                                disabled={editingAgent.email === 'admin@evaops.crm'}
+                                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                              />
+                              Account Disabled
+                            </label>
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={updatingAgent}
+                            style={{
+                              padding: '10px 16px',
+                              borderRadius: '8px',
+                              border: 'none',
+                              background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                              color: '#ffffff',
+                              fontWeight: 600,
+                              cursor: updatingAgent ? 'not-allowed' : 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '8px',
+                              fontSize: '0.86rem',
+                              alignSelf: 'flex-start',
+                              marginTop: '4px'
+                            }}
+                          >
+                            {updatingAgent ? (
+                              <><RefreshCw size={14} className="spin-anim" /> Saving...</>
+                            ) : (
+                              <><Save size={14} /> Save Changes</>
+                            )}
+                          </button>
+                        </form>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* ── Create New Agent (Visible to everyone, locked/blurred for agents) ── */}
+                <div className="glass-panel" style={{ padding: '28px', position: 'relative' }}>
+                  <div style={{ filter: crmUser.role !== 'admin' ? 'blur(2.5px)' : 'none', pointerEvents: crmUser.role !== 'admin' ? 'none' : 'auto' }}>
+                      <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <UserPlus size={16} style={{ color: 'var(--accent-purple)' }} />
+                        Create Support Agent Account
+                      </h4>
+
+                      {agentMsg && (
                         <div style={{
-                          background: editingMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-                          border: `1px solid ${editingMsg.type === 'success' ? 'var(--success)' : 'var(--error)'}`,
+                          background: agentMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                          border: `1px solid ${agentMsg.type === 'success' ? 'var(--success)' : 'var(--error)'}`,
                           padding: '10px 12px',
                           borderRadius: '8px',
-                          color: editingMsg.type === 'success' ? '#a7f3d0' : '#fca5a5',
+                          color: agentMsg.type === 'success' ? '#a7f3d0' : '#fca5a5',
                           fontSize: '0.8rem',
-                          marginBottom: '16px'
+                          marginBottom: '20px'
                         }}>
-                          {editingMsg.text}
+                          {agentMsg.text}
                         </div>
                       )}
 
-                      <form onSubmit={handleUpdateAgent} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      <form onSubmit={handleCreateAgent} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                           <div>
                             <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
@@ -2275,8 +3170,9 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                             <input
                               type="text"
                               required
-                              value={editName}
-                              onChange={e => setEditName(e.target.value)}
+                              value={agentName}
+                              onChange={e => setAgentName(e.target.value)}
+                              placeholder="Jane Doe"
                               style={{
                                 width: '100%',
                                 padding: '10px 12px',
@@ -2297,8 +3193,9 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                             <input
                               type="email"
                               required
-                              value={editEmail}
-                              onChange={e => setEditEmail(e.target.value)}
+                              value={agentEmail}
+                              onChange={e => setAgentEmail(e.target.value)}
+                              placeholder="jane.doe@evaops.crm"
                               style={{
                                 width: '100%',
                                 padding: '10px 12px',
@@ -2317,35 +3214,13 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                           <div>
                             <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                              Role
-                            </label>
-                            <select
-                              value={editRole}
-                              onChange={e => setEditRole(e.target.value)}
-                              style={{
-                                width: '100%',
-                                padding: '10px 12px',
-                                background: 'var(--input-bg)',
-                                border: '1px solid var(--glass-border)',
-                                borderRadius: '8px',
-                                color: 'var(--text-primary)',
-                                fontSize: '0.86rem',
-                                outline: 'none',
-                                boxSizing: 'border-box'
-                              }}
-                            >
-                              <option value="agent">Support Agent</option>
-                              <option value="admin">Administrator</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                              Password (leave blank to keep current)
+                              Initial Password
                             </label>
                             <input
                               type="password"
-                              value={editPassword}
-                              onChange={e => setEditPassword(e.target.value)}
+                              required
+                              value={agentPassword}
+                              onChange={e => setAgentPassword(e.target.value)}
                               placeholder="Min 8 characters"
                               style={{
                                 width: '100%',
@@ -2360,24 +3235,30 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                               }}
                             />
                           </div>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <label style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                            <input
-                              type="checkbox"
-                              checked={editIsDisabled}
-                              onChange={e => setEditIsDisabled(e.target.checked)}
-                              disabled={editingAgent.email === 'admin@evaops.crm'}
-                              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                            />
-                            Account Disabled
-                          </label>
+                          <div>
+                            <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
+                              Administrative Role
+                            </label>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                              {[
+                                { id: 'agent', label: 'Support Agent', desc: 'Invoicing & plan view only', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)' },
+                                { id: 'admin', label: 'Administrator', desc: 'Full access & user creation', color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)' }
+                              ].map(r => {
+                                const isSel = agentRole === r.id;
+                                return (
+                                  <div key={r.id} onClick={() => setAgentRole(r.id)} style={{ flex: 1, padding: '10px 12px', borderRadius: '10px', border: `2px solid ${isSel ? r.color : 'var(--glass-border)'}`, background: isSel ? r.bg : 'transparent', cursor: 'pointer', transition: 'all 0.2s', boxShadow: isSel ? `0 0 12px ${r.bg}` : 'none' }}>
+                                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: isSel ? r.color : 'var(--text-primary)', marginBottom: '2px' }}>{r.label}</div>
+                                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{r.desc}</div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
                         </div>
 
                         <button
                           type="submit"
-                          disabled={updatingAgent}
+                          disabled={creatingAgent}
                           style={{
                             padding: '10px 16px',
                             borderRadius: '8px',
@@ -2385,7 +3266,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                             background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
                             color: '#ffffff',
                             fontWeight: 600,
-                            cursor: updatingAgent ? 'not-allowed' : 'pointer',
+                            cursor: creatingAgent ? 'not-allowed' : 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -2395,165 +3276,111 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                             marginTop: '4px'
                           }}
                         >
-                          {updatingAgent ? (
-                            <><RefreshCw size={14} className="spin-anim" /> Saving...</>
+                          {creatingAgent ? (
+                            <><RefreshCw size={14} className="spin-anim" /> Creating...</>
                           ) : (
-                            <><Save size={14} /> Save Changes</>
+                            <><Plus size={14} /> Register CRM User</>
                           )}
                         </button>
                       </form>
                     </div>
-                  )}
 
-                  {/* ── Create New Agent ── */}
-                  <div className="glass-panel" style={{ padding: '28px' }}>
-                    <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <UserPlus size={16} style={{ color: 'var(--accent-purple)' }} />
-                      Create Support Agent Account
-                    </h4>
-
-                    {agentMsg && (
+                    {/* Lock Overlay for non-admins */}
+                    {crmUser.role !== 'admin' && (
                       <div style={{
-                        background: agentMsg.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
-                        border: `1px solid ${agentMsg.type === 'success' ? 'var(--success)' : 'var(--error)'}`,
-                        padding: '10px 12px',
-                        borderRadius: '8px',
-                        color: agentMsg.type === 'success' ? '#a7f3d0' : '#fca5a5',
-                        fontSize: '0.8rem',
-                        marginBottom: '20px'
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: localTheme === 'light' ? 'rgba(255, 255, 255, 0.45)' : 'rgba(15, 23, 42, 0.45)',
+                        borderRadius: '12px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '24px',
+                        textAlign: 'center',
+                        backdropFilter: 'blur(3px)',
+                        zIndex: 5
                       }}>
-                        {agentMsg.text}
-                      </div>
-                    )}
-
-                    <form onSubmit={handleCreateAgent} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                        <div>
-                          <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                            Agent Name
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            value={agentName}
-                            onChange={e => setAgentName(e.target.value)}
-                            placeholder="Jane Doe"
-                            style={{
-                              width: '100%',
-                              padding: '10px 12px',
-                              background: 'var(--input-bg)',
-                              border: '1px solid var(--glass-border)',
-                              borderRadius: '8px',
-                              color: 'var(--text-primary)',
-                              fontSize: '0.86rem',
-                              outline: 'none',
-                              boxSizing: 'border-box'
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                            Agent Email
-                          </label>
-                          <input
-                            type="email"
-                            required
-                            value={agentEmail}
-                            onChange={e => setAgentEmail(e.target.value)}
-                            placeholder="jane.doe@evaops.crm"
-                            style={{
-                              width: '100%',
-                              padding: '10px 12px',
-                              background: 'var(--input-bg)',
-                              border: '1px solid var(--glass-border)',
-                              borderRadius: '8px',
-                              color: 'var(--text-primary)',
-                              fontSize: '0.86rem',
-                              outline: 'none',
-                              boxSizing: 'border-box'
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                        <div>
-                          <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                            Initial Password
-                          </label>
-                          <input
-                            type="password"
-                            required
-                            value={agentPassword}
-                            onChange={e => setAgentPassword(e.target.value)}
-                            placeholder="Min 8 characters"
-                            style={{
-                              width: '100%',
-                              padding: '10px 12px',
-                              background: 'var(--input-bg)',
-                              border: '1px solid var(--glass-border)',
-                              borderRadius: '8px',
-                              color: 'var(--text-primary)',
-                              fontSize: '0.86rem',
-                              outline: 'none',
-                              boxSizing: 'border-box'
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
-                            Administrative Role
-                          </label>
-                          <select
-                            value={agentRole}
-                            onChange={e => setAgentRole(e.target.value)}
-                            style={{
-                              width: '100%',
-                              padding: '10px 12px',
-                              background: 'var(--input-bg)',
-                              border: '1px solid var(--glass-border)',
-                              borderRadius: '8px',
-                              color: 'var(--text-primary)',
-                              fontSize: '0.86rem',
-                              outline: 'none',
-                              boxSizing: 'border-box'
-                            }}
-                          >
-                            <option value="agent">Support Agent (Invoicing & Plan view)</option>
-                            <option value="admin">Administrator (Full Access & User creation)</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={creatingAgent}
-                        style={{
-                          padding: '10px 16px',
-                          borderRadius: '8px',
-                          border: 'none',
-                          background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
-                          color: '#ffffff',
-                          fontWeight: 600,
-                          cursor: creatingAgent ? 'not-allowed' : 'pointer',
+                        <div style={{
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '50%',
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          border: '1.5px solid rgba(239, 68, 68, 0.3)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: '8px',
-                          fontSize: '0.86rem',
-                          alignSelf: 'flex-start',
-                          marginTop: '4px'
-                        }}
-                      >
-                        {creatingAgent ? (
-                          <><RefreshCw size={14} className="spin-anim" /> Creating...</>
-                        ) : (
-                          <><Plus size={14} /> Register CRM User</>
-                        )}
-                      </button>
-                    </form>
+                          color: '#f87171',
+                          marginBottom: '14px'
+                        }}>
+                          <Lock size={18} />
+                        </div>
+                        <h5 style={{ fontSize: '0.86rem', fontWeight: 700, margin: '0 0 6px 0', color: 'var(--text-primary)' }}>Admin Privilege Required</h5>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', lineHeight: 1.4, maxWidth: '240px', margin: 0 }}>
+                          Roster creation is restricted to system administrators. Contact your compliance officer for access.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── Staff Compliance Guidelines Panel (Visible to All Roles) ── */}
+                  <div className="glass-panel" style={{
+                    padding: '24px',
+                    marginTop: '24px',
+                  background: 'rgba(99, 102, 241, 0.02)',
+                  border: '1.5px dashed rgba(139, 92, 246, 0.25)',
+                  textAlign: 'left'
+                }}>
+                  <h4 style={{
+                    fontSize: '0.94rem',
+                    fontWeight: 800,
+                    marginBottom: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    color: 'var(--text-primary)'
+                  }}>
+                    <Shield size={16} style={{ color: 'var(--accent-purple)' }} />
+                    Roster Compliance & Access Audit Guidelines
+                  </h4>
+                  
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: '0 0 16px 0' }}>
+                    This administrative console governs seat allocations, licensing plans, and active agent directories across the DevOps fleet. Please adhere strictly to Estevia core security protocols.
+                  </p>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div style={{ borderLeft: '3px solid var(--accent-purple)', paddingLeft: '12px' }}>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                        1. Azure AD Sync & Identity Rules
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                        Synchronizing with Azure AD updates staff profiles via Microsoft Graph. Disabling an agent profile in your primary Active Directory tenant automatically blocks their CRM login access upon the next synchronization.
+                      </div>
+                    </div>
+
+                    <div style={{ borderLeft: '3px solid #2dd4bf', paddingLeft: '12px' }}>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                        2. Dynamic Role Bypass Audits
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                        Bypass logins map CRM users to client workspace accounts dynamically. CRM Administrators are granted <strong style={{ color: 'var(--text-primary)' }}>admin</strong> roles (full edit/override access), while Support Agents receive a read-only <strong style={{ color: 'var(--text-primary)' }}>viewer</strong> (developer viewer) role.
+                      </div>
+                    </div>
+
+                    <div style={{ borderLeft: '3px solid #fbbf24', paddingLeft: '12px' }}>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                        3. Access Revocation & Policy Controls
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                        Access tokens expire automatically. Administrators are required to perform a quarterly roster audit and manually toggle inactive support accounts to <code style={{ background: 'var(--input-bg)', padding: '2px 4px', borderRadius: '4px', border: '1px solid var(--glass-border)' }}>Disabled</code> to prevent credential leak risks.
+                      </div>
+                    </div>
                   </div>
                 </div>
+              </div>
               </div>
             </div>
           )}
