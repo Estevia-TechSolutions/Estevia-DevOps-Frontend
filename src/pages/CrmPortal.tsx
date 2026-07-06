@@ -103,6 +103,95 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
   const [editingMsg, setEditingMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [updatingAgent, setUpdatingAgent] = useState(false);
 
+  // ── CRM Currency & Breakdown Helpers ──────────────────────────────────────────
+  const USD_TO_INR = 83;
+  const renderDualCurrency = (amount: number | string, baseCurrency: string = 'USD') => {
+    const parsed = parseFloat(String(amount)) || 0;
+    let usdVal = 0;
+    let inrVal = 0;
+    if (baseCurrency === 'INR' || String(amount).includes('₹')) {
+      inrVal = parsed;
+      usdVal = parsed / USD_TO_INR;
+    } else {
+      usdVal = parsed;
+      inrVal = parsed * USD_TO_INR;
+    }
+    return (
+      <span style={{ whiteSpace: 'nowrap' }}>
+        <strong>${usdVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+        <span style={{ fontSize: '0.85em', color: 'var(--text-secondary)', marginLeft: '6px' }}>
+          (₹{inrVal.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })})
+        </span>
+      </span>
+    );
+  };
+
+  interface BreakdownLine {
+    label: string;
+    value: string;
+    bold?: boolean;
+    dim?: boolean;
+  }
+
+  const getInvoiceBreakdown = (inv: any, clientTier: string = 'growth'): BreakdownLine[] => {
+    const lines: BreakdownLine[] = [];
+    const amount = parseFloat(inv.amount || '0');
+    const currency = inv.currency || 'USD';
+    const isINR = currency === 'INR';
+    const type = (inv.invoice_type || '').toLowerCase();
+    const tier = (clientTier || 'growth').toLowerCase();
+    
+    const formatValue = (usdVal: number, inrVal: number, suffix = '') => {
+      const usdStr = `$${usdVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${suffix}`;
+      const inrStr = `₹${Math.round(inrVal).toLocaleString()}${suffix}`;
+      return isINR ? `${inrStr} (≈ ${usdStr})` : `${usdStr} (≈ ${inrStr})`;
+    };
+
+    if (type === 'devops_package' || type === 'devops') {
+      lines.push(
+        { label: 'Item Type', value: '🚀 DevOps Sub-Package Fee' },
+        { label: 'Base Subscription Price', value: formatValue(150, 12500, ' / month') },
+        { label: 'Total Billed', value: formatValue(isINR ? amount / 83.3333 : amount, isINR ? amount : amount * 83.3333), bold: true }
+      );
+    } else if (type === 'developer_package' || type === 'developer') {
+      lines.push(
+        { label: 'Item Type', value: '💻 Developer Sub-Package Fee' },
+        { label: 'Base Subscription Price', value: formatValue(99, 8250, ' / month') },
+        { label: 'Total Billed', value: formatValue(isINR ? amount / 83.3333 : amount, isINR ? amount : amount * 83.3333), bold: true }
+      );
+    } else if (type === 'security_package' || type === 'security') {
+      lines.push(
+        { label: 'Item Type', value: '🛡️ Security Sub-Package Fee' },
+        { label: 'Base Subscription Price', value: formatValue(120, 10000, ' / month') },
+        { label: 'Total Billed', value: formatValue(isINR ? amount / 83.3333 : amount, isINR ? amount : amount * 83.3333), bold: true }
+      );
+    } else {
+      const baseRateUSD = tier === 'growth' ? 1000 : tier === 'enterprise' ? 2000 : 4000;
+      const baseRateINR = tier === 'growth' ? 83333 : tier === 'enterprise' ? 166666 : 333333;
+      const baseRate = isINR ? baseRateINR : baseRateUSD;
+
+      const seatPriceUSD = tier === 'growth' ? 40 : tier === 'enterprise' ? 90 : 30;
+      const seatPriceINR = tier === 'growth' ? 3333 : tier === 'enterprise' ? 7500 : 2500;
+      const seatPrice = isINR ? seatPriceINR : seatPriceUSD;
+
+      const billedSeats = Math.max(0, Math.round((amount - baseRate) / seatPrice));
+      const seatTotalUSD = billedSeats * seatPriceUSD;
+      const seatTotalINR = billedSeats * seatPriceINR;
+
+      lines.push(
+        { label: 'Item Type', value: '🏢 Platform Seat & License Fee' },
+        { label: 'Base Platform Rate', value: formatValue(baseRateUSD, baseRateINR, ' / month') },
+        { label: 'Seat Allocation', value: `${billedSeats} active seat${billedSeats !== 1 ? 's' : ''}` },
+        { label: 'Rate Per Seat', value: formatValue(seatPriceUSD, seatPriceINR, ' / seat') },
+        { label: 'Total Seat Surcharge', value: formatValue(seatTotalUSD, seatTotalINR) },
+        { label: 'Total Amount Due', value: formatValue(isINR ? amount / 83.3333 : amount, isINR ? amount : amount * 83.3333), bold: true }
+      );
+    }
+    return lines;
+  };
+
+  const [expandedBreakdown, setExpandedBreakdown] = useState<Record<number, boolean>>({});
+
   // ── CRM Helper request wrapper ────────────────────────────────────────────────
   const crmRequest = async (path: string, options: RequestInit = {}) => {
     const headers = new Headers(options.headers || {});
@@ -244,7 +333,6 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
   const fetchAllInvoices = async () => {
     setLoadingInvoices(true);
     try {
-      // In CRM panel, let's fetch clients list first, then query invoices for each to aggregate them
       const clientList = await crmRequest('/clients');
       const allInvoicesAggregate: any[] = [];
       for (const client of clientList) {
@@ -253,11 +341,11 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
           allInvoicesAggregate.push({
             ...inv,
             clientName: client.name,
-            clientId: client.id
+            clientId: client.id,
+            clientTier: client.license_tier || 'growth'
           });
         });
       }
-      // Sort by issue_date descending
       allInvoicesAggregate.sort((a, b) => new Date(b.issue_date).getTime() - new Date(a.issue_date).getTime());
       setInvoices(allInvoicesAggregate);
     } catch (err) {
@@ -1424,9 +1512,9 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       {/* Tier Cards */}
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
                         {[
-                          { id: 'growth', name: 'Growth Plan', price: '$1,000', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.25)', glow: 'rgba(59,130,246,0.2)', features: ['10 Active Operators limit', 'Standard shared runners', 'Email support (business hours)', 'Base infra metrics tracking'] },
-                          { id: 'enterprise', name: 'Enterprise', price: '$2,000', color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.25)', glow: 'rgba(139,92,246,0.2)', features: ['30 Active Operators limit', 'Dedicated build runners', '24/7 Priority support SLAs', 'Advanced insights dashboard', 'Custom Key Vault integration'] },
-                          { id: 'sovereign', name: 'Sovereign', price: '$4,000', color: '#14b8a6', bg: 'rgba(20,184,166,0.08)', border: 'rgba(20,184,166,0.25)', glow: 'rgba(20,184,166,0.2)', features: ['Unlimited active operators', 'Self-hosted private nodes', 'Dedicated SLA guarantees', 'Audit logs & SSO authentication', 'Multi-tenant routing rules'] }
+                          { id: 'growth', name: 'Growth Plan', price: '$1,000 / ₹83,000', color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.25)', glow: 'rgba(59,130,246,0.2)', features: ['10 Active Operators limit', 'Standard shared runners', 'Email support (business hours)', 'Base infra metrics tracking'] },
+                          { id: 'enterprise', name: 'Enterprise', price: '$2,000 / ₹1,66,000', color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.25)', glow: 'rgba(139,92,246,0.2)', features: ['30 Active Operators limit', 'Dedicated build runners', '24/7 Priority support SLAs', 'Advanced insights dashboard', 'Custom Key Vault integration'] },
+                          { id: 'sovereign', name: 'Sovereign', price: '$4,000 / ₹3,32,000', color: '#14b8a6', bg: 'rgba(20,184,166,0.08)', border: 'rgba(20,184,166,0.25)', glow: 'rgba(20,184,166,0.2)', features: ['Unlimited active operators', 'Self-hosted private nodes', 'Dedicated SLA guarantees', 'Audit logs & SSO authentication', 'Multi-tenant routing rules'] }
                         ].map(tier => {
                           const isSelected = licenseTier === tier.id;
                           return (
@@ -1608,7 +1696,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                         </div>
                         <ul style={{ margin: 0, paddingLeft: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           <li><strong>Base Fees:</strong> Flat subscription fees are charged monthly in advance relative to the selected tier plan.</li>
-                          <li><strong>Operator Seat Surcharges:</strong> Additional active user seats are billed at dynamic per-seat rates determined by the current tier ($40/seat on Growth, $90/seat on Enterprise, and $30/seat on Sovereign).</li>
+                          <li><strong>Operator Seat Surcharges:</strong> Additional active user seats are billed at dynamic per-seat rates determined by the current tier ($40 / ₹3,320 per seat on Growth, $90 / ₹7,470 per seat on Enterprise, and $30 / ₹2,490 per seat on Sovereign).</li>
                           <li><strong>Terms & Adjustments:</strong> Mid-cycle changes are pro-rated. Plan switches are applied instantly to platform quotas.</li>
                         </ul>
                       </div>
@@ -1626,28 +1714,40 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       Billing Summary
                     </h4>
                     {(() => {
-                      const totalInvoiced = clientInvoices.reduce((s, i) => s + parseFloat(i.amount), 0);
-                      const totalPaid = clientInvoices.filter(i => i.status === 'Paid').reduce((s, i) => s + parseFloat(i.amount), 0);
-                      const totalPending = clientInvoices.filter(i => i.status === 'Pending').reduce((s, i) => s + parseFloat(i.amount), 0);
+                      const totalInvoicedUSD = clientInvoices.reduce((s, i) => {
+                        const amt = parseFloat(i.amount) || 0;
+                        const isINR = i.currency === 'INR';
+                        return s + (isINR ? amt / 83 : amt);
+                      }, 0);
+                      const totalPaidUSD = clientInvoices.filter(i => i.status === 'Paid').reduce((s, i) => {
+                        const amt = parseFloat(i.amount) || 0;
+                        const isINR = i.currency === 'INR';
+                        return s + (isINR ? amt / 83 : amt);
+                      }, 0);
+                      const totalPendingUSD = clientInvoices.filter(i => i.status === 'Pending').reduce((s, i) => {
+                        const amt = parseFloat(i.amount) || 0;
+                        const isINR = i.currency === 'INR';
+                        return s + (isINR ? amt / 83 : amt);
+                      }, 0);
                       const lastInv = clientInvoices.length > 0 ? clientInvoices[0] : null;
                       return (
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                           <div style={{ padding: '12px', background: 'var(--input-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Total Invoiced</div>
-                            <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '4px' }}>${totalInvoiced.toLocaleString()}</div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 700, marginTop: '4px' }}>{renderDualCurrency(totalInvoicedUSD)}</div>
                           </div>
                           <div style={{ padding: '12px', background: 'var(--input-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Total Collected</div>
-                            <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '4px', color: '#4ade80' }}>${totalPaid.toLocaleString()}</div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 700, marginTop: '4px', color: '#4ade80' }}>{renderDualCurrency(totalPaidUSD)}</div>
                           </div>
                           <div style={{ padding: '12px', background: 'var(--input-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Outstanding</div>
-                            <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '4px', color: totalPending > 0 ? 'var(--warning)' : 'var(--text-primary)' }}>${totalPending.toLocaleString()}</div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 700, marginTop: '4px', color: totalPendingUSD > 0 ? 'var(--warning)' : 'var(--text-primary)' }}>{renderDualCurrency(totalPendingUSD)}</div>
                           </div>
                           <div style={{ padding: '12px', background: 'var(--input-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Last Invoice</div>
-                            <div style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '4px' }}>
-                              {lastInv ? `$${parseFloat(lastInv.amount).toLocaleString()}` : '—'}
+                            <div style={{ fontSize: '0.9rem', fontWeight: 700, marginTop: '4px' }}>
+                              {lastInv ? renderDualCurrency(lastInv.amount, lastInv.currency || 'USD') : '—'}
                             </div>
                             <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
                               {lastInv ? new Date(lastInv.issue_date).toLocaleDateString() : ''}
@@ -1701,15 +1801,15 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                           }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                               <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Base ({tier})</span>
-                              <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>${baseAmount.toLocaleString()}</span>
+                              <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{renderDualCurrency(baseAmount)}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                               <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Seats ({seats} × ${p.perSeat}/seat)</span>
-                              <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>${perSeatTotal.toLocaleString()}</span>
+                              <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{renderDualCurrency(perSeatTotal)}</span>
                             </div>
                             <div style={{ borderTop: '1px dashed var(--divider)', marginTop: '8px', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <span style={{ fontSize: '0.82rem', fontWeight: 700 }}>Invoice Total</span>
-                              <span style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--accent-purple)' }}>${totalAmount.toLocaleString()}</span>
+                              <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--accent-purple)' }}>{renderDualCurrency(totalAmount)}</span>
                             </div>
                           </div>
 
@@ -1984,6 +2084,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--divider)', textAlign: 'left' }}>
                         <th style={{ padding: '14px 20px' }}>Invoice Number</th>
                         <th style={{ padding: '14px 20px' }}>Client Organization</th>
+                        <th style={{ padding: '14px 20px', whiteSpace: 'nowrap' }}>Billing Type</th>
                         <th style={{ padding: '14px 20px' }}>Amount</th>
                         <th style={{ padding: '14px 20px' }}>Issue Date</th>
                         <th style={{ padding: '14px 20px' }}>Due Date</th>
@@ -2003,7 +2104,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                         if (filtered.length === 0) {
                           return (
                             <tr>
-                              <td colSpan={7} style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                              <td colSpan={8} style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
                                 No invoices match the search query.
                               </td>
                             </tr>
@@ -2011,72 +2112,148 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                         }
 
                         return filtered.map(inv => (
-                          <tr key={inv.id} style={{ borderBottom: '1px solid var(--divider)', transition: 'background 0.15s' }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                            <td style={{ padding: '14px 20px', fontWeight: 600 }}>{inv.invoice_number}</td>
-                            <td style={{ padding: '14px 20px' }}>
-                              <span style={{ fontWeight: 500 }}>{inv.clientName}</span>
-                              <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>({inv.organization_id})</span>
-                            </td>
-                            <td style={{ padding: '14px 20px' }}>${parseFloat(inv.amount).toLocaleString()}</td>
-                            <td style={{ padding: '14px 20px' }}>{new Date(inv.issue_date).toLocaleDateString()}</td>
-                            <td style={{ padding: '14px 20px' }}>{new Date(inv.due_date).toLocaleDateString()}</td>
-                            <td style={{ padding: '14px 20px' }}>
-                              <span style={{
-                                padding: '3px 8px',
-                                borderRadius: '4px',
-                                fontSize: '0.72rem',
-                                fontWeight: 700,
-                                textTransform: 'uppercase',
-                                background: inv.status === 'Paid' ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)',
-                                color: inv.status === 'Paid' ? 'var(--success)' : 'var(--warning)',
-                                border: inv.status === 'Paid' ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(245,158,11,0.2)'
-                              }}>
-                                {inv.status}
-                              </span>
-                            </td>
-                            <td style={{ padding: '14px 20px' }}>
-                              {inv.status === 'Pending' ? (
-                                <div style={{ display: 'flex', gap: '8px' }}>
+                          <React.Fragment key={inv.id}>
+                            <tr style={{ borderBottom: expandedBreakdown[inv.id] ? 'none' : '1px solid var(--divider)', transition: 'background 0.15s' }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                              <td style={{ padding: '14px 20px', fontWeight: 600 }}>{inv.invoice_number}</td>
+                              <td style={{ padding: '14px 20px' }}>
+                                <span style={{ fontWeight: 500 }}>{inv.clientName}</span>
+                                <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>({inv.organization_id})</span>
+                              </td>
+                              <td style={{ padding: '14px 20px' }}>
+                                <span style={{
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  whiteSpace: 'nowrap',
+                                  background: inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? 'rgba(59,130,246,0.08)'
+                                            : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? 'rgba(139,92,246,0.08)'
+                                            : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? 'rgba(20,184,166,0.08)'
+                                            : 'rgba(251,191,36,0.08)',
+                                  color: inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? '#60a5fa'
+                                       : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? '#c084fc'
+                                       : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? '#2dd4bf'
+                                       : '#fbbf24',
+                                  border: inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? '1px solid rgba(59,130,246,0.2)'
+                                        : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? '1px solid rgba(139,92,246,0.2)'
+                                        : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? '1px solid rgba(20,184,166,0.2)'
+                                        : '1px solid rgba(251,191,36,0.2)'
+                                }}>
+                                  {inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? '🚀 DevOps'
+                                   : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? '💻 Developer'
+                                   : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? '🛡️ Security'
+                                   : '🏢 Platform'}
+                                </span>
+                              </td>
+                              <td style={{ padding: '14px 20px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
+                                  <span>{renderDualCurrency(inv.amount, inv.currency || 'USD')}</span>
                                   <button
-                                    onClick={() => handleUpdateInvoiceStatus(inv.id, 'Paid', 'global')}
+                                    type="button"
+                                    onClick={() => setExpandedBreakdown(prev => ({ ...prev, [inv.id]: !prev[inv.id] }))}
                                     style={{
-                                      padding: '4px 8px',
-                                      borderRadius: '4px',
-                                      border: '1px solid rgba(34,197,94,0.3)',
-                                      background: 'rgba(34,197,94,0.1)',
-                                      color: '#4ade80',
-                                      fontSize: '0.72rem',
-                                      fontWeight: 600,
-                                      cursor: 'pointer'
+                                      background: 'none', border: 'none', padding: 0, color: 'var(--accent-purple)',
+                                      fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer', outline: 'none',
+                                      display: 'inline-flex', alignItems: 'center', gap: '3px'
                                     }}
                                   >
-                                    Mark Paid
-                                  </button>
-                                  <button
-                                    onClick={() => handleUpdateInvoiceStatus(inv.id, 'Void', 'global')}
-                                    style={{
-                                      padding: '4px 8px',
-                                      borderRadius: '4px',
-                                      border: '1px solid rgba(239,68,68,0.2)',
-                                      background: 'rgba(239,68,68,0.05)',
-                                      color: '#f87171',
-                                      fontSize: '0.72rem',
-                                      fontWeight: 600,
-                                      cursor: 'pointer'
-                                    }}
-                                  >
-                                    Void
+                                    <span>{expandedBreakdown[inv.id] ? 'Hide' : 'Show'} Breakdown</span>
+                                    <span>{expandedBreakdown[inv.id] ? '▲' : '▼'}</span>
                                   </button>
                                 </div>
-                              ) : (
-                                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                                  {inv.status === 'Paid' ? `Settled on ${new Date(inv.payment_date).toLocaleDateString()}` : 'No Action'}
+                              </td>
+                              <td style={{ padding: '14px 20px' }}>{new Date(inv.issue_date).toLocaleDateString()}</td>
+                              <td style={{ padding: '14px 20px' }}>{new Date(inv.due_date).toLocaleDateString()}</td>
+                              <td style={{ padding: '14px 20px' }}>
+                                <span style={{
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  textTransform: 'uppercase',
+                                  background: inv.status === 'Paid' ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)',
+                                  color: inv.status === 'Paid' ? 'var(--success)' : 'var(--warning)',
+                                  border: inv.status === 'Paid' ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(245,158,11,0.2)'
+                                }}>
+                                  {inv.status}
                                 </span>
-                              )}
-                            </td>
-                          </tr>
+                              </td>
+                              <td style={{ padding: '14px 20px' }}>
+                                {inv.status === 'Pending' ? (
+                                  <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button
+                                      onClick={() => handleUpdateInvoiceStatus(inv.id, 'Paid', 'global')}
+                                      style={{
+                                        padding: '4px 8px',
+                                        borderRadius: '4px',
+                                        border: '1px solid rgba(34,197,94,0.3)',
+                                        background: 'rgba(34,197,94,0.1)',
+                                        color: '#4ade80',
+                                        fontSize: '0.72rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      Mark Paid
+                                    </button>
+                                    <button
+                                      onClick={() => handleUpdateInvoiceStatus(inv.id, 'Void', 'global')}
+                                      style={{
+                                        padding: '4px 8px',
+                                        borderRadius: '4px',
+                                        border: '1px solid rgba(239,68,68,0.2)',
+                                        background: 'rgba(239,68,68,0.05)',
+                                        color: '#f87171',
+                                        fontSize: '0.72rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      Void
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                                    {inv.status === 'Paid' ? `Settled on ${new Date(inv.payment_date).toLocaleDateString()}` : 'No Action'}
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                            {expandedBreakdown[inv.id] && (() => {
+                              const lines = getInvoiceBreakdown(inv, inv.clientTier || 'growth');
+                              return (
+                                <tr style={{ background: 'rgba(255,255,255,0.015)' }}>
+                                  <td colSpan={8} style={{ padding: '4px 20px 12px 20px' }}>
+                                    <div style={{
+                                      background: 'rgba(30, 41, 59, 0.4)',
+                                      border: '1.5px solid var(--glass-border)',
+                                      borderRadius: '8px',
+                                      padding: '12px',
+                                      textAlign: 'left'
+                                    }}>
+                                      <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '8px', borderBottom: '1px solid var(--divider)', paddingBottom: '4px' }}>
+                                        Calculation Breakup
+                                      </div>
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        {lines.map((line, idx) => (
+                                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
+                                            <span style={{ fontSize: '0.74rem', color: line.dim ? 'var(--text-muted)' : 'var(--text-secondary)' }}>
+                                              {line.label}
+                                            </span>
+                                            <span style={{ fontSize: '0.74rem', color: line.bold ? 'var(--accent-purple)' : 'var(--text-primary)', fontWeight: line.bold ? 800 : 600, whiteSpace: 'nowrap' }}>
+                                              {line.value}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })()}
+                          </React.Fragment>
                         ));
                       })()}
                     </tbody>

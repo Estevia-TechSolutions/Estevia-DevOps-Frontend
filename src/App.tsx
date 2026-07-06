@@ -1740,6 +1740,48 @@ function App() {
     return () => window.removeEventListener('hashchange', checkHash);
   }, []);
 
+  // ── Intercept Bypass URL Parameters (Cross-Domain Impersonation) ───────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const bypassToken = params.get('bypassToken');
+    if (bypassToken) {
+      const bypassUser = params.get('bypassUser');
+      const requiresOnboardingParam = params.get('requiresOnboarding');
+      const orgId = params.get('orgId');
+      const orgNameParam = params.get('orgName');
+
+      localStorage.setItem('devops_token', bypassToken);
+      setToken(bypassToken);
+
+      if (bypassUser) {
+        localStorage.setItem('devops_user', bypassUser);
+        try {
+          setUser(JSON.parse(bypassUser));
+        } catch (e) {}
+      }
+      if (requiresOnboardingParam) {
+        localStorage.setItem('devops_requires_onboarding', requiresOnboardingParam);
+        setRequiresOnboarding(requiresOnboardingParam === 'true');
+      }
+      if (orgId) {
+        localStorage.setItem('devops_organization_id', orgId);
+        setOrganizationId(orgId);
+      }
+      if (orgNameParam) {
+        localStorage.setItem('devops_organization_name', orgNameParam);
+        setOrgName(orgNameParam);
+      }
+
+      // Clear query parameters for clean URL
+      const newUrl = window.location.origin + window.location.pathname + window.location.hash;
+      window.history.replaceState({}, document.title, newUrl);
+      
+      if (orgId) {
+        checkCredentialGateStatus(bypassToken);
+      }
+    }
+  }, []);
+
   // ── Force settings tab when org is disabled ────────────────────────────────
   useEffect(() => {
     if (isOrgDisabled && activeTab !== 'settings') {
