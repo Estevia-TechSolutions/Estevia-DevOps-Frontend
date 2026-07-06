@@ -934,6 +934,81 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
         .crm-section-label { font-size:0.68rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;padding:0 14px;margin-bottom:4px;margin-top:8px; }
         .crm-overdue-row td:first-child { border-left:3px solid #ef4444; }
         .crm-near-due-row td:first-child { border-left:3px solid #f59e0b; }
+
+        /* Downward Menu Hover Tooltip Cards */
+        .crm-menu-hover-card {
+          position: absolute;
+          top: calc(100% + 10px);
+          bottom: auto;
+          left: 50%;
+          transform: translateX(-50%) translateY(-6px);
+          min-width: 200px;
+          max-width: 240px;
+          background: linear-gradient(135deg, rgba(15, 23, 42, 0.97) 0%, rgba(30, 10, 60, 0.96) 100%);
+          border: 1px solid rgba(139, 92, 246, 0.35);
+          border-radius: 12px;
+          padding: 12px 14px;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(139, 92, 246, 0.15);
+          opacity: 0;
+          visibility: hidden;
+          pointer-events: none;
+          transition: opacity 0.22s ease, transform 0.22s ease, visibility 0.22s;
+          z-index: 9999;
+          text-align: left;
+          white-space: normal;
+        }
+        [data-theme="light"] .crm-menu-hover-card {
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(237, 233, 254, 0.97) 100%);
+          border: 1px solid rgba(139, 92, 246, 0.25);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 0 20px rgba(139, 92, 246, 0.08);
+        }
+        .crm-menu-hover-card::after {
+          content: '';
+          position: absolute;
+          top: -5px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 10px;
+          height: 10px;
+          background: inherit;
+          border-left: 1px solid rgba(139, 92, 246, 0.35);
+          border-top: 1px solid rgba(139, 92, 246, 0.35);
+          clip-path: polygon(0 0, 100% 0, 0 100%);
+          transform: translateX(-50%) rotate(45deg);
+        }
+        [data-theme="light"] .crm-menu-hover-card::after {
+          border-left: 1px solid rgba(139, 92, 246, 0.25);
+          border-top: 1px solid rgba(139, 92, 246, 0.25);
+        }
+        .crm-menu-hover-card-left {
+          left: 0;
+          transform: translateX(0) translateY(-6px);
+        }
+        .crm-menu-hover-card-left::after {
+          left: 20px;
+          transform: translateX(0) rotate(45deg);
+        }
+        .crm-menu-hover-card-right {
+          left: auto;
+          right: 0;
+          transform: translateX(0) translateY(-6px);
+        }
+        .crm-menu-hover-card-right::after {
+          left: auto;
+          right: 20px;
+          transform: translateX(0) rotate(45deg);
+        }
+        .premium-tab-btn:hover .crm-menu-hover-card {
+          opacity: 1;
+          visibility: visible;
+          transform: translateX(-50%) translateY(0);
+        }
+        .premium-tab-btn:hover .crm-menu-hover-card-left {
+          transform: translateX(0) translateY(0);
+        }
+        .premium-tab-btn:hover .crm-menu-hover-card-right {
+          transform: translateX(0) translateY(0);
+        }
       `}</style>
 
       {/* ── Premium Site Header ── */}
@@ -1009,6 +1084,29 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
               </div>
             </div>
             <button
+              onClick={onBackToApp}
+              style={{
+                background: 'rgba(139,92,246,0.08)',
+                border: '1px solid rgba(139,92,246,0.25)',
+                color: 'var(--accent-purple)',
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontWeight: 600,
+                padding: '6px 12px',
+                borderRadius: '8px',
+                transition: 'all 0.2s',
+                marginLeft: '6px'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.15)'; e.currentTarget.style.borderColor = 'rgba(139,92,246,0.4)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.08)'; e.currentTarget.style.borderColor = 'rgba(139,92,246,0.25)'; }}
+            >
+              <ArrowRight size={13} style={{ transform: 'rotate(180deg)' }} />
+              Back to Portal
+            </button>
+            <button
               onClick={handleCrmLogout}
               style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, padding: '6px 12px', borderRadius: '8px', transition: 'all 0.2s' }}
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)'; }}
@@ -1026,14 +1124,14 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
         
         {/* Horizontal Navigation Menu System */}
         <div style={{ marginBottom: '28px', flexShrink: 0 }}>
-          <div className="premium-tabs-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+          <div className="premium-tabs-grid" style={{ display: 'flex', gap: '10px', width: 'fit-content' }}>
             <button
               className={`premium-tab-btn ${activeTab === 'clients' ? 'active' : ''}`}
               onClick={() => { setActiveTab('clients'); setSelectedClient(null); }}
             >
               <Building2 size={16} />
               <span>Client Organizations</span>
-              <div className="menu-hover-card menu-hover-card-left">
+              <div className="crm-menu-hover-card crm-menu-hover-card-left">
                 <div className="menu-hover-card-title"><Building2 size={11} /> Client Directory</div>
                 <div className="menu-hover-card-desc">Browse all registered client orgs, manage licensing tiers, seat allocations, and account suspension.</div>
               </div>
@@ -1045,7 +1143,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
             >
               <FileText size={16} />
               <span>Billing Invoices</span>
-              <div className="menu-hover-card">
+              <div className="crm-menu-hover-card">
                 <div className="menu-hover-card-title" style={{ color: '#2dd4bf' }}><FileText size={11} /> Billing Invoices</div>
                 <div className="menu-hover-card-desc">Track all platform invoices, mark payments, view outstanding balances and billing collections.</div>
               </div>
@@ -1057,21 +1155,9 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
             >
               <UserPlus size={16} />
               <span>Support Agents</span>
-              <div className="menu-hover-card">
+              <div className="crm-menu-hover-card crm-menu-hover-card-right">
                 <div className="menu-hover-card-title" style={{ color: '#fbbf24' }}><UserPlus size={11} /> Support Staff</div>
                 <div className="menu-hover-card-desc">Create and manage CRM agent accounts. Assign admin or support roles and toggle account access.</div>
-              </div>
-            </button>
-
-            <button
-              onClick={onBackToApp}
-              className="premium-tab-btn"
-            >
-              <ArrowRight size={16} style={{ transform: 'rotate(180deg)', color: 'var(--accent-purple)' }} />
-              <span>Back to Client Portal</span>
-              <div className="menu-hover-card menu-hover-card-right">
-                <div className="menu-hover-card-title" style={{ color: 'var(--accent-purple)' }}><ArrowRight size={11} style={{ transform: 'rotate(180deg)' }} /> Client Portal</div>
-                <div className="menu-hover-card-desc">Return to the main DevOps user interface and active workspace environments.</div>
               </div>
             </button>
           </div>
