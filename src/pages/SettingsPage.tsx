@@ -103,10 +103,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   setSubPackageSecurity,
 }) => {
   const isOwnerOrAdmin = userRole === 'owner' || userRole === 'admin';
-  const activeTier = pendingLicenseTier ?? licenseTier;
-  const currentTierInfo = TIER_LABELS[licenseTier] ?? TIER_LABELS.growth;
-  const activeTierInfo = TIER_LABELS[activeTier] ?? TIER_LABELS.growth;
-  const activePricing = PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth;
 
   // Sub-tab navigation and simulated payment states
   const [activeSubTab, setActiveSubTab] = React.useState<'licensing' | 'billing' | 'forecast'>('licensing');
@@ -138,11 +134,29 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
   // Save confirmation prompt state
   const [showSaveConfirmPrompt, setShowSaveConfirmPrompt] = React.useState(false);
-  const [originalSeatsLimit] = React.useState(operatorSeatsLimit);
-  const [originalCurrency] = React.useState(billingCurrency);
-  const [originalDevopsSub] = React.useState(subPackageDevops);
-  const [originalDevSub] = React.useState(subPackageDeveloper);
-  const [originalSecSub] = React.useState(subPackageSecurity);
+
+  // Local draft states
+  const [draftTier, setDraftTier] = React.useState<string | null>(pendingLicenseTier ?? null);
+  const [draftSeats, setDraftSeats] = React.useState<number>(operatorSeatsLimit);
+  const [draftCurrency, setDraftCurrency] = React.useState<string>(billingCurrency);
+  const [draftDevops, setDraftDevops] = React.useState<boolean>(subPackageDevops);
+  const [draftDeveloper, setDraftDeveloper] = React.useState<boolean>(subPackageDeveloper);
+  const [draftSecurity, setDraftSecurity] = React.useState<boolean>(subPackageSecurity);
+
+  // Sync draft states to props only when canonical props update (e.g. after a successful save)
+  React.useEffect(() => {
+    setDraftTier(pendingLicenseTier ?? null);
+    setDraftSeats(operatorSeatsLimit);
+    setDraftCurrency(billingCurrency);
+    setDraftDevops(subPackageDevops);
+    setDraftDeveloper(subPackageDeveloper);
+    setDraftSecurity(subPackageSecurity);
+  }, [licenseTier, operatorSeatsLimit, billingCurrency, subPackageDevops, subPackageDeveloper, subPackageSecurity]);
+
+  const activeTier = draftTier ?? licenseTier;
+  const currentTierInfo = TIER_LABELS[licenseTier] ?? TIER_LABELS.growth;
+  const activeTierInfo = TIER_LABELS[activeTier] ?? TIER_LABELS.growth;
+  const activePricing = PRICING_DETAILS[activeTier] ?? PRICING_DETAILS.growth;
 
   const [expandedBreakdown, setExpandedBreakdown] = React.useState<Record<string, boolean>>({});
 
@@ -203,21 +217,29 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     return lines;
   };
 
-  const hasTierChange = pendingLicenseTier !== null && pendingLicenseTier !== undefined && pendingLicenseTier !== licenseTier;
-  const hasSeatsChange = operatorSeatsLimit !== originalSeatsLimit;
-  const hasCurrencyChange = billingCurrency !== originalCurrency;
-  const hasDevopsChange = subPackageDevops !== originalDevopsSub;
-  const hasDevChange = subPackageDeveloper !== originalDevSub;
-  const hasSecChange = subPackageSecurity !== originalSecSub;
+  const hasTierChange = draftTier !== null && draftTier !== licenseTier;
+  const hasSeatsChange = draftSeats !== operatorSeatsLimit;
+  const hasCurrencyChange = draftCurrency !== billingCurrency;
+  const hasDevopsChange = draftDevops !== subPackageDevops;
+  const hasDevChange = draftDeveloper !== subPackageDeveloper;
+  const hasSecChange = draftSecurity !== subPackageSecurity;
   const hasAnyChange = hasTierChange || hasSeatsChange || hasCurrencyChange || hasDevopsChange || hasDevChange || hasSecChange;
 
   // Downgrade detection (needed to decide whether to show confirm prompt vs downgrade modal)
   const tierRank: Record<string, number> = { growth: 1, enterprise: 2, sovereign: 3 };
-  const isDowngrade = pendingLicenseTier !== null && pendingLicenseTier !== undefined &&
-    (tierRank[pendingLicenseTier] ?? 0) < (tierRank[licenseTier] ?? 0);
+  const isDowngrade = draftTier !== null && (tierRank[draftTier] ?? 0) < (tierRank[licenseTier] ?? 0);
 
   const handleReviewChanges = (e: React.MouseEvent) => {
     e.preventDefault();
+    
+    // Propagate all local draft states to parent props first so API payload is correct
+    setPendingLicenseTier?.(draftTier);
+    setOperatorSeatsLimit?.(draftSeats);
+    setBillingCurrency?.(draftCurrency);
+    setSubPackageDevops?.(draftDevops);
+    setSubPackageDeveloper?.(draftDeveloper);
+    setSubPackageSecurity?.(draftSecurity);
+    
     if (isDowngrade) {
       // Let the existing downgrade modal handle it
       handleSaveSettings(e as any);
@@ -229,6 +251,29 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const handleConfirmApply = (e: React.MouseEvent) => {
     setShowSaveConfirmPrompt(false);
     handleSaveSettings(e as any);
+  };
+
+  const handleCancelConfirm = () => {
+    setShowSaveConfirmPrompt(false);
+    // Rollback parent states to original props
+    setPendingLicenseTier?.(null);
+    setOperatorSeatsLimit?.(operatorSeatsLimit);
+    setBillingCurrency?.(billingCurrency);
+    setSubPackageDevops?.(subPackageDevops);
+    setSubPackageDeveloper?.(subPackageDeveloper);
+    setSubPackageSecurity?.(subPackageSecurity);
+  };
+
+  const handleCancelDowngrade = () => {
+    setShowDowngradeModal?.(false);
+    setDowngradeConfirmInput?.('');
+    // Rollback parent states to original props
+    setPendingLicenseTier?.(null);
+    setOperatorSeatsLimit?.(operatorSeatsLimit);
+    setBillingCurrency?.(billingCurrency);
+    setSubPackageDevops?.(subPackageDevops);
+    setSubPackageDeveloper?.(subPackageDeveloper);
+    setSubPackageSecurity?.(subPackageSecurity);
   };
 
   const tiers = [
@@ -285,9 +330,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     if (!isOwnerOrAdmin || isOrgDisabled) return;
     // Expand AND select
     setExpandedTier(tierId);
-    if (setPendingLicenseTier) {
-      setPendingLicenseTier(tierId !== licenseTier ? tierId : null);
-    }
+    setDraftTier(tierId !== licenseTier ? tierId : null);
     setShowSaveConfirmPrompt(false);
   };
 
@@ -297,13 +340,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   };
 
   // Projected cost
-  const devopsPriceUSD = subPackageDevops ? 150 : 0;
-  const developerPriceUSD = subPackageDeveloper ? 99 : 0;
-  const securityPriceUSD = subPackageSecurity ? 120 : 0;
+  const devopsPriceUSD = draftDevops ? 150 : 0;
+  const developerPriceUSD = draftDeveloper ? 99 : 0;
+  const securityPriceUSD = draftSecurity ? 120 : 0;
 
-  const devopsPriceINR = subPackageDevops ? 12500 : 0;
-  const developerPriceINR = subPackageDeveloper ? 8250 : 0;
-  const securityPriceINR = subPackageSecurity ? 10000 : 0;
+  const devopsPriceINR = draftDevops ? 12500 : 0;
+  const developerPriceINR = draftDeveloper ? 8250 : 0;
+  const securityPriceINR = draftSecurity ? 10000 : 0;
 
   const projectedUSD = activePricing.baseUSD + activePricing.seatUSD * currentWriteUsers + devopsPriceUSD + developerPriceUSD + securityPriceUSD;
   const projectedINR = Math.round((activePricing.baseUSD + activePricing.seatUSD * currentWriteUsers) * usdToInrRate) + devopsPriceINR + developerPriceINR + securityPriceINR;
@@ -823,9 +866,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       min={1}
                       max={9999}
                       disabled={!isOwnerOrAdmin || isOrgDisabled}
-                      value={operatorSeatsLimit}
+                      value={draftSeats}
                       onChange={e => {
-                        setOperatorSeatsLimit?.(parseInt(e.target.value, 10) || 1);
+                        setDraftSeats(parseInt(e.target.value, 10) || 1);
                         setShowSaveConfirmPrompt(false);
                       }}
                       style={{
@@ -850,9 +893,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <select
                       disabled={!isOwnerOrAdmin || isOrgDisabled}
-                      value={billingCurrency}
+                      value={draftCurrency}
                       onChange={e => {
-                        setBillingCurrency?.(e.target.value);
+                        setDraftCurrency(e.target.value);
                         setShowSaveConfirmPrompt(false);
                       }}
                       style={{
@@ -895,8 +938,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 <div style={{
                   padding: '20px',
                   borderRadius: '12px',
-                  border: `1.5px solid ${subPackageDevops ? 'var(--accent-blue)' : 'var(--glass-border)'}`,
-                  background: subPackageDevops ? 'rgba(99,102,241,0.04)' : 'rgba(255,255,255,0.005)',
+                  border: `1.5px solid ${draftDevops ? 'var(--accent-blue)' : 'var(--glass-border)'}`,
+                  background: draftDevops ? 'rgba(99,102,241,0.04)' : 'rgba(255,255,255,0.005)',
                   transition: 'all 0.25s ease',
                   display: 'flex',
                   flexDirection: 'column',
@@ -909,18 +952,18 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{
                           fontSize: '0.64rem', fontWeight: 700, padding: '2px 8px', borderRadius: '20px',
-                          background: subPackageDevops ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
-                          color: subPackageDevops ? '#4ade80' : 'var(--text-secondary)',
-                          border: subPackageDevops ? '1px solid rgba(34,197,94,0.25)' : '1px solid var(--glass-border)'
+                          background: draftDevops ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
+                          color: draftDevops ? '#4ade80' : 'var(--text-secondary)',
+                          border: draftDevops ? '1px solid rgba(34,197,94,0.25)' : '1px solid var(--glass-border)'
                         }}>
-                          {subPackageDevops ? 'Subscribed' : 'Inactive'}
+                          {draftDevops ? 'Subscribed' : 'Inactive'}
                         </span>
                         <input 
                           type="checkbox"
-                          checked={subPackageDevops}
+                          checked={draftDevops}
                           disabled={!isOwnerOrAdmin || isOrgDisabled}
                           onChange={(e) => {
-                            setSubPackageDevops?.(e.target.checked);
+                            setDraftDevops(e.target.checked);
                             setShowSaveConfirmPrompt(false);
                           }}
                           style={{ width: '16px', height: '16px', cursor: (isOwnerOrAdmin && !isOrgDisabled) ? 'pointer' : 'default' }}
@@ -957,8 +1000,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 <div style={{
                   padding: '20px',
                   borderRadius: '12px',
-                  border: `1.5px solid ${subPackageDeveloper ? 'var(--accent-purple)' : 'var(--glass-border)'}`,
-                  background: subPackageDeveloper ? 'rgba(139,92,246,0.04)' : 'rgba(255,255,255,0.005)',
+                  border: `1.5px solid ${draftDeveloper ? 'var(--accent-purple)' : 'var(--glass-border)'}`,
+                  background: draftDeveloper ? 'rgba(139,92,246,0.04)' : 'rgba(255,255,255,0.005)',
                   transition: 'all 0.25s ease',
                   display: 'flex',
                   flexDirection: 'column',
@@ -971,18 +1014,18 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{
                           fontSize: '0.64rem', fontWeight: 700, padding: '2px 8px', borderRadius: '20px',
-                          background: subPackageDeveloper ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
-                          color: subPackageDeveloper ? '#4ade80' : 'var(--text-secondary)',
-                          border: subPackageDeveloper ? '1px solid rgba(34,197,94,0.25)' : '1px solid var(--glass-border)'
+                          background: draftDeveloper ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
+                          color: draftDeveloper ? '#4ade80' : 'var(--text-secondary)',
+                          border: draftDeveloper ? '1px solid rgba(34,197,94,0.25)' : '1px solid var(--glass-border)'
                         }}>
-                          {subPackageDeveloper ? 'Subscribed' : 'Inactive'}
+                          {draftDeveloper ? 'Subscribed' : 'Inactive'}
                         </span>
                         <input 
                           type="checkbox"
-                          checked={subPackageDeveloper}
+                          checked={draftDeveloper}
                           disabled={!isOwnerOrAdmin || isOrgDisabled}
                           onChange={(e) => {
-                            setSubPackageDeveloper?.(e.target.checked);
+                            setDraftDeveloper(e.target.checked);
                             setShowSaveConfirmPrompt(false);
                           }}
                           style={{ width: '16px', height: '16px', cursor: (isOwnerOrAdmin && !isOrgDisabled) ? 'pointer' : 'default' }}
@@ -1019,8 +1062,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 <div style={{
                   padding: '20px',
                   borderRadius: '12px',
-                  border: `1.5px solid ${subPackageSecurity ? 'var(--accent-teal)' : 'var(--glass-border)'}`,
-                  background: subPackageSecurity ? 'rgba(20,184,166,0.04)' : 'rgba(255,255,255,0.005)',
+                  border: `1.5px solid ${draftSecurity ? 'var(--accent-teal)' : 'var(--glass-border)'}`,
+                  background: draftSecurity ? 'rgba(20,184,166,0.04)' : 'rgba(255,255,255,0.005)',
                   transition: 'all 0.25s ease',
                   display: 'flex',
                   flexDirection: 'column',
@@ -1033,18 +1076,18 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{
                           fontSize: '0.64rem', fontWeight: 700, padding: '2px 8px', borderRadius: '20px',
-                          background: subPackageSecurity ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
-                          color: subPackageSecurity ? '#4ade80' : 'var(--text-secondary)',
-                          border: subPackageSecurity ? '1px solid rgba(34,197,94,0.25)' : '1px solid var(--glass-border)'
+                          background: draftSecurity ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
+                          color: draftSecurity ? '#4ade80' : 'var(--text-secondary)',
+                          border: draftSecurity ? '1px solid rgba(34,197,94,0.25)' : '1px solid var(--glass-border)'
                         }}>
-                          {subPackageSecurity ? 'Subscribed' : 'Inactive'}
+                          {draftSecurity ? 'Subscribed' : 'Inactive'}
                         </span>
                         <input 
                           type="checkbox"
-                          checked={subPackageSecurity}
+                          checked={draftSecurity}
                           disabled={!isOwnerOrAdmin || isOrgDisabled}
                           onChange={(e) => {
-                            setSubPackageSecurity?.(e.target.checked);
+                            setDraftSecurity(e.target.checked);
                             setShowSaveConfirmPrompt(false);
                           }}
                           style={{ width: '16px', height: '16px', cursor: (isOwnerOrAdmin && !isOrgDisabled) ? 'pointer' : 'default' }}
@@ -1102,7 +1145,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
                 {/* Diff rows */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-                  {hasTierChange && pendingLicenseTier && (
+                  {hasTierChange && draftTier && (
                     <div style={{
                       background: 'rgba(255,255,255,0.02)',
                       border: '1px solid var(--glass-border)',
@@ -1125,7 +1168,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                           borderRadius: '6px', padding: '3px 10px', fontSize: '0.8rem',
                           color: 'var(--accent-purple)', fontWeight: 700,
                         }}>
-                          {TIER_LABELS[pendingLicenseTier]?.label ?? pendingLicenseTier}
+                          {TIER_LABELS[draftTier]?.label ?? draftTier}
                         </span>
                       </div>
                     </div>
@@ -1146,7 +1189,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                           background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)',
                           borderRadius: '6px', padding: '3px 10px', fontSize: '0.8rem', color: 'var(--text-secondary)'
                         }}>
-                          {originalSeatsLimit} seats
+                          {operatorSeatsLimit} seats
                         </span>
                         <ArrowRight size={14} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
                         <span style={{
@@ -1154,7 +1197,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                           borderRadius: '6px', padding: '3px 10px', fontSize: '0.8rem',
                           color: 'var(--accent-purple)', fontWeight: 700,
                         }}>
-                          {operatorSeatsLimit} seats
+                          {draftSeats} seats
                         </span>
                       </div>
                     </div>
@@ -1175,7 +1218,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                           background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)',
                           borderRadius: '6px', padding: '3px 10px', fontSize: '0.8rem', color: 'var(--text-secondary)'
                         }}>
-                          {originalCurrency}
+                          {billingCurrency}
                         </span>
                         <ArrowRight size={14} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
                         <span style={{
@@ -1183,7 +1226,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                           borderRadius: '6px', padding: '3px 10px', fontSize: '0.8rem',
                           color: 'var(--accent-purple)', fontWeight: 700,
                         }}>
-                          {billingCurrency}
+                          {draftCurrency}
                         </span>
                       </div>
                     </div>
@@ -1201,11 +1244,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                          {originalDevopsSub ? 'Subscribed' : 'Inactive'}
+                          {subPackageDevops ? 'Subscribed' : 'Inactive'}
                         </span>
                         <ArrowRight size={14} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
                         <span style={{ fontSize: '0.8rem', color: 'var(--accent-purple)', fontWeight: 700 }}>
-                          {subPackageDevops ? 'Subscribed (Invoice Issued)' : 'Inactive'}
+                          {draftDevops ? 'Subscribed (Invoice Issued)' : 'Inactive'}
                         </span>
                       </div>
                     </div>
@@ -1223,11 +1266,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                          {originalDevSub ? 'Subscribed' : 'Inactive'}
+                          {subPackageDeveloper ? 'Subscribed' : 'Inactive'}
                         </span>
                         <ArrowRight size={14} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
                         <span style={{ fontSize: '0.8rem', color: 'var(--accent-purple)', fontWeight: 700 }}>
-                          {subPackageDeveloper ? 'Subscribed (Invoice Issued)' : 'Inactive'}
+                          {draftDeveloper ? 'Subscribed (Invoice Issued)' : 'Inactive'}
                         </span>
                       </div>
                     </div>
@@ -1245,11 +1288,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                          {originalSecSub ? 'Subscribed' : 'Inactive'}
+                          {subPackageSecurity ? 'Subscribed' : 'Inactive'}
                         </span>
                         <ArrowRight size={14} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
                         <span style={{ fontSize: '0.8rem', color: 'var(--accent-purple)', fontWeight: 700 }}>
-                          {subPackageSecurity ? 'Subscribed (Invoice Issued)' : 'Inactive'}
+                          {draftSecurity ? 'Subscribed (Invoice Issued)' : 'Inactive'}
                         </span>
                       </div>
                     </div>
@@ -1269,7 +1312,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   <button
                     type="button"
                     className="btn-secondary"
-                    onClick={() => setShowSaveConfirmPrompt(false)}
+                    onClick={handleCancelConfirm}
                     style={{ padding: '9px 20px', fontSize: '0.84rem' }}
                   >
                     Cancel
@@ -1307,7 +1350,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             {/* ── ACTION BAR ── */}
             {isOwnerOrAdmin ? (
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', alignItems: 'center', borderTop: '1px solid var(--glass-border)', paddingTop: '18px' }}>
-                {pendingLicenseTier && pendingLicenseTier !== licenseTier && !showSaveConfirmPrompt && (
+                {draftTier && draftTier !== licenseTier && !showSaveConfirmPrompt && (
                   <span style={{ fontSize: '0.78rem', color: '#fbbf24', fontWeight: 500 }}>
                     ⚠️ Save changes to apply subscription transition
                   </span>
@@ -1928,7 +1971,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             <div style={{ display: 'flex', gap: '12px' }}>
               <button
                 type="button"
-                onClick={() => { setShowDowngradeModal?.(false); setDowngradeConfirmInput?.(''); }}
+                onClick={handleCancelDowngrade}
                 className="btn-secondary"
                 style={{ flex: 1, padding: '11px' }}
               >
