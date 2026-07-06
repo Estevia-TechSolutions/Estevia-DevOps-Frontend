@@ -4712,327 +4712,225 @@ function App() {
       setUseCustomRepo(false);
     } else {
       const repoNameOnly = defaultRepo.split('/').pop()?.toLowerCase();
-      matchByName = githubRepos.find(r => r.fullName.split('/').pop()?.toLowerCase() === repoNameOnly);
-      if (matchByName) {
-        setGithubRepo(matchByName.fullName);
-        setUseCustomRepo(false);
-      } else {
-        setGithubRepo(defaultRepo);
-        setUseCustomRepo(true);
-      }
-    }
-
-    setDevopsOrgUrl(azureDevopsOrgUrl || import.meta.env.VITE_AZURE_DEVOPS_ORG_URL || '');
-    setDevopsProject(azureDevopsProject || '');
-    const initialProvider = app.pipelineId && String(app.pipelineId).startsWith('github-actions:') ? 'github_actions' : 'azure_devops';
-    setPipelineProvider(initialProvider);
-
-    // Resolve target branch based on app's actual branch, or fallback to app name suffix
-    let defaultBranch = app.branch || 'main';
-    if (!app.branch) {
-      const nameSegments = app.name.split('-');
-      if (nameSegments.length > 1) {
-        const last = nameSegments[nameSegments.length - 1];
-        if (['dev', 'qa', 'prod', 'main', 'master'].includes(last.toLowerCase())) {
-          defaultBranch = last;
-        }
-      }
-    }
-    setPipelineBranch(defaultBranch);
-
-    const activeRepo = matchingRepo?.fullName || matchByName?.fullName || defaultRepo;
-
-    // Find sibling apps sharing the same GitHub repo (other env deployments)
-    if (activeRepo) {
-      const normalizedRepo = activeRepo.toLowerCase();
-      const siblings = apps.filter(a =>
-        a.name !== app.name &&
-        a.repositoryUrl &&
-        a.repositoryUrl.replace('https://github.com/', '').replace(/\/$/, '').toLowerCase() === normalizedRepo
-      );
-      setSiblingApps(siblings);
-    } else {
-      setSiblingApps([]);
-    }
-
-    // Proactively check if azure-pipelines.yml exists and load content
-    if (activeRepo) {
-      checkYmlExists(activeRepo, initialProvider);
-      loadYmlForPipelineModal(activeRepo, defaultBranch, initialProvider);
-    }
-  };
-
-  const openDockerfileEditor = async (app: AppResource, group?: AppGroup) => {
-    if (!subPackageDeveloper) {
-      setUpgradePackageModal('Developer');
-      return;
-    }
-    setDockerfileEditApp(app);
-    setDockerfileContent('');
-    setDockerfileValidation(null);
-    const repo = app.repositoryUrl?.replace('https://github.com/', '').replace(/\/$/, '') || group?.repoPath || '';
-    const branch = app.branch || 'main';
-    await fetchDockerfileContent(repo, branch);
-  };
-
-  if (showCrm) {
+      matchByName = githubRepos.find(  if (!token) {
     return (
-      <CrmPortal
-        API_BASE={API_BASE}
-        theme={theme}
-        onBackToApp={() => { setShowCrm(false); window.location.hash = ''; }}
-      />
-    );
-  }
-
-  if (!token) {
-    return (
-      <div style={{ 
-        minHeight: '100vh', 
-        background: '#f8fafc',
-        color: '#0f172a',
-        boxSizing: 'border-box',
+      <div style={{
+        minHeight: '100vh',
         display: 'flex',
-        flexDirection: 'column',
-        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--bg-deep, #070a12)',
+        padding: '24px',
+        boxSizing: 'border-box',
+        transition: 'all 0.3s ease',
+        fontFamily: "'Inter', sans-serif"
       }}>
-        {/* Simple top navbar for landing page */}
-        <nav style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '20px 40px',
-          borderBottom: '1px solid #e2e8f0',
-          backdropFilter: 'blur(10px)',
-          background: 'rgba(255, 255, 255, 0.8)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div className="site-header-logo" style={{ width: '32px', height: '32px', borderRadius: '8px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', padding: '6px', boxShadow: 'none' }}>
-              <img src="/evaops-logo.png" alt="EvaOps Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'invert(1)' }} />
-            </div>
-            <span style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#0f172a' }}>EvaOps</span>
-          </div>
-          <span style={{ fontSize: '0.8rem', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase', fontWeight: 600 }}>
-            EvaOps — CloudOps Management & Governance
-          </span>
-        </nav>
-
-        {/* Main Body */}
+        {/* Main outer card */}
         <div style={{
-          flex: 1,
+          width: '960px',
+          height: '640px',
           display: 'flex',
-          maxWidth: '1200px',
-          margin: '0 auto',
-          padding: '60px 40px',
-          gap: '60px',
-          alignItems: 'center',
-          boxSizing: 'border-box'
+          background: 'var(--bg-card, rgba(8,12,22,0.6))',
+          borderRadius: '24px',
+          border: '1px solid var(--border-shell, rgba(255, 255, 255, 0.08))',
+          boxShadow: 'var(--shadow-lg, 0 30px 80px rgba(0,0,0,0.5))',
+          overflow: 'hidden',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
         }}>
-          
-          {/* Left Column: Product pitch */}
-          <div style={{ flex: 1.2, textAlign: 'left' }}>
-            <span style={{
-              display: 'inline-block',
-              padding: '6px 12px',
-              borderRadius: '20px',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              backgroundColor: 'rgba(124, 58, 237, 0.08)',
-              border: '1px solid rgba(124, 58, 237, 0.2)',
-              color: '#6d28d9',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: '20px'
-            }}>
-              🚀 Dynamic Multi-Tenant Control Plane
-            </span>
-            <h1 style={{
-              fontSize: '3.2rem',
-              fontWeight: 800,
-              lineHeight: 1.1,
-              letterSpacing: '-0.03em',
-              marginBottom: '20px',
-              background: 'linear-gradient(135deg, #0f172a 30%, #334155 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
-            }}>
-              Code to Cloud. <br />
-              <span style={{ 
-                background: 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-              }}>Zero Friction.</span>
-            </h1>
-            <p style={{
-              fontSize: '1.1rem',
-              color: '#475569',
-              lineHeight: 1.6,
-              marginBottom: '32px',
-              maxWidth: '520px'
-            }}>
-              EvaOps orchestrates your infrastructure as a unified CloudOps Management & Governance platform. Scan your Azure subscription, provision Static Web Apps and Container Apps, map custom domains instantly via GoDaddy, and generate automated DevOps build pipelines.
-            </p>
+          {/* Left panel: Product pitch (Brand panel) */}
+          <div style={{
+            flex: '1.05',
+            background: 'var(--left-panel-bg, linear-gradient(165deg, #040207 0%, #0f051c 50%, #040207 100%))',
+            padding: '44px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            borderRight: '1px solid var(--border-slate, rgba(255, 255, 255, 0.08))',
+            position: 'relative',
+            overflow: 'hidden',
+            boxSizing: 'border-box'
+          }}>
+            {/* Ambient glows */}
+            <div style={{ position: 'absolute', top: '-120px', left: '-120px', width: '340px', height: '340px', borderRadius: '50%', background: 'rgba(124, 58, 237, 0.14)', filter: 'blur(90px)', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', bottom: '-80px', right: '-80px', width: '260px', height: '260px', borderRadius: '50%', background: 'rgba(124, 58, 237, 0.08)', filter: 'blur(90px)', pointerEvents: 'none' }} />
 
-            {/* Feature Checkmarks */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-              {[
-                { title: 'Cloud Discovery Scanning', desc: 'Auto-maps SWA and ACA environments' },
-                { title: 'DNS Automation', desc: 'One-click CNAME binds via GoDaddy API' },
-                { title: 'DevOps Pipelines', desc: 'Committer-driven YML setup templates' },
-                { title: 'Cost Pulse Analytics', desc: 'Optimization insights & active cost tracking' }
-              ].map(f => (
-                <div key={f.title} style={{ display: 'flex', gap: '10px' }}>
-                  <div style={{
-                    width: '20px', height: '20px', borderRadius: '50%', 
-                    backgroundColor: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34,197,94,0.3)',
-                    color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '0.75rem', fontWeight: 700, flexShrink: 0
-                  }}>
-                    ✓
-                  </div>
-                  <div>
-                    <h4 style={{ fontSize: '0.92rem', fontWeight: 600, color: '#1e293b' }}>{f.title}</h4>
-                    <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>{f.desc}</p>
-                  </div>
-                </div>
-              ))}
+            {/* App logo row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative', zIndex: 2 }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                background: '#0c0c1e',
+                border: '1.5px solid rgba(124, 58, 237, 0.4)',
+                boxShadow: '0 0 16px rgba(124, 58, 237, 0.14)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden'
+              }}>
+                <img src="/evaops-logo.png" alt="EvaOps Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'invert(1)' }} />
+              </div>
+              <div>
+                <h2 style={{
+                  fontFamily: "'Outfit', sans-serif", fontSize: '1.45rem', fontWeight: 800, letterSpacing: '-0.02em',
+                  background: 'linear-gradient(135deg, #ffffff 30%, #7c3aed 100%)',
+                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: 0
+                }}>EvaOps</h2>
+                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.1em' }}>CloudOps Management</span>
+              </div>
             </div>
+
+            {/* Capability Checklist */}
+            <div style={{ position: 'relative', zIndex: 2, margin: '40px 0' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '16px' }}>Platform Capabilities</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {[
+                  { title: 'Cloud Discovery Scanning', desc: 'Auto-maps SWA and ACA environments' },
+                  { title: 'DNS Automation', desc: 'One-click CNAME binds via GoDaddy API' },
+                  { title: 'DevOps Pipelines', desc: 'Committer-driven YML setup templates' },
+                  { title: 'Cost Pulse Analytics', desc: 'Optimization insights & active cost tracking' }
+                ].map((f, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{
+                      width: '36px', height: '36px', borderRadius: '10px',
+                      background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed', flexShrink: 0
+                    }}>
+                      ✓
+                    </div>
+                    <div>
+                      <h4 style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary, #f8fafc)', margin: 0 }}>{f.title}</h4>
+                      <p style={{ fontSize: '0.74rem', color: 'var(--text-secondary, #94a3b8)', margin: 0 }}>{f.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Logo Badge placement */}
+            <EsteviaLoginBadge appName="EvaOps" category="Cloud Operations" accentColor="#7c3aed" isInnovationCenter={true} />
           </div>
 
-          {/* Right Column: Auth Portal */}
-          <div style={{ flex: 0.8, display: 'flex', justifyContent: 'center' }}>
-            <div style={{
-              width: '100%',
-              maxWidth: '420px',
-              padding: '40px',
-              borderRadius: '16px',
-              background: '#ffffff',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.08)',
-              textAlign: 'center'
-            }}>
-              <div style={{ marginBottom: '30px' }}>
-                <h2 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '8px', color: '#0f172a' }}>Access Portal</h2>
-                <p style={{ color: '#64748b', fontSize: '0.85rem', lineHeight: 1.4 }}>
-                  Authenticate using your corporate account to deploy and track workspaces.
-                </p>
+          {/* Right panel: Authentications */}
+          <div style={{
+            flex: '1.2',
+            padding: '48px',
+            display: 'flex',
+            alignItems: 'center',
+            background: 'var(--bg-card, rgba(8,12,22,0.6))',
+            boxSizing: 'border-box'
+          }}>
+            <div style={{ maxWidth: '400px', width: '100%', margin: '0 auto' }}>
+              <div style={{ marginBottom: '28px', display: 'flex', alignItems: 'flex-start', justifycontent: 'space-between', gap: '16px' }}>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px', margin: 0 }}>Access Portal</h3>
+                  <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', margin: 0 }}>Authenticate using your corporate account to deploy and track workspaces.</p>
+                </div>
+                {/* Standardized Theme Toggle */}
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                  style={{
+                    width: '36px', height: '36px', borderRadius: '10px', border: 'none',
+                    background: theme === 'dark' ? 'rgba(15,23,42,0.8)' : '#e2e8f0',
+                    outline: theme === 'dark' ? '1px solid rgba(255,255,255,0.12)' : '1px solid #cbd5e1',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: theme === 'dark' ? '#94a3b8' : '#475569', transition: 'all 0.2s', flexShrink: 0, marginLeft: '12px'
+                  }}
+                  onMouseEnter={(e) => {
+                    const isDark = theme === 'dark';
+                    e.currentTarget.style.background = isDark ? "rgba(11,229,142,0.08)" : "rgba(11,229,142,0.06)";
+                    e.currentTarget.style.outlineColor = "rgba(11,229,142,0.35)";
+                    e.currentTarget.style.color = "#0BE58E";
+                  }}
+                  onMouseLeave={(e) => {
+                    const isDark = theme === 'dark';
+                    e.currentTarget.style.background = isDark ? "rgba(15,23,42,0.8)" : "#e2e8f0";
+                    e.currentTarget.style.outlineColor = isDark ? "rgba(255,255,255,0.12)" : "#cbd5e1";
+                    e.currentTarget.style.color = isDark ? "#94a3b8" : "#475569";
+                  }}
+                >
+                  {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+                </button>
               </div>
 
               {authError && (
-                <div style={{ 
-                  padding: '12px 14px', 
-                  borderColor: '#f87171', 
-                  backgroundColor: '#fef2f2', 
-                  border: '1px solid #fca5a5',
-                  borderRadius: '8px',
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '8px', 
-                  marginBottom: '20px',
-                  fontSize: '0.82rem',
-                  textAlign: 'left'
+                <div style={{
+                  padding: '12px 16px', background: 'rgba(239,68,68,0.08)',
+                  border: '1px solid rgba(239,68,68,0.25)', borderRadius: '12px',
+                  color: '#ef4444', fontSize: '0.85rem', lineHeight: 1.4,
+                  marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px'
                 }}>
-                  <AlertCircle size={16} style={{ color: '#ef4444', flexShrink: 0 }} />
-                  <span style={{ color: '#991b1b', fontWeight: 500 }}>{authError}</span>
+                  <AlertCircle size={16} style={{ color: '#ef4444', flexShrink: 0, marginTop: '2px' }} />
+                  <div>{authError}</div>
                 </div>
               )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {/* SSO Buttons — Microsoft 365 */}
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <button
-                    onClick={handleMicrosoftLoginRedirect}
-                    disabled={authLoading}
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-                      width: '100%', padding: '13px 10px', borderRadius: '12px',
-                      background: '#f1f5f9', border: '1px solid #cbd5e1',
-                      color: '#0f172a', fontSize: '0.84rem', fontWeight: 700,
-                      cursor: authLoading ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.2s', opacity: authLoading ? 0.7 : 1,
-                      whiteSpace: 'nowrap',
-                    }}
-                    onMouseEnter={(e) => { if (!authLoading) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderColor = '#94a3b8'; e.currentTarget.style.background = '#e2e8f0'; } }}
-                    onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = '#f1f5f9'; }}
-                  >
-                    {ssoLoadingProvider === 'microsoft' ? (
-                      <RefreshCw size={18} className="spin-anim" style={{ color: '#0f172a' }} />
-                    ) : (
-                      <svg width="20" height="20" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M0 0H11V11H0V0Z" fill="#F25022"/>
-                        <path d="M12 0H23V11H12V0Z" fill="#7FBA00"/>
-                        <path d="M0 12H11V23H0V12Z" fill="#00A1F1"/>
-                        <path d="M12 12H23V23H12V12Z" fill="#FFB900"/>
-                      </svg>
-                    )}
-                    <span>{ssoLoadingProvider === 'microsoft' ? 'Connecting...' : 'Microsoft 365'}</span>
-                  </button>
-                </div>
+                <button
+                  onClick={handleMicrosoftLoginRedirect}
+                  disabled={authLoading}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                    width: '100%', padding: '13px 10px', borderRadius: '12px',
+                    background: 'var(--bg-slate)', border: '1px solid var(--border-slate)',
+                    color: 'var(--text-primary)', fontSize: '0.84rem', fontWeight: 700,
+                    cursor: authLoading ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s', opacity: authLoading ? 0.7 : 1,
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={(e) => { if (!authLoading) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderColor = 'rgba(124,58,237,0.3)'; } }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = ''; }}
+                >
+                  {ssoLoadingProvider === 'microsoft' ? (
+                    <RefreshCw size={18} className="spin-anim" />
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M0 0H11V11H0V0Z" fill="#F25022"/>
+                      <path d="M12 0H23V11H12V0Z" fill="#7FBA00"/>
+                      <path d="M0 12H11V23H0V12Z" fill="#00A1F1"/>
+                      <path d="M12 12H23V23H12V12Z" fill="#FFB900"/>
+                    </svg>
+                  )}
+                  <span>{ssoLoadingProvider === 'microsoft' ? 'Connecting...' : 'Microsoft 365'}</span>
+                </button>
 
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  margin: '8px 0', 
-                  color: '#64748b',
-                  fontSize: '0.78rem' 
-                }}>
-                  <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '8px 0', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                  <div style={{ flex: 1, height: '1px', background: 'var(--border-slate)' }}></div>
                   <span style={{ padding: '0 8px', fontWeight: 500 }}>OR</span>
-                  <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
+                  <div style={{ flex: 1, height: '1px', background: 'var(--border-slate)' }}></div>
                 </div>
 
-                {/* Developer Override — viewer only */}
-                <button 
+                {/* Developer Override button */}
+                <button
                   onClick={() => { setShowDevOverrideForm(v => !v); setDevOverrideError(null); }}
                   disabled={authLoading}
                   style={{
-                    background: showDevOverrideForm ? 'rgba(100,116,139,0.08)' : 'transparent',
-                    border: `1px dashed ${showDevOverrideForm ? 'rgba(100,116,139,0.4)' : '#cbd5e1'}`,
-                    color: '#475569',
-                    padding: '10px 20px',
-                    borderRadius: '8px',
-                    fontSize: '0.82rem',
-                    cursor: 'pointer',
-                    fontWeight: 500,
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
+                    background: showDevOverrideForm ? 'rgba(124, 58, 237, 0.08)' : 'transparent',
+                    border: `1px dashed ${showDevOverrideForm ? 'rgba(124, 58, 237, 0.4)' : 'var(--border-slate)'}`,
+                    color: 'var(--text-secondary)', padding: '10px 20px',
+                    borderRadius: '8px', fontSize: '0.82rem', cursor: 'pointer',
+                    fontWeight: 500, transition: 'all 0.2s ease',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
                   }}
-                  onMouseEnter={(e) => {
-                    if (!showDevOverrideForm) {
-                      e.currentTarget.style.borderColor = '#94a3b8';
-                      e.currentTarget.style.color = '#0f172a';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!showDevOverrideForm) {
-                      e.currentTarget.style.borderColor = '#cbd5e1';
-                      e.currentTarget.style.color = '#475569';
-                    }
-                  }}
+                  onMouseEnter={(e) => { if (!showDevOverrideForm) e.currentTarget.style.color = '#7c3aed'; }}
+                  onMouseLeave={(e) => { if (!showDevOverrideForm) e.currentTarget.style.color = ''; }}
                 >
                   <Eye size={14} />
                   Developer Override <span style={{ fontSize: '0.72rem', opacity: 0.6 }}>(Viewer only)</span>
                 </button>
 
-                {/* Developer Override inline form */}
                 {showDevOverrideForm && (
                   <div style={{
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '10px',
-                    padding: '16px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-                    animation: 'fade-in-anim 0.2s ease-out'
+                    background: 'var(--bg-slate)', border: '1px solid var(--border-slate)',
+                    borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)'
                   }}>
-                    <div style={{ fontSize: '0.75rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Building2 size={12} style={{ color: '#64748b' }} />
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Building2 size={12} style={{ color: '#7c3aed' }} />
                       Enter your Organisation ID for Developer Override
                     </div>
                     <input
@@ -5043,17 +4941,10 @@ function App() {
                       onKeyDown={(e) => { if (e.key === 'Enter') handleBypassLogin(); }}
                       autoComplete="off"
                       style={{
-                        background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '8px',
-                        color: '#0f172a',
-                        fontSize: '0.86rem',
-                        padding: '10px 14px',
-                        outline: 'none',
-                        transition: 'border-color 0.2s'
+                        background: 'var(--bg-card)', border: '1px solid var(--border-slate)',
+                        borderRadius: '8px', color: 'var(--text-primary)',
+                        fontSize: '0.86rem', padding: '10px 14px', outline: 'none'
                       }}
-                      onFocus={(e) => e.currentTarget.style.borderColor = '#94a3b8'}
-                      onBlur={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
                     />
                     {devOverrideError && (
                       <div style={{ fontSize: '0.8rem', color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -5065,80 +4956,42 @@ function App() {
                       onClick={handleBypassLogin}
                       disabled={authLoading}
                       style={{
-                        background: 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)',
-                        border: 'none',
-                        color: '#ffffff',
-                        borderRadius: '8px',
-                        padding: '10px 16px',
-                        fontSize: '0.86rem',
-                        fontWeight: 600,
-                        cursor: authLoading ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        transition: 'all 0.2s'
+                        background: 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)', border: 'none',
+                        color: '#ffffff', borderRadius: '8px', padding: '10px 16px', fontSize: '0.86rem',
+                        fontWeight: 600, cursor: authLoading ? 'not-allowed' : 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
                       }}
                     >
-                      {authLoading ? (
-                        <><RefreshCw size={14} className="spin-anim" /> Authenticating...</>
-                      ) : (
-                        <><Eye size={14} /> Authenticate as Viewer</>
-                      )}
+                      {authLoading ? <RefreshCw size={14} className="spin-anim" /> : <Eye size={14} />}
+                      <span>Authenticate as Viewer</span>
                     </button>
                   </div>
                 )}
 
-                {/* Admin Override — password protected */}
-                <button 
+                {/* Admin Override button */}
+                <button
                   onClick={() => { setShowAdminOverrideForm(v => !v); setAdminOverrideError(null); }}
                   disabled={authLoading}
                   style={{
                     background: showAdminOverrideForm ? 'rgba(234,88,12,0.08)' : 'transparent',
-                    border: `1px dashed ${showAdminOverrideForm ? 'rgba(234,88,12,0.4)' : '#cbd5e1'}`,
-                    color: '#ea580c',
-                    padding: '10px 20px',
-                    borderRadius: '8px',
-                    fontSize: '0.82rem',
-                    cursor: 'pointer',
-                    fontWeight: 500,
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!showAdminOverrideForm) {
-                      e.currentTarget.style.borderColor = 'rgba(234,88,12,0.5)';
-                      e.currentTarget.style.color = '#ea580c';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!showAdminOverrideForm) {
-                      e.currentTarget.style.borderColor = '#cbd5e1';
-                      e.currentTarget.style.color = '#ea580c';
-                    }
+                    border: `1px dashed ${showAdminOverrideForm ? 'rgba(234,88,12,0.4)' : 'var(--border-slate)'}`,
+                    color: '#ea580c', padding: '10px 20px',
+                    borderRadius: '8px', fontSize: '0.82rem', cursor: 'pointer',
+                    fontWeight: 500, transition: 'all 0.2s ease',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
                   }}
                 >
                   <ShieldCheck size={14} />
                   Admin Override <span style={{ fontSize: '0.72rem', opacity: 0.6 }}>(Password required)</span>
                 </button>
 
-                {/* Admin Override inline form */}
                 {showAdminOverrideForm && (
                   <div style={{
-                    background: '#f8fafc',
-                    border: '1px solid rgba(234,88,12,0.25)',
-                    borderRadius: '10px',
-                    padding: '16px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '10px',
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
-                    animation: 'fade-in-anim 0.2s ease-out'
+                    background: 'var(--bg-slate)', border: '1px solid var(--border-slate)',
+                    borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)'
                   }}>
-                    <div style={{ fontSize: '0.75rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <ShieldCheck size={12} style={{ color: '#ea580c' }} />
                       Enter your Organisation ID and admin override password
                     </div>
@@ -5149,17 +5002,10 @@ function App() {
                       onChange={(e) => setAdminOverrideOrgId(e.target.value)}
                       autoComplete="off"
                       style={{
-                        background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '8px',
-                        color: '#0f172a',
-                        fontSize: '0.86rem',
-                        padding: '10px 14px',
-                        outline: 'none',
-                        transition: 'border-color 0.2s'
+                        background: 'var(--bg-card)', border: '1px solid var(--border-slate)',
+                        borderRadius: '8px', color: 'var(--text-primary)',
+                        fontSize: '0.86rem', padding: '10px 14px', outline: 'none'
                       }}
-                      onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(234,88,12,0.5)'}
-                      onBlur={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
                     />
                     <input
                       type="password"
@@ -5169,17 +5015,10 @@ function App() {
                       onKeyDown={(e) => { if (e.key === 'Enter') handleAdminOverride(); }}
                       autoComplete="new-password"
                       style={{
-                        background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: '8px',
-                        color: '#0f172a',
-                        fontSize: '0.86rem',
-                        padding: '10px 14px',
-                        outline: 'none',
-                        transition: 'border-color 0.2s'
+                        background: 'var(--bg-card)', border: '1px solid var(--border-slate)',
+                        borderRadius: '8px', color: 'var(--text-primary)',
+                        fontSize: '0.86rem', padding: '10px 14px', outline: 'none'
                       }}
-                      onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(234,88,12,0.5)'}
-                      onBlur={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
                     />
                     {adminOverrideError && (
                       <div style={{ fontSize: '0.8rem', color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -5191,55 +5030,28 @@ function App() {
                       onClick={handleAdminOverride}
                       disabled={adminOverrideLoading}
                       style={{
-                        background: 'linear-gradient(135deg, #ea580c 0%, #d97706 100%)',
-                        border: 'none',
-                        color: '#ffffff',
-                        borderRadius: '8px',
-                        padding: '10px 16px',
-                        fontSize: '0.86rem',
-                        fontWeight: 600,
-                        cursor: adminOverrideLoading ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        transition: 'all 0.2s'
+                        background: 'linear-gradient(135deg, #ea580c 0%, #d97706 100%)', border: 'none',
+                        color: '#ffffff', borderRadius: '8px', padding: '10px 16px', fontSize: '0.86rem',
+                        fontWeight: 600, cursor: adminOverrideLoading ? 'not-allowed' : 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
                       }}
                     >
-                      {adminOverrideLoading ? (
-                        <><RefreshCw size={14} className="spin-anim" /> Authenticating...</>
-                      ) : (
-                        <><ShieldCheck size={14} /> Authenticate as Admin</>
-                      )}
+                      {adminOverrideLoading ? <RefreshCw size={14} className="spin-anim" /> : <ShieldCheck size={14} />}
+                      <span>Authenticate as Admin</span>
                     </button>
                   </div>
                 )}
 
-                {/* Onboarding Guide Collapsible */}
-                <div style={{
-                  borderTop: '1px solid #e2e8f0',
-                  paddingTop: '16px',
-                  textAlign: 'left'
-                }}>
+                {/* Onboarding steps collapsible */}
+                <div style={{ borderTop: '1px solid var(--border-slate)', paddingTop: '16px', textAlign: 'left' }}>
                   <button
                     onClick={() => setShowOnboardingGuide(v => !v)}
                     style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#475569',
-                      fontSize: '0.82rem',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '4px 0',
-                      width: '100%',
-                      justifyContent: 'center',
-                      transition: 'color 0.2s'
+                      background: 'none', border: 'none', color: 'var(--text-secondary)',
+                      fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0',
+                      width: '100%', justifyContent: 'center'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = '#0f172a'}
-                    onMouseLeave={(e) => e.currentTarget.style.color = '#475569'}
                   >
                     <Info size={14} style={{ color: '#7c3aed' }} />
                     <span>New to EvaOps? Onboarding Steps</span>
@@ -5247,13 +5059,7 @@ function App() {
                   </button>
 
                   {showOnboardingGuide && (
-                    <div style={{
-                      marginTop: '12px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '12px',
-                      animation: 'fadeIn 0.25s ease-out'
-                    }}>
+                    <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {[
                         { step: '1', title: 'Sign in with Microsoft', desc: 'Authenticate with your work/school Azure account.' },
                         { step: '2', title: 'Grant Entra ID Consent', desc: 'Accept permissions to register EvaOps in your tenant.' },
@@ -5262,19 +5068,10 @@ function App() {
                       ].map((s, idx) => (
                         <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                           <div style={{
-                            width: '20px',
-                            height: '20px',
-                            borderRadius: '50%',
-                            backgroundColor: 'rgba(124, 58, 237, 0.08)',
-                            border: '1px solid rgba(124, 58, 237, 0.2)',
-                            color: '#7c3aed',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            flexShrink: 0,
-                            marginTop: '2px'
+                            width: '20px', height: '20px', borderRadius: '50%',
+                            backgroundColor: 'rgba(124, 58, 237, 0.08)', border: '1px solid rgba(124, 58, 237, 0.2)',
+                            color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '0.72rem', fontWeight: 700, flexShrink: 0, marginTop: '2px'
                           }}>
                             {s.step}
                           </div>
@@ -5293,11 +5090,7 @@ function App() {
           </div>
 
         </div>
-
-        {/* Footer */}
-        <Footer theme={theme} />
       </div>
-    );
   }
 
   const tabLoadingMap: Record<string, boolean> = {

@@ -4,6 +4,7 @@ interface EsteviaLoginBadgeProps {
   appName: string;
   category: string;
   accentColor: string;
+  isInnovationCenter?: boolean;
 }
 
 /** Inject keyframes once per page load */
@@ -70,7 +71,7 @@ function injectBadgeStyles() {
   }
 }
 
-export function EsteviaLoginBadge({ appName, category }: EsteviaLoginBadgeProps) {
+export function EsteviaLoginBadge({ appName, category, isInnovationCenter }: EsteviaLoginBadgeProps) {
   React.useEffect(() => { injectBadgeStyles(); }, []);
 
   return (
@@ -126,10 +127,10 @@ export function EsteviaLoginBadge({ appName, category }: EsteviaLoginBadgeProps)
             className="est-platform-name"
             style={{ fontFamily: "'Outfit', sans-serif", fontSize: '0.88rem', fontWeight: 800, letterSpacing: '-0.01em', lineHeight: 1.2 }}
           >
-            Estevia Platform
+            {isInnovationCenter ? 'Estevia Innovation Center' : 'Estevia Platform'}
           </div>
           <div style={{ fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#0BE58E', marginTop: '2px', opacity: 0.8 }}>
-            Enterprise Suite · v4.0
+            {isInnovationCenter ? 'Research & Development' : 'Enterprise Suite · v4.0'}
           </div>
         </div>
       </div>

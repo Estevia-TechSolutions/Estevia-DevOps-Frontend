@@ -725,7 +725,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
             <div style={{ position: 'relative', zIndex: 2 }}>
               <p style={{ fontSize: '0.74rem', color: '#64748b', margin: '0 0 16px 0' }}>Secured by OAuth2 federation and zero-trust credentials.</p>
-              <EsteviaLoginBadge appName="CRM Portal" category="Operations Desk" accentColor="#7c3aed" />
+              <EsteviaLoginBadge appName="CRM Portal" category="Operations Desk" accentColor="#7c3aed" isInnovationCenter={true} />
             </div>
           </div>
 
