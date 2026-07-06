@@ -654,8 +654,8 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
   if (!crmToken) {
     const isDark = theme === 'dark';
     const leftPanelBg = isDark
-      ? 'linear-gradient(165deg, #050816 0%, #0b1a30 45%, #050816 100%)'
-      : 'linear-gradient(165deg, #0a0f24 0%, #122949 45%, #0a0f24 100%)';
+      ? 'linear-gradient(165deg, #030a08 0%, #08291a 50%, #030a08 100%)'
+      : 'linear-gradient(165deg, #071510 0%, #0e442c 50%, #071510 100%)';
     const rightPanelBg = isDark ? 'rgba(8,12,22,0.6)' : '#ffffff';
     const textPrimary = isDark ? '#f8fafc' : '#0f172a';
     const textSecondary = isDark ? '#94a3b8' : '#475569';
