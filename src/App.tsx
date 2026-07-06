@@ -1673,8 +1673,11 @@ function App() {
   const [credentialAlerts, setCredentialAlerts] = useState<any[]>([]);
   const [credentialsList, setCredentialsList] = useState<any[]>([]);
   // ── CRM Portal & Suspension Gate States ────────────────────────────────────
-  const [showCrm, setShowCrm] = useState(() => window.location.hash === '#crm');
+  const [showCrm, setShowCrm] = useState(() => window.location.hash === '#crm' || window.location.hostname === 'evaops-crm.esteviatech.com');
   const [isOrgDisabled, setIsOrgDisabled] = useState(false);
+  const [isOrgRestricted, setIsOrgRestricted] = useState(false);
+  const [isOrgGrace, setIsOrgGrace] = useState(false);
+  const [maxOverdueDays, setMaxOverdueDays] = useState(0);
   const [billingCurrency, setBillingCurrency] = useState('USD');
   const [subPackageDevops, setSubPackageDevops] = useState(false);
   const [subPackageDeveloper, setSubPackageDeveloper] = useState(false);
@@ -1683,6 +1686,7 @@ function App() {
   // ── End License / Credential Gate States ──────────────────────────────────
 
   const checkCredentialGateStatus = async (authTokenToCheck?: string) => {
+    if (window.location.hostname === 'evaops-crm.esteviatech.com') return;
     const activeToken = authTokenToCheck || token || localStorage.getItem('devops_token');
     if (!activeToken) return;
     try {
@@ -1691,8 +1695,19 @@ function App() {
       });
       if (statusRes.ok) {
         const statusData = await statusRes.json();
-        if (statusData.is_disabled !== undefined) {
+        if (statusData.isOrgDisabled !== undefined) {
+          setIsOrgDisabled(statusData.isOrgDisabled);
+        } else if (statusData.is_disabled !== undefined) {
           setIsOrgDisabled(statusData.is_disabled);
+        }
+        if (statusData.isOrgRestricted !== undefined) {
+          setIsOrgRestricted(statusData.isOrgRestricted);
+        }
+        if (statusData.isOrgGrace !== undefined) {
+          setIsOrgGrace(statusData.isOrgGrace);
+        }
+        if (statusData.maxOverdueDays !== undefined) {
+          setMaxOverdueDays(statusData.maxOverdueDays);
         }
         if (statusData.credentialAlerts) {
           setCredentialAlerts(statusData.credentialAlerts);
@@ -1714,7 +1729,7 @@ function App() {
   // ── CRM Hash Routing ───────────────────────────────────────────────────────
   useEffect(() => {
     const checkHash = () => {
-      setShowCrm(window.location.hash === '#crm');
+      setShowCrm(window.location.hash === '#crm' || window.location.hostname === 'evaops-crm.esteviatech.com');
     };
     checkHash();
     window.addEventListener('hashchange', checkHash);
@@ -1740,6 +1755,7 @@ function App() {
         if (data.is_disabled !== undefined) {
           setIsOrgDisabled(data.is_disabled);
         }
+        await checkCredentialGateStatus();
         return true;
       }
       return false;
@@ -6069,7 +6085,7 @@ function App() {
 
                 <div style={{ height: '1px', background: 'var(--divider)', margin: '0' }} />
 
-                {/* ── Restriction Banner (org disabled) ── */}
+                {/* ── Restriction Banners (Grace, Restricted, Suspended) ── */}
                 {isOrgDisabled && (
                   <div style={{
                     margin: '8px 0 12px 0',
@@ -6085,7 +6101,47 @@ function App() {
                   }}>
                     <AlertTriangle size={20} style={{ color: '#f87171', flexShrink: 0 }} />
                     <div style={{ fontSize: '0.84rem', color: '#fca5a5', lineHeight: 1.5 }}>
-                      <strong style={{ color: '#f87171' }}>Account Restricted:</strong> Access is limited to Billing &amp; Licensing due to outstanding invoices. Please clear your balance in <strong>Settings → Licensing</strong> to restore full service.
+                      <strong style={{ color: '#f87171' }}>Account Suspended:</strong> Access is limited to Billing &amp; Licensing due to outstanding invoices overdue by more than 45 days. Please clear your balance in <strong>Settings → Licensing</strong> to restore full service.
+                    </div>
+                  </div>
+                )}
+
+                {isOrgRestricted && (
+                  <div style={{
+                    margin: '8px 0 12px 0',
+                    padding: '12px 16px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, rgba(245,158,11,0.1) 0%, rgba(239,68,68,0.06) 100%)',
+                    border: '1px solid rgba(245,158,11,0.35)',
+                    boxShadow: '0 0 20px rgba(245,158,11,0.08), inset 0 0 20px rgba(245,158,11,0.04)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    animation: 'fade-in-anim 0.3s ease-out'
+                  }}>
+                    <AlertTriangle size={20} style={{ color: '#f59e0b', flexShrink: 0 }} />
+                    <div style={{ fontSize: '0.84rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
+                      <strong style={{ color: '#f59e0b' }}>Write Operations Restricted:</strong> Your account is restricted because an invoice is overdue by <strong>{maxOverdueDays} days</strong> (grace period expired). Full access block will trigger after 45 days. Please settle your balance in <strong>Settings → Licensing</strong>.
+                    </div>
+                  </div>
+                )}
+
+                {isOrgGrace && (
+                  <div style={{
+                    margin: '8px 0 12px 0',
+                    padding: '12px 16px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(245,158,11,0.04) 100%)',
+                    border: '1px solid rgba(245,158,11,0.3)',
+                    boxShadow: '0 0 20px rgba(245,158,11,0.06), inset 0 0 20px rgba(245,158,11,0.03)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    animation: 'fade-in-anim 0.3s ease-out'
+                  }}>
+                    <Info size={20} style={{ color: '#f59e0b', flexShrink: 0 }} />
+                    <div style={{ fontSize: '0.84rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
+                      <strong style={{ color: '#f59e0b' }}>Billing Grace Period:</strong> You have an unpaid invoice overdue by <strong>{maxOverdueDays} days</strong>. Access is currently active, but write operations will be restricted after 30 days. Please clear your balance in <strong>Settings → Licensing</strong>.
                     </div>
                   </div>
                 )}
