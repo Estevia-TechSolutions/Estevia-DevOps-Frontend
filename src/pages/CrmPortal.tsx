@@ -1911,7 +1911,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   </div>
 
                 {/* Right Column: Billing Summary + Invoice Generator */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', height: '100%' }}>
                   {/* Billing Summary */}
                   <div className="glass-panel" style={{ padding: '24px' }}>
                     <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1964,7 +1964,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   </div>
 
                   {/* Invoice Preview & Generate */}
-                  <div className="glass-panel" style={{ padding: '24px' }}>
+                  <div className="glass-panel" style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
                     <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <FileText size={16} style={{ color: 'var(--accent-purple)' }} />
                       Generate Client Invoice
@@ -2000,7 +2000,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       const totalAmount = baseAmount + perSeatTotal;
 
                       return (
-                        <div>
+                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
                           <div style={{
                             background: 'var(--input-bg)', borderRadius: '8px', padding: '14px', marginBottom: '12px', border: '1px dashed var(--glass-border)'
                           }}>
@@ -2018,7 +2018,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                             </div>
                           </div>
 
-                          <form onSubmit={handleGenerateInvoice}>
+                          <form onSubmit={handleGenerateInvoice} style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
                             <div style={{ marginBottom: '14px' }}>
                               <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
                                 Payment Due Terms
