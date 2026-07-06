@@ -2783,7 +2783,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
                 {/* Right Column: Forms & Compliance Info */}
                 <div>
-                  {crmUser.role === 'admin' && (
+                  {crmUser.role === 'admin' && editingAgent && (
                     <>
                     {/* ── Inline Edit Panel ── */}
                     {editingAgent && (
@@ -2961,9 +2961,12 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                         </form>
                       </div>
                     )}
+                  </>
+                )}
 
-                    {/* ── Create New Agent ── */}
-                    <div className="glass-panel" style={{ padding: '28px' }}>
+                {/* ── Create New Agent (Visible to everyone, locked/blurred for agents) ── */}
+                <div className="glass-panel" style={{ padding: '28px', position: 'relative' }}>
+                  <div style={{ filter: crmUser.role !== 'admin' ? 'blur(2.5px)' : 'none', pointerEvents: crmUser.role !== 'admin' ? 'none' : 'auto' }}>
                       <h4 style={{ fontSize: '0.94rem', fontWeight: 700, marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <UserPlus size={16} style={{ color: 'var(--accent-purple)' }} />
                         Create Support Agent Account
@@ -3106,13 +3109,52 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                         </button>
                       </form>
                     </div>
-                  </>
-                )}
 
-                {/* ── Staff Compliance Guidelines Panel (Visible to All Roles) ── */}
-                <div className="glass-panel" style={{
-                  padding: '24px',
-                  marginTop: crmUser.role === 'admin' ? '24px' : '0px',
+                    {/* Lock Overlay for non-admins */}
+                    {crmUser.role !== 'admin' && (
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: localTheme === 'light' ? 'rgba(255, 255, 255, 0.45)' : 'rgba(15, 23, 42, 0.45)',
+                        borderRadius: '12px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '24px',
+                        textAlign: 'center',
+                        backdropFilter: 'blur(3px)',
+                        zIndex: 5
+                      }}>
+                        <div style={{
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '50%',
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          border: '1.5px solid rgba(239, 68, 68, 0.3)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#f87171',
+                          marginBottom: '14px'
+                        }}>
+                          <Lock size={18} />
+                        </div>
+                        <h5 style={{ fontSize: '0.86rem', fontWeight: 700, margin: '0 0 6px 0', color: 'var(--text-primary)' }}>Admin Privilege Required</h5>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', lineHeight: 1.4, maxWidth: '240px', margin: 0 }}>
+                          Roster creation is restricted to system administrators. Contact your compliance officer for access.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── Staff Compliance Guidelines Panel (Visible to All Roles) ── */}
+                  <div className="glass-panel" style={{
+                    padding: '24px',
+                    marginTop: '24px',
                   background: 'rgba(99, 102, 241, 0.02)',
                   border: '1.5px dashed rgba(139, 92, 246, 0.25)',
                   textAlign: 'left'
