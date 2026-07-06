@@ -205,9 +205,11 @@ export const CostPage: React.FC<CostPageProps> = ({
         const matchingBackend = allBackends.find(b => {
           const bHost = b.hostname || b.azureResourceDetails?.hostname || '';
           const bDns = b.fqdn || '';
+          const hasFqdnMatch = b.fqdns ? b.fqdns.some(f => f.toLowerCase().includes(host.toLowerCase())) : false;
           return (
             bHost.toLowerCase().includes(host.toLowerCase()) ||
             bDns.toLowerCase().includes(host.toLowerCase()) ||
+            hasFqdnMatch ||
             host.toLowerCase().includes(b.name.toLowerCase())
           );
         });
@@ -406,7 +408,7 @@ export const CostPage: React.FC<CostPageProps> = ({
       return matchesSearch && (tag === 'DEV' || tag === 'QA');
     }
     if (envFilter === 'stale') {
-      const isOrphaned = !item.repositoryUrl && !item.fqdn && 
+      const isOrphaned = !item.repositoryUrl && !item.fqdn && !item.fqdns?.length && 
         (item.type === 'frontend' || item.type === 'backend' || 
          item.name.toLowerCase().includes('test') || item.name.toLowerCase().includes('example'));
       const isStaleName = item.name.toLowerCase().includes('test') || 
@@ -1450,7 +1452,7 @@ export const CostPage: React.FC<CostPageProps> = ({
 
                       {/* Group Rows (only if expanded) */}
                       {isExpanded && items.map((item) => {
-                        const isOrphaned = !item.repositoryUrl && !item.fqdn && 
+                        const isOrphaned = !item.repositoryUrl && !item.fqdn && !item.fqdns?.length && 
                           (item.type === 'frontend' || item.type === 'backend' || 
                            item.name.toLowerCase().includes('test') || item.name.toLowerCase().includes('example'));
 
@@ -1682,10 +1684,10 @@ export const CostPage: React.FC<CostPageProps> = ({
                                   </div>
                                </div>
                               {item.fqdn && (
-                                <div style={{ fontSize: '0.75rem', color: isLight ? '#7c3aed' : '#a78bfa', fontWeight: 400, marginTop: '2px' }}>
-                                  {item.fqdn}
-                                </div>
-                              )}
+                                 <div style={{ fontSize: '0.75rem', color: isLight ? '#7c3aed' : '#a78bfa', fontWeight: 400, marginTop: '2px' }}>
+                                   {item.fqdns && item.fqdns.length > 0 ? item.fqdns.join(', ') : item.fqdn}
+                                 </div>
+                               )}
                               {item.repositoryUrl && (
                                 <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 400 }}>
                                   <a 
