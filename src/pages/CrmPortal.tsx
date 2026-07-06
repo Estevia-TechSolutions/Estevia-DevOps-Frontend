@@ -741,6 +741,27 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.75rem', fontWeight: 700, color: textPrimary, marginBottom: '6px' }}>CRM Sign In</h3>
                   <p style={{ fontSize: '0.88rem', color: textSecondary, margin: 0 }}>Access is restricted to authorized Estevia support personnel.</p>
                 </div>
+                <button
+                  onClick={() => setLocalTheme(t => t === 'dark' ? 'light' : 'dark')}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #cbd5e1',
+                    background: isDark ? 'rgba(255,255,255,0.03)' : '#f1f5f9',
+                    color: textSecondary,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    transition: 'all 0.2s',
+                    flexShrink: 0
+                  }}
+                  title={`Switch to ${localTheme === 'dark' ? 'light' : 'dark'} theme`}
+                >
+                  {localTheme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+                </button>
               </div>
 
               {loginError && (
