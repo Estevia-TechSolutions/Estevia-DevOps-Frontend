@@ -4863,7 +4863,7 @@ function App() {
                   { title: 'DevOps Pipelines', desc: 'Committer-driven YML setup templates', icon: Terminal },
                   { title: 'Cost Pulse Analytics', desc: 'Optimization insights & active cost tracking', icon: TrendingDown }
                 ].map((f, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
                     <div style={{
                       width: '36px', height: '36px', borderRadius: '10px',
                       background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)',
