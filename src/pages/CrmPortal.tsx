@@ -437,14 +437,24 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
       });
       const data = await res.json();
       if (res.ok && data.token) {
-        localStorage.setItem('devops_token', data.token);
-        localStorage.setItem('devops_user', JSON.stringify(data.user));
-        localStorage.setItem('devops_requires_onboarding', String(data.requiresOnboarding));
-        if (data.organization && data.organization.id) {
-          localStorage.setItem('devops_organization_id', data.organization.id);
-          localStorage.setItem('devops_organization_name', data.organization.name || data.organization.id);
+        let targetHost = window.location.origin;
+        if (targetHost.includes('-crm.esteviatech.com')) {
+          targetHost = targetHost.replace('-crm.esteviatech.com', '.esteviatech.com');
+        } else if (targetHost.includes('crm.esteviatech.com')) {
+          targetHost = targetHost.replace('crm.esteviatech.com', 'evaops.esteviatech.com');
         }
-        window.open(window.location.origin + '/', '_blank');
+
+        const queryParams = new URLSearchParams();
+        queryParams.set('bypassToken', data.token);
+        queryParams.set('bypassUser', JSON.stringify(data.user));
+        queryParams.set('requiresOnboarding', String(data.requiresOnboarding));
+        if (data.organization && data.organization.id) {
+          queryParams.set('orgId', data.organization.id);
+          queryParams.set('orgName', data.organization.name || data.organization.id);
+        }
+
+        const targetUrl = `${targetHost}/?${queryParams.toString()}`;
+        window.open(targetUrl, '_blank');
       } else {
         throw new Error(data.error || 'Failed to authenticate via bypass');
       }
@@ -545,6 +555,18 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
       setAgents(data);
     } catch (err) {
       console.error('Failed to fetch CRM users:', err);
+    } finally {
+      setLoadingAgents(false);
+    }
+  };
+
+  const handleSyncAzureAD = async () => {
+    setLoadingAgents(true);
+    try {
+      await crmRequest('/users/sync', { method: 'POST' });
+      await fetchAgents();
+    } catch (err: any) {
+      console.error('Failed to sync users with Azure AD:', err);
     } finally {
       setLoadingAgents(false);
     }
@@ -2365,7 +2387,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   </p>
                 </div>
                 <button
-                  onClick={fetchAgents}
+                  onClick={handleSyncAzureAD}
                   disabled={loadingAgents}
                   style={{
                     padding: '8px 14px',
