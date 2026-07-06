@@ -2767,7 +2767,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       <div style={{ marginTop: '8px', fontSize: '0.84rem' }}>Loading support agents...</div>
                     </div>
                   ) : agents.length > 0 ? (
-                    <div className="glass-panel" style={{ overflow: 'hidden', padding: 0, marginBottom: '24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <div className="glass-panel" style={{ overflow: 'hidden', padding: 0, marginBottom: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
                       <div style={{ overflowY: 'auto', flex: 1 }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                           <thead>
@@ -2984,7 +2984,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       })()}
                     </div>
                   ) : (
-                    <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.84rem', marginBottom: '24px' }}>
+                    <div className="glass-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.84rem', marginBottom: 0 }}>
                       No support agents found.
                     </div>
                   )}
