@@ -1882,8 +1882,9 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       <thead>
                         <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--divider)', color: 'var(--text-secondary)' }}>
                           <th style={{ padding: '10px 14px' }}>Invoice #</th>
-                          <th style={{ padding: '10px 14px' }}>Issue Date</th>
+                          <th style={{ padding: '10px 14px' }}>Billing Type</th>
                           <th style={{ padding: '10px 14px' }}>Amount</th>
+                          <th style={{ padding: '10px 14px' }}>Issue Date</th>
                           <th style={{ padding: '10px 14px' }}>Due Date</th>
                           <th style={{ padding: '10px 14px' }}>Status</th>
                           <th style={{ padding: '10px 14px', width: '100px' }}>Action</th>
@@ -1891,49 +1892,125 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                       </thead>
                       <tbody>
                         {clientInvoices.map(inv => (
-                          <tr key={inv.id} style={{ borderBottom: '1px solid var(--divider)', transition: 'background 0.15s' }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                            <td style={{ padding: '12px 14px', fontWeight: 600 }}>{inv.invoice_number}</td>
-                            <td style={{ padding: '12px 14px' }}>{new Date(inv.issue_date).toLocaleDateString()}</td>
-                            <td style={{ padding: '12px 14px' }}>${parseFloat(inv.amount).toLocaleString()}</td>
-                            <td style={{ padding: '12px 14px' }}>{new Date(inv.due_date).toLocaleDateString()}</td>
-                            <td style={{ padding: '12px 14px' }}>
-                              <span style={{
-                                padding: '3px 8px',
-                                borderRadius: '4px',
-                                fontSize: '0.7rem',
-                                fontWeight: 700,
-                                textTransform: 'uppercase',
-                                background: inv.status === 'Paid' ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)',
-                                color: inv.status === 'Paid' ? 'var(--success)' : 'var(--warning)',
-                                border: inv.status === 'Paid' ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(245,158,11,0.2)'
-                              }}>
-                                {inv.status}
-                              </span>
-                            </td>
-                            <td style={{ padding: '12px 14px' }}>
-                              {inv.status === 'Pending' ? (
-                                <button
-                                  onClick={() => handleUpdateInvoiceStatus(inv.id, 'Paid', 'detail')}
-                                  style={{
-                                    padding: '5px 10px',
-                                    borderRadius: '4px',
-                                    border: '1px solid rgba(34,197,94,0.3)',
-                                    background: 'rgba(34,197,94,0.1)',
-                                    color: '#4ade80',
-                                    fontSize: '0.72rem',
-                                    fontWeight: 600,
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  Mark Paid
-                                </button>
-                              ) : (
-                                <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>—</span>
-                              )}
-                            </td>
-                          </tr>
+                          <React.Fragment key={inv.id}>
+                            <tr style={{ borderBottom: expandedBreakdown[inv.id] ? 'none' : '1px solid var(--divider)', transition: 'background 0.15s' }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'var(--divider)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                              <td style={{ padding: '12px 14px', fontWeight: 600 }}>{inv.invoice_number}</td>
+                              <td style={{ padding: '12px 14px' }}>
+                                <span style={{
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  whiteSpace: 'nowrap',
+                                  background: inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? 'rgba(59,130,246,0.08)'
+                                            : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? 'rgba(139,92,246,0.08)'
+                                            : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? 'rgba(20,184,166,0.08)'
+                                            : 'rgba(251,191,36,0.08)',
+                                  color: inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? '#60a5fa'
+                                       : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? '#c084fc'
+                                       : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? '#2dd4bf'
+                                       : '#fbbf24',
+                                  border: inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? '1px solid rgba(59,130,246,0.2)'
+                                        : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? '1px solid rgba(139,92,246,0.2)'
+                                        : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? '1px solid rgba(20,184,166,0.2)'
+                                        : '1px solid rgba(251,191,36,0.2)'
+                                }}>
+                                  {inv.invoice_type === 'devops_package' || inv.invoice_type === 'devops' ? '🚀 DevOps'
+                                   : inv.invoice_type === 'developer_package' || inv.invoice_type === 'developer' ? '💻 Developer'
+                                   : inv.invoice_type === 'security_package' || inv.invoice_type === 'security' ? '🛡️ Security'
+                                   : '🏢 Platform'}
+                                </span>
+                              </td>
+                              <td style={{ padding: '12px 14px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-start' }}>
+                                  <span>{renderDualCurrency(inv.amount, inv.currency || 'USD')}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setExpandedBreakdown(prev => ({ ...prev, [inv.id]: !prev[inv.id] }))}
+                                    style={{
+                                      background: 'none', border: 'none', padding: 0, color: 'var(--accent-purple)',
+                                      fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer', outline: 'none',
+                                      display: 'inline-flex', alignItems: 'center', gap: '3px'
+                                    }}
+                                  >
+                                    <span>{expandedBreakdown[inv.id] ? 'Hide' : 'Show'} Breakdown</span>
+                                    <span>{expandedBreakdown[inv.id] ? '▲' : '▼'}</span>
+                                  </button>
+                                </div>
+                              </td>
+                              <td style={{ padding: '12px 14px' }}>{new Date(inv.issue_date).toLocaleDateString()}</td>
+                              <td style={{ padding: '12px 14px' }}>{new Date(inv.due_date).toLocaleDateString()}</td>
+                              <td style={{ padding: '12px 14px' }}>
+                                <span style={{
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 700,
+                                  textTransform: 'uppercase',
+                                  background: inv.status === 'Paid' ? 'rgba(34,197,94,0.08)' : 'rgba(245,158,11,0.08)',
+                                  color: inv.status === 'Paid' ? 'var(--success)' : 'var(--warning)',
+                                  border: inv.status === 'Paid' ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(245,158,11,0.2)'
+                                }}>
+                                  {inv.status}
+                                </span>
+                              </td>
+                              <td style={{ padding: '12px 14px' }}>
+                                {inv.status === 'Pending' ? (
+                                  <button
+                                    onClick={() => handleUpdateInvoiceStatus(inv.id, 'Paid', 'detail')}
+                                    style={{
+                                      padding: '5px 10px',
+                                      borderRadius: '4px',
+                                      border: '1px solid rgba(34,197,94,0.3)',
+                                      background: 'rgba(34,197,94,0.1)',
+                                      color: '#4ade80',
+                                      fontSize: '0.72rem',
+                                      fontWeight: 600,
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    Mark Paid
+                                  </button>
+                                ) : (
+                                  <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem' }}>—</span>
+                                )}
+                              </td>
+                            </tr>
+                            {expandedBreakdown[inv.id] && (() => {
+                              const lines = getInvoiceBreakdown(inv, selectedClient.license_tier || 'growth');
+                              return (
+                                <tr style={{ background: 'rgba(255,255,255,0.015)' }}>
+                                  <td colSpan={7} style={{ padding: '4px 14px 12px 14px' }}>
+                                    <div style={{
+                                      background: 'rgba(30, 41, 59, 0.4)',
+                                      border: '1.5px solid var(--glass-border)',
+                                      borderRadius: '8px',
+                                      padding: '12px',
+                                      textAlign: 'left'
+                                    }}>
+                                      <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 700, marginBottom: '8px', borderBottom: '1px solid var(--divider)', paddingBottom: '4px' }}>
+                                        Calculation Breakup
+                                      </div>
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                        {lines.map((line, idx) => (
+                                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px' }}>
+                                            <span style={{ fontSize: '0.74rem', color: line.dim ? 'var(--text-muted)' : 'var(--text-secondary)' }}>
+                                              {line.label}
+                                            </span>
+                                            <span style={{ fontSize: '0.74rem', color: line.bold ? 'var(--accent-purple)' : 'var(--text-primary)', fontWeight: line.bold ? 800 : 600, whiteSpace: 'nowrap' }}>
+                                              {line.value}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })()}
+                          </React.Fragment>
                         ))}
                       </tbody>
                     </table>
