@@ -4855,7 +4855,7 @@ function App() {
 
             {/* Capability Checklist */}
             <div style={{ position: 'relative', zIndex: 2, margin: '40px 0' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted, #64748b)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '16px' }}>Platform Capabilities</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '16px' }}>Platform Capabilities</span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {[
                   { title: 'Cloud Discovery Scanning', desc: 'Auto-maps SWA and ACA environments', icon: Cloud },
@@ -4872,8 +4872,8 @@ function App() {
                       <f.icon size={16} />
                     </div>
                     <div>
-                      <h4 style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary, #f8fafc)', margin: 0 }}>{f.title}</h4>
-                      <p style={{ fontSize: '0.74rem', color: 'var(--text-secondary, #94a3b8)', margin: 0 }}>{f.desc}</p>
+                      <h4 style={{ fontSize: '0.86rem', fontWeight: 700, color: '#f1f5f9', margin: 0 }}>{f.title}</h4>
+                      <p style={{ fontSize: '0.74rem', color: '#94a3b8', margin: 0 }}>{f.desc}</p>
                     </div>
                   </div>
                 ))}
