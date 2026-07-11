@@ -1604,10 +1604,11 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                         <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
                           Audits for security warnings (e.g. running containers as root users). Inspects <code>EXPOSE</code> instructions to verify that target port mapping matches the Container App ingress profile.
                         </span>
-                      </div>
                     </div>
                   </div>
-              )}
+                </div>
+              </div>
+            )}
 
               {/* 6. Database Operations & Validation Subtab */}
               {guideSubTab === 'database-validation' && (
