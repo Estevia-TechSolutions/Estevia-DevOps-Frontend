@@ -141,6 +141,22 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
       {
         category: 'provisioning',
         categoryLabel: 'Provisioning',
+        isCapability: true,
+        title: 'Automatic Repository Matching',
+        text: 'DevOps backend scanner automatically deduces and populates the GitHub repository URL (repo_url) using name matching logic (stripping environment suffixes like -dev, -qa, -prod, -swa) during resource scanning.',
+        icon: 'git'
+      },
+      {
+        category: 'provisioning',
+        categoryLabel: 'Provisioning',
+        isCapability: true,
+        title: 'Environment Hydration Audits',
+        text: 'Scans Git-committed standard env files (.env.development, .env.qa, .env.production) to audit API URL configurations natively.',
+        icon: 'file-code'
+      },
+      {
+        category: 'provisioning',
+        categoryLabel: 'Provisioning',
         isCapability: false,
         title: 'Base Infrastructure',
         text: 'Does NOT create Resource Groups, Virtual Networks (VNets), VPNs, or VPN Gateways. These must exist beforehand.',
@@ -316,6 +332,22 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
         title: 'ERD Database Visualizer',
         text: 'Queries schema relationships to draw dynamic visual Entity-Relationship diagrams.',
         icon: 'layout'
+      },
+      {
+        category: 'database',
+        categoryLabel: 'Database Hub',
+        isCapability: true,
+        title: 'Auto-Initialization & Migrations',
+        text: 'All backend microservices verify, create (CREATE DATABASE IF NOT EXISTS), and seed database instances automatically on container boot before starting the server.',
+        icon: 'database'
+      },
+      {
+        category: 'database',
+        categoryLabel: 'Database Hub',
+        isCapability: true,
+        title: 'Strict Environment Isolation',
+        text: 'Always maintains strict database host isolation between Dev, QA, and Production environments.',
+        icon: 'shield'
       },
       {
         category: 'database',
@@ -1154,6 +1186,14 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                 >
                   Dockerfile Rules
                 </button>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('database-validation') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('database-validation')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  Database Rules
+                </button>
               </div>
 
               {/* 1. Branch Naming Rules Subtab */}
@@ -1238,6 +1278,16 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                     })}
                   </div>
 
+                  <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: 'var(--accent-teal)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <GitBranch size={16} />
+                      Automatic Repository Matching
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                      When cloud resources (such as Azure Container Apps and Static Web Apps) are scanned and synchronized, the DevOps backend scanner automatically deduces and populates the GitHub repository URL (<code>repo_url</code>) using name matching logic (e.g. stripping environment suffixes like <code>-dev</code>, <code>-qa</code>, <code>-prod</code>, <code>-swa</code>). This ensures a seamless scan process without requiring manual repository mapping inside the dashboard.
+                    </p>
+                  </div>
+
                   <div className="glass-panel" style={{
                     padding: '16px',
                     display: 'flex',
@@ -1281,9 +1331,9 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', marginTop: '4px' }}>
                       <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)' }}>
-                        <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>SWA-to-Backend Resolution</strong>
+                        <strong style={{ fontSize: '0.78rem', color: 'var(--text-primary)', display: 'block', marginBottom: '4px' }}>SWA-to-Backend Resolution &amp; Env Hydration</strong>
                         <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: '1.4', display: 'block' }}>
-                          Scans repository env files (e.g. <code>.env.production</code>, <code>.env.deployment</code>) for backend URLs. If repo scanning fails, it queries the Azure ARM Static Web App settings for keys like <code>VITE_API_URL</code> or <code>REACT_APP_API_URL</code>.
+                          Frontends must define standard env files (<code>.env.development</code>, <code>.env.qa</code>, <code>.env.production</code>) committed in Git. This allows the DevOps scanner to audit API URL configurations natively. If Git-based scans are unavailable, it queries the Azure ARM Static Web App settings for keys like <code>VITE_API_URL</code> or <code>REACT_APP_API_URL</code>.
                         </span>
                       </div>
                       
@@ -1556,6 +1606,39 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                         </span>
                       </div>
                     </div>
+                  </div>
+              )}
+
+              {/* 6. Database Operations & Validation Subtab */}
+              {guideSubTab === 'database-validation' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                      Database Hub &amp; Isolation Rules
+                    </h3>
+                    <p style={{ margin: '6px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                      Rules governing microservice database initialization, migration runs, and strict environment containment.
+                    </p>
+                  </div>
+
+                  <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Database size={16} />
+                      Auto-Initialization &amp; Seeding
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                      All backend microservices must verify, create (e.g. <code>CREATE DATABASE IF NOT EXISTS</code>), and seed database instances automatically on container boot before starting the server. This prevents manual setup steps during deployment.
+                    </p>
+                  </div>
+
+                  <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Lock size={16} />
+                      Strict Environment Isolation
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                      Always maintain strict database host isolation between Dev, QA, and Production environments. Cross-environment database connections are prohibited to enforce secure, separated data states.
+                    </p>
                   </div>
                 </div>
               )}
