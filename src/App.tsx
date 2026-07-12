@@ -6017,7 +6017,7 @@ function App() {
                   }}>
                     <AlertTriangle size={20} style={{ color: '#f87171', flexShrink: 0 }} />
                     <div style={{ fontSize: '0.84rem', color: '#fca5a5', lineHeight: 1.5 }}>
-                      <strong style={{ color: '#f87171' }}>Account Suspended:</strong> Access is limited to Billing &amp; Licensing due to outstanding invoices overdue by more than 45 days. Please clear your balance in <strong>Settings → Licensing</strong> to restore full service.
+                      <strong style={{ color: '#f87171' }}>Account Suspended:</strong> Access is limited to Billing &amp; Licensing due to outstanding invoices overdue by more than 45 days. Please clear your balance in <strong>Licensing</strong> to restore full service.
                     </div>
                   </div>
                 )}
@@ -6037,7 +6037,7 @@ function App() {
                   }}>
                     <AlertTriangle size={20} style={{ color: '#f59e0b', flexShrink: 0 }} />
                     <div style={{ fontSize: '0.84rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
-                      <strong style={{ color: '#f59e0b' }}>Write Operations Restricted:</strong> Your account is restricted because an invoice is overdue by <strong>{maxOverdueDays} days</strong> (grace period expired). Full access block will trigger after 45 days. Please settle your balance in <strong>Settings → Licensing</strong>.
+                      <strong style={{ color: '#f59e0b' }}>Write Operations Restricted:</strong> Your account is restricted because an invoice is overdue by <strong>{maxOverdueDays} days</strong> (grace period expired). Full access block will trigger after 45 days. Please settle your balance in <strong>Licensing</strong>.
                     </div>
                   </div>
                 )}
@@ -6057,7 +6057,7 @@ function App() {
                   }}>
                     <Info size={20} style={{ color: '#f59e0b', flexShrink: 0 }} />
                     <div style={{ fontSize: '0.84rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
-                      <strong style={{ color: '#f59e0b' }}>Billing Grace Period:</strong> You have an unpaid invoice overdue by <strong>{maxOverdueDays} days</strong>. Access is currently active, but write operations will be restricted after 30 days. Please clear your balance in <strong>Settings → Licensing</strong>.
+                      <strong style={{ color: '#f59e0b' }}>Billing Grace Period:</strong> You have an unpaid invoice overdue by <strong>{maxOverdueDays} days</strong>. Access is currently active, but write operations will be restricted after 30 days. Please clear your balance in <strong>Licensing</strong>.
                     </div>
                   </div>
                 )}
