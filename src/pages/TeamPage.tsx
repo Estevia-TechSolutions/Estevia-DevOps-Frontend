@@ -589,7 +589,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                   <input
                     type="checkbox"
                     checked={ssoMfaRequired}
-                    disabled={savingMfaSettings || (!isMfaEnabledForSelf && !ssoMfaRequired)}
+                    disabled={savingMfaSettings}
                     onChange={() => handleToggleMfa('sso', ssoMfaRequired)}
                     style={{ opacity: 0, width: 0, height: 0 }}
                   />
@@ -615,7 +615,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                   <input
                     type="checkbox"
                     checked={manualMfaRequired}
-                    disabled={savingMfaSettings || (!isMfaEnabledForSelf && !manualMfaRequired)}
+                    disabled={savingMfaSettings}
                     onChange={() => handleToggleMfa('manual', manualMfaRequired)}
                     style={{ opacity: 0, width: 0, height: 0 }}
                   />
