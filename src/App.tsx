@@ -1128,6 +1128,8 @@ function App() {
   const [mfaSecret, setMfaSecret] = useState<string>('');
   const [mfaOtpauthUrl, setMfaOtpauthUrl] = useState<string>('');
   const [mfaCode, setMfaCode] = useState<string>('');
+  // MFA wizard step (1 = get app, 2 = scan QR, 3 = verify)
+  const [mfaSetupStep, setMfaSetupStep] = useState<1 | 2 | 3>(1);
 
   // Dynamic Provisioning Metadata States
   const [locations, setLocations] = useState<any[]>([]);
@@ -2183,6 +2185,7 @@ function App() {
   };
 
   const handleInitiateMfaSetup = async (tempToken: string) => {
+    setMfaSetupStep(1);
     try {
       const res = await window.fetch(`${API_BASE}/auth/mfa/setup`, {
         method: 'POST',
@@ -5343,57 +5346,159 @@ function App() {
               )}
 
               {authStep === 'mfa-setup' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <h4 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>MFA Registration</h4>
-                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '0 0 12px 0' }}>Scan this QR code with Google/Microsoft Authenticator to secure your account:</p>
-                  
-                  <div style={{ display: 'flex', justifyContent: 'center', padding: '10px', background: '#ffffff', borderRadius: '12px', width: '180px', height: '180px', margin: '0 auto' }}>
-                    {mfaOtpauthUrl ? (
-                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(mfaOtpauthUrl)}`} alt="QR Code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#333' }}>Generating QR...</div>
-                    )}
-                  </div>
-                  
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
-                    <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Or enter secret key manually:</span>
-                    <code style={{ background: 'rgba(255,255,255,0.05)', padding: '6px', borderRadius: '6px', fontSize: '0.8rem', letterSpacing: '0.05em', color: 'var(--accent-teal)', textAlign: 'center', border: '1px solid var(--glass-border)' }}>{mfaSecret}</code>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+
+                  {/* ── Wizard Step Progress Bar ── */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {[1, 2, 3].map((step, idx) => {
+                        const labels = ['Get App', 'Scan QR', 'Verify'];
+                        const isActive = mfaSetupStep === step;
+                        const isDone = mfaSetupStep > step;
+                        return (
+                          <div key={step} style={{ display: 'flex', alignItems: 'center', flex: idx < 2 ? '1' : undefined }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', zIndex: 1 }}>
+                              <div style={{
+                                width: '30px', height: '30px', borderRadius: '50%',
+                                background: isDone ? 'var(--accent-teal)' : isActive ? 'linear-gradient(135deg,#10b981,#059669)' : 'rgba(255,255,255,0.05)',
+                                border: isDone || isActive ? '2px solid var(--accent-teal)' : '2px solid var(--glass-border)',
+                                color: isDone || isActive ? '#fff' : 'var(--text-muted)',
+                                fontWeight: 800, fontSize: '0.76rem',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                boxShadow: isActive ? '0 0 0 4px rgba(16,185,129,0.15)' : 'none',
+                                transition: 'all 0.3s ease'
+                              }}>
+                                {isDone ? '✓' : step}
+                              </div>
+                              <span style={{ fontSize: '0.6rem', fontWeight: 700, color: isActive ? 'var(--accent-teal)' : isDone ? 'var(--accent-teal)' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                {labels[idx]}
+                              </span>
+                            </div>
+                            {idx < 2 && (
+                              <div style={{ flex: 1, height: '2px', background: mfaSetupStep > step ? 'var(--accent-teal)' : 'var(--glass-border)', margin: '0 6px', marginBottom: '16px', transition: 'background 0.3s ease' }} />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
-                    <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Enter the 6-digit code shown in your app:</span>
-                    <input
-                      type="text"
-                      maxLength={6}
-                      placeholder="000000"
-                      value={mfaCode}
-                      onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
-                      style={{
-                        background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)',
-                        borderRadius: '8px', color: 'var(--text-primary)', textAlign: 'center',
-                        fontSize: '1.25rem', padding: '8px', letterSpacing: '0.2em', outline: 'none'
-                      }}
-                    />
-                  </div>
+                  {/* ── Step 1: Get Authenticator App ── */}
+                  {mfaSetupStep === 1 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'linear-gradient(135deg,rgba(16,185,129,0.12),rgba(59,130,246,0.08))', border: '1px solid rgba(16,185,129,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px', fontSize: '1.5rem' }}>📲</div>
+                        <h4 style={{ margin: '0 0 4px', fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Install an Authenticator App</h4>
+                        <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>You need a TOTP authenticator app to generate secure login codes.</p>
+                      </div>
 
-                  <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
-                    <button
-                      className="btn-secondary"
-                      onClick={() => { setAuthStep('login'); setMfaCode(''); }}
-                      style={{ flex: 1, padding: '10px', fontSize: '0.84rem' }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      className="btn-primary"
-                      disabled={authLoading || mfaCode.length !== 6}
-                      onClick={() => handleVerifyMfaSetupCode(mfaCode)}
-                      style={{ flex: 1, padding: '10px', fontSize: '0.84rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                    >
-                      {authLoading && <RefreshCw size={14} className="spin-anim" />}
-                      Verify & Login
-                    </button>
-                  </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                        {[
+                          { name: 'Google Authenticator', platforms: 'iOS · Android', ios: 'https://apps.apple.com/app/google-authenticator/id388497605', android: 'https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2', color: '#4285F4', icon: '🔵' },
+                          { name: 'Microsoft Authenticator', platforms: 'iOS · Android', ios: 'https://apps.apple.com/app/microsoft-authenticator/id983156458', android: 'https://play.google.com/store/apps/details?id=com.azure.authenticator', color: '#0078D4', icon: '🛡️' },
+                          { name: 'Authy', platforms: 'iOS · Android', ios: 'https://apps.apple.com/app/twilio-authy/id494168017', android: 'https://play.google.com/store/apps/details?id=com.authy.authy', color: '#E21D38', icon: '🔴' },
+                          { name: 'Aegis Authenticator', platforms: 'Android only', ios: null, android: 'https://play.google.com/store/apps/details?id=com.beemdevelopment.aegis', color: '#f5a623', icon: '🟡' }
+                        ].map(app => (
+                          <div key={app.name} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', borderRadius: '10px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                              <span style={{ fontSize: '1rem' }}>{app.icon}</span>
+                              <div>
+                                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>{app.name}</div>
+                                <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{app.platforms}</div>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                              {app.ios && <a href={app.ios} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.6rem', fontWeight: 700, color: app.color, textDecoration: 'none', padding: '2px 7px', borderRadius: '99px', background: `${app.color}18`, border: `1px solid ${app.color}30` }}>📱 iOS</a>}
+                              {app.android && <a href={app.android} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.6rem', fontWeight: 700, color: app.color, textDecoration: 'none', padding: '2px 7px', borderRadius: '99px', background: `${app.color}18`, border: `1px solid ${app.color}30` }}>🤖 Android</a>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div style={{ background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.12)', borderRadius: '8px', padding: '9px 12px', fontSize: '0.7rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                        ✅ Any <strong style={{ color: 'var(--text-primary)' }}>RFC 6238 TOTP</strong> app works — including Apple Passwords and 1Password.
+                      </div>
+
+                      <button className="btn-primary" onClick={() => setMfaSetupStep(2)} style={{ padding: '11px', fontSize: '0.84rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                        I have an App — Next: Scan QR →
+                      </button>
+                      <button className="btn-secondary" onClick={() => { setAuthStep('login'); setMfaCode(''); }} style={{ padding: '9px', fontSize: '0.8rem' }}>Cancel</button>
+                    </div>
+                  )}
+
+                  {/* ── Step 2: Scan QR Code ── */}
+                  {mfaSetupStep === 2 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <h4 style={{ margin: '0 0 4px', fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Scan the QR Code</h4>
+                        <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Open your authenticator app and scan the code below</p>
+                      </div>
+
+                      <div style={{ position: 'relative', display: 'inline-block' }}>
+                        <div style={{ background: '#fff', padding: '14px', borderRadius: '14px', display: 'inline-block', border: '1px solid #ddd', boxShadow: '0 4px 18px rgba(0,0,0,0.12)' }}>
+                          {mfaOtpauthUrl ? (
+                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(mfaOtpauthUrl)}`} alt="MFA QR Code" style={{ display: 'block', width: '180px', height: '180px' }} />
+                          ) : (
+                            <div style={{ width: '180px', height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#333', fontSize: '0.8rem' }}><RefreshCw size={20} className="spin-anim" /></div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--glass-border)', borderRadius: '8px', padding: '10px 14px' }}>
+                        <p style={{ margin: '0 0 5px', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Can't scan? Enter this key manually:</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <code style={{ flex: 1, fontSize: '0.82rem', fontWeight: 700, color: 'var(--accent-teal)', letterSpacing: '1.5px', wordBreak: 'break-all' }}>{mfaSecret}</code>
+                          <button type="button" onClick={() => navigator.clipboard.writeText(mfaSecret)} style={{ padding: '5px 9px', borderRadius: '7px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', color: 'var(--accent-teal)', cursor: 'pointer', fontSize: '0.68rem', fontWeight: 700, whiteSpace: 'nowrap' }}>📋 Copy</button>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
+                        <button className="btn-secondary" onClick={() => setMfaSetupStep(1)} style={{ flex: 1, padding: '10px', fontSize: '0.82rem' }}>← Back</button>
+                        <button className="btn-primary" onClick={() => setMfaSetupStep(3)} style={{ flex: 2, padding: '10px', fontSize: '0.84rem' }}>I've scanned it — Next: Verify →</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Step 3: Verify Code ── */}
+                  {mfaSetupStep === 3 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ width: '52px', height: '52px', borderRadius: '14px', background: 'linear-gradient(135deg,rgba(16,185,129,0.12),rgba(59,130,246,0.08))', border: '1px solid rgba(16,185,129,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px', fontSize: '1.5rem' }}>🔐</div>
+                        <h4 style={{ margin: '0 0 4px', fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Enter Verification Code</h4>
+                        <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>Open your authenticator app and enter the 6-digit code shown for <strong>Estevia</strong>.</p>
+                      </div>
+
+                      <input
+                        type="text"
+                        maxLength={6}
+                        placeholder="000 000"
+                        value={mfaCode}
+                        autoFocus
+                        onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                        style={{
+                          background: 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)',
+                          borderRadius: '10px', color: 'var(--text-primary)', textAlign: 'center',
+                          fontSize: '1.6rem', padding: '12px', letterSpacing: '0.25em', outline: 'none',
+                          fontWeight: 700, fontVariantNumeric: 'tabular-nums'
+                        }}
+                      />
+                      <p style={{ textAlign: 'center', fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '-8px' }}>Code refreshes every 30 seconds</p>
+
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button className="btn-secondary" onClick={() => setMfaSetupStep(2)} style={{ flex: 1, padding: '10px', fontSize: '0.82rem' }}>← Back</button>
+                        <button
+                          className="btn-primary"
+                          disabled={authLoading || mfaCode.length !== 6}
+                          onClick={() => handleVerifyMfaSetupCode(mfaCode)}
+                          style={{ flex: 2, padding: '11px', fontSize: '0.84rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 600 }}
+                        >
+                          {authLoading && <RefreshCw size={14} className="spin-anim" />}
+                          ✓ Verify & Activate MFA
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               )}
 
