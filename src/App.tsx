@@ -2905,6 +2905,23 @@ function App() {
     }
   };
 
+  const handleResetOrgMfa = async (): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_BASE}/users/reset-mfa-all`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        await fetchTeamUsers();
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Failed to reset org MFA:', err);
+      return false;
+    }
+  };
+
   // Check query parameter ?code=... or ?mfa_reset_token=... on mount
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -7312,6 +7329,7 @@ function App() {
               ssoMfaRequired={ssoMfaRequired}
               handleUpdateMfaSettings={handleUpdateMfaSettings}
               handleResetMfa={handleResetMfa}
+              handleResetOrgMfa={handleResetOrgMfa}
               token={token}
             />
           </div>
