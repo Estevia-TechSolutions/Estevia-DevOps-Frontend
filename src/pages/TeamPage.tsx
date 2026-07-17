@@ -61,9 +61,13 @@ export const TeamPage: React.FC<TeamPageProps> = ({
   const [resettingMfaUserId, setResettingMfaUserId] = useState<string | null>(null);
   const [mfaLockoutWarning, setMfaLockoutWarning] = useState<string | null>(null);
 
-  // Active admin's MFA status from the current user list
   const activeUserInList = users.find(u => u.id === currentUser?.id);
-  const isMfaEnabledForSelf = activeUserInList?.mfa_enabled || currentUser?.mfa_enabled || false;
+  const isMfaEnabledForSelf = !!(
+    Number(activeUserInList?.mfa_enabled) === 1 ||
+    activeUserInList?.mfa_enabled === true ||
+    Number(currentUser?.mfa_enabled) === 1 ||
+    currentUser?.mfa_enabled === true
+  );
 
   const handleToggleMfa = async (policyType: 'manual' | 'sso', currentVal: boolean) => {
     // Lockout protection: Admin cannot enforce organization-wide MFA if they haven't registered their own yet!
