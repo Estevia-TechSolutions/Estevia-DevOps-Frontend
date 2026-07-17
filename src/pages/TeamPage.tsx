@@ -1008,7 +1008,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
               <div style={{ display: 'flex', justifyContent: 'center', padding: '10px', background: '#ffffff', borderRadius: '12px', width: '200px', height: '200px', margin: '0 auto' }}>
                 {mfaOtpauthUrl ? (
                   <img
-                    src={`https://chart.googleapis.com/chart?chs=200x200&chld=M|0&cht=qr&chl=${encodeURIComponent(mfaOtpauthUrl)}`}
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(mfaOtpauthUrl)}`}
                     alt="MFA QR Code"
                     style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                   />

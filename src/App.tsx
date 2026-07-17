@@ -5349,7 +5349,7 @@ function App() {
                   
                   <div style={{ display: 'flex', justifyContent: 'center', padding: '10px', background: '#ffffff', borderRadius: '12px', width: '180px', height: '180px', margin: '0 auto' }}>
                     {mfaOtpauthUrl ? (
-                      <img src={`https://chart.googleapis.com/chart?chs=180x180&chld=M|0&cht=qr&chl=${encodeURIComponent(mfaOtpauthUrl)}`} alt="QR Code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(mfaOtpauthUrl)}`} alt="QR Code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                     ) : (
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#333' }}>Generating QR...</div>
                     )}
