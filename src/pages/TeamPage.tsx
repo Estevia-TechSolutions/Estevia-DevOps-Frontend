@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, RefreshCw, UserCheck, Shield, Award, Eye, X, Check, Terminal } from 'lucide-react';
+import { Users, RefreshCw, UserCheck, Shield, Award, Eye, X, Check, Terminal, ShieldAlert, ShieldX, KeyRound } from 'lucide-react';
 import { UserAuditLogDrawer } from '../components/team/UserAuditLogDrawer';
 
 export interface UserRecord {
@@ -8,6 +8,7 @@ export interface UserRecord {
   name: string;
   role: 'owner' | 'admin' | 'contributor' | 'viewer' | 'member';
   created_at: string;
+  mfa_enabled?: number | boolean;
 }
 
 interface TeamPageProps {
@@ -20,6 +21,12 @@ interface TeamPageProps {
   theme: 'dark' | 'light';
   API_BASE: string;
   operatorSeatsLimit: number;
+  // MFA related props
+  manualMfaRequired: boolean;
+  ssoMfaRequired: boolean;
+  handleUpdateMfaSettings: (manualMfa: boolean, ssoMfa: boolean) => Promise<boolean>;
+  handleResetMfa: (userId: string) => Promise<boolean>;
+  token: string;
 }
 
 export const TeamPage: React.FC<TeamPageProps> = ({
@@ -31,13 +38,117 @@ export const TeamPage: React.FC<TeamPageProps> = ({
   handleUpdateRole,
   theme,
   API_BASE,
-  operatorSeatsLimit
+  operatorSeatsLimit,
+  manualMfaRequired,
+  ssoMfaRequired,
+  handleUpdateMfaSettings,
+  handleResetMfa,
+  token
 }) => {
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [updateMsg, setUpdateMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showMatrixModal, setShowMatrixModal] = useState<boolean>(false);
   const [activeLogUser, setActiveLogUser] = useState<{ email: string; name: string } | null>(null);
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string | null>(null);
+
+  const [savingMfaSettings, setSavingMfaSettings] = useState<boolean>(false);
+  const [showPersonalMfaModal, setShowPersonalMfaModal] = useState<boolean>(false);
+  const [mfaSecret, setMfaSecret] = useState<string>('');
+  const [mfaOtpauthUrl, setMfaOtpauthUrl] = useState<string>('');
+  const [mfaCode, setMfaCode] = useState<string>('');
+  const [mfaRegisterLoading, setMfaRegisterLoading] = useState<boolean>(false);
+  const [mfaRegisterError, setMfaRegisterError] = useState<string | null>(null);
+  const [resettingMfaUserId, setResettingMfaUserId] = useState<string | null>(null);
+
+  // Active admin's MFA status from the current user list
+  const activeUserInList = users.find(u => u.id === currentUser?.id);
+  const isMfaEnabledForSelf = activeUserInList?.mfa_enabled || currentUser?.mfa_enabled || false;
+
+  const handleToggleMfa = async (policyType: 'manual' | 'sso', currentVal: boolean) => {
+    // Lockout protection: Admin cannot enforce organization-wide MFA if they haven't registered their own yet!
+    if (!isMfaEnabledForSelf && !currentVal) {
+      alert("Lockout Warning: You must configure and verify your own Multi-Factor Authentication (MFA) before enforcing MFA policies for the organization.");
+      return;
+    }
+
+    setSavingMfaSettings(true);
+    let newManual = manualMfaRequired;
+    let newSso = ssoMfaRequired;
+    if (policyType === 'manual') newManual = !currentVal;
+    else if (policyType === 'sso') newSso = !currentVal;
+
+    const success = await handleUpdateMfaSettings(newManual, newSso);
+    setSavingMfaSettings(false);
+    if (success) {
+      setUpdateMsg({ type: 'success', text: 'Security policies updated successfully.' });
+      setTimeout(() => setUpdateMsg(null), 3000);
+    } else {
+      setUpdateMsg({ type: 'error', text: 'Failed to update organization security policies.' });
+      setTimeout(() => setUpdateMsg(null), 3000);
+    }
+  };
+
+  const handleStartPersonalMfaSetup = async () => {
+    setMfaRegisterLoading(true);
+    setMfaRegisterError(null);
+    try {
+      const res = await fetch(`${API_BASE}/auth/mfa/setup-authenticated`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMfaSecret(data.secret);
+        setMfaOtpauthUrl(data.otpauthUrl);
+        setShowPersonalMfaModal(true);
+      } else {
+        const errData = await res.json().catch(() => null);
+        setMfaRegisterError(errData?.error || 'Failed to initiate MFA setup.');
+      }
+    } catch (err) {
+      console.error(err);
+      setMfaRegisterError('Network error starting MFA setup.');
+    } finally {
+      setMfaRegisterLoading(false);
+    }
+  };
+
+  const handleVerifyPersonalMfa = async () => {
+    if (!mfaCode || mfaCode.length !== 6) {
+      setMfaRegisterError('Please enter a valid 6-digit code.');
+      return;
+    }
+    setMfaRegisterLoading(true);
+    setMfaRegisterError(null);
+    try {
+      const res = await fetch(`${API_BASE}/auth/mfa/verify-authenticated`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ secret: mfaSecret, code: mfaCode })
+      });
+      if (res.ok) {
+        setShowPersonalMfaModal(false);
+        setMfaCode('');
+        setUpdateMsg({ type: 'success', text: 'Authenticator app linked successfully. MFA is now active on your account.' });
+        setTimeout(() => setUpdateMsg(null), 4000);
+        // Refresh directory list to capture updated status
+        await handleSyncTeam();
+      } else {
+        const errData = await res.json().catch(() => null);
+        setMfaRegisterError(errData?.error || 'Invalid verification code. Please try again.');
+      }
+    } catch (err) {
+      console.error(err);
+      setMfaRegisterError('Network error verifying code.');
+    } finally {
+      setMfaRegisterLoading(false);
+    }
+  };
 
   const isLight = theme === 'light';
   const canManageRoles = currentUser?.role === 'owner' || currentUser?.role === 'admin';
@@ -450,6 +561,121 @@ export const TeamPage: React.FC<TeamPageProps> = ({
         );
       })()}
 
+      {/* Security Policies Panel — restricted to Admins & Owners */}
+      {canManageRoles && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gap: '20px',
+          marginBottom: '20px'
+        }}>
+          {/* Card 1: Org policies */}
+          <div className="glass-panel" style={{ padding: '20px 24px', borderRadius: '12px' }}>
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 12px 0', fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              <ShieldAlert size={16} style={{ color: 'var(--accent-teal)' }} />
+              Organization MFA Policies
+            </h4>
+            <p style={{ margin: '0 0 16px 0', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              Enforce Multi-Factor Authentication requirements across authentication pathways.
+            </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)', borderRadius: '8px' }}>
+                <div>
+                  <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)' }}>Microsoft SSO Logins</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Require 2FA codes for Entra ID logins</div>
+                </div>
+                <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '36px', height: '20px' }}>
+                  <input
+                    type="checkbox"
+                    checked={ssoMfaRequired}
+                    disabled={savingMfaSettings || (!isMfaEnabledForSelf && !ssoMfaRequired)}
+                    onChange={() => handleToggleMfa('sso', ssoMfaRequired)}
+                    style={{ opacity: 0, width: 0, height: 0 }}
+                  />
+                  <span className="slider" style={{
+                    position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: ssoMfaRequired ? 'var(--accent-teal)' : '#cbd5e1',
+                    borderRadius: '34px', transition: '0.3s'
+                  }}>
+                    <span style={{
+                      position: 'absolute', content: '""', height: '14px', width: '14px', left: ssoMfaRequired ? '18px' : '3px', bottom: '3px',
+                      backgroundColor: 'white', borderRadius: '50%', transition: '0.3s'
+                    }} />
+                  </span>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)', borderRadius: '8px' }}>
+                <div>
+                  <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)' }}>Admin Override Logins</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Require 2FA codes for admin override passwords</div>
+                </div>
+                <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '36px', height: '20px' }}>
+                  <input
+                    type="checkbox"
+                    checked={manualMfaRequired}
+                    disabled={savingMfaSettings || (!isMfaEnabledForSelf && !manualMfaRequired)}
+                    onChange={() => handleToggleMfa('manual', manualMfaRequired)}
+                    style={{ opacity: 0, width: 0, height: 0 }}
+                  />
+                  <span className="slider" style={{
+                    position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: manualMfaRequired ? 'var(--accent-teal)' : '#cbd5e1',
+                    borderRadius: '34px', transition: '0.3s'
+                  }}>
+                    <span style={{
+                      position: 'absolute', content: '""', height: '14px', width: '14px', left: manualMfaRequired ? '18px' : '3px', bottom: '3px',
+                      backgroundColor: 'white', borderRadius: '50%', transition: '0.3s'
+                    }} />
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Personal admin configuration */}
+          <div className="glass-panel" style={{ padding: '20px 24px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 12px 0', fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <KeyRound size={16} style={{ color: 'var(--accent-purple)' }} />
+                Personal Authenticator Setup
+              </h4>
+              <p style={{ margin: '0 0 16px 0', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                Secure your admin account using any time-based one-time password (TOTP) authenticator application.
+              </p>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: isMfaEnabledForSelf ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)', color: 'var(--text-primary)', marginBottom: '16px' }}>
+                {isMfaEnabledForSelf ? (
+                  <>
+                    <Shield size={18} style={{ color: '#10b981', fill: 'rgba(16, 185, 129, 0.2)' }} />
+                    <span style={{ fontSize: '0.84rem', fontWeight: 600 }}>Personal MFA Active</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldAlert size={18} style={{ color: '#ef4444' }} />
+                    <span style={{ fontSize: '0.84rem', fontWeight: 600 }}>Personal MFA Inactive (Action Required)</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className={isMfaEnabledForSelf ? "btn-secondary" : "btn-primary"}
+              onClick={handleStartPersonalMfaSetup}
+              disabled={mfaRegisterLoading}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', height: '36px', fontSize: '0.82rem'
+              }}
+            >
+              {mfaRegisterLoading ? <RefreshCw size={14} className="spin-anim" /> : <KeyRound size={14} />}
+              {isMfaEnabledForSelf ? 'Re-link Authenticator Device' : 'Configure Authenticator App'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {loadingUsers ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-secondary)', padding: '20px 0' }}>
           <RefreshCw size={20} className="spin-anim" />
@@ -465,8 +691,9 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                 <th style={{ padding: '12px 16px', fontWeight: 600 }}>Name</th>
                 <th style={{ padding: '12px 16px', fontWeight: 600 }}>Email</th>
                 <th style={{ padding: '12px 16px', fontWeight: 600 }}>Current Role</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600 }}>MFA</th>
                 <th style={{ padding: '12px 16px', fontWeight: 600 }}>Role Assignment</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600, width: '120px' }}>Audit Logs</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600, width: '220px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -507,6 +734,17 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                       </span>
                     </td>
                     <td style={{ padding: '14px 16px' }}>
+                      {u.mfa_enabled ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--success)', fontSize: '0.78rem', fontWeight: 600 }}>
+                          <Shield size={14} style={{ fill: 'rgba(16, 185, 129, 0.2)' }} /> Active
+                        </span>
+                      ) : (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
+                          <ShieldAlert size={14} style={{ color: '#ea580c' }} /> Disabled
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ padding: '14px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <select
                           value={u.role || 'viewer'}
@@ -535,23 +773,62 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                       </div>
                     </td>
                     <td style={{ padding: '14px 16px' }}>
-                      <button
-                        type="button"
-                        className="btn-secondary"
-                        onClick={() => setActiveLogUser({ email: u.email, name: u.name })}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          height: '32px',
-                          padding: '0 12px',
-                          fontSize: '0.76rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <Terminal size={12} style={{ color: 'var(--accent-purple)' }} />
-                        View Logs
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          onClick={() => setActiveLogUser({ email: u.email, name: u.name })}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            height: '32px',
+                            padding: '0 12px',
+                            fontSize: '0.76rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <Terminal size={12} style={{ color: 'var(--accent-purple)' }} />
+                          Logs
+                        </button>
+                        
+                        {canManageRoles && u.mfa_enabled ? (
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            disabled={resettingMfaUserId === u.id}
+                            onClick={async () => {
+                              if (window.confirm(`Are you sure you want to reset Multi-Factor Authentication for ${u.name}? They will be forced to re-register on their next login.`)) {
+                                setResettingMfaUserId(u.id);
+                                const success = await handleResetMfa(u.id);
+                                setResettingMfaUserId(null);
+                                if (success) {
+                                  setUpdateMsg({ type: 'success', text: `MFA reset successfully for ${u.name}.` });
+                                  setTimeout(() => setUpdateMsg(null), 3000);
+                                } else {
+                                  setUpdateMsg({ type: 'error', text: `Failed to reset MFA for ${u.name}.` });
+                                  setTimeout(() => setUpdateMsg(null), 3000);
+                                }
+                              }
+                            }}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              height: '32px',
+                              padding: '0 12px',
+                              fontSize: '0.76rem',
+                              cursor: resettingMfaUserId === u.id ? 'not-allowed' : 'pointer',
+                              color: '#ef4444',
+                              borderColor: 'rgba(239, 68, 68, 0.2)',
+                              background: 'rgba(239, 68, 68, 0.04)'
+                            }}
+                          >
+                            {resettingMfaUserId === u.id ? <RefreshCw size={12} className="spin-anim" /> : <ShieldX size={12} />}
+                            Reset MFA
+                          </button>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -677,6 +954,110 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                 style={{ padding: '8px 20px', fontSize: '0.8rem' }}
               >
                 Close Matrix
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Personal MFA Setup Modal */}
+      {showPersonalMfaModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(2, 6, 23, 0.75)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          zIndex: 99999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '24px'
+        }}>
+          <div className="glass-panel" style={{
+            width: '450px',
+            maxWidth: '100%',
+            display: 'flex', flexDirection: 'column',
+            borderRadius: '16px',
+            boxShadow: 'var(--modal-shadow)',
+            padding: '24px',
+            background: 'var(--bg-card, rgba(8,12,22,0.9))'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.15rem' }}>
+                <KeyRound style={{ color: 'var(--accent-purple)' }} />
+                Setup Authenticator App
+              </h3>
+              <button
+                onClick={() => { setShowPersonalMfaModal(false); setMfaCode(''); setMfaRegisterError(null); }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {mfaRegisterError && (
+              <div style={{ padding: '10px 12px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', color: '#ef4444', fontSize: '0.8rem', marginBottom: '14px' }}>
+                {mfaRegisterError}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', color: 'var(--text-primary)', fontSize: '0.86rem' }}>
+              <p style={{ margin: 0 }}>
+                1. Scan the QR code below using your authenticator app (Google Authenticator, Microsoft Authenticator, Duo, etc.):
+              </p>
+              
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '10px', background: '#ffffff', borderRadius: '12px', width: '200px', height: '200px', margin: '0 auto' }}>
+                {mfaOtpauthUrl ? (
+                  <img
+                    src={`https://chart.googleapis.com/chart?chs=200x200&chld=M|0&cht=qr&chl=${encodeURIComponent(mfaOtpauthUrl)}`}
+                    alt="MFA QR Code"
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  />
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#333' }}>Generating QR...</div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Or enter this secret key manually:</span>
+                <code style={{ background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '6px', fontSize: '0.84rem', letterSpacing: '0.05em', color: 'var(--accent-teal)', textAlign: 'center', border: '1px solid var(--glass-border)' }}>
+                  {mfaSecret}
+                </code>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>2. Enter the 6-digit code shown in your app:</span>
+                <input
+                  type="text"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                  style={{
+                    background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)',
+                    borderRadius: '8px', color: 'var(--text-primary)', textAlign: 'center',
+                    fontSize: '1.25rem', padding: '8px', letterSpacing: '0.2em', outline: 'none'
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => { setShowPersonalMfaModal(false); setMfaCode(''); setMfaRegisterError(null); }}
+                style={{ padding: '8px 16px', fontSize: '0.8rem' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                disabled={mfaRegisterLoading || mfaCode.length !== 6}
+                onClick={handleVerifyPersonalMfa}
+                style={{ padding: '8px 16px', fontSize: '0.8rem' }}
+              >
+                {mfaRegisterLoading ? <RefreshCw size={14} className="spin-anim" /> : 'Verify & Enable'}
               </button>
             </div>
           </div>

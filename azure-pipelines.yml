@@ -35,5 +35,5 @@ steps:
     app_location: '/'
     api_location: ''
     output_location: 'dist'
-    azure_static_web_apps_api_token: $(ESTEVIA_DEVOPS_FRONTEND_SWA_TOKEN_PROD)
+    azure_static_web_apps_api_token: $(EVAOPS_SWA_TOKEN_PROD)
   displayName: 'Deploy to Azure Static Web App'

@@ -1120,6 +1120,15 @@ function App() {
   const [prodManagedEnvId, setProdManagedEnvId] = useState('');
   const [discoveringInfra, setDiscoveringInfra] = useState(false);
 
+  // MFA States
+  const [manualMfaRequired, setManualMfaRequired] = useState<boolean>(false);
+  const [ssoMfaRequired, setSsoMfaRequired] = useState<boolean>(false);
+  const [authStep, setAuthStep] = useState<'login' | 'mfa-setup' | 'mfa-verify'>('login');
+  const [mfaTempToken, setMfaTempToken] = useState<string>('');
+  const [mfaSecret, setMfaSecret] = useState<string>('');
+  const [mfaOtpauthUrl, setMfaOtpauthUrl] = useState<string>('');
+  const [mfaCode, setMfaCode] = useState<string>('');
+
   // Dynamic Provisioning Metadata States
   const [locations, setLocations] = useState<any[]>([]);
   const [resourceGroups, setResourceGroups] = useState<string[]>([]);
@@ -2077,11 +2086,119 @@ function App() {
     }
   };
 
+  const handleVerifyMfaSetupCode = async (code: string) => {
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      const res = await window.fetch(`${API_BASE}/auth/mfa/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tempToken: mfaTempToken, secret: mfaSecret, code })
+      });
+      const data = await res.json();
+      if (res.ok && data.token) {
+        completeSuccessfulLogin(data);
+      } else {
+        setAuthError(data.error || 'Invalid 6-digit verification code.');
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Error verifying code.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleValidateMfaCode = async (code: string) => {
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      const res = await window.fetch(`${API_BASE}/auth/mfa/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tempToken: mfaTempToken, code })
+      });
+      const data = await res.json();
+      if (res.ok && data.token) {
+        completeSuccessfulLogin(data);
+      } else {
+        setAuthError(data.error || 'Invalid 6-digit verification code.');
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Error validating code.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleRequestMfaReset = async () => {
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      const res = await window.fetch(`${API_BASE}/auth/mfa/request-reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tempToken: mfaTempToken })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || 'MFA reset request sent successfully. Please check your email.');
+        setAuthStep('login');
+      } else {
+        setAuthError(data.error || 'Failed to request MFA reset.');
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Error requesting MFA reset.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   const handleGoogleLoginRedirect = () => {
     setSsoLoadingProvider('google');
     setAuthLoading(true);
     setAuthError(null);
     window.location.href = `${API_BASE}/auth/google`;
+  };
+
+  const completeSuccessfulLogin = async (data: any) => {
+    localStorage.setItem('devops_token', data.token);
+    localStorage.setItem('devops_user', JSON.stringify(data.user));
+    localStorage.setItem('devops_requires_onboarding', String(data.requiresOnboarding));
+    if (data.organization && data.organization.id) {
+      localStorage.setItem('devops_organization_id', data.organization.id);
+      localStorage.setItem('devops_organization_name', data.organization.name || data.organization.id);
+      setOrganizationId(data.organization.id);
+      setOrgName(data.organization.name || data.organization.id);
+    }
+    setToken(data.token);
+    setUser(data.user);
+    setRequiresOnboarding(data.requiresOnboarding);
+    setAuthStep('login'); // Reset auth step back
+    setMfaTempToken('');
+    setMfaSecret('');
+    setMfaOtpauthUrl('');
+    if (data.organization?.id) {
+      await checkCredentialGateStatus(data.token);
+    }
+  };
+
+  const handleInitiateMfaSetup = async (tempToken: string) => {
+    try {
+      const res = await window.fetch(`${API_BASE}/auth/mfa/setup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tempToken })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMfaSecret(data.secret);
+        setMfaOtpauthUrl(data.otpauthUrl);
+      } else {
+        setAuthError(data.error || 'Failed to initialize MFA setup.');
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Error initializing MFA setup.');
+    }
   };
 
   const handleMicrosoftCallback = async (code: string) => {
@@ -2097,24 +2214,23 @@ function App() {
       console.log('[DevOps Auth] Response status received:', res.status);
       const data = await res.json();
       console.log('[DevOps Auth] Response JSON received:', data);
-      if (res.ok && data.token) {
-        localStorage.setItem('devops_token', data.token);
-        localStorage.setItem('devops_user', JSON.stringify(data.user));
-        localStorage.setItem('devops_requires_onboarding', String(data.requiresOnboarding));
-        if (data.organization && data.organization.id) {
-          localStorage.setItem('devops_organization_id', data.organization.id);
-          localStorage.setItem('devops_organization_name', data.organization.name || data.organization.id);
-          setOrganizationId(data.organization.id);
-          setOrgName(data.organization.name || data.organization.id);
+      if (res.ok) {
+        if (data.code === 'MFA_SETUP_REQUIRED') {
+          setMfaTempToken(data.tempToken);
+          setAuthStep('mfa-setup');
+          handleInitiateMfaSetup(data.tempToken);
+          return;
         }
-        setToken(data.token);
-        setUser(data.user);
-        setRequiresOnboarding(data.requiresOnboarding);
-        // ── Credential Gate: re-evaluate on every login ───────────────────
-        if (data.organization?.id) {
-          await checkCredentialGateStatus(data.token);
+        if (data.code === 'MFA_REQUIRED') {
+          setMfaTempToken(data.tempToken);
+          setAuthStep('mfa-verify');
+          return;
         }
-        // ─────────────────────────────────────────────────────────────────
+        if (data.token) {
+          await completeSuccessfulLogin(data);
+        } else {
+          throw new Error('Invalid authentication response.');
+        }
       } else {
         throw new Error(data.error || data.message || 'Failed to exchange authorization code.');
       }
@@ -2140,25 +2256,24 @@ function App() {
         body: JSON.stringify({ organizationId: devOverrideOrgId.trim().toLowerCase() })
       });
       const data = await res.json();
-      if (res.ok && data.token) {
-        localStorage.setItem('devops_token', data.token);
-        localStorage.setItem('devops_user', JSON.stringify(data.user));
-        localStorage.setItem('devops_requires_onboarding', String(data.requiresOnboarding));
-        if (data.organization && data.organization.id) {
-          localStorage.setItem('devops_organization_id', data.organization.id);
-          localStorage.setItem('devops_organization_name', data.organization.name || data.organization.id);
-          setOrganizationId(data.organization.id);
-          setOrgName(data.organization.name || data.organization.id);
+      if (res.ok) {
+        if (data.code === 'MFA_SETUP_REQUIRED') {
+          setMfaTempToken(data.tempToken);
+          setAuthStep('mfa-setup');
+          handleInitiateMfaSetup(data.tempToken);
+          return;
         }
-        setToken(data.token);
-        setUser(data.user);
-        setRequiresOnboarding(data.requiresOnboarding);
-        // ── Credential Gate: re-evaluate on every login ───────────────────
-        if (data.organization?.id) {
-          await checkCredentialGateStatus(data.token);
+        if (data.code === 'MFA_REQUIRED') {
+          setMfaTempToken(data.tempToken);
+          setAuthStep('mfa-verify');
+          return;
         }
-        // ─────────────────────────────────────────────────────────────────
-        setShowDevOverrideForm(false);
+        if (data.token) {
+          await completeSuccessfulLogin(data);
+          setShowDevOverrideForm(false);
+        } else {
+          throw new Error('Invalid authentication response.');
+        }
       } else {
         throw new Error(data.error || 'Developer Override login failed.');
       }
@@ -2184,25 +2299,24 @@ function App() {
         body: JSON.stringify({ organizationId: adminOverrideOrgId.trim().toLowerCase(), password: adminOverridePassword })
       });
       const data = await res.json();
-      if (res.ok && data.token) {
-        localStorage.setItem('devops_token', data.token);
-        localStorage.setItem('devops_user', JSON.stringify(data.user));
-        localStorage.setItem('devops_requires_onboarding', String(data.requiresOnboarding));
-        if (data.organization && data.organization.id) {
-          localStorage.setItem('devops_organization_id', data.organization.id);
-          localStorage.setItem('devops_organization_name', data.organization.name || data.organization.id);
-          setOrganizationId(data.organization.id);
-          setOrgName(data.organization.name || data.organization.id);
+      if (res.ok) {
+        if (data.code === 'MFA_SETUP_REQUIRED') {
+          setMfaTempToken(data.tempToken);
+          setAuthStep('mfa-setup');
+          handleInitiateMfaSetup(data.tempToken);
+          return;
         }
-        setToken(data.token);
-        setUser(data.user);
-        setRequiresOnboarding(data.requiresOnboarding);
-        // ── Credential Gate: re-evaluate on every login ───────────────────
-        if (data.organization?.id) {
-          await checkCredentialGateStatus(data.token);
+        if (data.code === 'MFA_REQUIRED') {
+          setMfaTempToken(data.tempToken);
+          setAuthStep('mfa-verify');
+          return;
         }
-        // ─────────────────────────────────────────────────────────────────
-        setShowAdminOverrideForm(false);
+        if (data.token) {
+          await completeSuccessfulLogin(data);
+          setShowAdminOverrideForm(false);
+        } else {
+          throw new Error('Invalid authentication response.');
+        }
       } else {
         throw new Error(data.error || 'Admin Override authentication failed.');
       }
@@ -2747,13 +2861,80 @@ function App() {
     }
   };
 
-  // Check query parameter ?code=... on mount for OAuth redirect callback
+  const handleUpdateMfaSettings = async (manualMfa: boolean, ssoMfa: boolean): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/mfa-settings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ manualMfaRequired: manualMfa, ssoMfaRequired: ssoMfa })
+      });
+      if (res.ok) {
+        setManualMfaRequired(manualMfa);
+        setSsoMfaRequired(ssoMfa);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Failed to update MFA settings:', err);
+      return false;
+    }
+  };
+
+  const handleResetMfa = async (userId: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/users/${userId}/reset-mfa`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        await fetchTeamUsers();
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Failed to reset MFA:', err);
+      return false;
+    }
+  };
+
+  // Check query parameter ?code=... or ?mfa_reset_token=... on mount
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
+    const resetToken = urlParams.get('mfa_reset_token');
+    
     if (code) {
       window.history.replaceState({}, document.title, window.location.pathname);
       handleMicrosoftCallback(code);
+    } else if (resetToken) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      const confirmReset = async () => {
+        setAuthLoading(true);
+        setAuthError(null);
+        try {
+          const res = await window.fetch(`${API_BASE}/auth/mfa/reset-confirm`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: resetToken })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            alert(data.message || 'MFA reset successfully. You can now log in.');
+          } else {
+            setAuthError(data.error || 'Invalid or expired reset link.');
+          }
+        } catch (err: any) {
+          setAuthError(err.message || 'Failed to reset MFA.');
+        } finally {
+          setAuthLoading(false);
+        }
+      };
+      confirmReset();
     }
   }, []);
 
@@ -2917,6 +3098,8 @@ function App() {
         setSubPackageDevops(data.settings.sub_package_devops === 1 || data.settings.sub_package_devops === true);
         setSubPackageDeveloper(data.settings.sub_package_developer === 1 || data.settings.sub_package_developer === true);
         setSubPackageSecurity(data.settings.sub_package_security === 1 || data.settings.sub_package_security === true);
+        setManualMfaRequired(data.settings.manual_mfa_required === 1 || data.settings.manual_mfa_required === true);
+        setSsoMfaRequired(data.settings.sso_mfa_required === 1 || data.settings.sso_mfa_required === true);
         // ─────────────────────────────────────────────────────────────────
         
         // Auto-configure default inputs
@@ -4940,223 +5123,327 @@ function App() {
                 </div>
               )}
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <button
-                  onClick={handleMicrosoftLoginRedirect}
-                  disabled={authLoading}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-                    width: '100%', padding: '13px 10px', borderRadius: '12px',
-                    background: 'var(--sso-btn-bg)', border: '1px solid var(--sso-btn-border)',
-                    color: 'var(--sso-btn-color)', fontSize: '0.84rem', fontWeight: 700,
-                    cursor: authLoading ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.2s', opacity: authLoading ? 0.7 : 1,
-                    whiteSpace: 'nowrap',
-                  }}
-                  onMouseEnter={(e) => { if (!authLoading) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderColor = 'rgba(124,58,237,0.3)'; } }}
-                  onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = ''; }}
-                >
-                  {ssoLoadingProvider === 'microsoft' ? (
-                    <RefreshCw size={18} className="spin-anim" />
-                  ) : (
-                    <svg width="20" height="20" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M0 0H11V11H0V0Z" fill="#F25022"/>
-                      <path d="M12 0H23V11H12V0Z" fill="#7FBA00"/>
-                      <path d="M0 12H11V23H0V12Z" fill="#00A1F1"/>
-                      <path d="M12 12H23V23H12V12Z" fill="#FFB900"/>
-                    </svg>
-                  )}
-                  <span>{ssoLoadingProvider === 'microsoft' ? 'Connecting...' : 'Microsoft 365'}</span>
-                </button>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '8px 0', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
-                  <div style={{ flex: 1, height: '1px', background: 'var(--border-slate)' }}></div>
-                  <span style={{ padding: '0 8px', fontWeight: 500 }}>OR</span>
-                  <div style={{ flex: 1, height: '1px', background: 'var(--border-slate)' }}></div>
-                </div>
-
-                {/* Developer Override button */}
-                <button
-                  onClick={() => { setShowDevOverrideForm(v => !v); setDevOverrideError(null); }}
-                  disabled={authLoading}
-                  style={{
-                    background: showDevOverrideForm ? 'rgba(124, 58, 237, 0.08)' : 'transparent',
-                    border: `1px dashed ${showDevOverrideForm ? 'rgba(124, 58, 237, 0.4)' : 'var(--border-slate)'}`,
-                    color: 'var(--text-secondary)', padding: '10px 20px',
-                    borderRadius: '8px', fontSize: '0.82rem', cursor: 'pointer',
-                    fontWeight: 500, transition: 'all 0.2s ease',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                  }}
-                  onMouseEnter={(e) => { if (!showDevOverrideForm) e.currentTarget.style.color = '#7c3aed'; }}
-                  onMouseLeave={(e) => { if (!showDevOverrideForm) e.currentTarget.style.color = ''; }}
-                >
-                  <Eye size={14} />
-                  Developer Override <span style={{ fontSize: '0.72rem', opacity: 0.6 }}>(Viewer only)</span>
-                </button>
-
-                {showDevOverrideForm && (
-                  <div style={{
-                    background: 'var(--bg-slate)', border: '1px solid var(--border-slate)',
-                    borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px',
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)'
-                  }}>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Building2 size={12} style={{ color: '#7c3aed' }} />
-                      Enter your Organisation ID for Developer Override
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Organisation ID (e.g. estevia)"
-                      value={devOverrideOrgId}
-                      onChange={(e) => setDevOverrideOrgId(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleBypassLogin(); }}
-                      autoComplete="off"
-                      style={{
-                        background: 'var(--bg-card)', border: '1px solid var(--border-slate)',
-                        borderRadius: '8px', color: 'var(--text-primary)',
-                        fontSize: '0.86rem', padding: '10px 14px', outline: 'none'
-                      }}
-                    />
-                    {devOverrideError && (
-                      <div style={{ fontSize: '0.8rem', color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <AlertCircle size={13} />
-                        {devOverrideError}
-                      </div>
-                    )}
-                    <button
-                      onClick={handleBypassLogin}
-                      disabled={authLoading}
-                      style={{
-                        background: 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)', border: 'none',
-                        color: '#ffffff', borderRadius: '8px', padding: '10px 16px', fontSize: '0.86rem',
-                        fontWeight: 600, cursor: authLoading ? 'not-allowed' : 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                      }}
-                    >
-                      {authLoading ? <RefreshCw size={14} className="spin-anim" /> : <Eye size={14} />}
-                      <span>Authenticate as Viewer</span>
-                    </button>
-                  </div>
-                )}
-
-                {/* Admin Override button */}
-                <button
-                  onClick={() => { setShowAdminOverrideForm(v => !v); setAdminOverrideError(null); }}
-                  disabled={authLoading}
-                  style={{
-                    background: showAdminOverrideForm ? 'rgba(234,88,12,0.08)' : 'transparent',
-                    border: `1px dashed ${showAdminOverrideForm ? 'rgba(234,88,12,0.4)' : 'var(--border-slate)'}`,
-                    color: '#ea580c', padding: '10px 20px',
-                    borderRadius: '8px', fontSize: '0.82rem', cursor: 'pointer',
-                    fontWeight: 500, transition: 'all 0.2s ease',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                  }}
-                >
-                  <ShieldCheck size={14} />
-                  Admin Override <span style={{ fontSize: '0.72rem', opacity: 0.6 }}>(Password required)</span>
-                </button>
-
-                {showAdminOverrideForm && (
-                  <div style={{
-                    background: 'var(--bg-slate)', border: '1px solid var(--border-slate)',
-                    borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px',
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)'
-                  }}>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <ShieldCheck size={12} style={{ color: '#ea580c' }} />
-                      Enter your Organisation ID and admin override password
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Organisation ID (e.g. estevia)"
-                      value={adminOverrideOrgId}
-                      onChange={(e) => setAdminOverrideOrgId(e.target.value)}
-                      autoComplete="off"
-                      style={{
-                        background: 'var(--bg-card)', border: '1px solid var(--border-slate)',
-                        borderRadius: '8px', color: 'var(--text-primary)',
-                        fontSize: '0.86rem', padding: '10px 14px', outline: 'none'
-                      }}
-                    />
-                    <input
-                      type="password"
-                      placeholder="Admin override password"
-                      value={adminOverridePassword}
-                      onChange={(e) => setAdminOverridePassword(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleAdminOverride(); }}
-                      autoComplete="new-password"
-                      style={{
-                        background: 'var(--bg-card)', border: '1px solid var(--border-slate)',
-                        borderRadius: '8px', color: 'var(--text-primary)',
-                        fontSize: '0.86rem', padding: '10px 14px', outline: 'none'
-                      }}
-                    />
-                    {adminOverrideError && (
-                      <div style={{ fontSize: '0.8rem', color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <AlertCircle size={13} />
-                        {adminOverrideError}
-                      </div>
-                    )}
-                    <button
-                      onClick={handleAdminOverride}
-                      disabled={adminOverrideLoading}
-                      style={{
-                        background: 'linear-gradient(135deg, #ea580c 0%, #d97706 100%)', border: 'none',
-                        color: '#ffffff', borderRadius: '8px', padding: '10px 16px', fontSize: '0.86rem',
-                        fontWeight: 600, cursor: adminOverrideLoading ? 'not-allowed' : 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
-                      }}
-                    >
-                      {adminOverrideLoading ? <RefreshCw size={14} className="spin-anim" /> : <ShieldCheck size={14} />}
-                      <span>Authenticate as Admin</span>
-                    </button>
-                  </div>
-                )}
-
-                {/* Onboarding steps collapsible */}
-                <div style={{ borderTop: '1px solid var(--border-slate)', paddingTop: '16px', textAlign: 'left' }}>
+              {authStep === 'login' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <button
-                    onClick={() => setShowOnboardingGuide(v => !v)}
+                    onClick={handleMicrosoftLoginRedirect}
+                    disabled={authLoading}
                     style={{
-                      background: 'none', border: 'none', color: 'var(--text-secondary)',
-                      fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0',
-                      width: '100%', justifyContent: 'center'
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                      width: '100%', padding: '13px 10px', borderRadius: '12px',
+                      background: 'var(--sso-btn-bg)', border: '1px solid var(--sso-btn-border)',
+                      color: 'var(--sso-btn-color)', fontSize: '0.84rem', fontWeight: 700,
+                      cursor: authLoading ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s', opacity: authLoading ? 0.7 : 1,
+                      whiteSpace: 'nowrap',
                     }}
+                    onMouseEnter={(e) => { if (!authLoading) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderColor = 'rgba(124,58,237,0.3)'; } }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = ''; }}
                   >
-                    <Info size={14} style={{ color: '#7c3aed' }} />
-                    <span>New to EvaOps? Onboarding Steps</span>
-                    {showOnboardingGuide ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    {ssoLoadingProvider === 'microsoft' ? (
+                      <RefreshCw size={18} className="spin-anim" />
+                    ) : (
+                      <svg width="20" height="20" viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M0 0H11V11H0V0Z" fill="#F25022"/>
+                        <path d="M12 0H23V11H12V0Z" fill="#7FBA00"/>
+                        <path d="M0 12H11V23H0V12Z" fill="#00A1F1"/>
+                        <path d="M12 12H23V23H12V12Z" fill="#FFB900"/>
+                      </svg>
+                    )}
+                    <span>{ssoLoadingProvider === 'microsoft' ? 'Connecting...' : 'Microsoft 365'}</span>
                   </button>
 
-                  {showOnboardingGuide && (
-                    <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {[
-                        { step: '1', title: 'Sign in with Microsoft', desc: 'Authenticate with your work/school Azure account.' },
-                        { step: '2', title: 'Grant Entra ID Consent', desc: 'Accept permissions to register EvaOps in your tenant.' },
-                        { step: '3', title: 'Register Organization', desc: 'Provide organization name and domain details.' },
-                        { step: '4', title: 'Unlock Credentials', desc: 'Configure Azure details & DevOps PAT to finish onboarding.' }
-                      ].map((s, idx) => (
-                        <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                          <div style={{
-                            width: '20px', height: '20px', borderRadius: '50%',
-                            backgroundColor: 'rgba(124, 58, 237, 0.08)', border: '1px solid rgba(124, 58, 237, 0.2)',
-                            color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '0.72rem', fontWeight: 700, flexShrink: 0, marginTop: '2px'
-                          }}>
-                            {s.step}
-                          </div>
-                          <div>
-                            <h5 style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{s.title}</h5>
-                            <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: '1px 0 0 0', lineHeight: 1.3 }}>{s.desc}</p>
-                          </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '8px 0', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                    <div style={{ flex: 1, height: '1px', background: 'var(--border-slate)' }}></div>
+                    <span style={{ padding: '0 8px', fontWeight: 500 }}>OR</span>
+                    <div style={{ flex: 1, height: '1px', background: 'var(--border-slate)' }}></div>
+                  </div>
+
+                  {/* Developer Override button */}
+                  <button
+                    onClick={() => { setShowDevOverrideForm(v => !v); setDevOverrideError(null); }}
+                    disabled={authLoading}
+                    style={{
+                      background: showDevOverrideForm ? 'rgba(124, 58, 237, 0.08)' : 'transparent',
+                      border: `1px dashed ${showDevOverrideForm ? 'rgba(124, 58, 237, 0.4)' : 'var(--border-slate)'}`,
+                      color: 'var(--text-secondary)', padding: '10px 20px',
+                      borderRadius: '8px', fontSize: '0.82rem', cursor: 'pointer',
+                      fontWeight: 500, transition: 'all 0.2s ease',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                    }}
+                    onMouseEnter={(e) => { if (!showDevOverrideForm) e.currentTarget.style.color = '#7c3aed'; }}
+                    onMouseLeave={(e) => { if (!showDevOverrideForm) e.currentTarget.style.color = ''; }}
+                  >
+                    <Eye size={14} />
+                    Developer Override <span style={{ fontSize: '0.72rem', opacity: 0.6 }}>(Viewer only)</span>
+                  </button>
+
+                  {showDevOverrideForm && (
+                    <div style={{
+                      background: 'var(--bg-slate)', border: '1px solid var(--border-slate)',
+                      borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px',
+                      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)'
+                    }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Building2 size={12} style={{ color: '#7c3aed' }} />
+                        Enter your Organisation ID for Developer Override
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Organisation ID (e.g. estevia)"
+                        value={devOverrideOrgId}
+                        onChange={(e) => setDevOverrideOrgId(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleBypassLogin(); }}
+                        autoComplete="off"
+                        style={{
+                          background: 'var(--bg-card)', border: '1px solid var(--border-slate)',
+                          borderRadius: '8px', color: 'var(--text-primary)',
+                          fontSize: '0.86rem', padding: '10px 14px', outline: 'none'
+                        }}
+                      />
+                      {devOverrideError && (
+                        <div style={{ fontSize: '0.8rem', color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <AlertCircle size={13} />
+                          {devOverrideError}
                         </div>
-                      ))}
+                      )}
+                      <button
+                        onClick={handleBypassLogin}
+                        disabled={authLoading}
+                        style={{
+                          background: 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)', border: 'none',
+                          color: '#ffffff', borderRadius: '8px', padding: '10px 16px', fontSize: '0.86rem',
+                          fontWeight: 600, cursor: authLoading ? 'not-allowed' : 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                        }}
+                      >
+                        {authLoading ? <RefreshCw size={14} className="spin-anim" /> : <Eye size={14} />}
+                        <span>Authenticate as Viewer</span>
+                      </button>
                     </div>
                   )}
-                </div>
 
-              </div>
+                  {/* Admin Override button */}
+                  <button
+                    onClick={() => { setShowAdminOverrideForm(v => !v); setAdminOverrideError(null); }}
+                    disabled={authLoading}
+                    style={{
+                      background: showAdminOverrideForm ? 'rgba(234,88,12,0.08)' : 'transparent',
+                      border: `1px dashed ${showAdminOverrideForm ? 'rgba(234,88,12,0.4)' : 'var(--border-slate)'}`,
+                      color: '#ea580c', padding: '10px 20px',
+                      borderRadius: '8px', fontSize: '0.82rem', cursor: 'pointer',
+                      fontWeight: 500, transition: 'all 0.2s ease',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                    }}
+                  >
+                    <ShieldCheck size={14} />
+                    Admin Override <span style={{ fontSize: '0.72rem', opacity: 0.6 }}>(Password required)</span>
+                  </button>
+
+                  {showAdminOverrideForm && (
+                    <div style={{
+                      background: 'var(--bg-slate)', border: '1px solid var(--border-slate)',
+                      borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px',
+                      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)'
+                    }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <ShieldCheck size={12} style={{ color: '#ea580c' }} />
+                        Enter your Organisation ID and admin override password
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Organisation ID (e.g. estevia)"
+                        value={adminOverrideOrgId}
+                        onChange={(e) => setAdminOverrideOrgId(e.target.value)}
+                        autoComplete="off"
+                        style={{
+                          background: 'var(--bg-card)', border: '1px solid var(--border-slate)',
+                          borderRadius: '8px', color: 'var(--text-primary)',
+                          fontSize: '0.86rem', padding: '10px 14px', outline: 'none'
+                        }}
+                      />
+                      <input
+                        type="password"
+                        placeholder="Admin override password"
+                        value={adminOverridePassword}
+                        onChange={(e) => setAdminOverridePassword(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleAdminOverride(); }}
+                        autoComplete="new-password"
+                        style={{
+                          background: 'var(--bg-card)', border: '1px solid var(--border-slate)',
+                          borderRadius: '8px', color: 'var(--text-primary)',
+                          fontSize: '0.86rem', padding: '10px 14px', outline: 'none'
+                        }}
+                      />
+                      {adminOverrideError && (
+                        <div style={{ fontSize: '0.8rem', color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <AlertCircle size={13} />
+                          {adminOverrideError}
+                        </div>
+                      )}
+                      <button
+                        onClick={handleAdminOverride}
+                        disabled={adminOverrideLoading}
+                        style={{
+                          background: 'linear-gradient(135deg, #ea580c 0%, #d97706 100%)', border: 'none',
+                          color: '#ffffff', borderRadius: '8px', padding: '10px 16px', fontSize: '0.86rem',
+                          fontWeight: 600, cursor: adminOverrideLoading ? 'not-allowed' : 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                        }}
+                      >
+                        {adminOverrideLoading ? <RefreshCw size={14} className="spin-anim" /> : <ShieldCheck size={14} />}
+                        <span>Authenticate as Admin</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Onboarding steps collapsible */}
+                  <div style={{ borderTop: '1px solid var(--border-slate)', paddingTop: '16px', textAlign: 'left' }}>
+                    <button
+                      onClick={() => setShowOnboardingGuide(v => !v)}
+                      style={{
+                        background: 'none', border: 'none', color: 'var(--text-secondary)',
+                        fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0',
+                        width: '100%', justifyContent: 'center'
+                      }}
+                    >
+                      <Info size={14} style={{ color: '#7c3aed' }} />
+                      <span>New to EvaOps? Onboarding Steps</span>
+                      {showOnboardingGuide ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </button>
+
+                    {showOnboardingGuide && (
+                      <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {[
+                          { step: '1', title: 'Sign in with Microsoft', desc: 'Authenticate with your work/school Azure account.' },
+                          { step: '2', title: 'Grant Entra ID Consent', desc: 'Accept permissions to register EvaOps in your tenant.' },
+                          { step: '3', title: 'Register Organization', desc: 'Provide organization name and domain details.' },
+                          { step: '4', title: 'Unlock Credentials', desc: 'Configure Azure details & DevOps PAT to finish onboarding.' }
+                        ].map((s, idx) => (
+                          <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                            <div style={{
+                              width: '20px', height: '20px', borderRadius: '50%',
+                              backgroundColor: 'rgba(124, 58, 237, 0.08)', border: '1px solid rgba(124, 58, 237, 0.2)',
+                              color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: '0.72rem', fontWeight: 700, flexShrink: 0, marginTop: '2px'
+                            }}>
+                              {s.step}
+                            </div>
+                            <div>
+                              <h5 style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{s.title}</h5>
+                              <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: '1px 0 0 0', lineHeight: 1.3 }}>{s.desc}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {authStep === 'mfa-setup' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <h4 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>MFA Registration</h4>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '0 0 12px 0' }}>Scan this QR code with Google/Microsoft Authenticator to secure your account:</p>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '10px', background: '#ffffff', borderRadius: '12px', width: '180px', height: '180px', margin: '0 auto' }}>
+                    {mfaOtpauthUrl ? (
+                      <img src={`https://chart.googleapis.com/chart?chs=180x180&chld=M|0&cht=qr&chl=${encodeURIComponent(mfaOtpauthUrl)}`} alt="QR Code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#333' }}>Generating QR...</div>
+                    )}
+                  </div>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Or enter secret key manually:</span>
+                    <code style={{ background: 'rgba(255,255,255,0.05)', padding: '6px', borderRadius: '6px', fontSize: '0.8rem', letterSpacing: '0.05em', color: 'var(--accent-teal)', textAlign: 'center', border: '1px solid var(--glass-border)' }}>{mfaSecret}</code>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Enter the 6-digit code shown in your app:</span>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      placeholder="000000"
+                      value={mfaCode}
+                      onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                      style={{
+                        background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)',
+                        borderRadius: '8px', color: 'var(--text-primary)', textAlign: 'center',
+                        fontSize: '1.25rem', padding: '8px', letterSpacing: '0.2em', outline: 'none'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => { setAuthStep('login'); setMfaCode(''); }}
+                      style={{ flex: 1, padding: '10px', fontSize: '0.84rem' }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="btn-primary"
+                      disabled={authLoading || mfaCode.length !== 6}
+                      onClick={() => handleVerifyMfaSetupCode(mfaCode)}
+                      style={{ flex: 1, padding: '10px', fontSize: '0.84rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                    >
+                      {authLoading && <RefreshCw size={14} className="spin-anim" />}
+                      Verify & Login
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {authStep === 'mfa-verify' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <h4 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>MFA Verification</h4>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '0 0 12px 0' }}>Please enter the 6-digit verification code from your authenticator app:</p>
+
+                  <input
+                    type="text"
+                    maxLength={6}
+                    placeholder="000000"
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                    style={{
+                      background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)',
+                      borderRadius: '8px', color: 'var(--text-primary)', textAlign: 'center',
+                      fontSize: '1.5rem', padding: '10px', letterSpacing: '0.2em', outline: 'none'
+                    }}
+                  />
+
+                  <button
+                    className="btn-primary"
+                    disabled={authLoading || mfaCode.length !== 6}
+                    onClick={() => handleValidateMfaCode(mfaCode)}
+                    style={{ width: '100%', padding: '12px', fontSize: '0.86rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 600 }}
+                  >
+                    {authLoading && <RefreshCw size={14} className="spin-anim" />}
+                    Verify Identity
+                  </button>
+
+                  <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                    <button
+                      onClick={handleRequestMfaReset}
+                      disabled={authLoading}
+                      style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '0.78rem', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                      Lost Authenticator App? Request MFA Reset
+                    </button>
+                  </div>
+
+                  <button
+                    className="btn-secondary"
+                    onClick={() => { setAuthStep('login'); setMfaCode(''); }}
+                    style={{ width: '100%', padding: '10px', fontSize: '0.84rem', marginTop: '8px' }}
+                  >
+                    Back to Access Portal
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -6017,7 +6304,7 @@ function App() {
                   }}>
                     <AlertTriangle size={20} style={{ color: '#f87171', flexShrink: 0 }} />
                     <div style={{ fontSize: '0.84rem', color: '#fca5a5', lineHeight: 1.5 }}>
-                      <strong style={{ color: '#f87171' }}>Account Suspended:</strong> Access is limited to Billing &amp; Licensing due to outstanding invoices overdue by more than 45 days. Please clear your balance in <strong>Settings → Licensing</strong> to restore full service.
+                      <strong style={{ color: '#f87171' }}>Account Suspended:</strong> Access is limited to Billing &amp; Licensing due to outstanding invoices overdue by more than 45 days. Please clear your balance in <strong>Licensing</strong> to restore full service.
                     </div>
                   </div>
                 )}
@@ -6037,7 +6324,7 @@ function App() {
                   }}>
                     <AlertTriangle size={20} style={{ color: '#f59e0b', flexShrink: 0 }} />
                     <div style={{ fontSize: '0.84rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
-                      <strong style={{ color: '#f59e0b' }}>Write Operations Restricted:</strong> Your account is restricted because an invoice is overdue by <strong>{maxOverdueDays} days</strong> (grace period expired). Full access block will trigger after 45 days. Please settle your balance in <strong>Settings → Licensing</strong>.
+                      <strong style={{ color: '#f59e0b' }}>Write Operations Restricted:</strong> Your account is restricted because an invoice is overdue by <strong>{maxOverdueDays} days</strong> (grace period expired). Full access block will trigger after 45 days. Please settle your balance in <strong>Licensing</strong>.
                     </div>
                   </div>
                 )}
@@ -6057,7 +6344,7 @@ function App() {
                   }}>
                     <Info size={20} style={{ color: '#f59e0b', flexShrink: 0 }} />
                     <div style={{ fontSize: '0.84rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
-                      <strong style={{ color: '#f59e0b' }}>Billing Grace Period:</strong> You have an unpaid invoice overdue by <strong>{maxOverdueDays} days</strong>. Access is currently active, but write operations will be restricted after 30 days. Please clear your balance in <strong>Settings → Licensing</strong>.
+                      <strong style={{ color: '#f59e0b' }}>Billing Grace Period:</strong> You have an unpaid invoice overdue by <strong>{maxOverdueDays} days</strong>. Access is currently active, but write operations will be restricted after 30 days. Please clear your balance in <strong>Licensing</strong>.
                     </div>
                   </div>
                 )}
@@ -6916,6 +7203,11 @@ function App() {
               theme={theme}
               API_BASE={API_BASE}
               operatorSeatsLimit={operatorSeatsLimit}
+              manualMfaRequired={manualMfaRequired}
+              ssoMfaRequired={ssoMfaRequired}
+              handleUpdateMfaSettings={handleUpdateMfaSettings}
+              handleResetMfa={handleResetMfa}
+              token={token}
             />
           </div>
         )}
