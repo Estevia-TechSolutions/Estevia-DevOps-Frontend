@@ -59,6 +59,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
   const [mfaRegisterLoading, setMfaRegisterLoading] = useState<boolean>(false);
   const [mfaRegisterError, setMfaRegisterError] = useState<string | null>(null);
   const [resettingMfaUserId, setResettingMfaUserId] = useState<string | null>(null);
+  const [mfaLockoutWarning, setMfaLockoutWarning] = useState<string | null>(null);
 
   // Active admin's MFA status from the current user list
   const activeUserInList = users.find(u => u.id === currentUser?.id);
@@ -67,7 +68,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
   const handleToggleMfa = async (policyType: 'manual' | 'sso', currentVal: boolean) => {
     // Lockout protection: Admin cannot enforce organization-wide MFA if they haven't registered their own yet!
     if (!isMfaEnabledForSelf && !currentVal) {
-      alert("Lockout Warning: You must configure and verify your own Multi-Factor Authentication (MFA) before enforcing MFA policies for the organization.");
+      setMfaLockoutWarning("You must configure and verify your own Multi-Factor Authentication (MFA) before enforcing MFA policies for the organization.");
       return;
     }
 
@@ -1058,6 +1059,64 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                 style={{ padding: '8px 16px', fontSize: '0.8rem' }}
               >
                 {mfaRegisterLoading ? <RefreshCw size={14} className="spin-anim" /> : 'Verify & Enable'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MFA Lockout Warning Modal */}
+      {mfaLockoutWarning && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(2, 6, 23, 0.75)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          zIndex: 999999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '24px'
+        }}>
+          <div className="glass-panel" style={{
+            width: '440px',
+            maxWidth: '100%',
+            display: 'flex', flexDirection: 'column',
+            borderRadius: '16px',
+            boxShadow: 'var(--modal-shadow)',
+            padding: '24px',
+            background: 'var(--bg-card, rgba(8,12,22,0.9))',
+            border: '1px solid rgba(239, 68, 68, 0.3)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div style={{
+                width: '40px', height: '40px', borderRadius: '12px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#ef4444', flexShrink: 0
+              }}>
+                <ShieldAlert size={22} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Lockout Protection</h3>
+                <span style={{ fontSize: '0.62rem', fontWeight: 900, textTransform: 'uppercase', color: '#ef4444', letterSpacing: '0.1em' }}>Security Override Prevented</span>
+              </div>
+            </div>
+
+            <p style={{ margin: '0 0 20px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              {mfaLockoutWarning}
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => setMfaLockoutWarning(null)}
+                style={{
+                  padding: '8px 24px', fontSize: '0.82rem', background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)'
+                }}
+              >
+                Understood
               </button>
             </div>
           </div>
