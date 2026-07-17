@@ -26,6 +26,7 @@ interface TeamPageProps {
   ssoMfaRequired: boolean;
   handleUpdateMfaSettings: (manualMfa: boolean, ssoMfa: boolean) => Promise<boolean>;
   handleResetMfa: (userId: string) => Promise<boolean>;
+  handleResetOrgMfa: () => Promise<boolean>;
   token: string;
 }
 
@@ -43,6 +44,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
   ssoMfaRequired,
   handleUpdateMfaSettings,
   handleResetMfa,
+  handleResetOrgMfa,
   token
 }) => {
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
@@ -60,6 +62,8 @@ export const TeamPage: React.FC<TeamPageProps> = ({
   const [mfaRegisterError, setMfaRegisterError] = useState<string | null>(null);
   const [resettingMfaUserId, setResettingMfaUserId] = useState<string | null>(null);
   const [mfaLockoutWarning, setMfaLockoutWarning] = useState<string | null>(null);
+  const [showSsoOffModal, setShowSsoOffModal] = useState<boolean>(false);
+  const [resettingOrgMfa, setResettingOrgMfa] = useState<boolean>(false);
 
   const activeUserInList = users.find(u => u.id === currentUser?.id);
   const isMfaEnabledForSelf = !!(
@@ -73,6 +77,12 @@ export const TeamPage: React.FC<TeamPageProps> = ({
     // Lockout protection: Admin cannot enforce organization-wide MFA if they haven't registered their own yet!
     if (!isMfaEnabledForSelf && !currentVal) {
       setMfaLockoutWarning("You must configure and verify your own Multi-Factor Authentication (MFA) before enforcing MFA policies for the organization.");
+      return;
+    }
+
+    // Turning SSO MFA OFF → show confirmation modal (will bulk-reset all users)
+    if (policyType === 'sso' && currentVal === true) {
+      setShowSsoOffModal(true);
       return;
     }
 
@@ -141,6 +151,8 @@ export const TeamPage: React.FC<TeamPageProps> = ({
         setMfaCode('');
         setUpdateMsg({ type: 'success', text: 'Authenticator app linked successfully. MFA is now active on your account.' });
         setTimeout(() => setUpdateMsg(null), 4000);
+        // Auto-enable SSO MFA for the organization now that admin has their own MFA active
+        await handleUpdateMfaSettings(manualMfaRequired, true);
         // Refresh directory list to capture updated status
         await handleSyncTeam();
       } else {
@@ -1126,6 +1138,116 @@ export const TeamPage: React.FC<TeamPageProps> = ({
           </div>
         </div>
       )}
+      )}
+
+      {/* ── SSO MFA Disable & Bulk-Reset Confirmation Modal ── */}
+      {showSsoOffModal && (() => {
+        const mfaEnabledCount = users.filter(u => Number(u.mfa_enabled) === 1 || u.mfa_enabled === true).length;
+        return (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(2, 6, 23, 0.80)',
+            backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+            zIndex: 999999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '24px',
+            animation: 'fadeIn 0.2s ease'
+          }}>
+            <div style={{
+              width: '480px', maxWidth: '100%',
+              background: 'rgba(8, 10, 20, 0.92)',
+              border: '1px solid rgba(239, 68, 68, 0.35)',
+              borderRadius: '20px',
+              boxShadow: '0 0 60px rgba(239, 68, 68, 0.12), 0 24px 64px rgba(0,0,0,0.5)',
+              padding: '28px',
+              display: 'flex', flexDirection: 'column', gap: '20px',
+              animation: 'scaleIn 0.2s ease'
+            }}>
+
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+                <div style={{
+                  width: '48px', height: '48px', borderRadius: '14px', flexShrink: 0,
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '1.4rem'
+                }}>⚠️</div>
+                <div>
+                  <h3 style={{ margin: '0 0 4px', fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    Disable SSO MFA & Reset All Users?
+                  </h3>
+                  <span style={{ fontSize: '0.62rem', fontWeight: 900, textTransform: 'uppercase', color: '#ef4444', letterSpacing: '0.1em' }}>
+                    Destructive · Org-Wide Action
+                  </span>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+                <p style={{ margin: '0 0 12px' }}>This will immediately:</p>
+                <ul style={{ margin: '0 0 14px', paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <li>Turn <strong style={{ color: 'var(--text-primary)' }}>off</strong> MFA enforcement for all <strong style={{ color: 'var(--text-primary)' }}>Microsoft SSO</strong> logins</li>
+                  <li>Permanently wipe authenticator credentials for <strong style={{ color: '#ef4444' }}>{mfaEnabledCount} user{mfaEnabledCount !== 1 ? 's' : ''}</strong> in your organization</li>
+                  <li>Require all affected users to <strong style={{ color: 'var(--text-primary)' }}>re-enroll</strong> in MFA on their next login</li>
+                </ul>
+                <div style={{
+                  background: 'rgba(239, 68, 68, 0.07)',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  borderRadius: '10px', padding: '10px 14px',
+                  fontSize: '0.76rem', color: '#f87171'
+                }}>
+                  🔒 This action is scoped to your organization only and <strong>cannot be undone</strong>.
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  disabled={resettingOrgMfa}
+                  onClick={() => setShowSsoOffModal(false)}
+                  style={{ padding: '10px 22px', fontSize: '0.84rem' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={resettingOrgMfa}
+                  onClick={async () => {
+                    setResettingOrgMfa(true);
+                    const [policyOk, resetOk] = await Promise.all([
+                      handleUpdateMfaSettings(manualMfaRequired, false),
+                      handleResetOrgMfa()
+                    ]);
+                    setResettingOrgMfa(false);
+                    setShowSsoOffModal(false);
+                    if (policyOk && resetOk) {
+                      setUpdateMsg({ type: 'success', text: `SSO MFA disabled and ${mfaEnabledCount} user MFA credential${mfaEnabledCount !== 1 ? 's' : ''} reset successfully.` });
+                    } else {
+                      setUpdateMsg({ type: 'error', text: 'Partial failure — some changes may not have applied. Please refresh.' });
+                    }
+                    setTimeout(() => setUpdateMsg(null), 5000);
+                  }}
+                  style={{
+                    padding: '10px 22px', fontSize: '0.84rem', fontWeight: 700,
+                    background: resettingOrgMfa ? 'rgba(239,68,68,0.4)' : 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+                    color: '#fff', border: 'none', borderRadius: '10px', cursor: resettingOrgMfa ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 4px 16px rgba(239, 68, 68, 0.3)',
+                    display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s ease'
+                  }}
+                >
+                  {resettingOrgMfa
+                    ? <><RefreshCw size={14} className="spin-anim" /> Resetting...</>
+                    : <>Yes, Disable & Reset All</>
+                  }
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {activeLogUser && (
         <UserAuditLogDrawer
