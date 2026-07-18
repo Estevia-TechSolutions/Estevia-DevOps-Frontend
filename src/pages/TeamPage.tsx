@@ -1034,6 +1034,31 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                 )}
               </div>
 
+              {/* App Account Preview Card */}
+              {mfaOtpauthUrl && (() => {
+                try {
+                  const parsed = new URL(mfaOtpauthUrl);
+                  const pathname = decodeURIComponent(parsed.pathname.replace(/^\/\/?totp\//, ''));
+                  const issuer = parsed.searchParams.get('issuer') || 'Estevia DevOps';
+                  const account = pathname.includes(':') ? pathname.split(':').slice(1).join(':') : pathname;
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        📱 This will appear in your app as:
+                      </span>
+                      <div style={{ background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(20,184,166,0.25)', borderRadius: '10px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ fontSize: '1.2rem' }}>📱</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 800, color: '#f1f5f9', fontSize: '0.84rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{issuer}</div>
+                          <div style={{ color: '#94a3b8', fontSize: '0.72rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{account}</div>
+                        </div>
+                        <div style={{ color: '#10b981', fontWeight: 800, fontSize: '1rem', fontFamily: 'monospace' }}>••• •••</div>
+                      </div>
+                    </div>
+                  );
+                } catch { return null; }
+              })()}
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Or enter this secret key manually:</span>
                 <code style={{ background: 'rgba(255,255,255,0.05)', padding: '6px 10px', borderRadius: '6px', fontSize: '0.84rem', letterSpacing: '0.05em', color: 'var(--accent-teal)', textAlign: 'center', border: '1px solid var(--glass-border)' }}>
