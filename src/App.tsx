@@ -84,86 +84,66 @@ function AuthenticatorPreviewCard({ issuer, account }: { issuer: string; account
     <div style={{
       background: 'var(--bg-slate)',
       border: '1px solid var(--border-slate)',
-      borderRadius: '14px',
-      padding: '12px 14px',
+      borderRadius: '16px',
+      padding: '12px 12px 12px 14px',
       display: 'flex',
       alignItems: 'center',
       gap: '12px',
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
-      position: 'relative',
-      overflow: 'hidden',
+      boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
       width: '100%',
       boxSizing: 'border-box',
-      textAlign: 'left'
     }}>
-      {/* DevOps premium left accent color bar */}
+      {/* Lock Icon Box — DevOps teal/emerald gradient */}
       <div style={{
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        bottom: 0,
-        width: '4px',
-        background: 'linear-gradient(to bottom, #10b981, #059669)'
-      }} />
-
-      {/* Styled Glassmorphic Icon Box */}
-      <div style={{
-        width: '36px',
-        height: '36px',
-        borderRadius: '10px',
-        background: 'rgba(16, 185, 129, 0.08)',
-        border: '1px solid rgba(16, 185, 129, 0.15)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '1.15rem',
-        flexShrink: 0,
-        paddingLeft: '1px'
+        width: '42px', height: '42px', borderRadius: '10px', flexShrink: 0,
+        background: 'linear-gradient(135deg, rgba(16,185,129,0.18) 0%, rgba(5,150,105,0.12) 100%)',
+        border: '1px solid rgba(16,185,129,0.22)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: '0 0 14px rgba(16,185,129,0.15)',
       }}>
-        📱
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="11" width="18" height="12" rx="2" stroke="#10b981" strokeWidth="2" fill="rgba(16,185,129,0.15)"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#10b981" strokeWidth="2" strokeLinecap="round"/>
+          <circle cx="12" cy="17" r="1.5" fill="#10b981"/>
+        </svg>
       </div>
 
-      {/* Info column with ellipsis text overflow bounds */}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+      {/* Text stack — ellipsis-clamped */}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
         <div style={{
-          fontWeight: 800,
-          color: 'var(--text-primary, #0f172a)',
-          fontSize: '0.86rem',
-          letterSpacing: '-0.01em',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          lineHeight: 1.2
+          fontWeight: 700, color: 'var(--text-primary, #0f172a)',
+          fontSize: '0.85rem', letterSpacing: '-0.01em', lineHeight: 1.25,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
           {displayIssuer}
         </div>
         <div style={{
-          color: 'var(--text-secondary, #64748b)',
-          fontSize: '0.74rem',
-          fontWeight: 500,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          lineHeight: 1.2
+          color: 'var(--text-secondary, #64748b)', fontSize: '0.73rem',
+          fontWeight: 500, lineHeight: 1.25,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
           {account || 'user@esteviatech.com'}
         </div>
       </div>
 
-      {/* Monospace Cipher Dot Badge */}
+      {/* Arc timer panel */}
       <div style={{
-        background: 'rgba(16, 185, 129, 0.08)',
-        border: '1px solid rgba(16, 185, 129, 0.15)',
-        borderRadius: '8px',
-        padding: '4px 8px',
-        color: '#10b981',
-        fontWeight: 800,
-        fontSize: '0.9rem',
-        letterSpacing: '0.04em',
-        fontFamily: 'monospace',
-        flexShrink: 0
+        background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.15)',
+        borderRadius: '10px', padding: '7px 10px', display: 'flex',
+        flexDirection: 'column', alignItems: 'center', gap: '5px', flexShrink: 0,
       }}>
-        ••• •••
+        <svg width="28" height="28" viewBox="0 0 28 28">
+          <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(16,185,129,0.15)" strokeWidth="2.5"/>
+          <circle cx="14" cy="14" r="11" fill="none" stroke="#10b981" strokeWidth="2.5"
+            strokeLinecap="round" strokeDasharray="51.84 69.12"
+            transform="rotate(-90 14 14)"/>
+        </svg>
+        <div style={{
+          color: '#10b981', fontWeight: 800, fontSize: '0.78rem',
+          letterSpacing: '0.06em', fontFamily: 'monospace', lineHeight: 1,
+        }}>
+          ••• •••
+        </div>
       </div>
     </div>
   );
