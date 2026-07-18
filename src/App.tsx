@@ -51,46 +51,119 @@ import { EsteviaLoginBadge } from './components/shared/EsteviaLoginBadge';
 
 // Dynamic environment branding suffix
 const getEnvSuffix = (): string => {
-  const env = (import.meta.env.VITE_APP_ENV || 'local').toLowerCase();
+  const host = typeof window !== 'undefined' ? window.location.hostname.toLowerCase() : '';
+  if (host.includes('dev-') || host.includes('-dev') || host.startsWith('dev.')) {
+    return ' (Dev)';
+  }
+  if (host.includes('qa-') || host.includes('-qa') || host.startsWith('qa.')) {
+    return ' (QA)';
+  }
+  if (host === 'localhost' || host === '127.0.0.1' || host.startsWith('local.')) {
+    return ' (Local)';
+  }
+  
+  const env = (import.meta.env.VITE_APP_ENV || '').toLowerCase();
   if (env === 'local') return ' (Local)';
   if (env === 'dev' || env === 'development') return ' (Dev)';
   if (env === 'qa') return ' (QA)';
   return ''; // Production
 };
 
+// Formats issuer to guarantee environment name suffix (stripping legacy suffix first)
+const formatIssuerWithEnv = (issuerName: string, defaultFallback: string): string => {
+  const baseName = issuerName || defaultFallback;
+  const cleanedName = baseName.replace(/\s*\((dev|qa|local|production)\)/i, '').trim();
+  const suffix = getEnvSuffix();
+  return `${cleanedName}${suffix}`;
+};
+
 // 📱 Authenticator App Account Preview Card (with ellipsis text overflow safeguards)
 function AuthenticatorPreviewCard({ issuer, account }: { issuer: string; account: string }) {
+  const displayIssuer = formatIssuerWithEnv(issuer, 'EvaOps');
   return (
     <div style={{
-      background: 'var(--bg-slate, rgba(148, 163, 184, 0.08))',
-      border: '1.5px solid var(--border-slate, rgba(148, 163, 184, 0.2))',
-      borderRadius: '12px',
+      background: 'var(--bg-slate)',
+      border: '1px solid var(--border-slate)',
+      borderRadius: '14px',
       padding: '12px 14px',
-      fontSize: '0.82rem',
-      color: 'var(--text-primary, #0f172a)',
       display: 'flex',
-      flexDirection: 'column',
-      gap: '4px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
-      fontFamily: "system-ui, -apple-system, sans-serif",
-      textAlign: 'left',
-      margin: '10px 0',
+      alignItems: 'center',
+      gap: '12px',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
+      position: 'relative',
+      overflow: 'hidden',
       width: '100%',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      textAlign: 'left'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <div style={{ fontSize: '1.25rem', flexShrink: 0 }}>📱</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 800, color: 'var(--text-primary, #0f172a)', letterSpacing: '-0.01em', fontSize: '0.86rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {issuer || `Estevia DevOps${getEnvSuffix()}`}
-          </div>
-          <div style={{ color: 'var(--text-secondary, #64748b)', fontSize: '0.74rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {account || 'user@esteviatech.com'}
-          </div>
+      {/* DevOps premium left accent color bar */}
+      <div style={{
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: '4px',
+        background: 'linear-gradient(to bottom, #10b981, #059669)'
+      }} />
+
+      {/* Styled Glassmorphic Icon Box */}
+      <div style={{
+        width: '36px',
+        height: '36px',
+        borderRadius: '10px',
+        background: 'rgba(16, 185, 129, 0.08)',
+        border: '1px solid rgba(16, 185, 129, 0.15)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '1.15rem',
+        flexShrink: 0,
+        paddingLeft: '1px'
+      }}>
+        📱
+      </div>
+
+      {/* Info column with ellipsis text overflow bounds */}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <div style={{
+          fontWeight: 800,
+          color: 'var(--text-primary, #0f172a)',
+          fontSize: '0.86rem',
+          letterSpacing: '-0.01em',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          lineHeight: 1.2
+        }}>
+          {displayIssuer}
         </div>
-        <div style={{ color: '#10b981', fontWeight: 800, fontSize: '1.05rem', letterSpacing: '0.04em', fontFamily: 'monospace', flexShrink: 0 }}>
-          ••• •••
+        <div style={{
+          color: 'var(--text-secondary, #64748b)',
+          fontSize: '0.74rem',
+          fontWeight: 500,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          lineHeight: 1.2
+        }}>
+          {account || 'user@esteviatech.com'}
         </div>
+      </div>
+
+      {/* Monospace Cipher Dot Badge */}
+      <div style={{
+        background: 'rgba(16, 185, 129, 0.08)',
+        border: '1px solid rgba(16, 185, 129, 0.15)',
+        borderRadius: '8px',
+        padding: '4px 8px',
+        color: '#10b981',
+        fontWeight: 800,
+        fontSize: '0.9rem',
+        letterSpacing: '0.04em',
+        fontFamily: 'monospace',
+        flexShrink: 0
+      }}>
+        ••• •••
       </div>
     </div>
   );
@@ -5526,14 +5599,15 @@ function App() {
                         try {
                           const parsed = new URL(mfaOtpauthUrl);
                           const pathname = decodeURIComponent(parsed.pathname.replace(/^\/\/?totp\//, ''));
-                          const issuer = parsed.searchParams.get('issuer') || `Estevia DevOps${getEnvSuffix()}`;
+                          const issuer = parsed.searchParams.get('issuer') || '';
+                          const displayIssuer = formatIssuerWithEnv(issuer, 'EvaOps');
                           const account = pathname.includes(':') ? pathname.split(':').slice(1).join(':') : pathname;
                           return (
                             <div style={{ width: '100%' }}>
                               <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'left' }}>
                                 📱 This will appear in your app as:
                               </span>
-                              <AuthenticatorPreviewCard issuer={issuer} account={account} />
+                              <AuthenticatorPreviewCard issuer={displayIssuer} account={account} />
                             </div>
                           );
                         } catch { return null; }

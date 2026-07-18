@@ -9,6 +9,12 @@ const getEnvSuffix = (): string => {
   if (env === 'dev' || env === 'development') return ' (Dev)';
   if (env === 'qa') return ' (QA)';
   return ''; // Production
+};// Formats issuer to guarantee environment name suffix (stripping legacy suffix first)
+const formatIssuerWithEnv = (issuerName: string, defaultFallback: string): string => {
+  const baseName = issuerName || defaultFallback;
+  const cleanedName = baseName.replace(/\s*\((dev|qa|local|production)\)/i, '').trim();
+  const suffix = getEnvSuffix();
+  return `${cleanedName}${suffix}`;
 };
 
 export interface UserRecord {
@@ -1053,20 +1059,94 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                 try {
                   const parsed = new URL(mfaOtpauthUrl);
                   const pathname = decodeURIComponent(parsed.pathname.replace(/^\/\/?totp\//, ''));
-                  const issuer = parsed.searchParams.get('issuer') || `Estevia DevOps${getEnvSuffix()}`;
+                  const issuer = parsed.searchParams.get('issuer') || '';
+                  const displayIssuer = formatIssuerWithEnv(issuer, 'EvaOps');
                   const account = pathname.includes(':') ? pathname.split(':').slice(1).join(':') : pathname;
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                         📱 This will appear in your app as:
                       </span>
-                      <div style={{ background: 'var(--bg-slate, rgba(148, 163, 184, 0.08))', border: '1.5px solid var(--border-slate, rgba(148, 163, 184, 0.2))', borderRadius: '10px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ fontSize: '1.2rem', flexShrink: 0 }}>📱</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 800, color: 'var(--text-primary, #0f172a)', fontSize: '0.84rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{issuer}</div>
-                          <div style={{ color: 'var(--text-secondary, #64748b)', fontSize: '0.72rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{account}</div>
+                      <div style={{
+                        background: 'var(--bg-slate)',
+                        border: '1px solid var(--border-slate)',
+                        borderRadius: '14px',
+                        padding: '12px 14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        textAlign: 'left'
+                      }}>
+                        {/* DevOps premium left accent color bar */}
+                        <div style={{
+                          position: 'absolute',
+                          left: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: '4px',
+                          background: 'linear-gradient(to bottom, #10b981, #059669)'
+                        }} />
+
+                        {/* Styled Glassmorphic Icon Box */}
+                        <div style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '10px',
+                          background: 'rgba(16, 185, 129, 0.08)',
+                          border: '1px solid rgba(16, 185, 129, 0.15)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.15rem',
+                          flexShrink: 0,
+                          paddingLeft: '1px'
+                        }}>
+                          📱
                         </div>
-                        <div style={{ color: '#10b981', fontWeight: 800, fontSize: '1rem', fontFamily: 'monospace', flexShrink: 0 }}>••• •••</div>
+
+                        {/* Info column with ellipsis text overflow bounds */}
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <div style={{
+                            fontWeight: 800,
+                            color: 'var(--text-primary, #0f172a)',
+                            fontSize: '0.86rem',
+                            letterSpacing: '-0.01em',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            lineHeight: 1.2
+                          }}>{displayIssuer}</div>
+                          <div style={{
+                            color: 'var(--text-secondary, #64748b)',
+                            fontSize: '0.74rem',
+                            fontWeight: 500,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            lineHeight: 1.2
+                          }}>{account}</div>
+                        </div>
+
+                        {/* Monospace Cipher Dot Badge */}
+                        <div style={{
+                          background: 'rgba(16, 185, 129, 0.08)',
+                          border: '1px solid rgba(16, 185, 129, 0.15)',
+                          borderRadius: '8px',
+                          padding: '4px 8px',
+                          color: '#10b981',
+                          fontWeight: 800,
+                          fontSize: '0.9rem',
+                          letterSpacing: '0.04em',
+                          fontFamily: 'monospace',
+                          flexShrink: 0
+                        }}>
+                          ••• •••
+                        </div>
                       </div>
                     </div>
                   );
