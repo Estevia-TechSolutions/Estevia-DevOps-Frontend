@@ -93,6 +93,13 @@ function AuthenticatorPreviewCard({ issuer, account }: { issuer: string; account
       width: '100%',
       boxSizing: 'border-box',
     }}>
+      <style>{`
+        @keyframes preview-svg-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+
       {/* Lock Icon Box — DevOps teal/emerald gradient */}
       <div style={{
         width: '42px', height: '42px', borderRadius: '10px', flexShrink: 0,
@@ -132,7 +139,10 @@ function AuthenticatorPreviewCard({ issuer, account }: { issuer: string; account
         borderRadius: '10px', padding: '7px 10px', display: 'flex',
         flexDirection: 'column', alignItems: 'center', gap: '5px', flexShrink: 0,
       }}>
-        <svg width="28" height="28" viewBox="0 0 28 28">
+        <svg width="28" height="28" viewBox="0 0 28 28" style={{
+          animation: 'preview-svg-spin 10s linear infinite',
+          transformOrigin: 'center'
+        }}>
           <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(16,185,129,0.15)" strokeWidth="2.5"/>
           <circle cx="14" cy="14" r="11" fill="none" stroke="#10b981" strokeWidth="2.5"
             strokeLinecap="round" strokeDasharray="51.84 69.12"
