@@ -2,6 +2,15 @@ import React, { useState } from 'react';
 import { Users, RefreshCw, UserCheck, Shield, Award, Eye, X, Check, Terminal, ShieldAlert, ShieldX, KeyRound } from 'lucide-react';
 import { UserAuditLogDrawer } from '../components/team/UserAuditLogDrawer';
 
+// Dynamic environment branding suffix
+const getEnvSuffix = (): string => {
+  const env = (import.meta.env.VITE_APP_ENV || 'local').toLowerCase();
+  if (env === 'local') return ' (Local)';
+  if (env === 'dev' || env === 'development') return ' (Dev)';
+  if (env === 'qa') return ' (QA)';
+  return ''; // Production
+};
+
 export interface UserRecord {
   id: string;
   email: string;
@@ -1044,7 +1053,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                 try {
                   const parsed = new URL(mfaOtpauthUrl);
                   const pathname = decodeURIComponent(parsed.pathname.replace(/^\/\/?totp\//, ''));
-                  const issuer = parsed.searchParams.get('issuer') || 'Estevia DevOps';
+                  const issuer = parsed.searchParams.get('issuer') || `Estevia DevOps${getEnvSuffix()}`;
                   const account = pathname.includes(':') ? pathname.split(':').slice(1).join(':') : pathname;
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
