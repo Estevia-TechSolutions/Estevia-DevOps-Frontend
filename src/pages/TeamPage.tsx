@@ -1138,7 +1138,6 @@ export const TeamPage: React.FC<TeamPageProps> = ({
           </div>
         </div>
       )}
-      )}
 
       {/* ── SSO MFA Disable & Bulk-Reset Confirmation Modal ── */}
       {showSsoOffModal && (() => {
