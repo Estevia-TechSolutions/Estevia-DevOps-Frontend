@@ -48,6 +48,53 @@ import { ConfirmationModal } from './components/ConfirmationModal';
 import { SiteHeader, ControlBanner } from './components/DevOpsHeader';
 import { BuildHistoryDrawer } from './components/BuildHistoryDrawer';
 import { EsteviaLoginBadge } from './components/shared/EsteviaLoginBadge';
+
+// Dynamic environment branding suffix
+const getEnvSuffix = (): string => {
+  const env = (import.meta.env.VITE_APP_ENV || 'local').toLowerCase();
+  if (env === 'local') return ' (Local)';
+  if (env === 'dev' || env === 'development') return ' (Dev)';
+  if (env === 'qa') return ' (QA)';
+  return ''; // Production
+};
+
+// 📱 Authenticator App Account Preview Card (with ellipsis text overflow safeguards)
+function AuthenticatorPreviewCard({ issuer, account }: { issuer: string; account: string }) {
+  return (
+    <div style={{
+      background: 'var(--bg-slate, rgba(148, 163, 184, 0.08))',
+      border: '1.5px solid var(--border-slate, rgba(148, 163, 184, 0.2))',
+      borderRadius: '12px',
+      padding: '12px 14px',
+      fontSize: '0.82rem',
+      color: 'var(--text-primary, #0f172a)',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '4px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.04)',
+      fontFamily: "system-ui, -apple-system, sans-serif",
+      textAlign: 'left',
+      margin: '10px 0',
+      width: '100%',
+      boxSizing: 'border-box'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ fontSize: '1.25rem', flexShrink: 0 }}>📱</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 800, color: 'var(--text-primary, #0f172a)', letterSpacing: '-0.01em', fontSize: '0.86rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {issuer || `Estevia DevOps${getEnvSuffix()}`}
+          </div>
+          <div style={{ color: 'var(--text-secondary, #64748b)', fontSize: '0.74rem', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {account || 'user@esteviatech.com'}
+          </div>
+        </div>
+        <div style={{ color: '#10b981', fontWeight: 800, fontSize: '1.05rem', letterSpacing: '0.04em', fontFamily: 'monospace', flexShrink: 0 }}>
+          ••• •••
+        </div>
+      </div>
+    </div>
+  );
+}
 import { NotificationDrawer } from './components/NotificationDrawer';
 import type { AppNotification } from './components/NotificationDrawer';
 import { NotificationDetailModal } from './components/NotificationDetailModal';
@@ -1128,6 +1175,8 @@ function App() {
   const [mfaSecret, setMfaSecret] = useState<string>('');
   const [mfaOtpauthUrl, setMfaOtpauthUrl] = useState<string>('');
   const [mfaCode, setMfaCode] = useState<string>('');
+  const [mfaRegIssuer, setMfaRegIssuer] = useState<string>('');
+  const [mfaRegName, setMfaRegName] = useState<string>('');
   // MFA wizard step (1 = get app, 2 = scan QR, 3 = verify)
   const [mfaSetupStep, setMfaSetupStep] = useState<1 | 2 | 3>(1);
 
@@ -2226,6 +2275,8 @@ function App() {
         }
         if (data.code === 'MFA_REQUIRED') {
           setMfaTempToken(data.tempToken);
+          setMfaRegName(data.mfa_registered_name || '');
+          setMfaRegIssuer(data.mfa_registered_issuer || '');
           setAuthStep('mfa-verify');
           return;
         }
@@ -2268,6 +2319,8 @@ function App() {
         }
         if (data.code === 'MFA_REQUIRED') {
           setMfaTempToken(data.tempToken);
+          setMfaRegName(data.mfa_registered_name || '');
+          setMfaRegIssuer(data.mfa_registered_issuer || '');
           setAuthStep('mfa-verify');
           return;
         }
@@ -2311,6 +2364,8 @@ function App() {
         }
         if (data.code === 'MFA_REQUIRED') {
           setMfaTempToken(data.tempToken);
+          setMfaRegName(data.mfa_registered_name || '');
+          setMfaRegIssuer(data.mfa_registered_issuer || '');
           setAuthStep('mfa-verify');
           return;
         }
@@ -5454,12 +5509,35 @@ function App() {
                       <div style={{ position: 'relative', display: 'inline-block' }}>
                         <div style={{ background: '#fff', padding: '14px', borderRadius: '14px', display: 'inline-block', border: '1px solid #ddd', boxShadow: '0 4px 18px rgba(0,0,0,0.12)' }}>
                           {mfaOtpauthUrl ? (
-                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(mfaOtpauthUrl)}`} alt="MFA QR Code" style={{ display: 'block', width: '180px', height: '180px' }} />
+                            <>
+                              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(mfaOtpauthUrl)}`} alt="MFA QR Code" style={{ display: 'block', width: '180px', height: '180px' }} />
+                              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: '#fff', padding: '4px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid #ddd' }}>
+                                <img src="/evaops-logo.png" alt="DevOps Logo" style={{ width: '28px', height: '28px', borderRadius: '4px', display: 'block' }} />
+                              </div>
+                            </>
                           ) : (
                             <div style={{ width: '180px', height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#333', fontSize: '0.8rem' }}><RefreshCw size={20} className="spin-anim" /></div>
                           )}
                         </div>
                       </div>
+
+                      {/* App Account Preview Card */}
+                      {mfaOtpauthUrl && (() => {
+                        try {
+                          const parsed = new URL(mfaOtpauthUrl);
+                          const pathname = decodeURIComponent(parsed.pathname.replace(/^\/\/?totp\//, ''));
+                          const issuer = parsed.searchParams.get('issuer') || `Estevia DevOps${getEnvSuffix()}`;
+                          const account = pathname.includes(':') ? pathname.split(':').slice(1).join(':') : pathname;
+                          return (
+                            <div style={{ width: '100%' }}>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'left' }}>
+                                📱 This will appear in your app as:
+                              </span>
+                              <AuthenticatorPreviewCard issuer={issuer} account={account} />
+                            </div>
+                          );
+                        } catch { return null; }
+                      })()}
 
                       <div style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--glass-border)', borderRadius: '8px', padding: '10px 14px' }}>
                         <p style={{ margin: '0 0 5px', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Can't scan? Enter this key manually:</p>
@@ -5522,7 +5600,18 @@ function App() {
               {authStep === 'mfa-verify' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <h4 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>MFA Verification</h4>
-                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '0 0 12px 0' }}>Please enter the 6-digit verification code from your authenticator app:</p>
+
+                  {/* App Account Preview Card */}
+                  {(mfaRegIssuer || mfaRegName) && (
+                    <div>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'left' }}>
+                        Look for this in your app:
+                      </span>
+                      <AuthenticatorPreviewCard issuer={mfaRegIssuer} account={mfaRegName} />
+                    </div>
+                  )}
+
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '0 0 4px 0' }}>Please enter the 6-digit verification code from your authenticator app:</p>
 
                   <input
                     type="text"
