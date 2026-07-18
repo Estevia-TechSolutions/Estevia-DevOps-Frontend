@@ -1096,7 +1096,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                           <div style={{
                             fontWeight: 700, color: 'var(--text-primary, #0f172a)',
                             fontSize: '0.85rem', letterSpacing: '-0.01em', lineHeight: 1.25,
-                            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                            wordBreak: 'break-word',
                           }}>{displayIssuer}</div>
                           <div style={{
                             color: 'var(--text-secondary, #64748b)', fontSize: '0.73rem',
