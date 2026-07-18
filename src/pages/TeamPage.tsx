@@ -1051,13 +1051,13 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                       <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                         📱 This will appear in your app as:
                       </span>
-                      <div style={{ background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(20,184,166,0.25)', borderRadius: '10px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ fontSize: '1.2rem' }}>📱</div>
+                      <div style={{ background: 'var(--bg-slate, rgba(148, 163, 184, 0.08))', border: '1.5px solid var(--border-slate, rgba(148, 163, 184, 0.2))', borderRadius: '10px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ fontSize: '1.2rem', flexShrink: 0 }}>📱</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 800, color: '#f1f5f9', fontSize: '0.84rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{issuer}</div>
-                          <div style={{ color: '#94a3b8', fontSize: '0.72rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{account}</div>
+                          <div style={{ fontWeight: 800, color: 'var(--text-primary, #0f172a)', fontSize: '0.84rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{issuer}</div>
+                          <div style={{ color: 'var(--text-secondary, #64748b)', fontSize: '0.72rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{account}</div>
                         </div>
-                        <div style={{ color: '#10b981', fontWeight: 800, fontSize: '1rem', fontFamily: 'monospace' }}>••• •••</div>
+                        <div style={{ color: '#10b981', fontWeight: 800, fontSize: '1rem', fontFamily: 'monospace', flexShrink: 0 }}>••• •••</div>
                       </div>
                     </div>
                   );
