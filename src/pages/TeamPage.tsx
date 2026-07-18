@@ -1022,13 +1022,18 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                 1. Scan the QR code below using your authenticator app (Google Authenticator, Microsoft Authenticator, Duo, etc.):
               </p>
               
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '10px', background: '#ffffff', borderRadius: '12px', width: '200px', height: '200px', margin: '0 auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '10px', background: '#ffffff', borderRadius: '12px', width: '200px', height: '200px', margin: '0 auto', position: 'relative' }}>
                 {mfaOtpauthUrl ? (
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(mfaOtpauthUrl)}`}
-                    alt="MFA QR Code"
-                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                  />
+                  <>
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(mfaOtpauthUrl)}`}
+                      alt="MFA QR Code"
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: '#fff', padding: '4px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--border-slate)' }}>
+                      <img src="/evaops-logo.png" alt="DevOps Logo" style={{ width: '32px', height: '32px', borderRadius: '4px', display: 'block' }} />
+                    </div>
+                  </>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#333' }}>Generating QR...</div>
                 )}
