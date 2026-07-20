@@ -39,7 +39,8 @@ import {
   Download,
   Crown,
   Lock,
-  Cloud
+  Cloud,
+  Mail
 } from 'lucide-react';
 import './App.css';
 
@@ -48,6 +49,7 @@ import { ConfirmationModal } from './components/ConfirmationModal';
 import { SiteHeader, ControlBanner } from './components/DevOpsHeader';
 import { BuildHistoryDrawer } from './components/BuildHistoryDrawer';
 import { EsteviaLoginBadge } from './components/shared/EsteviaLoginBadge';
+import { EmailTemplatesPage } from './pages/EmailTemplatesPage';
 
 // Dynamic environment branding suffix
 const getEnvSuffix = (): string => {
@@ -629,7 +631,7 @@ function App() {
 
   const fetch = authFetch;
 
-  const [activeTab, setActiveTab] = useState<'scan' | 'provision' | 'credentials' | 'cost' | 'optimization' | 'databases' | 'guide' | 'users' | 'events' | 'settings'>('scan');
+  const [activeTab, setActiveTab] = useState<'scan' | 'provision' | 'credentials' | 'cost' | 'optimization' | 'databases' | 'guide' | 'users' | 'events' | 'emails' | 'settings'>('scan');
   const [organizationId, setOrganizationId] = useState<string>(() => {
     return localStorage.getItem('devops_organization_id') || new URLSearchParams(window.location.search).get('org') || 'estevia';
   });
@@ -7032,6 +7034,14 @@ function App() {
                       <div className="menu-hover-card-desc">Step-by-step documentation, onboarding checklists, and quick-start guides for all DevOps Control Centre features.</div>
                     </div>
                   </button>
+                  <button className={`premium-tab-btn ${activeTab === 'emails' ? 'active' : ''}`} onClick={() => setActiveTab('emails')} disabled={requiresCredentialSetup || isOrgDisabled}>
+                    <Mail size={16} />
+                    <span>Email Templates</span>
+                    <div className="menu-hover-card menu-hover-card-right">
+                      <div className="menu-hover-card-title"><Mail size={12} /> Email Templates</div>
+                      <div className="menu-hover-card-desc">Inspect, live-preview, and test dispatch autonomous EvaOps alerts, CI/CD telemetry, and cloud security emails.</div>
+                    </div>
+                  </button>
                 </div>
 
                 {/* Cloud Scan Progress Bar (placed below tabs grid when active) */}
@@ -7549,6 +7559,10 @@ function App() {
         {/* TAB 6: USER GUIDE */}
         {activeTab === 'guide' && (
           <GuidePage theme={theme} />
+        )}
+
+        {activeTab === 'emails' && (
+          <EmailTemplatesPage />
         )}
 
         {/* TAB 8: PERSISTENT EVENTS STREAM */}
