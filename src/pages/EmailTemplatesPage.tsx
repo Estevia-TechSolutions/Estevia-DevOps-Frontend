@@ -121,24 +121,25 @@ export const EmailTemplatesPage: React.FC = () => {
         display: 'flex',
         flexDirection: 'column',
         gap: '16px',
-        backgroundColor: '#0f172a',
-        border: '1px solid #334155',
+        backgroundColor: 'var(--bg-card, var(--bg-slate, #0f172a))',
+        border: '1px solid var(--border-color, var(--border-slate, #334155))',
         borderRadius: '12px',
-        padding: '18px 24px'
+        padding: '18px 24px',
+        transition: 'all 0.2s ease'
       }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#ffffff', margin: '0 0 4px 0', fontFamily: 'Space Grotesk' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--text-primary, var(--text-main, #ffffff))', margin: '0 0 4px 0', fontFamily: 'Space Grotesk' }}>
               EvaOps DevOps Email Catalog & Telemetry Dispatches
             </h2>
-            <span style={{ fontSize: '13px', color: '#cbd5e1' }}>
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary, var(--text-muted, #cbd5e1))' }}>
               DevOps Admin Console directory displaying Target Recipients and Trigger Conditions for all 6 EvaOps cloud operational email alerts.
             </span>
           </div>
 
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             <div style={{ position: 'relative', minWidth: '240px' }}>
-              <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted, #94a3b8)' }} />
               <input
                 type="text"
                 placeholder="Search templates, recipients, triggers..."
@@ -148,9 +149,9 @@ export const EmailTemplatesPage: React.FC = () => {
                   width: '100%',
                   padding: '7px 12px 7px 32px',
                   borderRadius: '8px',
-                  border: '1px solid #334155',
-                  backgroundColor: '#090d16',
-                  color: '#ffffff',
+                  border: '1px solid var(--border-color, var(--border-slate, #334155))',
+                  backgroundColor: 'var(--bg-input, var(--bg-primary, #090d16))',
+                  color: 'var(--text-primary, var(--text-main, #ffffff))',
                   fontSize: '12px',
                   outline: 'none'
                 }}
@@ -165,9 +166,9 @@ export const EmailTemplatesPage: React.FC = () => {
                 gap: '6px',
                 padding: '7px 14px',
                 borderRadius: '8px',
-                border: '1px solid #334155',
-                backgroundColor: '#1e293b',
-                color: '#ffffff',
+                border: '1px solid var(--border-color, var(--border-slate, #334155))',
+                backgroundColor: 'var(--bg-tertiary, var(--bg-button, #1e293b))',
+                color: 'var(--text-primary, var(--text-main, #ffffff))',
                 fontSize: '12px',
                 fontWeight: '600',
                 cursor: 'pointer'
@@ -182,11 +183,11 @@ export const EmailTemplatesPage: React.FC = () => {
 
       {/* Main Split-Pane Content Area */}
       {loading ? (
-        <div style={{ padding: '60px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+        <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted, #94a3b8)', fontSize: '13px' }}>
           Loading EvaOps email templates...
         </div>
       ) : filteredTemplates.length === 0 ? (
-        <div style={{ padding: '60px', textAlign: 'center', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', color: '#94a3b8', fontSize: '13px' }}>
+        <div style={{ padding: '60px', textAlign: 'center', backgroundColor: 'var(--bg-card, #0f172a)', border: '1px solid var(--border-color, #334155)', borderRadius: '12px', color: 'var(--text-muted, #94a3b8)', fontSize: '13px' }}>
           No EvaOps email templates found matching search query.
         </div>
       ) : (
@@ -196,8 +197,8 @@ export const EmailTemplatesPage: React.FC = () => {
             display: 'flex',
             flexDirection: 'column',
             gap: '10px',
-            backgroundColor: '#0f172a',
-            border: '1px solid #334155',
+            backgroundColor: 'var(--bg-card, var(--bg-slate, #0f172a))',
+            border: '1px solid var(--border-color, var(--border-slate, #334155))',
             borderRadius: '12px',
             padding: '14px',
             maxHeight: '740px',
@@ -212,31 +213,31 @@ export const EmailTemplatesPage: React.FC = () => {
                   style={{
                     padding: '14px',
                     borderRadius: '10px',
-                    border: isSelected ? '1px solid #10b981' : '1px solid #1e293b',
-                    backgroundColor: isSelected ? 'rgba(16, 185, 129, 0.15)' : '#090d16',
+                    border: isSelected ? '1px solid #10b981' : '1px solid var(--border-color, var(--border-slate, #1e293b))',
+                    backgroundColor: isSelected ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-primary, var(--bg-secondary, #090d16))',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: isSelected ? '#34d399' : '#ffffff' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: isSelected ? '#10b981' : 'var(--text-primary, var(--text-main, #ffffff))' }}>
                       {tmpl.name}
                     </span>
-                    <span style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', padding: '2px 8px', borderRadius: '10px', backgroundColor: '#1e293b', color: '#10b981' }}>
+                    <span style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', padding: '2px 8px', borderRadius: '10px', backgroundColor: 'var(--bg-tertiary, #1e293b)', color: '#10b981' }}>
                       EvaOps
                     </span>
                   </div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted, #94a3b8)', marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     Subject: <strong>{tmpl.subject}</strong>
                   </div>
 
                   {/* Target Recipient & Trigger Badge Strip */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #1e293b' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#38bdf8' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid var(--border-color, var(--border-slate, #1e293b))' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--accent-blue, #38bdf8)' }}>
                       <Target size={12} />
                       <span><strong>Target Recipient:</strong> {tmpl.recipient || 'DevOps Admin'}</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#f59e0b' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--accent-amber, #f59e0b)' }}>
                       <Zap size={12} />
                       <span><strong>Trigger:</strong> {tmpl.trigger || 'Telemetry Event'}</span>
                     </div>
@@ -250,8 +251,8 @@ export const EmailTemplatesPage: React.FC = () => {
           <div style={{
             display: 'flex',
             flexDirection: 'column',
-            backgroundColor: '#0f172a',
-            border: '1px solid #334155',
+            backgroundColor: 'var(--bg-card, var(--bg-slate, #0f172a))',
+            border: '1px solid var(--border-color, var(--border-slate, #334155))',
             borderRadius: '12px',
             overflow: 'hidden'
           }}>
@@ -260,18 +261,18 @@ export const EmailTemplatesPage: React.FC = () => {
                 {/* Header Action Strip */}
                 <div style={{
                   padding: '16px 20px',
-                  backgroundColor: '#1e293b',
-                  borderBottom: '1px solid #334155',
+                  backgroundColor: 'var(--bg-tertiary, var(--bg-card, #1e293b))',
+                  borderBottom: '1px solid var(--border-color, var(--border-slate, #334155))',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '12px'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                      <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#ffffff', margin: '0 0 2px 0' }}>
+                      <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--text-primary, var(--text-main, #ffffff))', margin: '0 0 2px 0' }}>
                         {activeSplitTemplate.name}
                       </h3>
-                      <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary, var(--text-muted, #94a3b8))' }}>
                         Module: <strong>EvaOps DevOps Platform</strong> ({activeSplitTemplate.category})
                       </span>
                     </div>
@@ -285,9 +286,9 @@ export const EmailTemplatesPage: React.FC = () => {
                         style={{
                           padding: '6px 12px',
                           borderRadius: '6px',
-                          border: '1px solid #334155',
-                          backgroundColor: '#090d16',
-                          color: '#ffffff',
+                          border: '1px solid var(--border-color, var(--border-slate, #334155))',
+                          backgroundColor: 'var(--bg-input, var(--bg-primary, #090d16))',
+                          color: 'var(--text-primary, var(--text-main, #ffffff))',
                           fontSize: '12px',
                           width: '210px',
                           outline: 'none'
@@ -322,24 +323,24 @@ export const EmailTemplatesPage: React.FC = () => {
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr',
                     gap: '12px',
-                    backgroundColor: '#090d16',
-                    border: '1px solid #334155',
+                    backgroundColor: 'var(--bg-primary, var(--bg-secondary, #090d16))',
+                    border: '1px solid var(--border-color, var(--border-slate, #334155))',
                     borderRadius: '8px',
                     padding: '10px 14px'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                      <Target size={14} style={{ color: '#38bdf8', marginTop: '2px', flexShrink: 0 }} />
+                      <Target size={14} style={{ color: 'var(--accent-blue, #38bdf8)', marginTop: '2px', flexShrink: 0 }} />
                       <div>
-                        <span style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: '#38bdf8', display: 'block' }}>Target Recipient</span>
-                        <span style={{ fontSize: '12px', color: '#f8fafc', fontWeight: '600' }}>{activeSplitTemplate.recipient || 'DevOps Admin'}</span>
+                        <span style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--accent-blue, #38bdf8)', display: 'block' }}>Target Recipient</span>
+                        <span style={{ fontSize: '12px', color: 'var(--text-primary, var(--text-main, #f8fafc))', fontWeight: '600' }}>{activeSplitTemplate.recipient || 'DevOps Admin'}</span>
                       </div>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                      <Zap size={14} style={{ color: '#f59e0b', marginTop: '2px', flexShrink: 0 }} />
+                      <Zap size={14} style={{ color: 'var(--accent-amber, #f59e0b)', marginTop: '2px', flexShrink: 0 }} />
                       <div>
-                        <span style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: '#f59e0b', display: 'block' }}>Trigger Condition</span>
-                        <span style={{ fontSize: '12px', color: '#f8fafc', fontWeight: '600' }}>{activeSplitTemplate.trigger || 'Telemetry Event'}</span>
+                        <span style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--accent-amber, #f59e0b)', display: 'block' }}>Trigger Condition</span>
+                        <span style={{ fontSize: '12px', color: 'var(--text-primary, var(--text-main, #f8fafc))', fontWeight: '600' }}>{activeSplitTemplate.trigger || 'Telemetry Event'}</span>
                       </div>
                     </div>
                   </div>
@@ -360,9 +361,9 @@ export const EmailTemplatesPage: React.FC = () => {
                 )}
 
                 {/* Live HTML Preview IFrame */}
-                <div style={{ flex: 1, backgroundColor: '#090d16', padding: '16px' }}>
+                <div style={{ flex: 1, backgroundColor: 'var(--bg-primary, var(--bg-main, #090d16))', padding: '16px' }}>
                   {loadingSplitHtml ? (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8', fontSize: '13px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted, #94a3b8)', fontSize: '13px' }}>
                       Compiling live HTML layout...
                     </div>
                   ) : (
@@ -375,14 +376,14 @@ export const EmailTemplatesPage: React.FC = () => {
                         minHeight: '520px',
                         border: 'none',
                         borderRadius: '8px',
-                        backgroundColor: '#090d16'
+                        backgroundColor: 'var(--bg-primary, var(--bg-main, #090d16))'
                       }}
                     />
                   )}
                 </div>
               </>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8', fontSize: '13px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted, #94a3b8)', fontSize: '13px' }}>
                 Select a template from the left list to view live compiled HTML layout.
               </div>
             )}
