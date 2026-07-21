@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cpu, Building2, RefreshCw, Sun, Moon, LogOut, Bell } from 'lucide-react';
+import { Cpu, Building2, RefreshCw, Sun, Moon, LogOut, Bell, Mail } from 'lucide-react';
 
 interface SiteHeaderProps {
   token: string | null;
@@ -14,6 +14,7 @@ interface SiteHeaderProps {
   handleLogout: () => void;
   unreadNotificationsCount: number;
   onToggleNotifications: () => void;
+  onOpenEmailTemplates?: () => void;
 }
 
 export const SiteHeader: React.FC<SiteHeaderProps> = ({
@@ -28,7 +29,8 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
   user,
   handleLogout,
   unreadNotificationsCount,
-  onToggleNotifications
+  onToggleNotifications,
+  onOpenEmailTemplates
 }) => {
   return (
     <header className="site-header">
@@ -153,6 +155,41 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
                   {unreadNotificationsCount}
                 </span>
               )}
+            </button>
+          )}
+
+          {/* Email Templates action button */}
+          {token && onOpenEmailTemplates && (
+            <button
+              className="theme-toggle"
+              onClick={onOpenEmailTemplates}
+              title="Email Templates Catalog"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '0 12px',
+                height: '32px',
+                fontSize: '0.78rem',
+                fontWeight: 650,
+                color: 'var(--text-primary)',
+                background: 'rgba(139, 92, 246, 0.1)',
+                border: '1px solid rgba(139, 92, 246, 0.25)',
+                borderRadius: '20px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(139, 92, 246, 0.2)';
+                e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.45)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(139, 92, 246, 0.1)';
+                e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.25)';
+              }}
+            >
+              <Mail size={14} style={{ color: '#a78bfa' }} />
+              <span>Email Templates</span>
             </button>
           )}
 

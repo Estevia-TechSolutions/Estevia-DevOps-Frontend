@@ -31,7 +31,7 @@ export const EmailTemplatesPage: React.FC = () => {
   const [testStatusMessage, setTestStatusMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const getDevOpsEndpoint = (path: string) => {
-    let apiBase = (import.meta.env.VITE_DEVOPS_API_URL as string) || 'http://localhost:5005';
+    let apiBase = (import.meta.env.VITE_API_URL as string) || (import.meta.env.VITE_DEVOPS_API_URL as string) || 'http://localhost:5001';
     apiBase = apiBase.replace(/\/+$/, '');
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
     return `${apiBase}/api/devops/email-templates${cleanPath}`;

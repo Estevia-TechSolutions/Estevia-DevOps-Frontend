@@ -5774,6 +5774,7 @@ function App() {
         handleLogout={handleLogout}
         unreadNotificationsCount={unreadNotificationsCount}
         onToggleNotifications={handleToggleNotifications}
+        onOpenEmailTemplates={() => setActiveTab('emails')}
       />
       
       <NotificationDrawer
@@ -7032,14 +7033,6 @@ function App() {
                     <div className="menu-hover-card menu-hover-card-right">
                       <div className="menu-hover-card-title"><Info size={12} /> User Guide</div>
                       <div className="menu-hover-card-desc">Step-by-step documentation, onboarding checklists, and quick-start guides for all DevOps Control Centre features.</div>
-                    </div>
-                  </button>
-                  <button className={`premium-tab-btn ${activeTab === 'emails' ? 'active' : ''}`} onClick={() => setActiveTab('emails')} disabled={requiresCredentialSetup || isOrgDisabled}>
-                    <Mail size={16} />
-                    <span>Email Templates</span>
-                    <div className="menu-hover-card menu-hover-card-right">
-                      <div className="menu-hover-card-title"><Mail size={12} /> Email Templates</div>
-                      <div className="menu-hover-card-desc">Inspect, live-preview, and test dispatch autonomous EvaOps alerts, CI/CD telemetry, and cloud security emails.</div>
                     </div>
                   </button>
                 </div>
