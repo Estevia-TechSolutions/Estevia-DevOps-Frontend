@@ -74,14 +74,14 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
                 fontSize: '0.82rem',
                 height: '36px',
                 borderRadius: '20px',
-                background: scanning 
-                  ? 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))' 
+                background: scanning
+                  ? 'linear-gradient(135deg, var(--accent-purple), var(--accent-blue))'
                   : 'rgba(34, 197, 94, 0.08)',
-                border: scanning 
-                  ? 'none' 
+                border: scanning
+                  ? 'none'
                   : '1px solid rgba(34, 197, 94, 0.25)',
-                boxShadow: scanning 
-                  ? '0 0 12px var(--accent-purple-glow)' 
+                boxShadow: scanning
+                  ? '0 0 12px var(--accent-purple-glow)'
                   : 'none',
                 color: scanning ? '#fff' : 'var(--text-primary)',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -104,9 +104,9 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
                 }
               }}
             >
-              <RefreshCw 
-                size={14} 
-                className={scanning ? 'spin-anim' : ''} 
+              <RefreshCw
+                size={14}
+                className={scanning ? 'spin-anim' : ''}
                 style={{ color: scanning ? '#fff' : 'var(--success)' }}
               />
               {scanning ? (
@@ -125,15 +125,15 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
 
           {/* Notification bell toggle */}
           {token && (
-            <button 
-              className="theme-toggle" 
-              onClick={onToggleNotifications} 
+            <button
+              className="theme-toggle"
+              onClick={onToggleNotifications}
               title="Notifications Center"
               style={{ position: 'relative' }}
             >
               <Bell size={16} />
               {unreadNotificationsCount > 0 && (
-                <span 
+                <span
                   style={{
                     position: 'absolute',
                     top: '-2px',
@@ -155,41 +155,6 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
                   {unreadNotificationsCount}
                 </span>
               )}
-            </button>
-          )}
-
-          {/* Email Templates action button */}
-          {token && onOpenEmailTemplates && (
-            <button
-              className="theme-toggle"
-              onClick={onOpenEmailTemplates}
-              title="Email Templates Catalog"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '0 12px',
-                height: '32px',
-                fontSize: '0.78rem',
-                fontWeight: 650,
-                color: 'var(--text-primary)',
-                background: 'rgba(139, 92, 246, 0.1)',
-                border: '1px solid rgba(139, 92, 246, 0.25)',
-                borderRadius: '20px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(139, 92, 246, 0.2)';
-                e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.45)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(139, 92, 246, 0.1)';
-                e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.25)';
-              }}
-            >
-              <Mail size={14} style={{ color: '#a78bfa' }} />
-              <span>Email Templates</span>
             </button>
           )}
 
@@ -263,16 +228,16 @@ export const ControlBanner: React.FC<ControlBannerProps> = ({
         pointerEvents: 'none',
         transition: 'background 0.3s ease'
       }} />
-      
+
       <div style={{ position: 'relative', zIndex: 1 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <h1 style={{ 
+          <h1 style={{
             margin: 0,
-            fontSize: '2.1rem', 
-            fontWeight: 800, 
+            fontSize: '2.1rem',
+            fontWeight: 800,
             letterSpacing: '-0.02em',
-            background: 'linear-gradient(to right, var(--text-primary) 30%, rgba(167, 139, 250, 0.95))', 
-            WebkitBackgroundClip: 'text', 
+            background: 'linear-gradient(to right, var(--text-primary) 30%, rgba(167, 139, 250, 0.95))',
+            WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             display: 'inline-block'
           }}>
@@ -331,9 +296,9 @@ export const ControlBanner: React.FC<ControlBannerProps> = ({
         </p>
 
         {(scanning || scanProgress > 0) && hasApps && (
-          <div style={{ 
-            marginTop: '20px', 
-            display: 'flex', 
+          <div style={{
+            marginTop: '20px',
+            display: 'flex',
             flexDirection: 'column',
             gap: '10px',
             animation: 'pulse-anim 1.5s infinite alternate'
