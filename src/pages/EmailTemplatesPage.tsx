@@ -192,13 +192,13 @@ export const EmailTemplatesPage: React.FC = () => {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: '20px', minHeight: '600px' }}>
-          {/* Master Column */}
+          {/* Master Column: Scrollable Template List */}
           <div style={{
             display: 'flex',
             flexDirection: 'column',
             gap: '10px',
-            backgroundColor: 'var(--bg-card, var(--bg-slate, #0f172a))',
-            border: '1px solid var(--border-color, var(--border-slate, #334155))',
+            backgroundColor: 'var(--bg-card, var(--bg-secondary, #ffffff))',
+            border: '1px solid var(--border-color, rgba(148, 163, 184, 0.25))',
             borderRadius: '12px',
             padding: '14px',
             maxHeight: '740px',
@@ -213,31 +213,31 @@ export const EmailTemplatesPage: React.FC = () => {
                   style={{
                     padding: '14px',
                     borderRadius: '10px',
-                    border: isSelected ? '1px solid #10b981' : '1px solid var(--border-color, var(--border-slate, #1e293b))',
-                    backgroundColor: isSelected ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-primary, var(--bg-secondary, #090d16))',
+                    border: isSelected ? '1px solid #10b981' : '1px solid var(--border-color, rgba(148, 163, 184, 0.2))',
+                    backgroundColor: isSelected ? 'rgba(16, 185, 129, 0.12)' : 'var(--bg-card, var(--bg-secondary, #ffffff))',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: isSelected ? '#10b981' : 'var(--text-primary, var(--text-main, #ffffff))' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: isSelected ? '#10b981' : 'var(--text-primary, #0f172a)' }}>
                       {tmpl.name}
                     </span>
-                    <span style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', padding: '2px 8px', borderRadius: '10px', backgroundColor: 'var(--bg-tertiary, #1e293b)', color: '#10b981' }}>
+                    <span style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', padding: '2px 8px', borderRadius: '10px', backgroundColor: isSelected ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
                       EvaOps
                     </span>
                   </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted, #94a3b8)', marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    Subject: <strong>{tmpl.subject}</strong>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary, #475569)', marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    Subject: <strong style={{ color: 'var(--text-primary, #0f172a)' }}>{tmpl.subject}</strong>
                   </div>
 
                   {/* Target Recipient & Trigger Badge Strip */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid var(--border-color, var(--border-slate, #1e293b))' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--accent-blue, #38bdf8)' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid var(--border-color, rgba(148, 163, 184, 0.2))' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--accent-blue, #0284c7)' }}>
                       <Target size={12} />
                       <span><strong>Target Recipient:</strong> {tmpl.recipient || 'DevOps Admin'}</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--accent-amber, #f59e0b)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--accent-amber, #d97706)' }}>
                       <Zap size={12} />
                       <span><strong>Trigger:</strong> {tmpl.trigger || 'Telemetry Event'}</span>
                     </div>
