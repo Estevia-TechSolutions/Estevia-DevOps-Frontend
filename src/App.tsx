@@ -173,6 +173,8 @@ import { GuidePage } from './pages/GuidePage';
 import { TeamPage } from './pages/TeamPage';
 import type { UserRecord } from './pages/TeamPage';
 import { LogDrawer } from './components/observability/LogDrawer';
+import { PrometheusObservabilityView } from './components/observability/PrometheusObservabilityView';
+import { IncidentsAlertsView } from './components/observability/IncidentsAlertsView';
 import { AuditLogsTable } from './components/team/AuditLogsTable';
 import { isFixable, applyAutoFix } from './utils/autoFixEngine';
 import { runWithConcurrency } from './utils/concurrency';
@@ -632,6 +634,8 @@ function App() {
   const fetch = authFetch;
 
   const [activeTab, setActiveTab] = useState<'scan' | 'provision' | 'credentials' | 'cost' | 'optimization' | 'databases' | 'guide' | 'users' | 'events' | 'emails' | 'settings'>('scan');
+  const [scanSubTab, setScanSubTab] = useState<'discovery' | 'compliance' | 'observability' | 'incidents'>('discovery');
+  const [userMenuPermissions, setUserMenuPermissions] = useState<Record<string, boolean>>({});
   const [organizationId, setOrganizationId] = useState<string>(() => {
     return localStorage.getItem('devops_organization_id') || new URLSearchParams(window.location.search).get('org') || 'estevia';
   });

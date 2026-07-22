@@ -1197,8 +1197,55 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                  {/* Section 1: Navigation Menu Item Grants */}
+                  <div style={{
+                    padding: '18px 22px',
+                    borderRadius: '14px',
+                    background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.02)',
+                    border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px'
+                  }}>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+                      📑 Top-Level Navigation Menu Item Access Grants:
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                      {[
+                        { key: 'scan', label: '🌐 Cloud Scanning' },
+                        { key: 'provision', label: '⚙️ Provisioning' },
+                        { key: 'credentials', label: '🔑 Cloud Vault' },
+                        { key: 'cost', label: '💰 Cost & Budget' },
+                        { key: 'optimization', label: '🧠 AI Advisor' },
+                        { key: 'databases', label: '🗄️ Database Hub' },
+                        { key: 'guide', label: '📖 User Guide' },
+                        { key: 'users', label: '👥 Team Management' },
+                        { key: 'events', label: '📜 System Events' },
+                        { key: 'emails', label: '✉️ Email Templates' },
+                        { key: 'settings', label: '⚙️ Org Licensing' }
+                      ].map(menu => (
+                        <label key={menu.key} style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          color: isLight ? '#0f172a' : 'var(--text-primary)',
+                          cursor: 'pointer'
+                        }}>
+                          <input
+                            type="checkbox"
+                            defaultChecked={true}
+                            style={{ accentColor: '#8b5cf6', cursor: 'pointer' }}
+                          />
+                          <span>{menu.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
                   <div style={{ fontSize: '0.84rem', fontWeight: 600, color: isLight ? '#475569' : 'var(--text-secondary)', marginBottom: '2px' }}>
-                    Select Applications, Environments & Operational Action Grants:
+                    Select Applications, Environments & Operational Action Grants (SWA, ACA, VM):
                   </div>
 
                   {resourceCatalog.map(app => {
