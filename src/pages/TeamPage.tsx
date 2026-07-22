@@ -82,9 +82,10 @@ export const TeamPage: React.FC<TeamPageProps> = ({
 
   // Granular Resource & Environment Permissions States
   const [selectedPermUser, setSelectedPermUser] = useState<UserRecord | null>(null);
-  const [resourceCatalog, setResourceCatalog] = useState<Array<{ key: string; label: string; icon: string }>>([]);
+  const [resourceCatalog, setResourceCatalog] = useState<Array<{ key: string; label: string; icon: string; resourceTypes?: string[] }>>([]);
   const [userPermMap, setUserPermMap] = useState<Record<string, Record<string, string[]>>>({});
   const [userMenuPermMap, setUserMenuPermMap] = useState<Record<string, boolean>>({});
+  const [modalCategoryTab, setModalCategoryTab] = useState<'all' | 'swa' | 'aca' | 'vm'>('all');
   const [loadingPerms, setLoadingPerms] = useState<boolean>(false);
   const [savingPerms, setSavingPerms] = useState<boolean>(false);
   const [openActionDropdownUserId, setOpenActionDropdownUserId] = useState<string | null>(null);
@@ -1270,11 +1271,60 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                     </div>
                   </div>
 
-                  <div style={{ fontSize: '0.84rem', fontWeight: 600, color: isLight ? '#475569' : 'var(--text-secondary)', marginBottom: '2px' }}>
-                    Select Applications, Environments & Operational Action Grants (SWA, ACA, VM):
+                  {/* Section 2: Resource Category Filter Tabs (SWA, ACA, VM) */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ fontSize: '0.84rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+                        Select Applications, Environments & Operational Action Grants:
+                      </div>
+
+                      {/* SWA / ACA / VM Category Switcher Tabs */}
+                      <div style={{
+                        display: 'flex',
+                        gap: '6px',
+                        padding: '4px',
+                        borderRadius: '10px',
+                        background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.03)',
+                        border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)'
+                      }}>
+                        {[
+                          { key: 'all', label: '⚡ All Apps' },
+                          { key: 'swa', label: '🌐 SWA' },
+                          { key: 'aca', label: '📦 ACA' },
+                          { key: 'vm', label: '🖥️ VM' }
+                        ].map(tab => (
+                          <button
+                            key={tab.key}
+                            type="button"
+                            onClick={() => setModalCategoryTab(tab.key as any)}
+                            style={{
+                              padding: '5px 12px',
+                              borderRadius: '7px',
+                              fontSize: '0.76rem',
+                              fontWeight: 700,
+                              border: 'none',
+                              cursor: 'pointer',
+                              background: modalCategoryTab === tab.key ? '#8b5cf6' : 'transparent',
+                              color: modalCategoryTab === tab.key ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)')
+                            }}
+                          >
+                            {tab.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
-                  {resourceCatalog.map(app => {
+                  {resourceCatalog
+                    .filter(app => {
+                      if (modalCategoryTab === 'all') return true;
+                      const types = app.resourceTypes || ['swa', 'aca', 'vm'];
+                      if (modalCategoryTab === 'swa') return types.includes('swa') || ['connecthub', 'docai', 'talenthq', 'evafusion'].includes(app.key);
+                      if (modalCategoryTab === 'aca') return types.includes('aca') || ['connecthub', 'docai', 'protrack', 'talenthq', 'evafusion', 'evaops'].includes(app.key);
+                      if (modalCategoryTab === 'vm') return types.includes('vm') || ['connecthub', 'protrack', 'evafusion', 'evaops'].includes(app.key);
+                      return true;
+                    })
+                    .map(app => {
                     const appGrants = userPermMap[app.key] || { dev: [], qa: [], prod: [] };
                     return (
                       <div key={app.key} style={{
