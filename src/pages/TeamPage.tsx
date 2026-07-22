@@ -84,6 +84,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
   const [selectedPermUser, setSelectedPermUser] = useState<UserRecord | null>(null);
   const [resourceCatalog, setResourceCatalog] = useState<Array<{ key: string; label: string; icon: string }>>([]);
   const [userPermMap, setUserPermMap] = useState<Record<string, Record<string, string[]>>>({});
+  const [userMenuPermMap, setUserMenuPermMap] = useState<Record<string, boolean>>({});
   const [loadingPerms, setLoadingPerms] = useState<boolean>(false);
   const [savingPerms, setSavingPerms] = useState<boolean>(false);
   const [openActionDropdownUserId, setOpenActionDropdownUserId] = useState<string | null>(null);
@@ -106,6 +107,14 @@ export const TeamPage: React.FC<TeamPageProps> = ({
       if (permRes.ok) {
         const permData = await permRes.json();
         setUserPermMap(permData.permissions || {});
+      }
+
+      const menuRes = await fetch(`/api/observability/menu-permissions/${u.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (menuRes.ok) {
+        const menuData = await menuRes.json();
+        setUserMenuPermMap(menuData.menuPermissions || {});
       }
     } catch (e) {
       console.error('Failed to load permissions:', e);
@@ -175,6 +184,16 @@ export const TeamPage: React.FC<TeamPageProps> = ({
         },
         body: JSON.stringify({ permissions: userPermMap })
       });
+
+      await fetch(`/api/observability/menu-permissions/${selectedPermUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ menuPermissions: userMenuPermMap })
+      });
+
       if (res.ok) {
         setUpdateMsg({ type: 'success', text: `✓ Granular access permissions updated for ${selectedPermUser.name}.` });
         setTimeout(() => setUpdateMsg(null), 3500);
@@ -1235,7 +1254,14 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                         }}>
                           <input
                             type="checkbox"
-                            defaultChecked={true}
+                            checked={Boolean(userMenuPermMap[menu.key])}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setUserMenuPermMap(prev => ({
+                                ...prev,
+                                [menu.key]: checked
+                              }));
+                            }}
                             style={{ accentColor: '#8b5cf6', cursor: 'pointer' }}
                           />
                           <span>{menu.label}</span>
