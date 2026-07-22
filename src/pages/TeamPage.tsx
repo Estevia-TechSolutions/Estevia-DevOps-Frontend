@@ -930,9 +930,15 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                             fontWeight: 600,
                             cursor: 'pointer',
                             borderRadius: '8px',
-                            background: openActionDropdownUserId === u.id ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.04)',
-                            borderColor: openActionDropdownUserId === u.id ? '#8b5cf6' : 'var(--glass-border)',
-                            color: openActionDropdownUserId === u.id ? '#a78bfa' : 'var(--text-primary)'
+                            background: openActionDropdownUserId === u.id
+                              ? (isLight ? 'rgba(139, 92, 246, 0.12)' : 'rgba(139, 92, 246, 0.15)')
+                              : (isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.04)'),
+                            borderColor: openActionDropdownUserId === u.id
+                              ? '#8b5cf6'
+                              : (isLight ? '#cbd5e1' : 'var(--glass-border)'),
+                            color: openActionDropdownUserId === u.id
+                              ? (isLight ? '#6d28d9' : '#a78bfa')
+                              : (isLight ? '#0f172a' : 'var(--text-primary)')
                           }}
                         >
                           <span>⚡ Actions</span>
@@ -945,10 +951,10 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                             right: 0,
                             top: '38px',
                             width: '220px',
-                            background: '#0f172a',
-                            border: '1px solid rgba(139, 92, 246, 0.3)',
+                            background: isLight ? '#ffffff' : '#0f172a',
+                            border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(139, 92, 246, 0.3)',
                             borderRadius: '12px',
-                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+                            boxShadow: isLight ? '0 10px 25px -5px rgba(0, 0, 0, 0.12)' : '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
                             padding: '6px',
                             zIndex: 100,
                             display: 'flex',
@@ -972,15 +978,15 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                                 background: 'transparent',
                                 border: 'none',
                                 borderRadius: '6px',
-                                color: 'var(--text-primary)',
+                                color: isLight ? '#0f172a' : 'var(--text-primary)',
                                 fontSize: '0.78rem',
                                 cursor: 'pointer',
                                 textAlign: 'left'
                               }}
-                              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(139, 92, 246, 0.12)')}
+                              onMouseEnter={(e) => (e.currentTarget.style.background = isLight ? 'rgba(139, 92, 246, 0.08)' : 'rgba(139, 92, 246, 0.12)')}
                               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                             >
-                              <Terminal size={14} style={{ color: '#a78bfa' }} />
+                              <Terminal size={14} style={{ color: isLight ? '#7c3aed' : '#a78bfa' }} />
                               <span>View Audit Logs</span>
                             </button>
 
@@ -1001,15 +1007,15 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                                   background: 'transparent',
                                   border: 'none',
                                   borderRadius: '6px',
-                                  color: 'var(--text-primary)',
+                                  color: isLight ? '#0f172a' : 'var(--text-primary)',
                                   fontSize: '0.78rem',
                                   cursor: 'pointer',
                                   textAlign: 'left'
                                 }}
-                                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(20, 184, 166, 0.12)')}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = isLight ? 'rgba(20, 184, 166, 0.08)' : 'rgba(20, 184, 166, 0.12)')}
                                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                               >
-                                <KeyRound size={14} style={{ color: '#2dd4bf' }} />
+                                <KeyRound size={14} style={{ color: isLight ? '#0d9488' : '#2dd4bf' }} />
                                 <span>Manage Permissions 🔑</span>
                               </button>
                             )}
@@ -1043,15 +1049,15 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                                   background: 'transparent',
                                   border: 'none',
                                   borderRadius: '6px',
-                                  color: '#ef4444',
+                                  color: isLight ? '#dc2626' : '#ef4444',
                                   fontSize: '0.78rem',
                                   cursor: 'pointer',
                                   textAlign: 'left'
                                 }}
-                                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)')}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = isLight ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.12)')}
                                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                               >
-                                {resettingMfaUserId === u.id ? <RefreshCw size={14} className="spin-anim" /> : <ShieldX size={14} style={{ color: '#ef4444' }} />}
+                                {resettingMfaUserId === u.id ? <RefreshCw size={14} className="spin-anim" /> : <ShieldX size={14} style={{ color: isLight ? '#dc2626' : '#ef4444' }} />}
                                 <span>Reset MFA</span>
                               </button>
                             ) : null}
