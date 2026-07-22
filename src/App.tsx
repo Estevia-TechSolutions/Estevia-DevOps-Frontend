@@ -7294,43 +7294,119 @@ function App() {
         
         {/* TAB 1: CLOUD RESOURCE SCANNING */}
         {activeTab === 'scan' && (
-          <DashboardPage
-            apps={apps as any}
-            scanning={scanning}
-            scanProgress={scanProgress}
-            scanError={scanError}
-            appGroups={appGroups as any}
-            collapsedScanGroups={collapsedScanGroups}
-            setCollapsedScanGroups={setCollapsedScanGroups}
-            toggleGroupScan={toggleGroupScan}
-            deletingAppName={deletingAppName}
-            handleDeleteApp={handleDeleteApp}
-            openDnsModal={openDnsModal}
-            openPipelineModal={openPipelineModal}
-            openDockerfileEditor={openDockerfileEditor}
-            ymlHealthMap={ymlHealthMap}
-            ymlHealthLoading={ymlHealthLoading}
-            handleScan={handleScan}
-            refreshHealthForRepo={refreshHealthForRepo}
-            theme={theme}
-            setSelectedStageForJobs={setSelectedStageForJobs}
-            azureDevopsOrgUrl={azureDevopsOrgUrl}
-            azureDevopsProject={azureDevopsProject}
-            onDeployBranch={handleDeployBranchFromDashboard}
-            currentUser={user}
-            onShowLogs={setActiveLogsAppName}
-            onShowBuildHistory={(app) => setBuildHistoryDrawerApp(app)}
-            livePipelineRuns={livePipelineRuns}
-            setLivePipelineRuns={setLivePipelineRuns}
-            onCloneApp={setCloningApp}
-            onResourceControl={handleResourceControl}
-            controllingResource={controllingResource}
-            onBuildTransition={(title, message, type) => {
-              showToast(title, message, type);
-              addEvent(title, message, 'build', type === 'success' ? 'success' : type === 'error' ? 'failed' : 'info');
-              addNotification(title, message, type === 'success' ? 'success' : type === 'error' ? 'error' : 'info');
-            }}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Cloud Scanning Sub-Tab Navigation Bar */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '6px',
+              borderRadius: '12px',
+              background: theme === 'light' ? '#f1f5f9' : 'rgba(255, 255, 255, 0.03)',
+              border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
+              width: 'fit-content'
+            }}>
+              <button
+                type="button"
+                onClick={() => setScanSubTab('discovery')}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: scanSubTab === 'discovery' ? '#8b5cf6' : 'transparent',
+                  color: scanSubTab === 'discovery' ? '#ffffff' : (theme === 'light' ? '#475569' : 'var(--text-secondary)')
+                }}
+              >
+                🌐 Resource Discovery
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setScanSubTab('observability')}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: scanSubTab === 'observability' ? '#8b5cf6' : 'transparent',
+                  color: scanSubTab === 'observability' ? '#ffffff' : (theme === 'light' ? '#475569' : 'var(--text-secondary)')
+                }}
+              >
+                📊 Prometheus Observability
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setScanSubTab('incidents')}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: scanSubTab === 'incidents' ? '#8b5cf6' : 'transparent',
+                  color: scanSubTab === 'incidents' ? '#ffffff' : (theme === 'light' ? '#475569' : 'var(--text-secondary)')
+                }}
+              >
+                🚨 Incidents & Alerts
+              </button>
+            </div>
+
+            {/* Sub-Tab Content Switcher */}
+            {scanSubTab === 'discovery' && (
+              <DashboardPage
+                apps={apps as any}
+                scanning={scanning}
+                scanProgress={scanProgress}
+                scanError={scanError}
+                appGroups={appGroups as any}
+                collapsedScanGroups={collapsedScanGroups}
+                setCollapsedScanGroups={setCollapsedScanGroups}
+                toggleGroupScan={toggleGroupScan}
+                deletingAppName={deletingAppName}
+                handleDeleteApp={handleDeleteApp}
+                openDnsModal={openDnsModal}
+                openPipelineModal={openPipelineModal}
+                openDockerfileEditor={openDockerfileEditor}
+                ymlHealthMap={ymlHealthMap}
+                ymlHealthLoading={ymlHealthLoading}
+                handleScan={handleScan}
+                refreshHealthForRepo={refreshHealthForRepo}
+                theme={theme}
+                setSelectedStageForJobs={setSelectedStageForJobs}
+                azureDevopsOrgUrl={azureDevopsOrgUrl}
+                azureDevopsProject={azureDevopsProject}
+                onDeployBranch={handleDeployBranchFromDashboard}
+                currentUser={user}
+                onShowLogs={setActiveLogsAppName}
+                onShowBuildHistory={(app) => setBuildHistoryDrawerApp(app)}
+                livePipelineRuns={livePipelineRuns}
+                setLivePipelineRuns={setLivePipelineRuns}
+                onCloneApp={setCloningApp}
+                onResourceControl={handleResourceControl}
+                controllingResource={controllingResource}
+                onBuildTransition={(title, message, type) => {
+                  showToast(title, message, type);
+                  addEvent(title, message, 'build', type === 'success' ? 'success' : type === 'error' ? 'failed' : 'info');
+                  addNotification(title, message, type === 'success' ? 'success' : type === 'error' ? 'error' : 'info');
+                }}
+              />
+            )}
+
+            {scanSubTab === 'observability' && (
+              <PrometheusObservabilityView theme={theme} />
+            )}
+
+            {scanSubTab === 'incidents' && (
+              <IncidentsAlertsView theme={theme} />
+            )}
+          </div>
         )}
 
         {/* TAB 2: PROVISION WEB APP WIZARD */}
