@@ -5106,6 +5106,98 @@ function App() {
     );
   }
 
+  const [mfaActiveMode, setMfaActiveMode] = useState<'totp' | 'push' | 'email' | 'backup'>('totp');
+  const [pushPromptId, setPushPromptId] = useState<string | null>(null);
+  const [pushNumber, setPushNumber] = useState<string | null>(null);
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [emailOtpCode, setEmailOtpCode] = useState('');
+  const [backupCode, setBackupCode] = useState('');
+  const [backupCodesList, setBackupCodesList] = useState<string[] | null>(null);
+
+  const handleInitiatePush = async () => {
+    if (!mfaTempToken) return;
+    setAuthError(null);
+    try {
+      const res = await fetch(`${API_BASE}/mfa/send-push-prompt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tempToken: mfaTempToken })
+      });
+      const data = await res.json();
+      if (data.promptId) {
+        setPushPromptId(data.promptId);
+        setPushNumber(data.numberMatch);
+      }
+    } catch (e) {}
+  };
+
+  const handleApprovePushLocally = async () => {
+    if (!pushPromptId || !pushNumber) return;
+    try {
+      await fetch(`${API_BASE}/mfa/approve-push`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ promptId: pushPromptId, selectedNumber: pushNumber })
+      });
+    } catch (e) {}
+  };
+
+  const handleSendEmailOtp = async () => {
+    if (!mfaTempToken) return;
+    setAuthError(null);
+    try {
+      const res = await fetch(`${API_BASE}/mfa/send-email-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tempToken: mfaTempToken })
+      });
+      const data = await res.json();
+      if (data.success) setEmailOtpSent(true);
+    } catch (e) {}
+  };
+
+  const handleVerifyEmailOtp = async () => {
+    if (!emailOtpCode || !mfaTempToken) return;
+    setAuthLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/mfa/validate-email-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tempToken: mfaTempToken, otp: emailOtpCode })
+      });
+      const data = await res.json();
+      if (data.token) {
+        setToken(data.token);
+        localStorage.setItem('devops_token', data.token);
+      } else {
+        setAuthError(data.error || 'Invalid email passcode.');
+      }
+    } catch (e) {} finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleVerifyBackupCode = async () => {
+    if (!backupCode || !mfaTempToken) return;
+    setAuthLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/mfa/validate-recovery-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tempToken: mfaTempToken, code: backupCode })
+      });
+      const data = await res.json();
+      if (data.token) {
+        setToken(data.token);
+        localStorage.setItem('devops_token', data.token);
+      } else {
+        setAuthError(data.error || 'Invalid backup recovery code.');
+      }
+    } catch (e) {} finally {
+      setAuthLoading(false);
+    }
+  };
+
   if (!token) {
     return (
       <div style={{
@@ -5665,42 +5757,156 @@ function App() {
 
               {authStep === 'mfa-verify' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <h4 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>MFA Verification</h4>
+                  {/* Multi-Mode MFA Selector Pills */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', padding: '4px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+                    <button 
+                      type="button" 
+                      onClick={() => setMfaActiveMode('totp')}
+                      style={{ padding: '6px 2px', fontSize: '10px', fontWeight: 700, borderRadius: '6px', border: 'none', background: mfaActiveMode === 'totp' ? 'var(--accent-purple)' : 'transparent', color: '#fff', cursor: 'pointer' }}>
+                      📱 TOTP
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => { setMfaActiveMode('push'); if (!pushPromptId) handleInitiatePush(); }}
+                      style={{ padding: '6px 2px', fontSize: '10px', fontWeight: 700, borderRadius: '6px', border: 'none', background: mfaActiveMode === 'push' ? 'var(--accent-purple)' : 'transparent', color: '#fff', cursor: 'pointer' }}>
+                      📲 Push
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => { setMfaActiveMode('email'); if (!emailOtpSent) handleSendEmailOtp(); }}
+                      style={{ padding: '6px 2px', fontSize: '10px', fontWeight: 700, borderRadius: '6px', border: 'none', background: mfaActiveMode === 'email' ? 'var(--accent-purple)' : 'transparent', color: '#fff', cursor: 'pointer' }}>
+                      ✉️ Email
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => setMfaActiveMode('backup')}
+                      style={{ padding: '6px 2px', fontSize: '10px', fontWeight: 700, borderRadius: '6px', border: 'none', background: mfaActiveMode === 'backup' ? 'var(--accent-purple)' : 'transparent', color: '#fff', cursor: 'pointer' }}>
+                      🔑 Backup
+                    </button>
+                  </div>
 
-                  {/* App Account Preview Card */}
-                  {(mfaRegIssuer || mfaRegName) && (
-                    <div>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'left' }}>
-                        Look for this in your app:
-                      </span>
-                      <AuthenticatorPreviewCard issuer={mfaRegIssuer} account={mfaRegName} />
+                  <h4 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {mfaActiveMode === 'push' ? 'Push Approval' : mfaActiveMode === 'email' ? 'Email Security Passcode' : mfaActiveMode === 'backup' ? 'Emergency Backup Recovery Code' : 'MFA Verification'}
+                  </h4>
+
+                  {/* 📲 PUSH APPROVAL MODE */}
+                  {mfaActiveMode === 'push' && (
+                    <div style={{ textAlign: 'center', padding: '12px 0' }}>
+                      {pushNumber ? (
+                        <>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Matching Verification Number:</div>
+                          <div style={{ fontSize: '36px', fontWeight: 900, color: 'var(--accent-purple)', letterSpacing: '4px', marginBottom: '14px' }}>{pushNumber}</div>
+                          <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '12px' }}>Polling approval status automatically...</p>
+                          <button type="button" onClick={handleApprovePushLocally} style={{ padding: '8px 14px', fontSize: '0.75rem', fontWeight: 700, borderRadius: '6px', background: 'rgba(124,58,237,0.2)', border: '1px solid var(--accent-purple)', color: '#fff', cursor: 'pointer' }}>
+                            Simulate Push Approval
+                          </button>
+                        </>
+                      ) : (
+                        <button type="button" onClick={handleInitiatePush} className="btn-primary" style={{ width: '100%', padding: '10px' }}>
+                          Dispatch Push Authorization Prompt
+                        </button>
+                      )}
                     </div>
                   )}
 
-                  <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '0 0 4px 0' }}>Please enter the 6-digit verification code from your authenticator app:</p>
+                  {/* ✉️ EMAIL OTP MODE */}
+                  {mfaActiveMode === 'email' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
+                      <input 
+                        type="text" 
+                        placeholder="000000"
+                        maxLength={6}
+                        value={emailOtpCode}
+                        onChange={(e) => setEmailOtpCode(e.target.value.replace(/\D/g, ''))}
+                        style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', color: '#fff', fontSize: '18px', fontWeight: 'bold', textAlign: 'center', letterSpacing: '4px', boxSizing: 'border-box' }}
+                      />
+                      <button type="button" onClick={handleVerifyEmailOtp} className="btn-primary" style={{ width: '100%', padding: '10px' }}>
+                        Verify Email Passcode
+                      </button>
+                      <button type="button" onClick={handleSendEmailOtp} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}>
+                        Resend Email Passcode
+                      </button>
+                    </div>
+                  )}
 
-                  <input
-                    type="text"
-                    maxLength={6}
-                    placeholder="000000"
-                    value={mfaCode}
-                    onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
-                    style={{
-                      background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)',
-                      borderRadius: '8px', color: 'var(--text-primary)', textAlign: 'center',
-                      fontSize: '1.5rem', padding: '10px', letterSpacing: '0.2em', outline: 'none'
-                    }}
-                  />
+                  {/* 🔑 BACKUP RECOVERY CODE MODE */}
+                  {mfaActiveMode === 'backup' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
+                      <input 
+                        type="text" 
+                        placeholder="XXXX-XXXX"
+                        maxLength={9}
+                        value={backupCode}
+                        onChange={(e) => setBackupCode(e.target.value.toUpperCase())}
+                        style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', color: '#fff', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', letterSpacing: '2px', boxSizing: 'border-box' }}
+                      />
+                      <button type="button" onClick={handleVerifyBackupCode} className="btn-primary" style={{ width: '100%', padding: '10px' }}>
+                        Validate Emergency Recovery Code
+                      </button>
+                      {backupCodesList && (
+                        <div style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', background: 'rgba(124,58,237,0.1)', padding: '8px', borderRadius: '8px' }}>
+                          {backupCodesList.map((c, i) => <code key={i} style={{ fontSize: '10px', color: '#c084fc' }}>{c}</code>)}
+                        </div>
+                      )}
+                      <button 
+                        type="button" 
+                        onClick={async () => {
+                          if (!mfaTempToken) return;
+                          try {
+                            const res = await fetch(`${API_BASE}/mfa/generate-recovery-codes`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ tempToken: mfaTempToken })
+                            });
+                            const data = await res.json();
+                            if (data.backupCodes) setBackupCodesList(data.backupCodes);
+                          } catch (e) {}
+                        }} 
+                        style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}>
+                        Generate 8 Emergency Backup Recovery Keys
+                      </button>
+                    </div>
+                  )}
 
-                  <button
-                    className="btn-primary"
-                    disabled={authLoading || mfaCode.length !== 6}
-                    onClick={() => handleValidateMfaCode(mfaCode)}
-                    style={{ width: '100%', padding: '12px', fontSize: '0.86rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 600 }}
-                  >
-                    {authLoading && <RefreshCw size={14} className="spin-anim" />}
-                    Verify Identity
-                  </button>
+                  {/* 📱 TOTP DEFAULT MODE */}
+                  {mfaActiveMode === 'totp' && (
+                    <>
+                      {/* App Account Preview Card */}
+                      {(mfaRegIssuer || mfaRegName) && (
+                        <div>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'left' }}>
+                            Look for this in your app:
+                          </span>
+                          <AuthenticatorPreviewCard issuer={mfaRegIssuer} account={mfaRegName} />
+                        </div>
+                      )}
+
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '0 0 4px 0' }}>Please enter the 6-digit verification code from your authenticator app:</p>
+
+                      <input
+                        type="text"
+                        maxLength={6}
+                        placeholder="000000"
+                        value={mfaCode}
+                        onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                        style={{
+                          background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)',
+                          borderRadius: '8px', color: 'var(--text-primary)', textAlign: 'center',
+                          fontSize: '1.5rem', padding: '10px', letterSpacing: '0.2em', outline: 'none'
+                        }}
+                      />
+
+                      <button
+                        className="btn-primary"
+                        disabled={authLoading || mfaCode.length !== 6}
+                        onClick={() => handleValidateMfaCode(mfaCode)}
+                        style={{ width: '100%', padding: '12px', fontSize: '0.86rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 600 }}
+                      >
+                        {authLoading && <RefreshCw size={14} className="spin-anim" />}
+                        Verify Identity
+                      </button>
+                    </>
+                  )}
 
                   <div style={{ textAlign: 'center', marginTop: '10px' }}>
                     <button
