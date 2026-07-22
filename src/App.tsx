@@ -5758,32 +5758,58 @@ function App() {
 
               {authStep === 'mfa-verify' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {/* Multi-Mode MFA Selector Pills */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', padding: '4px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
-                    <button 
-                      type="button" 
-                      onClick={() => setMfaActiveMode('totp')}
-                      style={{ padding: '6px 2px', fontSize: '10px', fontWeight: 700, borderRadius: '6px', border: 'none', background: mfaActiveMode === 'totp' ? 'var(--accent-purple)' : 'transparent', color: '#fff', cursor: 'pointer' }}>
-                      📱 TOTP
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => { setMfaActiveMode('push'); if (!pushPromptId) handleInitiatePush(); }}
-                      style={{ padding: '6px 2px', fontSize: '10px', fontWeight: 700, borderRadius: '6px', border: 'none', background: mfaActiveMode === 'push' ? 'var(--accent-purple)' : 'transparent', color: '#fff', cursor: 'pointer' }}>
-                      📲 Push
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => { setMfaActiveMode('email'); if (!emailOtpSent) handleSendEmailOtp(); }}
-                      style={{ padding: '6px 2px', fontSize: '10px', fontWeight: 700, borderRadius: '6px', border: 'none', background: mfaActiveMode === 'email' ? 'var(--accent-purple)' : 'transparent', color: '#fff', cursor: 'pointer' }}>
-                      ✉️ Email
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => setMfaActiveMode('backup')}
-                      style={{ padding: '6px 2px', fontSize: '10px', fontWeight: 700, borderRadius: '6px', border: 'none', background: mfaActiveMode === 'backup' ? 'var(--accent-purple)' : 'transparent', color: '#fff', cursor: 'pointer' }}>
-                      🔑 Backup
-                    </button>
+                  {/* Premium Dual-Theme Multi-Mode MFA Selector Pills */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(4, 1fr)',
+                    gap: '6px',
+                    padding: '6px',
+                    background: 'rgba(255,255,255,0.03)',
+                    borderRadius: '14px',
+                    border: '1px solid var(--glass-border)',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)'
+                  }}>
+                    {[
+                      { key: 'totp', label: 'TOTP', icon: '📱' },
+                      { key: 'push', label: 'Push', icon: '📲', action: () => { if (!pushPromptId) handleInitiatePush(); } },
+                      { key: 'email', label: 'Email', icon: '✉️', action: () => { if (!emailOtpSent) handleSendEmailOtp(); } },
+                      { key: 'backup', label: 'Backup', icon: '🔑' }
+                    ].map(tab => {
+                      const isActive = mfaActiveMode === tab.key;
+                      return (
+                        <button
+                          key={tab.key}
+                          type="button"
+                          onClick={() => {
+                            setMfaActiveMode(tab.key as any);
+                            if (tab.action) tab.action();
+                          }}
+                          style={{
+                            padding: '9px 4px',
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            borderRadius: '10px',
+                            border: isActive ? '1px solid rgba(124,58,237,0.5)' : '1px solid transparent',
+                            background: isActive
+                              ? 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)'
+                              : 'transparent',
+                            color: isActive ? '#ffffff' : 'var(--text-secondary)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '4px',
+                            boxShadow: isActive ? '0 4px 14px rgba(124,58,237,0.35)' : 'none',
+                            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)'
+                          }}
+                        >
+                          <span style={{ fontSize: '13px' }}>{tab.icon}</span>
+                          <span>{tab.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
 
                   <h4 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
