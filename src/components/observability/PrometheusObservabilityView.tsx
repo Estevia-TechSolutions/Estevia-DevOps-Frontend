@@ -59,12 +59,22 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
         setLoading(true);
         try {
             const token = localStorage.getItem('evaops_token');
-            const res = await fetch(`${API_BASE}/observability/metrics?app_key=${selectedApp}&environment=${selectedEnv}&time_window=${timeWindow}&resource_type=${resourceType}`, {
+            const queryStr = `app_key=${selectedApp}&environment=${selectedEnv}&time_window=${timeWindow}&resource_type=${resourceType}`;
+            let res = await fetch(`${API_BASE}/observability/metrics?${queryStr}`, {
                 headers: { Authorization: `Bearer ${token}` }
-            });
-            const data = await res.json();
-            if (data.success) {
-                setMetrics(data.metrics || []);
+            }).catch(() => null);
+
+            if (!res || !res.ok) {
+                res = await fetch(`${API_BASE}/auth/observability/metrics?${queryStr}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                }).catch(() => null);
+            }
+
+            if (res && res.ok) {
+                const data = await res.json();
+                if (data.success) {
+                    setMetrics(data.metrics || []);
+                }
             }
         } catch (err) {
             console.error('Failed to load metrics:', err);

@@ -7817,6 +7817,8 @@ function App() {
               handleResetMfa={handleResetMfa}
               handleResetOrgMfa={handleResetOrgMfa}
               token={token}
+              apps={apps}
+              appGroups={appGroups}
             />
           </div>
         )}

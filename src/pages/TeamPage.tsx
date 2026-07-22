@@ -43,6 +43,8 @@ interface TeamPageProps {
   handleResetMfa: (userId: string) => Promise<boolean>;
   handleResetOrgMfa: () => Promise<boolean>;
   token: string;
+  apps?: any[];
+  appGroups?: any[];
 }
 
 export const TeamPage: React.FC<TeamPageProps> = ({
@@ -60,7 +62,9 @@ export const TeamPage: React.FC<TeamPageProps> = ({
   handleUpdateMfaSettings,
   handleResetMfa,
   handleResetOrgMfa,
-  token
+  token,
+  apps = [],
+  appGroups = []
 }) => {
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [updateMsg, setUpdateMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -94,13 +98,42 @@ export const TeamPage: React.FC<TeamPageProps> = ({
   const handleOpenPermModal = async (u: UserRecord) => {
     setSelectedPermUser(u);
     setLoadingPerms(true);
+    // 1. Construct resource catalog from active Cloud Scan props first
+    let initialCatalog: any[] = [];
+    if (appGroups && appGroups.length > 0) {
+      initialCatalog = appGroups.map((grp: any) => {
+        const envs = grp.envs || [];
+        const hasSwa = envs.some((e: any) => e.type === 'frontend');
+        const hasAca = envs.some((e: any) => e.type === 'backend');
+        const hasVm = envs.some((e: any) => e.type === 'vm');
+        const types: string[] = [];
+        if (hasSwa) types.push('swa');
+        if (hasAca) types.push('aca');
+        if (hasVm) types.push('vm');
+        if (types.length === 0) types.push('swa', 'aca');
+
+        return {
+          key: grp.key,
+          label: grp.title || grp.key.toUpperCase(),
+          icon: grp.type === 'frontend' ? '🌐' : grp.type === 'vm' ? '🖥️' : '📦',
+          resourceTypes: types
+        };
+      });
+    }
+
+    if (initialCatalog.length > 0) {
+      setResourceCatalog(initialCatalog);
+    }
+
     try {
       const catRes = await fetch(`${API_BASE}/auth/resource-catalog`, {
         headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (catRes.ok) {
+      }).catch(() => null);
+      if (catRes && catRes.ok) {
         const catData = await catRes.json();
-        setResourceCatalog(catData.catalog || []);
+        if (catData.catalog && catData.catalog.length > 0) {
+          setResourceCatalog(catData.catalog);
+        }
       }
 
       const permRes = await fetch(`${API_BASE}/auth/users/${u.id}/resource-permissions`, {
@@ -1312,20 +1345,32 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                   </div>
 
                   {/* Section 2: Resource Category Filter Tabs (SWA, ACA, VM) */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ fontSize: '0.84rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
-                        Select Applications, Environments & Operational Action Grants:
-                      </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '6px' }}>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+                      Select Applications, Environments & Operational Action Grants:
+                    </div>
 
-                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                        {/* Environment Switcher Tabs */}
+                    {/* Dedicated Full-Width Filter Row (Next Line) */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '12px',
+                      padding: '10px 14px',
+                      borderRadius: '12px',
+                      background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.02)',
+                      border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)'
+                    }}>
+                      {/* Environment Switcher Tabs */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '0.74rem', fontWeight: 600, color: isLight ? '#64748b' : 'var(--text-secondary)' }}>Environment:</span>
                         <div style={{
                           display: 'flex',
                           gap: '4px',
                           padding: '4px',
                           borderRadius: '10px',
-                          background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.03)',
+                          background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.2)',
                           border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)'
                         }}>
                           {[
@@ -1339,7 +1384,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                               type="button"
                               onClick={() => setModalEnvTab(tab.key as any)}
                               style={{
-                                padding: '5px 10px',
+                                padding: '5px 12px',
                                 borderRadius: '7px',
                                 fontSize: '0.74rem',
                                 fontWeight: 700,
@@ -1353,14 +1398,17 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                             </button>
                           ))}
                         </div>
+                      </div>
 
-                        {/* SWA / ACA / VM Category Switcher Tabs */}
+                      {/* SWA / ACA / VM Category Switcher Tabs */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '0.74rem', fontWeight: 600, color: isLight ? '#64748b' : 'var(--text-secondary)' }}>Resource Type:</span>
                         <div style={{
                           display: 'flex',
                           gap: '4px',
                           padding: '4px',
                           borderRadius: '10px',
-                          background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.03)',
+                          background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.2)',
                           border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)'
                         }}>
                           {[
@@ -1374,7 +1422,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                               type="button"
                               onClick={() => setModalCategoryTab(tab.key as any)}
                               style={{
-                                padding: '5px 10px',
+                                padding: '5px 12px',
                                 borderRadius: '7px',
                                 fontSize: '0.74rem',
                                 fontWeight: 700,
