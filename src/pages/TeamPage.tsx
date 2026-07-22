@@ -1314,7 +1314,10 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                                     { key: 'cost_remediation', label: '💰 Cost Remediation' },
                                     { key: 'db_manage', label: '🗄️ DB Hub Manage' }
                                   ].map(act => {
-                                    const hasAct = currentActions.includes(act.key);
+                                    const isViewer = selectedPermUser?.role === 'viewer';
+                                    const isDisabledAction = isViewer && act.key !== 'view';
+                                    const hasAct = !isDisabledAction && currentActions.includes(act.key);
+
                                     return (
                                       <label key={act.key} style={{
                                         display: 'flex',
@@ -1322,19 +1325,26 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                                         gap: '8px',
                                         fontSize: '0.76rem',
                                         fontWeight: hasAct ? 600 : 400,
-                                        color: hasAct
-                                          ? (isLight ? '#0f172a' : 'var(--text-primary)')
-                                          : (isLight ? '#64748b' : 'var(--text-secondary)'),
-                                        cursor: 'pointer',
-                                        userSelect: 'none'
+                                        color: isDisabledAction
+                                          ? (isLight ? '#94a3b8' : '#475569')
+                                          : (hasAct ? (isLight ? '#0f172a' : 'var(--text-primary)') : (isLight ? '#64748b' : 'var(--text-secondary)')),
+                                        cursor: isDisabledAction ? 'not-allowed' : 'pointer',
+                                        userSelect: 'none',
+                                        opacity: isDisabledAction ? 0.55 : 1
                                       }}>
                                         <input
                                           type="checkbox"
                                           checked={hasAct}
-                                          onChange={() => handleToggleEnvAction(app.key, env, act.key)}
-                                          style={{ accentColor: '#8b5cf6', cursor: 'pointer' }}
+                                          disabled={isDisabledAction}
+                                          onChange={() => !isDisabledAction && handleToggleEnvAction(app.key, env, act.key)}
+                                          style={{ accentColor: '#8b5cf6', cursor: isDisabledAction ? 'not-allowed' : 'pointer' }}
                                         />
                                         <span>{act.label}</span>
+                                        {isDisabledAction && (
+                                          <span style={{ fontSize: '0.66rem', color: '#94a3b8', fontStyle: 'italic', marginLeft: 'auto' }}>
+                                            (Viewer Read-Only)
+                                          </span>
+                                        )}
                                       </label>
                                     );
                                   })}

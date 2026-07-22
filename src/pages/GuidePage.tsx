@@ -25,14 +25,15 @@ import {
   Activity,
   PlusCircle,
   Compass,
-  AlertTriangle
+  AlertTriangle,
+  KeyRound
 } from 'lucide-react';
 
 interface GuidePageProps {
   theme?: 'dark' | 'light';
 }
 
-type TabType = 'getting-started' | 'capabilities' | 'validation-rules' | 'security-auth' | 'pipelines-cicd' | 'eva-ai' | 'faq-roadmap';
+type TabType = 'getting-started' | 'capabilities' | 'rbac-governance' | 'validation-rules' | 'security-auth' | 'pipelines-cicd' | 'eva-ai' | 'faq-roadmap';
 
 const renderScopeIcon = (iconName?: string, isCapability?: boolean) => {
   const size = 16;
@@ -506,6 +507,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
   const navItems = [
     { id: 'getting-started', label: 'Getting Started', icon: BookOpen, desc: 'Operational workflow checklist' },
     { id: 'capabilities', label: 'System Boundaries', icon: Cpu, desc: 'Capabilities & exclusions' },
+    { id: 'rbac-governance', label: 'RBAC & Access Governance', icon: KeyRound, desc: 'Granular resource, environment & action permissions' },
     { id: 'validation-rules', label: 'Validation & Rules', icon: ShieldCheck, desc: 'Network, branch & syntax checks' },
     { id: 'security-auth', label: 'Security & Auth', icon: Lock, desc: 'Permissions & Entra ID setup' },
     { id: 'pipelines-cicd', label: 'Pipelines & CI/CD', icon: Globe, desc: 'Azure & GitHub workflow setups' },
@@ -1643,6 +1645,92 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* TAB CONTENT: RBAC & ACCESS GOVERNANCE */}
+          {activeSubTab === 'rbac-governance' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <KeyRound size={20} style={{ color: '#8b5cf6' }} />
+                  Dynamic Granular RBAC & Access Governance
+                </h3>
+                <p style={{ margin: '6px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                  Delegate application, environment, and operational action access with zero-trust precision across Dev, QA, and Production.
+                </p>
+              </div>
+
+              {/* Grid 1: Role Precedence */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '18px' }}>
+                <div className="glass-panel" style={{ padding: '20px', borderRadius: '12px' }}>
+                  <h4 style={{ margin: '0 0 10px 0', fontSize: '0.94rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <ShieldCheck size={16} style={{ color: '#8b5cf6' }} />
+                    1. Primary Role Precedence Rules
+                  </h4>
+                  <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <li><strong>Owner & Admin Roles:</strong> Automatically possess full access across all applications, environments, and operational actions by default.</li>
+                    <li><strong>Viewer Role:</strong> Strictly restricted to Read-Only access (`View Details`). Operational actions (`Deploy`, `Provision`, `Cost`, `DB`) are disabled by default to prevent privilege escalation.</li>
+                    <li><strong>Contributor Role:</strong> Full granular action selection (`View`, `Deploy`, `Provision`, `Cost`, `DB`) per environment.</li>
+                  </ul>
+                </div>
+
+                <div className="glass-panel" style={{ padding: '20px', borderRadius: '12px' }}>
+                  <h4 style={{ margin: '0 0 10px 0', fontSize: '0.94rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Cpu size={16} style={{ color: '#2dd4bf' }} />
+                    2. Dynamic App Discovery Engine
+                  </h4>
+                  <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <li><strong>Zero Hardcoded Products:</strong> `app_key` identifiers are stored as unconstrained `VARCHAR(255)` keys in MySQL.</li>
+                    <li><strong>Azure Resource Scanning:</strong> Automatically extracts product keys from Static Web Apps (SWA) and Container Apps (ACA) by stripping `-dev`, `-qa`, `-prod` suffixes.</li>
+                    <li><strong>Future-Proof Automation:</strong> Newly deployed Azure apps (e.g. `estevia-finance-qa`) appear inside the Admin Permission Matrix Modal immediately **without code changes**.</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Table: Actions Matrix */}
+              <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--divider)' }}>
+                      <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-primary)' }}>Action Key</th>
+                      <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-primary)' }}>UI Label & Symbol</th>
+                      <th style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-primary)' }}>Operations Controlled</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { key: 'view', label: '👁️ View Details', desc: 'Read application resource details, timeline status, and build logs.' },
+                      { key: 'deploy', label: '🚀 Re-Deploy / Build', desc: 'Trigger pipeline builds, re-deploy previous releases, cancel queued builds, or prioritize builds.' },
+                      { key: 'provision', label: '⚙️ Provision / Bind', desc: 'Provision Static Web Apps (SWA), register Azure DevOps pipelines, or bind custom DNS domains.' },
+                      { key: 'cost_remediation', label: '💰 Cost Remediation', desc: 'Apply cost optimization suggestions and modify resource scaling tiers.' },
+                      { key: 'db_manage', label: '🗄️ DB Hub Manage', desc: 'Access Database Hub, view schema structures, or trigger database seed verification.' }
+                    ].map((row, idx) => (
+                      <tr key={row.key} style={{ borderBottom: idx === 4 ? 'none' : '1px solid var(--divider)' }}>
+                        <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontWeight: 700, color: '#a78bfa' }}>{row.key}</td>
+                        <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-primary)' }}>{row.label}</td>
+                        <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{row.desc}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Admin Walkthrough Callout */}
+              <div style={{
+                padding: '16px 20px',
+                borderRadius: '12px',
+                background: 'rgba(139, 92, 246, 0.06)',
+                border: '1px solid rgba(139, 92, 246, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <Info size={20} style={{ color: '#8b5cf6', flexShrink: 0 }} />
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', lineHeight: '1.5' }}>
+                  <strong>Admin Quick Start:</strong> Go to <strong>Team Management</strong> tab, click the <strong>⚡ Actions</strong> dropdown on any user row, and select <strong>🔑 Manage Permissions</strong> to launch the Granular Access Permissions Modal.
+                </div>
+              </div>
             </div>
           )}
 
