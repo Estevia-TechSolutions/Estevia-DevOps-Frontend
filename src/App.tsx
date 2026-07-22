@@ -5117,6 +5117,7 @@ function App() {
 
   const [pushLoading, setPushLoading] = useState(false);
   const [pushApproving, setPushApproving] = useState(false);
+  const [pushApprovedSuccess, setPushApprovedSuccess] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
 
   // Poll Push Approval Status automatically every 2 seconds
@@ -5145,6 +5146,7 @@ function App() {
     if (!mfaTempToken) return;
     setAuthError(null);
     setPushLoading(true);
+    setPushApprovedSuccess(false);
     try {
       const res = await fetch(`${API_BASE}/mfa/send-push-prompt`, {
         method: 'POST',
@@ -5174,6 +5176,7 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ promptId: pushPromptId, selectedNumber: pushNumber })
       });
+      setPushApprovedSuccess(true);
     } catch (e) {
     } finally {
       setPushApproving(false);
@@ -5862,14 +5865,20 @@ function App() {
                   {/* 📲 PUSH APPROVAL MODE */}
                   {mfaActiveMode === 'push' && (
                     <div style={{ textAlign: 'center', padding: '12px 0' }}>
+                      {pushApprovedSuccess && (
+                        <div style={{ padding: '10px 14px', background: 'rgba(124,58,237,0.2)', border: '1px solid var(--accent-purple)', borderRadius: '8px', color: '#fff', fontSize: '0.78rem', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                          <span>✓</span>
+                          <span>Push Authorization Approved! Logging you in...</span>
+                        </div>
+                      )}
                       {pushNumber ? (
                         <>
                           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Matching Verification Number:</div>
                           <div style={{ fontSize: '36px', fontWeight: 900, color: 'var(--accent-purple)', letterSpacing: '4px', marginBottom: '14px' }}>{pushNumber}</div>
                           <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '12px' }}>Polling approval status automatically...</p>
-                          <button type="button" onClick={handleApprovePushLocally} disabled={pushApproving} style={{ padding: '9px 18px', fontSize: '0.78rem', fontWeight: 700, borderRadius: '8px', background: 'rgba(124,58,237,0.2)', border: '1px solid var(--accent-purple)', color: '#fff', cursor: pushApproving ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                          <button type="button" onClick={handleApprovePushLocally} disabled={pushApproving || pushApprovedSuccess} style={{ padding: '9px 18px', fontSize: '0.78rem', fontWeight: 700, borderRadius: '8px', background: 'rgba(124,58,237,0.2)', border: '1px solid var(--accent-purple)', color: '#fff', cursor: pushApproving || pushApprovedSuccess ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                             {pushApproving ? <RefreshCw size={14} className="spin-anim" /> : <span>✓</span>}
-                            <span>{pushApproving ? 'Approving Push Request...' : 'Approve Push Request'}</span>
+                            <span>{pushApprovedSuccess ? 'Authorization Approved ✓' : pushApproving ? 'Approving Push Request...' : 'Approve Push Request'}</span>
                           </button>
                         </>
                       ) : (
@@ -5878,6 +5887,9 @@ function App() {
                           <span>{pushLoading ? 'Dispatching Push Request...' : 'Dispatch Push Authorization Prompt'}</span>
                         </button>
                       )}
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '12px', background: 'rgba(255,255,255,0.03)', padding: '8px 12px', borderRadius: '8px', border: '1px dashed var(--glass-border)' }}>
+                        ℹ️ Authorizes session via active device token. Lost your phone? Switch to <strong>✉️ Email</strong> or <strong>🔑 Backup</strong> tab above.
+                      </div>
                     </div>
                   )}
 
