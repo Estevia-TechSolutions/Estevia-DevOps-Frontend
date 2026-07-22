@@ -653,6 +653,15 @@ function App() {
   const [loadingAuditLogsForEvents, setLoadingAuditLogsForEvents] = useState<boolean>(false);
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
 
+  // Multi-Mode MFA state variables
+  const [mfaActiveMode, setMfaActiveMode] = useState<'totp' | 'push' | 'email' | 'backup'>('totp');
+  const [pushPromptId, setPushPromptId] = useState<string | null>(null);
+  const [pushNumber, setPushNumber] = useState<string | null>(null);
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [emailOtpCode, setEmailOtpCode] = useState('');
+  const [backupCode, setBackupCode] = useState('');
+  const [backupCodesList, setBackupCodesList] = useState<string[] | null>(null);
+
   // Real-time Toast Alerts States & Helpers
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -5105,14 +5114,6 @@ function App() {
       />
     );
   }
-
-  const [mfaActiveMode, setMfaActiveMode] = useState<'totp' | 'push' | 'email' | 'backup'>('totp');
-  const [pushPromptId, setPushPromptId] = useState<string | null>(null);
-  const [pushNumber, setPushNumber] = useState<string | null>(null);
-  const [emailOtpSent, setEmailOtpSent] = useState(false);
-  const [emailOtpCode, setEmailOtpCode] = useState('');
-  const [backupCode, setBackupCode] = useState('');
-  const [backupCodesList, setBackupCodesList] = useState<string[] | null>(null);
 
   const handleInitiatePush = async () => {
     if (!mfaTempToken) return;
