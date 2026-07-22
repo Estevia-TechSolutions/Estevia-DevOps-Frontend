@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, RefreshCw, UserCheck, Shield, Award, Eye, X, Check, Terminal, ShieldAlert, ShieldX, KeyRound } from 'lucide-react';
+import { Users, RefreshCw, UserCheck, Shield, Award, Eye, X, Check, Terminal, ShieldAlert, ShieldX, KeyRound, ChevronDown, MoreVertical } from 'lucide-react';
 import { UserAuditLogDrawer } from '../components/team/UserAuditLogDrawer';
 
 // Dynamic environment branding suffix
@@ -86,6 +86,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
   const [userPermMap, setUserPermMap] = useState<Record<string, Record<string, string[]>>>({});
   const [loadingPerms, setLoadingPerms] = useState<boolean>(false);
   const [savingPerms, setSavingPerms] = useState<boolean>(false);
+  const [openActionDropdownUserId, setOpenActionDropdownUserId] = useState<string | null>(null);
 
   const handleOpenPermModal = async (u: UserRecord) => {
     setSelectedPermUser(u);
@@ -913,84 +914,148 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                         )}
                       </div>
                     </td>
-                    <td style={{ padding: '14px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <td style={{ padding: '14px 16px', position: 'relative' }}>
+                      <div style={{ position: 'relative' }}>
                         <button
                           type="button"
                           className="btn-secondary"
-                          onClick={() => setActiveLogUser({ email: u.email, name: u.name })}
+                          onClick={() => setOpenActionDropdownUserId(openActionDropdownUserId === u.id ? null : u.id)}
                           style={{
-                            display: 'flex',
+                            display: 'inline-flex',
                             alignItems: 'center',
                             gap: '6px',
                             height: '32px',
-                            padding: '0 12px',
-                            fontSize: '0.76rem',
-                            cursor: 'pointer'
+                            padding: '0 14px',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            borderRadius: '8px',
+                            background: openActionDropdownUserId === u.id ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                            borderColor: openActionDropdownUserId === u.id ? '#8b5cf6' : 'var(--glass-border)',
+                            color: openActionDropdownUserId === u.id ? '#a78bfa' : 'var(--text-primary)'
                           }}
                         >
-                          <Terminal size={12} style={{ color: 'var(--accent-purple)' }} />
-                          Logs
+                          <span>⚡ Actions</span>
+                          <ChevronDown size={14} style={{ transform: openActionDropdownUserId === u.id ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
                         </button>
-                        
-                        {canManageRoles && u.mfa_enabled ? (
-                          <button
-                            type="button"
-                            className="btn-secondary"
-                            disabled={resettingMfaUserId === u.id}
-                            onClick={async () => {
-                              if (window.confirm(`Are you sure you want to reset Multi-Factor Authentication for ${u.name}? They will be forced to re-register on their next login.`)) {
-                                setResettingMfaUserId(u.id);
-                                const success = await handleResetMfa(u.id);
-                                setResettingMfaUserId(null);
-                                if (success) {
-                                  setUpdateMsg({ type: 'success', text: `MFA reset successfully for ${u.name}.` });
-                                  setTimeout(() => setUpdateMsg(null), 3000);
-                                } else {
-                                  setUpdateMsg({ type: 'error', text: `Failed to reset MFA for ${u.name}.` });
-                                  setTimeout(() => setUpdateMsg(null), 3000);
-                                }
-                              }
-                            }}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              height: '32px',
-                              padding: '0 12px',
-                              fontSize: '0.76rem',
-                              cursor: resettingMfaUserId === u.id ? 'not-allowed' : 'pointer',
-                              color: '#ef4444',
-                              borderColor: 'rgba(239, 68, 68, 0.2)',
-                              background: 'rgba(239, 68, 68, 0.04)'
-                            }}
-                          >
-                            {resettingMfaUserId === u.id ? <RefreshCw size={12} className="spin-anim" /> : <ShieldX size={12} />}
-                            Reset MFA
-                          </button>
-                        ) : null}
 
-                        {canManageRoles && (
-                          <button
-                            type="button"
-                            className="btn-secondary"
-                            onClick={() => handleOpenPermModal(u)}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              height: '32px',
-                              padding: '0 12px',
-                              fontSize: '0.76rem',
-                              cursor: 'pointer',
-                              color: 'var(--accent-teal)',
-                              borderColor: 'rgba(20, 184, 166, 0.25)',
-                              background: 'rgba(20, 184, 166, 0.05)'
-                            }}
-                          >
-                            <KeyRound size={12} />
-                            Permissions 🔑
-                          </button>
+                        {openActionDropdownUserId === u.id && (
+                          <div style={{
+                            position: 'absolute',
+                            right: 0,
+                            top: '38px',
+                            width: '220px',
+                            background: '#0f172a',
+                            border: '1px solid rgba(139, 92, 246, 0.3)',
+                            borderRadius: '12px',
+                            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+                            padding: '6px',
+                            zIndex: 100,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '2px',
+                            backdropFilter: 'blur(16px)'
+                          }}>
+                            {/* Option 1: View Logs */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOpenActionDropdownUserId(null);
+                                setActiveLogUser({ email: u.email, name: u.name });
+                              }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                width: '100%',
+                                padding: '8px 12px',
+                                background: 'transparent',
+                                border: 'none',
+                                borderRadius: '6px',
+                                color: 'var(--text-primary)',
+                                fontSize: '0.78rem',
+                                cursor: 'pointer',
+                                textAlign: 'left'
+                              }}
+                              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(139, 92, 246, 0.12)')}
+                              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                            >
+                              <Terminal size={14} style={{ color: '#a78bfa' }} />
+                              <span>View Audit Logs</span>
+                            </button>
+
+                            {/* Option 2: Manage Granular Access Permissions */}
+                            {canManageRoles && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpenActionDropdownUserId(null);
+                                  handleOpenPermModal(u);
+                                }}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  width: '100%',
+                                  padding: '8px 12px',
+                                  background: 'transparent',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  color: 'var(--text-primary)',
+                                  fontSize: '0.78rem',
+                                  cursor: 'pointer',
+                                  textAlign: 'left'
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(20, 184, 166, 0.12)')}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                              >
+                                <KeyRound size={14} style={{ color: '#2dd4bf' }} />
+                                <span>Manage Permissions 🔑</span>
+                              </button>
+                            )}
+
+                            {/* Option 3: Reset MFA */}
+                            {canManageRoles && u.mfa_enabled ? (
+                              <button
+                                type="button"
+                                disabled={resettingMfaUserId === u.id}
+                                onClick={async () => {
+                                  setOpenActionDropdownUserId(null);
+                                  if (window.confirm(`Are you sure you want to reset Multi-Factor Authentication for ${u.name}? They will be forced to re-register on their next login.`)) {
+                                    setResettingMfaUserId(u.id);
+                                    const success = await handleResetMfa(u.id);
+                                    setResettingMfaUserId(null);
+                                    if (success) {
+                                      setUpdateMsg({ type: 'success', text: `MFA reset successfully for ${u.name}.` });
+                                      setTimeout(() => setUpdateMsg(null), 3000);
+                                    } else {
+                                      setUpdateMsg({ type: 'error', text: `Failed to reset MFA for ${u.name}.` });
+                                      setTimeout(() => setUpdateMsg(null), 3000);
+                                    }
+                                  }
+                                }}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  width: '100%',
+                                  padding: '8px 12px',
+                                  background: 'transparent',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  color: '#ef4444',
+                                  fontSize: '0.78rem',
+                                  cursor: 'pointer',
+                                  textAlign: 'left'
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)')}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                              >
+                                {resettingMfaUserId === u.id ? <RefreshCw size={14} className="spin-anim" /> : <ShieldX size={14} style={{ color: '#ef4444' }} />}
+                                <span>Reset MFA</span>
+                              </button>
+                            ) : null}
+                          </div>
                         )}
                       </div>
                     </td>
@@ -1010,7 +1075,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(2, 6, 23, 0.8)',
+          backgroundColor: isLight ? 'rgba(15, 23, 42, 0.45)' : 'rgba(2, 6, 23, 0.8)',
           backdropFilter: 'blur(16px)',
           WebkitBackdropFilter: 'blur(16px)',
           zIndex: 99999,
@@ -1021,24 +1086,25 @@ export const TeamPage: React.FC<TeamPageProps> = ({
           animation: 'fade-in-anim 0.2s ease-out'
         }}>
           <div className="glass-panel" style={{
-            width: '840px',
+            width: '860px',
             maxWidth: '100%',
             maxHeight: '92vh',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            boxShadow: isLight ? '0 20px 40px -15px rgba(0, 0, 0, 0.18)' : '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
             borderRadius: '20px',
-            border: '1px solid rgba(139, 92, 246, 0.3)'
+            background: isLight ? '#ffffff' : '#0f172a',
+            border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(139, 92, 246, 0.3)'
           }}>
             {/* Modal Header */}
             <div style={{
               padding: '20px 28px',
-              borderBottom: '1px solid var(--glass-border)',
+              borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              background: 'rgba(139, 92, 246, 0.04)'
+              background: isLight ? 'rgba(139, 92, 246, 0.05)' : 'rgba(139, 92, 246, 0.04)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
@@ -1051,15 +1117,16 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                   justifyContent: 'center',
                   color: '#fff',
                   fontWeight: 700,
-                  fontSize: '1.1rem'
+                  fontSize: '1.1rem',
+                  boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)'
                 }}>
                   🔑
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
                     Granular Access Permissions — {selectedPermUser.name}
                   </h3>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                  <div style={{ fontSize: '0.78rem', color: isLight ? '#64748b' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
                     <span>{selectedPermUser.email}</span>
                     <span style={{
                       padding: '2px 8px',
@@ -1067,8 +1134,12 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                       fontSize: '0.7rem',
                       fontWeight: 700,
                       textTransform: 'uppercase',
-                      background: ['owner', 'admin'].includes(selectedPermUser.role?.toLowerCase()) ? 'rgba(139, 92, 246, 0.2)' : 'rgba(20, 184, 166, 0.2)',
-                      color: ['owner', 'admin'].includes(selectedPermUser.role?.toLowerCase()) ? '#a78bfa' : '#2dd4bf'
+                      background: ['owner', 'admin'].includes(selectedPermUser.role?.toLowerCase())
+                        ? (isLight ? 'rgba(139, 92, 246, 0.12)' : 'rgba(139, 92, 246, 0.2)')
+                        : (isLight ? 'rgba(20, 184, 166, 0.12)' : 'rgba(20, 184, 166, 0.2)'),
+                      color: ['owner', 'admin'].includes(selectedPermUser.role?.toLowerCase())
+                        ? (isLight ? '#6d28d9' : '#a78bfa')
+                        : (isLight ? '#0d9488' : '#2dd4bf')
                     }}>
                       {selectedPermUser.role}
                     </span>
@@ -1081,7 +1152,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: 'var(--text-secondary)',
+                  color: isLight ? '#64748b' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   padding: '6px',
                   borderRadius: '8px',
@@ -1100,27 +1171,27 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                 <div style={{
                   padding: '14px 18px',
                   borderRadius: '12px',
-                  background: 'rgba(139, 92, 246, 0.08)',
-                  border: '1px solid rgba(139, 92, 246, 0.3)',
+                  background: isLight ? 'rgba(139, 92, 246, 0.06)' : 'rgba(139, 92, 246, 0.08)',
+                  border: isLight ? '1px solid rgba(139, 92, 246, 0.2)' : '1px solid rgba(139, 92, 246, 0.3)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px'
                 }}>
-                  <Shield size={20} style={{ color: '#a78bfa', flexShrink: 0 }} />
-                  <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                  <Shield size={20} style={{ color: isLight ? '#7c3aed' : '#a78bfa', flexShrink: 0 }} />
+                  <div style={{ fontSize: '0.82rem', color: isLight ? '#1e293b' : 'var(--text-primary)' }}>
                     <strong>Full Access Auto-Bypass:</strong> User has <strong>{selectedPermUser.role.toUpperCase()}</strong> status. Owners and Admins automatically possess unrestricted access to all applications, environments, and operational actions by default.
                   </div>
                 </div>
               )}
 
               {loadingPerms ? (
-                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                <div style={{ padding: '40px', textAlign: 'center', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
                   <RefreshCw size={24} className="spin-anim" style={{ marginBottom: '12px', color: '#8b5cf6' }} />
                   <div>Loading dynamic resource catalog and user grants...</div>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                  <div style={{ fontSize: '0.84rem', fontWeight: 600, color: isLight ? '#475569' : 'var(--text-secondary)', marginBottom: '2px' }}>
                     Select Applications, Environments & Operational Action Grants:
                   </div>
 
@@ -1128,10 +1199,10 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                     const appGrants = userPermMap[app.key] || { dev: [], qa: [], prod: [] };
                     return (
                       <div key={app.key} style={{
-                        padding: '18px 22px',
+                        padding: '20px 24px',
                         borderRadius: '14px',
-                        background: 'rgba(255,255,255,0.02)',
-                        border: '1px solid var(--glass-border)',
+                        background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.02)',
+                        border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '16px'
@@ -1139,11 +1210,11 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                         {/* App Header */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '1.2rem' }}>{app.icon || '📦'}</span>
-                            <span style={{ fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                            <span style={{ fontSize: '1.25rem' }}>{app.icon || '📦'}</span>
+                            <span style={{ fontSize: '0.98rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
                               {app.label}
                             </span>
-                            <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                            <span style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : 'var(--text-secondary)', fontFamily: 'monospace' }}>
                               ({app.key})
                             </span>
                           </div>
@@ -1153,13 +1224,13 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                               type="button"
                               onClick={() => handleGrantAllApp(app.key)}
                               style={{
-                                padding: '4px 10px',
+                                padding: '4px 12px',
                                 borderRadius: '6px',
                                 fontSize: '0.72rem',
                                 fontWeight: 600,
-                                background: 'rgba(139, 92, 246, 0.15)',
-                                color: '#a78bfa',
-                                border: '1px solid rgba(139, 92, 246, 0.3)',
+                                background: isLight ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.15)',
+                                color: isLight ? '#6d28d9' : '#a78bfa',
+                                border: isLight ? '1px solid rgba(139, 92, 246, 0.25)' : '1px solid rgba(139, 92, 246, 0.3)',
                                 cursor: 'pointer'
                               }}
                             >
@@ -1169,13 +1240,13 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                               type="button"
                               onClick={() => handleClearAllApp(app.key)}
                               style={{
-                                padding: '4px 10px',
+                                padding: '4px 12px',
                                 borderRadius: '6px',
                                 fontSize: '0.72rem',
                                 fontWeight: 600,
-                                background: 'rgba(239, 68, 68, 0.1)',
-                                color: '#f87171',
-                                border: '1px solid rgba(239, 68, 68, 0.25)',
+                                background: isLight ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.1)',
+                                color: isLight ? '#dc2626' : '#f87171',
+                                border: isLight ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(239, 68, 68, 0.25)',
                                 cursor: 'pointer'
                               }}
                             >
@@ -1194,13 +1265,17 @@ export const TeamPage: React.FC<TeamPageProps> = ({
 
                             return (
                               <div key={env} style={{
-                                padding: '14px',
-                                borderRadius: '10px',
-                                background: isEnvActive ? 'rgba(139, 92, 246, 0.05)' : 'rgba(0,0,0,0.15)',
-                                border: isEnvActive ? `1px solid ${envColors[env]}50` : '1px solid rgba(255,255,255,0.05)',
+                                padding: '14px 16px',
+                                borderRadius: '12px',
+                                background: isEnvActive
+                                  ? (isLight ? `${envColors[env]}08` : 'rgba(139, 92, 246, 0.05)')
+                                  : (isLight ? '#ffffff' : 'rgba(0,0,0,0.15)'),
+                                border: isEnvActive
+                                  ? `1px solid ${envColors[env]}60`
+                                  : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.05)'),
                                 display: 'flex',
                                 flexDirection: 'column',
-                                gap: '10px'
+                                gap: '12px'
                               }}>
                                 {/* Environment Pill Header */}
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1213,25 +1288,25 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                                       cursor: 'pointer',
                                       padding: '4px 10px',
                                       borderRadius: '20px',
-                                      background: isEnvActive ? `${envColors[env]}25` : 'rgba(255,255,255,0.05)',
-                                      color: isEnvActive ? envColors[env] : 'var(--text-secondary)',
+                                      background: isEnvActive ? `${envColors[env]}20` : (isLight ? '#f1f5f9' : 'rgba(255,255,255,0.05)'),
+                                      color: isEnvActive ? (isLight ? envColors[env] : envColors[env]) : (isLight ? '#64748b' : 'var(--text-secondary)'),
                                       fontWeight: 700,
                                       fontSize: '0.78rem',
-                                      border: `1px solid ${isEnvActive ? envColors[env] : 'transparent'}`
+                                      border: `1px solid ${isEnvActive ? envColors[env] : (isLight ? '#cbd5e1' : 'transparent')}`
                                     }}
                                   >
                                     <span style={{
                                       width: '6px',
                                       height: '6px',
                                       borderRadius: '50%',
-                                      backgroundColor: isEnvActive ? envColors[env] : '#64748b'
+                                      backgroundColor: isEnvActive ? envColors[env] : '#94a3b8'
                                     }} />
                                     <span>{envLabels[env]} Environment</span>
                                   </div>
                                 </div>
 
                                 {/* Action Checkboxes */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '4px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '2px' }}>
                                   {[
                                     { key: 'view', label: '👁️ View Details' },
                                     { key: 'deploy', label: '🚀 Re-Deploy / Build' },
@@ -1245,8 +1320,11 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '8px',
-                                        fontSize: '0.74rem',
-                                        color: hasAct ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                        fontSize: '0.76rem',
+                                        fontWeight: hasAct ? 600 : 400,
+                                        color: hasAct
+                                          ? (isLight ? '#0f172a' : 'var(--text-primary)')
+                                          : (isLight ? '#64748b' : 'var(--text-secondary)'),
                                         cursor: 'pointer',
                                         userSelect: 'none'
                                       }}>
@@ -1275,18 +1353,23 @@ export const TeamPage: React.FC<TeamPageProps> = ({
             {/* Modal Footer */}
             <div style={{
               padding: '16px 28px',
-              borderTop: '1px solid var(--glass-border)',
+              borderTop: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'flex-end',
               gap: '12px',
-              background: 'rgba(0,0,0,0.2)'
+              background: isLight ? '#f8fafc' : 'rgba(0,0,0,0.2)'
             }}>
               <button
                 type="button"
                 className="btn-secondary"
                 onClick={() => setSelectedPermUser(null)}
-                style={{ padding: '8px 18px', fontSize: '0.84rem' }}
+                style={{
+                  padding: '8px 18px',
+                  fontSize: '0.84rem',
+                  color: isLight ? '#475569' : undefined,
+                  borderColor: isLight ? '#cbd5e1' : undefined
+                }}
               >
                 Cancel
               </button>
@@ -1296,7 +1379,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                 disabled={savingPerms}
                 onClick={handleSavePermissions}
                 style={{
-                  padding: '8px 22px',
+                  padding: '8px 24px',
                   fontSize: '0.84rem',
                   display: 'flex',
                   alignItems: 'center',
@@ -1306,6 +1389,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                   color: '#fff',
                   fontWeight: 600,
                   borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
                   cursor: savingPerms ? 'not-allowed' : 'pointer'
                 }}
               >
