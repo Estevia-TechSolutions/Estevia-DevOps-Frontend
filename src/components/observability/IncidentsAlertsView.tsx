@@ -18,9 +18,10 @@ interface Incident {
 
 interface IncidentsAlertsViewProps {
     theme?: 'dark' | 'light';
+    API_BASE?: string;
 }
 
-export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme = 'dark' }) => {
+export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme = 'dark', API_BASE = 'http://localhost:5005/api' }) => {
     const isLight = theme === 'light';
     const [incidents, setIncidents] = useState<Incident[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -54,8 +55,8 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
         try {
             const token = localStorage.getItem('evaops_token');
             const [usersRes, catRes] = await Promise.all([
-                fetch('/api/auth/users', { headers: { Authorization: `Bearer ${token}` } }),
-                fetch('/api/auth/resource-catalog', { headers: { Authorization: `Bearer ${token}` } })
+                fetch(`${API_BASE}/auth/users`, { headers: { Authorization: `Bearer ${token}` } }),
+                fetch(`${API_BASE}/auth/resource-catalog`, { headers: { Authorization: `Bearer ${token}` } })
             ]);
 
             if (usersRes.ok) {
@@ -79,7 +80,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
         setLoading(true);
         try {
             const token = localStorage.getItem('evaops_token');
-            const res = await fetch('/api/observability/incidents', {
+            const res = await fetch(`${API_BASE}/observability/incidents`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const data = await res.json();
@@ -96,7 +97,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
     const handleAcknowledge = async (id: number) => {
         try {
             const token = localStorage.getItem('evaops_token');
-            await fetch(`/api/observability/incidents/${id}/acknowledge`, {
+            await fetch(`${API_BASE}/observability/incidents/${id}/acknowledge`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -109,7 +110,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
     const handleResolve = async (id: number) => {
         try {
             const token = localStorage.getItem('evaops_token');
-            await fetch(`/api/observability/incidents/${id}/resolve`, {
+            await fetch(`${API_BASE}/observability/incidents/${id}/resolve`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -123,7 +124,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
         setSavingConfig(true);
         try {
             const token = localStorage.getItem('evaops_token');
-            await fetch('/api/observability/owners', {
+            await fetch(`${API_BASE}/observability/owners`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

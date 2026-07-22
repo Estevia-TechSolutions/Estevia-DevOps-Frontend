@@ -167,6 +167,7 @@ interface DashboardPageProps {
   livePipelineRuns: Record<number | string, any>;
   setLivePipelineRuns: React.Dispatch<React.SetStateAction<Record<number | string, any>>>;
   licenseTier?: string;
+  activeSubTab?: 'resources' | 'compliance';
 }
 
 const isBuildActive = (run: any) => {
@@ -246,9 +247,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   livePipelineRuns,
   setLivePipelineRuns,
   licenseTier = 'growth',
+  activeSubTab: propActiveSubTab = 'resources',
 }) => {
   const isViewer = currentUser?.role === 'viewer';
   const organizationId = currentUser?.organization_id || 'estevia';
+  const [activeSubTab, setActiveSubTab] = React.useState<'resources' | 'compliance'>(propActiveSubTab);
+
+  React.useEffect(() => {
+    if (propActiveSubTab) {
+      setActiveSubTab(propActiveSubTab);
+    }
+  }, [propActiveSubTab]);
 
   const [prioritizingBuildId, setPrioritizingBuildId] = React.useState<number | string | null>(null);
 
@@ -431,7 +440,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   };
 
   // Compliance state
-  const [activeSubTab, setActiveSubTab] = React.useState<'resources' | 'compliance'>('resources');
   const [complianceData, setComplianceData] = React.useState<any | null>(null);
   const [loadingCompliance, setLoadingCompliance] = React.useState<boolean>(false);
   const [remediatingId, setRemediatingId] = React.useState<string | null>(null);

@@ -86,6 +86,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
   const [userPermMap, setUserPermMap] = useState<Record<string, Record<string, string[]>>>({});
   const [userMenuPermMap, setUserMenuPermMap] = useState<Record<string, boolean>>({});
   const [modalCategoryTab, setModalCategoryTab] = useState<'all' | 'swa' | 'aca' | 'vm'>('all');
+  const [modalEnvTab, setModalEnvTab] = useState<'all' | 'dev' | 'qa' | 'prod'>('all');
   const [loadingPerms, setLoadingPerms] = useState<boolean>(false);
   const [savingPerms, setSavingPerms] = useState<boolean>(false);
   const [openActionDropdownUserId, setOpenActionDropdownUserId] = useState<string | null>(null);
@@ -110,12 +111,25 @@ export const TeamPage: React.FC<TeamPageProps> = ({
         setUserPermMap(permData.permissions || {});
       }
 
-      const menuRes = await fetch(`/api/observability/menu-permissions/${u.id}`, {
+      const menuRes = await fetch(`${API_BASE}/observability/menu-permissions/${u.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (menuRes.ok) {
         const menuData = await menuRes.json();
-        setUserMenuPermMap(menuData.menuPermissions || {});
+        const loadedMap = menuData.menuPermissions || {};
+        
+        // Populate default role grants if map is empty
+        const roleLower = (u.role || 'member').toLowerCase();
+        const defaultMap: Record<string, boolean> = {};
+        if (['owner', 'admin'].includes(roleLower)) {
+          ['scan', 'provision', 'credentials', 'cost', 'optimization', 'databases', 'guide', 'users', 'events', 'emails', 'settings'].forEach(k => defaultMap[k] = true);
+        } else if (['contributor', 'member'].includes(roleLower)) {
+          ['scan', 'provision', 'cost', 'optimization', 'guide', 'events'].forEach(k => defaultMap[k] = true);
+        } else if (roleLower === 'viewer') {
+          ['scan', 'optimization', 'guide', 'events'].forEach(k => defaultMap[k] = true);
+        }
+
+        setUserMenuPermMap({ ...defaultMap, ...loadedMap });
       }
     } catch (e) {
       console.error('Failed to load permissions:', e);
@@ -133,7 +147,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
       if (currentActions.includes(action)) {
         copy[appKey][env] = currentActions.filter(a => a !== action);
       } else {
-        copy[appKey][env] = [...currentActions, action];
+        copy[appKey][env].push(action);
       }
       return copy;
     });
@@ -155,28 +169,30 @@ export const TeamPage: React.FC<TeamPageProps> = ({
   };
 
   const handleGrantAllApp = (appKey: string) => {
-    const allActions = ['view', 'deploy', 'provision', 'cost_remediation', 'db_manage'];
-    setUserPermMap(prev => ({
-      ...prev,
-      [appKey]: {
-        dev: [...allActions],
-        qa: [...allActions],
-        prod: [...allActions]
-      }
-    }));
+    setUserPermMap(prev => {
+      const copy = JSON.parse(JSON.stringify(prev));
+      copy[appKey] = {
+        dev: ['read', 'logs', 'restart', 'deploy'],
+        qa: ['read', 'logs', 'restart', 'deploy'],
+        prod: ['read', 'logs', 'restart', 'deploy']
+      };
+      return copy;
+    });
   };
 
-  const handleClearAllApp = (appKey: string) => {
-    setUserPermMap(prev => ({
-      ...prev,
-      [appKey]: { dev: [], qa: [], prod: [] }
-    }));
+  const handleRevokeAllApp = (appKey: string) => {
+    setUserPermMap(prev => {
+      const copy = JSON.parse(JSON.stringify(prev));
+      copy[appKey] = { dev: [], qa: [], prod: [] };
+      return copy;
+    });
   };
 
   const handleSavePermissions = async () => {
     if (!selectedPermUser) return;
     setSavingPerms(true);
     try {
+      const token = localStorage.getItem('evaops_token');
       const res = await fetch(`${API_BASE}/auth/users/${selectedPermUser.id}/resource-permissions`, {
         method: 'PUT',
         headers: {
@@ -186,7 +202,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
         body: JSON.stringify({ permissions: userPermMap })
       });
 
-      await fetch(`/api/observability/menu-permissions/${selectedPermUser.id}`, {
+      await fetch(`${API_BASE}/observability/menu-permissions/${selectedPermUser.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1302,39 +1318,76 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                         Select Applications, Environments & Operational Action Grants:
                       </div>
 
-                      {/* SWA / ACA / VM Category Switcher Tabs */}
-                      <div style={{
-                        display: 'flex',
-                        gap: '6px',
-                        padding: '4px',
-                        borderRadius: '10px',
-                        background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.03)',
-                        border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)'
-                      }}>
-                        {[
-                          { key: 'all', label: '⚡ All Apps' },
-                          { key: 'swa', label: '🌐 SWA' },
-                          { key: 'aca', label: '📦 ACA' },
-                          { key: 'vm', label: '🖥️ VM' }
-                        ].map(tab => (
-                          <button
-                            key={tab.key}
-                            type="button"
-                            onClick={() => setModalCategoryTab(tab.key as any)}
-                            style={{
-                              padding: '5px 12px',
-                              borderRadius: '7px',
-                              fontSize: '0.76rem',
-                              fontWeight: 700,
-                              border: 'none',
-                              cursor: 'pointer',
-                              background: modalCategoryTab === tab.key ? '#8b5cf6' : 'transparent',
-                              color: modalCategoryTab === tab.key ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)')
-                            }}
-                          >
-                            {tab.label}
-                          </button>
-                        ))}
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        {/* Environment Switcher Tabs */}
+                        <div style={{
+                          display: 'flex',
+                          gap: '4px',
+                          padding: '4px',
+                          borderRadius: '10px',
+                          background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.03)',
+                          border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)'
+                        }}>
+                          {[
+                            { key: 'all', label: '🌐 All Envs' },
+                            { key: 'dev', label: 'Dev' },
+                            { key: 'qa', label: 'QA' },
+                            { key: 'prod', label: 'Prod' }
+                          ].map(tab => (
+                            <button
+                              key={tab.key}
+                              type="button"
+                              onClick={() => setModalEnvTab(tab.key as any)}
+                              style={{
+                                padding: '5px 10px',
+                                borderRadius: '7px',
+                                fontSize: '0.74rem',
+                                fontWeight: 700,
+                                border: 'none',
+                                cursor: 'pointer',
+                                background: modalEnvTab === tab.key ? '#3b82f6' : 'transparent',
+                                color: modalEnvTab === tab.key ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)')
+                              }}
+                            >
+                              {tab.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* SWA / ACA / VM Category Switcher Tabs */}
+                        <div style={{
+                          display: 'flex',
+                          gap: '4px',
+                          padding: '4px',
+                          borderRadius: '10px',
+                          background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.03)',
+                          border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)'
+                        }}>
+                          {[
+                            { key: 'all', label: '⚡ All Apps' },
+                            { key: 'swa', label: '🌐 SWA' },
+                            { key: 'aca', label: '📦 ACA' },
+                            { key: 'vm', label: '🖥️ VM' }
+                          ].map(tab => (
+                            <button
+                              key={tab.key}
+                              type="button"
+                              onClick={() => setModalCategoryTab(tab.key as any)}
+                              style={{
+                                padding: '5px 10px',
+                                borderRadius: '7px',
+                                fontSize: '0.74rem',
+                                fontWeight: 700,
+                                border: 'none',
+                                cursor: 'pointer',
+                                background: modalCategoryTab === tab.key ? '#8b5cf6' : 'transparent',
+                                color: modalCategoryTab === tab.key ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)')
+                              }}
+                            >
+                              {tab.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1413,7 +1466,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleClearAllApp(app.key)}
+                              onClick={() => handleRevokeAllApp(app.key)}
                               style={{
                                 padding: '4px 12px',
                                 borderRadius: '6px',
@@ -1431,8 +1484,14 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                         </div>
 
                         {/* Environments Grid */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
-                          {(['dev', 'qa', 'prod'] as const).map(env => {
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: modalEnvTab === 'all' ? 'repeat(3, 1fr)' : '1fr',
+                          gap: '14px'
+                        }}>
+                          {(['dev', 'qa', 'prod'] as const)
+                            .filter(env => modalEnvTab === 'all' || modalEnvTab === env)
+                            .map(env => {
                             const currentActions = appGrants[env] || [];
                             const isEnvActive = currentActions.length > 0;
                             const envLabels = { dev: 'Dev', qa: 'QA', prod: 'Prod' };

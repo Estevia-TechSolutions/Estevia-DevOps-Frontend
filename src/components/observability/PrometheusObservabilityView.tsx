@@ -16,9 +16,10 @@ interface MetricItem {
 
 interface PrometheusObservabilityViewProps {
     theme?: 'dark' | 'light';
+    API_BASE?: string;
 }
 
-export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewProps> = ({ theme = 'dark' }) => {
+export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewProps> = ({ theme = 'dark', API_BASE = 'http://localhost:5005/api' }) => {
     const isLight = theme === 'light';
     const [timeWindow, setTimeWindow] = useState<'15m' | '1h' | '6h' | '24h' | '7d'>('1h');
     const [selectedEnv, setSelectedEnv] = useState<'dev' | 'qa' | 'prod'>('dev');
@@ -39,7 +40,7 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
     const fetchCatalog = async () => {
         try {
             const token = localStorage.getItem('evaops_token');
-            const res = await fetch('/api/auth/resource-catalog', {
+            const res = await fetch(`${API_BASE}/auth/resource-catalog`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) {
@@ -58,7 +59,7 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
         setLoading(true);
         try {
             const token = localStorage.getItem('evaops_token');
-            const res = await fetch(`/api/observability/metrics?app_key=${selectedApp}&environment=${selectedEnv}&time_window=${timeWindow}&resource_type=${resourceType}`, {
+            const res = await fetch(`${API_BASE}/observability/metrics?app_key=${selectedApp}&environment=${selectedEnv}&time_window=${timeWindow}&resource_type=${resourceType}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const data = await res.json();

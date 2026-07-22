@@ -7417,41 +7417,52 @@ function App() {
             )}
 
             {scanSubTab === 'compliance' && (
-              <CostPage
-                costSummary={costSummary}
-                detailedCosts={detailedCosts}
-                costSuggestions={costSuggestions}
-                appliedSuggestions={appliedSuggestions}
-                invoices={invoices}
-                loadingCosts={loadingCosts}
-                costError={costError}
-                remediating={remediating}
-                costTab={costTab}
-                setCostTab={setCostTab}
-                costSearch={costSearch}
-                setCostSearch={setCostSearch}
-                envFilter={envFilter}
-                setEnvFilter={setEnvFilter}
-                handleApplyRemediation={handleApplyRemediation}
-                theme={theme}
+              <DashboardPage
+                activeSubTab="compliance"
+                apps={apps as any}
+                scanning={scanning}
+                scanProgress={scanProgress}
+                scanError={scanError}
+                appGroups={appGroups as any}
+                collapsedScanGroups={collapsedScanGroups}
+                setCollapsedScanGroups={setCollapsedScanGroups}
+                toggleGroupScan={toggleGroupScan}
                 deletingAppName={deletingAppName}
                 handleDeleteApp={handleDeleteApp}
+                openDnsModal={openDnsModal}
+                openPipelineModal={openPipelineModal}
+                openDockerfileEditor={openDockerfileEditor}
+                ymlHealthMap={ymlHealthMap}
+                ymlHealthLoading={ymlHealthLoading}
+                handleScan={handleScan}
+                refreshHealthForRepo={refreshHealthForRepo}
+                theme={theme}
+                setSelectedStageForJobs={setSelectedStageForJobs}
+                azureDevopsOrgUrl={azureDevopsOrgUrl}
+                azureDevopsProject={azureDevopsProject}
+                onDeployBranch={handleDeployBranchFromDashboard}
                 currentUser={user}
-                API_BASE={API_BASE}
-                organizationId={organizationId}
+                onShowLogs={setActiveLogsAppName}
+                onShowBuildHistory={(app) => setBuildHistoryDrawerApp(app)}
+                livePipelineRuns={livePipelineRuns}
+                setLivePipelineRuns={setLivePipelineRuns}
+                onCloneApp={setCloningApp}
                 onResourceControl={handleResourceControl}
                 controllingResource={controllingResource}
-                fetchCostData={fetchCostData}
-                mode="optimization"
+                onBuildTransition={(title, message, type) => {
+                  showToast(title, message, type);
+                  addEvent(title, message, 'build', type === 'success' ? 'success' : type === 'error' ? 'failed' : 'info');
+                  addNotification(title, message, type === 'success' ? 'success' : type === 'error' ? 'error' : 'info');
+                }}
               />
             )}
 
             {scanSubTab === 'observability' && (
-              <PrometheusObservabilityView theme={theme} />
+              <PrometheusObservabilityView API_BASE={API_BASE} theme={theme} />
             )}
 
             {scanSubTab === 'incidents' && (
-              <IncidentsAlertsView theme={theme} />
+              <IncidentsAlertsView API_BASE={API_BASE} theme={theme} />
             )}
           </div>
         )}
