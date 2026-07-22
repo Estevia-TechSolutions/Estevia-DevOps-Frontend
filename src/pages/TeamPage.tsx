@@ -1232,42 +1232,66 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
                       {[
-                        { key: 'scan', label: '🌐 Cloud Scanning' },
-                        { key: 'provision', label: '⚙️ Provisioning' },
-                        { key: 'credentials', label: '🔑 Cloud Vault' },
-                        { key: 'cost', label: '💰 Cost & Budget' },
-                        { key: 'optimization', label: '🧠 AI Advisor' },
-                        { key: 'databases', label: '🗄️ Database Hub' },
-                        { key: 'guide', label: '📖 User Guide' },
-                        { key: 'users', label: '👥 Team Management' },
-                        { key: 'events', label: '📜 System Events' },
-                        { key: 'emails', label: '✉️ Email Templates' },
-                        { key: 'settings', label: '⚙️ Org Licensing' }
-                      ].map(menu => (
-                        <label key={menu.key} style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          fontSize: '0.78rem',
-                          fontWeight: 600,
-                          color: isLight ? '#0f172a' : 'var(--text-primary)',
-                          cursor: 'pointer'
-                        }}>
-                          <input
-                            type="checkbox"
-                            checked={Boolean(userMenuPermMap[menu.key])}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              setUserMenuPermMap(prev => ({
-                                ...prev,
-                                [menu.key]: checked
-                              }));
-                            }}
-                            style={{ accentColor: '#8b5cf6', cursor: 'pointer' }}
-                          />
-                          <span>{menu.label}</span>
-                        </label>
-                      ))}
+                        { key: 'scan', label: '🌐 Cloud Scanning', adminOnly: false, writeOnly: false },
+                        { key: 'provision', label: '⚙️ Provisioning', adminOnly: false, writeOnly: true },
+                        { key: 'credentials', label: '🔑 Cloud Vault', adminOnly: true, writeOnly: true },
+                        { key: 'cost', label: '💰 Cost & Budget', adminOnly: false, writeOnly: false },
+                        { key: 'optimization', label: '🧠 AI Advisor', adminOnly: false, writeOnly: false },
+                        { key: 'databases', label: '🗄️ Database Hub', adminOnly: false, writeOnly: true },
+                        { key: 'guide', label: '📖 User Guide', adminOnly: false, writeOnly: false },
+                        { key: 'users', label: '👥 Team Management', adminOnly: true, writeOnly: true },
+                        { key: 'events', label: '📜 System Events', adminOnly: false, writeOnly: false },
+                        { key: 'emails', label: '✉️ Email Templates', adminOnly: true, writeOnly: true },
+                        { key: 'settings', label: '⚙️ Org Licensing', adminOnly: true, writeOnly: true }
+                      ].map(menu => {
+                        const targetRole = (selectedPermUser?.role || 'member').toLowerCase();
+                        const isUserAdmin = ['owner', 'admin'].includes(targetRole);
+                        const isUserViewer = targetRole === 'viewer';
+                        const isDisabled = (menu.adminOnly && !isUserAdmin) || (menu.writeOnly && isUserViewer);
+
+                        return (
+                          <label key={menu.key} style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            color: isDisabled ? (isLight ? '#94a3b8' : 'var(--text-secondary)') : (isLight ? '#0f172a' : 'var(--text-primary)'),
+                            cursor: isDisabled ? 'not-allowed' : 'pointer',
+                            opacity: isDisabled ? 0.6 : 1
+                          }} title={isDisabled ? (menu.adminOnly ? '🔒 Reserved strictly for Owner & Admin roles' : '🔒 Read-only Viewers cannot access write operations') : ''}>
+                            <input
+                              type="checkbox"
+                              disabled={isDisabled}
+                              checked={isDisabled ? false : Boolean(userMenuPermMap[menu.key])}
+                              onChange={(e) => {
+                                if (isDisabled) return;
+                                const checked = e.target.checked;
+                                setUserMenuPermMap(prev => ({
+                                  ...prev,
+                                  [menu.key]: checked
+                                }));
+                              }}
+                              style={{ accentColor: '#8b5cf6', cursor: isDisabled ? 'not-allowed' : 'pointer' }}
+                            />
+                            <span>{menu.label}</span>
+                            {isDisabled && (
+                              <span style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                padding: '2px 6px',
+                                borderRadius: '10px',
+                                background: isLight ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.15)',
+                                color: isLight ? '#dc2626' : '#ef4444',
+                                border: isLight ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid rgba(239, 68, 68, 0.3)',
+                                marginLeft: 'auto'
+                              }}>
+                                🔒 Locked
+                              </span>
+                            )}
+                          </label>
+                        );
+                      })}
                     </div>
                   </div>
 
