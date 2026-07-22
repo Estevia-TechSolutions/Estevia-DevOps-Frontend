@@ -654,9 +654,7 @@ function App() {
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
 
   // Multi-Mode MFA state variables
-  const [mfaActiveMode, setMfaActiveMode] = useState<'totp' | 'push' | 'email' | 'backup'>('totp');
-  const [pushPromptId, setPushPromptId] = useState<string | null>(null);
-  const [pushNumber, setPushNumber] = useState<string | null>(null);
+  const [mfaActiveMode, setMfaActiveMode] = useState<'totp' | 'email' | 'backup'>('totp');
   const [emailOtpSent, setEmailOtpSent] = useState(false);
   const [emailOtpCode, setEmailOtpCode] = useState('');
   const [backupCode, setBackupCode] = useState('');
@@ -5115,73 +5113,7 @@ function App() {
     );
   }
 
-  const [pushLoading, setPushLoading] = useState(false);
-  const [pushApproving, setPushApproving] = useState(false);
-  const [pushApprovedSuccess, setPushApprovedSuccess] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
-
-  // Poll Push Approval Status automatically every 2 seconds
-  useEffect(() => {
-    if (authStep === 'mfa-verify' && mfaActiveMode === 'push' && pushPromptId) {
-      const interval = setInterval(async () => {
-        try {
-          const res = await fetch(`${API_BASE}/mfa/poll-push-status`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ promptId: pushPromptId })
-          });
-          const data = await res.json();
-          if (data.approved && data.token) {
-            setToken(data.token);
-            localStorage.setItem('devops_token', data.token);
-            clearInterval(interval);
-          }
-        } catch (e) {}
-      }, 2000);
-      return () => clearInterval(interval);
-    }
-  }, [authStep, mfaActiveMode, pushPromptId]);
-
-  const handleInitiatePush = async () => {
-    if (!mfaTempToken) return;
-    setAuthError(null);
-    setPushLoading(true);
-    setPushApprovedSuccess(false);
-    try {
-      const res = await fetch(`${API_BASE}/mfa/send-push-prompt`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tempToken: mfaTempToken })
-      });
-      const data = await res.json();
-      if (data.promptId) {
-        setPushPromptId(data.promptId);
-        setPushNumber(data.numberMatch);
-      } else {
-        setAuthError(data.error || 'Failed to dispatch push prompt.');
-      }
-    } catch (e: any) {
-      setAuthError(e.message || 'Push prompt failed.');
-    } finally {
-      setPushLoading(false);
-    }
-  };
-
-  const handleApprovePushLocally = async () => {
-    if (!pushPromptId || !pushNumber) return;
-    setPushApproving(true);
-    try {
-      await fetch(`${API_BASE}/mfa/approve-push`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ promptId: pushPromptId, selectedNumber: pushNumber })
-      });
-      setPushApprovedSuccess(true);
-    } catch (e) {
-    } finally {
-      setPushApproving(false);
-    }
-  };
 
   const handleSendEmailOtp = async () => {
     if (!mfaTempToken) return;
@@ -5819,7 +5751,6 @@ function App() {
                   }}>
                     {[
                       { key: 'totp', label: 'TOTP', icon: '📱' },
-                      { key: 'push', label: 'Push', icon: '📲', action: () => { if (!pushPromptId) handleInitiatePush(); } },
                       { key: 'email', label: 'Email', icon: '✉️', action: () => { if (!emailOtpSent) handleSendEmailOtp(); } },
                       { key: 'backup', label: 'Backup', icon: '🔑' }
                     ].map(tab => {
@@ -5859,39 +5790,8 @@ function App() {
                   </div>
 
                   <h4 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {mfaActiveMode === 'push' ? 'Push Approval' : mfaActiveMode === 'email' ? 'Email Security Passcode' : mfaActiveMode === 'backup' ? 'Emergency Backup Recovery Code' : 'MFA Verification'}
+                    {mfaActiveMode === 'email' ? 'Email Security Passcode' : mfaActiveMode === 'backup' ? 'Emergency Backup Recovery Code' : 'MFA Verification'}
                   </h4>
-
-                  {/* 📲 PUSH APPROVAL MODE */}
-                  {mfaActiveMode === 'push' && (
-                    <div style={{ textAlign: 'center', padding: '12px 0' }}>
-                      {pushApprovedSuccess && (
-                        <div style={{ padding: '10px 14px', background: 'rgba(124,58,237,0.2)', border: '1px solid var(--accent-purple)', borderRadius: '8px', color: '#fff', fontSize: '0.78rem', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                          <span>✓</span>
-                          <span>Push Authorization Approved! Logging you in...</span>
-                        </div>
-                      )}
-                      {pushNumber ? (
-                        <>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Matching Verification Number:</div>
-                          <div style={{ fontSize: '36px', fontWeight: 900, color: 'var(--accent-purple)', letterSpacing: '4px', marginBottom: '14px' }}>{pushNumber}</div>
-                          <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '12px' }}>Polling approval status automatically...</p>
-                          <button type="button" onClick={handleApprovePushLocally} disabled={pushApproving || pushApprovedSuccess} style={{ padding: '9px 18px', fontSize: '0.78rem', fontWeight: 700, borderRadius: '8px', background: 'rgba(124,58,237,0.2)', border: '1px solid var(--accent-purple)', color: '#fff', cursor: pushApproving || pushApprovedSuccess ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                            {pushApproving ? <RefreshCw size={14} className="spin-anim" /> : <span>✓</span>}
-                            <span>{pushApprovedSuccess ? 'Authorization Approved ✓' : pushApproving ? 'Approving Push Request...' : 'Approve Push Request'}</span>
-                          </button>
-                        </>
-                      ) : (
-                        <button type="button" onClick={handleInitiatePush} disabled={pushLoading} className="btn-primary" style={{ width: '100%', padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: pushLoading ? 'not-allowed' : 'pointer' }}>
-                          {pushLoading ? <RefreshCw size={15} className="spin-anim" /> : <span>📲</span>}
-                          <span>{pushLoading ? 'Dispatching Push Request...' : 'Dispatch Push Authorization Prompt'}</span>
-                        </button>
-                      )}
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '12px', background: 'rgba(255,255,255,0.03)', padding: '8px 12px', borderRadius: '8px', border: '1px dashed var(--glass-border)' }}>
-                        ℹ️ Authorizes session via active device token. Lost your phone? Switch to <strong>✉️ Email</strong> or <strong>🔑 Backup</strong> tab above.
-                      </div>
-                    </div>
-                  )}
 
                   {/* ✉️ EMAIL OTP MODE */}
                   {mfaActiveMode === 'email' && (
