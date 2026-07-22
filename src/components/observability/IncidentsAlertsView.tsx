@@ -27,12 +27,16 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
     const [showConfigModal, setShowConfigModal] = useState<boolean>(false);
     const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
 
+    // Dynamic Data State
+    const [teamUsers, setTeamUsers] = useState<Array<{ id: string; name: string; email: string }>>([]);
+    const [appsCatalog, setAppsCatalog] = useState<Array<{ key: string; label: string; icon: string }>>([]);
+
     // Grouped Alert Config State per Resource Type
     const [configApp, setConfigApp] = useState<string>('connecthub');
     const [configResourceType, setConfigResourceType] = useState<'swa' | 'aca' | 'vm'>('aca');
     const [configEnv, setConfigEnv] = useState<'dev' | 'qa' | 'prod'>('dev');
-    const [primaryOwner, setPrimaryOwner] = useState<string>('Dhruv Charan');
-    const [secondaryOwner, setSecondaryOwner] = useState<string>('Akhil Menon');
+    const [primaryOwner, setPrimaryOwner] = useState<string>('');
+    const [secondaryOwner, setSecondaryOwner] = useState<string>('');
     const [notificationEmail, setNotificationEmail] = useState<string>('devops-alerts@estevia.com');
     const [selectedCategories, setSelectedCategories] = useState<string[]>([
         'CRITICAL_OUTAGE',
@@ -43,7 +47,33 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
 
     useEffect(() => {
         fetchIncidents();
+        fetchTeamUsersAndCatalog();
     }, []);
+
+    const fetchTeamUsersAndCatalog = async () => {
+        try {
+            const token = localStorage.getItem('evaops_token');
+            const [usersRes, catRes] = await Promise.all([
+                fetch('/api/auth/users', { headers: { Authorization: `Bearer ${token}` } }),
+                fetch('/api/auth/resource-catalog', { headers: { Authorization: `Bearer ${token}` } })
+            ]);
+
+            if (usersRes.ok) {
+                const uData = await usersRes.json();
+                setTeamUsers(uData.users || []);
+            }
+
+            if (catRes.ok) {
+                const cData = await catRes.json();
+                setAppsCatalog(cData.catalog || []);
+                if (cData.catalog && cData.catalog.length > 0) {
+                    setConfigApp(cData.catalog[0].key);
+                }
+            }
+        } catch (err) {
+            console.error('Failed to load team users or catalog:', err);
+        }
+    };
 
     const fetchIncidents = async () => {
         setLoading(true);
@@ -360,9 +390,9 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
                                         <option value="vm">🖥️ Virtual Machine (VM)</option>
                                     </select>
                                     <select value={configApp} onChange={(e) => setConfigApp(e.target.value)} style={{ padding: '8px', borderRadius: '8px', fontSize: '0.8rem' }}>
-                                        <option value="connecthub">ConnectHub</option>
-                                        <option value="docai">DocAI Portal</option>
-                                        <option value="protrack">ProTrack ERP</option>
+                                        {appsCatalog.map(app => (
+                                            <option key={app.key} value={app.key}>{app.icon || '📦'} {app.label}</option>
+                                        ))}
                                     </select>
                                     <select value={configEnv} onChange={(e) => setConfigEnv(e.target.value as any)} style={{ padding: '8px', borderRadius: '8px', fontSize: '0.8rem' }}>
                                         <option value="dev">Dev</option>
@@ -378,13 +408,23 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
                                     <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: isLight ? '#475569' : 'var(--text-secondary)', marginBottom: '4px' }}>
                                         Primary Responsible Engineer:
                                     </label>
-                                    <input type="text" value={primaryOwner} onChange={(e) => setPrimaryOwner(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', fontSize: '0.8rem' }} />
+                                    <select value={primaryOwner} onChange={(e) => setPrimaryOwner(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', fontSize: '0.8rem' }}>
+                                        <option value="">-- Select Team Member --</option>
+                                        {teamUsers.map(u => (
+                                            <option key={u.id} value={u.name}>{u.name} ({u.email})</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: isLight ? '#475569' : 'var(--text-secondary)', marginBottom: '4px' }}>
                                         Secondary Backup Engineer:
                                     </label>
-                                    <input type="text" value={secondaryOwner} onChange={(e) => setSecondaryOwner(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', fontSize: '0.8rem' }} />
+                                    <select value={secondaryOwner} onChange={(e) => setSecondaryOwner(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', fontSize: '0.8rem' }}>
+                                        <option value="">-- Select Team Member --</option>
+                                        {teamUsers.map(u => (
+                                            <option key={u.id} value={u.name}>{u.name} ({u.email})</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
 

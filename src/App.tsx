@@ -7295,7 +7295,7 @@ function App() {
         {/* TAB 1: CLOUD RESOURCE SCANNING */}
         {activeTab === 'scan' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* Cloud Scanning Sub-Tab Navigation Bar */}
+            {/* Cloud Scanning Single-Row 4-Sub-Tab Navigation Bar */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -7321,6 +7321,23 @@ function App() {
                 }}
               >
                 🌐 Resource Discovery
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setScanSubTab('compliance')}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: scanSubTab === 'compliance' ? '#8b5cf6' : 'transparent',
+                  color: scanSubTab === 'compliance' ? '#ffffff' : (theme === 'light' ? '#475569' : 'var(--text-secondary)')
+                }}
+              >
+                🛡️ Governance & Compliance
               </button>
 
               <button
@@ -7396,6 +7413,36 @@ function App() {
                   addEvent(title, message, 'build', type === 'success' ? 'success' : type === 'error' ? 'failed' : 'info');
                   addNotification(title, message, type === 'success' ? 'success' : type === 'error' ? 'error' : 'info');
                 }}
+              />
+            )}
+
+            {scanSubTab === 'compliance' && (
+              <CostPage
+                costSummary={costSummary}
+                detailedCosts={detailedCosts}
+                costSuggestions={costSuggestions}
+                appliedSuggestions={appliedSuggestions}
+                invoices={invoices}
+                loadingCosts={loadingCosts}
+                costError={costError}
+                remediating={remediating}
+                costTab={costTab}
+                setCostTab={setCostTab}
+                costSearch={costSearch}
+                setCostSearch={setCostSearch}
+                envFilter={envFilter}
+                setEnvFilter={setEnvFilter}
+                handleApplyRemediation={handleApplyRemediation}
+                theme={theme}
+                deletingAppName={deletingAppName}
+                handleDeleteApp={handleDeleteApp}
+                currentUser={user}
+                API_BASE={API_BASE}
+                organizationId={organizationId}
+                onResourceControl={handleResourceControl}
+                controllingResource={controllingResource}
+                fetchCostData={fetchCostData}
+                mode="optimization"
               />
             )}
 
