@@ -1348,17 +1348,26 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                             </span>
 
                             {/* Resource Asset Type Badges (SWA, ACA, VM) */}
-                            <div style={{ display: 'flex', gap: '4px', marginLeft: '6px' }}>
-                              <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 7px', borderRadius: '10px', background: 'rgba(59,130,246,0.12)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.25)' }}>
-                                🌐 SWA
-                              </span>
-                              <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 7px', borderRadius: '10px', background: 'rgba(139,92,246,0.12)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.25)' }}>
-                                📦 ACA
-                              </span>
-                              <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 7px', borderRadius: '10px', background: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)' }}>
-                                🖥️ VM
-                              </span>
-                            </div>
+                             <div style={{ display: 'flex', gap: '4px', marginLeft: '6px' }}>
+                               {(app.resourceTypes || ['swa']).map(type => {
+                                 if (type === 'swa') return (
+                                   <span key="swa" style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 7px', borderRadius: '10px', background: 'rgba(59,130,246,0.12)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.25)' }}>
+                                     🌐 SWA
+                                   </span>
+                                 );
+                                 if (type === 'aca') return (
+                                   <span key="aca" style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 7px', borderRadius: '10px', background: 'rgba(139,92,246,0.12)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.25)' }}>
+                                     📦 ACA
+                                   </span>
+                                 );
+                                 if (type === 'vm') return (
+                                   <span key="vm" style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 7px', borderRadius: '10px', background: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)' }}>
+                                     🖥️ VM
+                                   </span>
+                                 );
+                                 return null;
+                               })}
+                             </div>
                           </div>
 
                           <div style={{ display: 'flex', gap: '8px' }}>
