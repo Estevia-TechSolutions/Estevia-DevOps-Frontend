@@ -5119,6 +5119,28 @@ function App() {
   const [pushApproving, setPushApproving] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
 
+  // Poll Push Approval Status automatically every 2 seconds
+  useEffect(() => {
+    if (authStep === 'mfa-verify' && mfaActiveMode === 'push' && pushPromptId) {
+      const interval = setInterval(async () => {
+        try {
+          const res = await fetch(`${API_BASE}/mfa/poll-push-status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ promptId: pushPromptId })
+          });
+          const data = await res.json();
+          if (data.approved && data.token) {
+            setToken(data.token);
+            localStorage.setItem('devops_token', data.token);
+            clearInterval(interval);
+          }
+        } catch (e) {}
+      }, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [authStep, mfaActiveMode, pushPromptId]);
+
   const handleInitiatePush = async () => {
     if (!mfaTempToken) return;
     setAuthError(null);
