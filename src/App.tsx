@@ -5115,9 +5115,14 @@ function App() {
     );
   }
 
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushApproving, setPushApproving] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
+
   const handleInitiatePush = async () => {
     if (!mfaTempToken) return;
     setAuthError(null);
+    setPushLoading(true);
     try {
       const res = await fetch(`${API_BASE}/mfa/send-push-prompt`, {
         method: 'POST',
@@ -5128,24 +5133,35 @@ function App() {
       if (data.promptId) {
         setPushPromptId(data.promptId);
         setPushNumber(data.numberMatch);
+      } else {
+        setAuthError(data.error || 'Failed to dispatch push prompt.');
       }
-    } catch (e) {}
+    } catch (e: any) {
+      setAuthError(e.message || 'Push prompt failed.');
+    } finally {
+      setPushLoading(false);
+    }
   };
 
   const handleApprovePushLocally = async () => {
     if (!pushPromptId || !pushNumber) return;
+    setPushApproving(true);
     try {
       await fetch(`${API_BASE}/mfa/approve-push`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ promptId: pushPromptId, selectedNumber: pushNumber })
       });
-    } catch (e) {}
+    } catch (e) {
+    } finally {
+      setPushApproving(false);
+    }
   };
 
   const handleSendEmailOtp = async () => {
     if (!mfaTempToken) return;
     setAuthError(null);
+    setEmailLoading(true);
     try {
       const res = await fetch(`${API_BASE}/mfa/send-email-otp`, {
         method: 'POST',
@@ -5154,7 +5170,12 @@ function App() {
       });
       const data = await res.json();
       if (data.success) setEmailOtpSent(true);
-    } catch (e) {}
+      else setAuthError(data.error || 'Failed to dispatch email passcode.');
+    } catch (e: any) {
+      setAuthError(e.message || 'Failed to dispatch email passcode.');
+    } finally {
+      setEmailLoading(false);
+    }
   };
 
   const handleVerifyEmailOtp = async () => {
@@ -5824,13 +5845,15 @@ function App() {
                           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Matching Verification Number:</div>
                           <div style={{ fontSize: '36px', fontWeight: 900, color: 'var(--accent-purple)', letterSpacing: '4px', marginBottom: '14px' }}>{pushNumber}</div>
                           <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '12px' }}>Polling approval status automatically...</p>
-                          <button type="button" onClick={handleApprovePushLocally} style={{ padding: '8px 14px', fontSize: '0.75rem', fontWeight: 700, borderRadius: '6px', background: 'rgba(124,58,237,0.2)', border: '1px solid var(--accent-purple)', color: '#fff', cursor: 'pointer' }}>
-                            Simulate Push Approval
+                          <button type="button" onClick={handleApprovePushLocally} disabled={pushApproving} style={{ padding: '9px 18px', fontSize: '0.78rem', fontWeight: 700, borderRadius: '8px', background: 'rgba(124,58,237,0.2)', border: '1px solid var(--accent-purple)', color: '#fff', cursor: pushApproving ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                            {pushApproving ? <RefreshCw size={14} className="spin-anim" /> : <span>✓</span>}
+                            <span>{pushApproving ? 'Approving Push Request...' : 'Approve Push Request'}</span>
                           </button>
                         </>
                       ) : (
-                        <button type="button" onClick={handleInitiatePush} className="btn-primary" style={{ width: '100%', padding: '10px' }}>
-                          Dispatch Push Authorization Prompt
+                        <button type="button" onClick={handleInitiatePush} disabled={pushLoading} className="btn-primary" style={{ width: '100%', padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: pushLoading ? 'not-allowed' : 'pointer' }}>
+                          {pushLoading ? <RefreshCw size={15} className="spin-anim" /> : <span>📲</span>}
+                          <span>{pushLoading ? 'Dispatching Push Request...' : 'Dispatch Push Authorization Prompt'}</span>
                         </button>
                       )}
                     </div>
@@ -5845,13 +5868,15 @@ function App() {
                         maxLength={6}
                         value={emailOtpCode}
                         onChange={(e) => setEmailOtpCode(e.target.value.replace(/\D/g, ''))}
-                        style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', color: '#fff', fontSize: '18px', fontWeight: 'bold', textAlign: 'center', letterSpacing: '4px', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '10px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', fontSize: '18px', fontWeight: 'bold', textAlign: 'center', letterSpacing: '4px', boxSizing: 'border-box' }}
                       />
-                      <button type="button" onClick={handleVerifyEmailOtp} className="btn-primary" style={{ width: '100%', padding: '10px' }}>
-                        Verify Email Passcode
+                      <button type="button" onClick={handleVerifyEmailOtp} disabled={authLoading} className="btn-primary" style={{ width: '100%', padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                        {authLoading ? <RefreshCw size={15} className="spin-anim" /> : null}
+                        <span>{authLoading ? 'Verifying Email Passcode...' : 'Verify Email Passcode'}</span>
                       </button>
-                      <button type="button" onClick={handleSendEmailOtp} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}>
-                        Resend Email Passcode
+                      <button type="button" onClick={handleSendEmailOtp} disabled={emailLoading} style={{ background: 'none', border: 'none', color: '#6366f1', fontSize: '0.75rem', cursor: emailLoading ? 'not-allowed' : 'pointer', textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        {emailLoading && <RefreshCw size={13} className="spin-anim" />}
+                        <span>{emailLoading ? 'Sending Passcode...' : 'Resend Email Passcode'}</span>
                       </button>
                     </div>
                   )}
