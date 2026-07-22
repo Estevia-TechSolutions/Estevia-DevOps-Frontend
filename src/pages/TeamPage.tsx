@@ -80,6 +80,115 @@ export const TeamPage: React.FC<TeamPageProps> = ({
   const [showSsoOffModal, setShowSsoOffModal] = useState<boolean>(false);
   const [resettingOrgMfa, setResettingOrgMfa] = useState<boolean>(false);
 
+  // Granular Resource & Environment Permissions States
+  const [selectedPermUser, setSelectedPermUser] = useState<UserRecord | null>(null);
+  const [resourceCatalog, setResourceCatalog] = useState<Array<{ key: string; label: string; icon: string }>>([]);
+  const [userPermMap, setUserPermMap] = useState<Record<string, Record<string, string[]>>>({});
+  const [loadingPerms, setLoadingPerms] = useState<boolean>(false);
+  const [savingPerms, setSavingPerms] = useState<boolean>(false);
+
+  const handleOpenPermModal = async (u: UserRecord) => {
+    setSelectedPermUser(u);
+    setLoadingPerms(true);
+    try {
+      const catRes = await fetch(`${API_BASE}/auth/resource-catalog`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (catRes.ok) {
+        const catData = await catRes.json();
+        setResourceCatalog(catData.catalog || []);
+      }
+
+      const permRes = await fetch(`${API_BASE}/auth/users/${u.id}/resource-permissions`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (permRes.ok) {
+        const permData = await permRes.json();
+        setUserPermMap(permData.permissions || {});
+      }
+    } catch (e) {
+      console.error('Failed to load permissions:', e);
+    } finally {
+      setLoadingPerms(false);
+    }
+  };
+
+  const handleToggleEnvAction = (appKey: string, env: 'dev' | 'qa' | 'prod', action: string) => {
+    setUserPermMap(prev => {
+      const copy = JSON.parse(JSON.stringify(prev));
+      if (!copy[appKey]) copy[appKey] = { dev: [], qa: [], prod: [] };
+      if (!copy[appKey][env]) copy[appKey][env] = [];
+      const currentActions: string[] = copy[appKey][env];
+      if (currentActions.includes(action)) {
+        copy[appKey][env] = currentActions.filter(a => a !== action);
+      } else {
+        copy[appKey][env] = [...currentActions, action];
+      }
+      return copy;
+    });
+  };
+
+  const handleToggleEnvAll = (appKey: string, env: 'dev' | 'qa' | 'prod') => {
+    const allActions = ['view', 'deploy', 'provision', 'cost_remediation', 'db_manage'];
+    setUserPermMap(prev => {
+      const copy = JSON.parse(JSON.stringify(prev));
+      if (!copy[appKey]) copy[appKey] = { dev: [], qa: [], prod: [] };
+      const currentActions: string[] = copy[appKey][env] || [];
+      if (currentActions.length === allActions.length) {
+        copy[appKey][env] = [];
+      } else {
+        copy[appKey][env] = [...allActions];
+      }
+      return copy;
+    });
+  };
+
+  const handleGrantAllApp = (appKey: string) => {
+    const allActions = ['view', 'deploy', 'provision', 'cost_remediation', 'db_manage'];
+    setUserPermMap(prev => ({
+      ...prev,
+      [appKey]: {
+        dev: [...allActions],
+        qa: [...allActions],
+        prod: [...allActions]
+      }
+    }));
+  };
+
+  const handleClearAllApp = (appKey: string) => {
+    setUserPermMap(prev => ({
+      ...prev,
+      [appKey]: { dev: [], qa: [], prod: [] }
+    }));
+  };
+
+  const handleSavePermissions = async () => {
+    if (!selectedPermUser) return;
+    setSavingPerms(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/users/${selectedPermUser.id}/resource-permissions`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ permissions: userPermMap })
+      });
+      if (res.ok) {
+        setUpdateMsg({ type: 'success', text: `✓ Granular access permissions updated for ${selectedPermUser.name}.` });
+        setTimeout(() => setUpdateMsg(null), 3500);
+        setSelectedPermUser(null);
+      } else {
+        setUpdateMsg({ type: 'error', text: 'Failed to update permissions.' });
+        setTimeout(() => setUpdateMsg(null), 3500);
+      }
+    } catch (e) {
+      console.error('Failed to save permissions:', e);
+    } finally {
+      setSavingPerms(false);
+    }
+  };
+
   const activeUserInList = users.find(u => u.id === currentUser?.id);
   const isMfaEnabledForSelf = !!(
     Number(activeUserInList?.mfa_enabled) === 1 ||
@@ -860,6 +969,29 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                             Reset MFA
                           </button>
                         ) : null}
+
+                        {canManageRoles && (
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={() => handleOpenPermModal(u)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              height: '32px',
+                              padding: '0 12px',
+                              fontSize: '0.76rem',
+                              cursor: 'pointer',
+                              color: 'var(--accent-teal)',
+                              borderColor: 'rgba(20, 184, 166, 0.25)',
+                              background: 'rgba(20, 184, 166, 0.05)'
+                            }}
+                          >
+                            <KeyRound size={12} />
+                            Permissions 🔑
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -867,6 +999,321 @@ export const TeamPage: React.FC<TeamPageProps> = ({
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Granular Resource & Environment Permission Matrix Modal */}
+      {selectedPermUser && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(2, 6, 23, 0.8)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+          animation: 'fade-in-anim 0.2s ease-out'
+        }}>
+          <div className="glass-panel" style={{
+            width: '840px',
+            maxWidth: '100%',
+            maxHeight: '92vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            borderRadius: '20px',
+            border: '1px solid rgba(139, 92, 246, 0.3)'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '20px 28px',
+              borderBottom: '1px solid var(--glass-border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'rgba(139, 92, 246, 0.04)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #8b5cf6, #d946ef)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: '1.1rem'
+                }}>
+                  🔑
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    Granular Access Permissions — {selectedPermUser.name}
+                  </h3>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                    <span>{selectedPermUser.email}</span>
+                    <span style={{
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      background: ['owner', 'admin'].includes(selectedPermUser.role?.toLowerCase()) ? 'rgba(139, 92, 246, 0.2)' : 'rgba(20, 184, 166, 0.2)',
+                      color: ['owner', 'admin'].includes(selectedPermUser.role?.toLowerCase()) ? '#a78bfa' : '#2dd4bf'
+                    }}>
+                      {selectedPermUser.role}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedPermUser(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '24px 28px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {['owner', 'admin'].includes(selectedPermUser.role?.toLowerCase()) && (
+                <div style={{
+                  padding: '14px 18px',
+                  borderRadius: '12px',
+                  background: 'rgba(139, 92, 246, 0.08)',
+                  border: '1px solid rgba(139, 92, 246, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <Shield size={20} style={{ color: '#a78bfa', flexShrink: 0 }} />
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                    <strong>Full Access Auto-Bypass:</strong> User has <strong>{selectedPermUser.role.toUpperCase()}</strong> status. Owners and Admins automatically possess unrestricted access to all applications, environments, and operational actions by default.
+                  </div>
+                </div>
+              )}
+
+              {loadingPerms ? (
+                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  <RefreshCw size={24} className="spin-anim" style={{ marginBottom: '12px', color: '#8b5cf6' }} />
+                  <div>Loading dynamic resource catalog and user grants...</div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                    Select Applications, Environments & Operational Action Grants:
+                  </div>
+
+                  {resourceCatalog.map(app => {
+                    const appGrants = userPermMap[app.key] || { dev: [], qa: [], prod: [] };
+                    return (
+                      <div key={app.key} style={{
+                        padding: '18px 22px',
+                        borderRadius: '14px',
+                        background: 'rgba(255,255,255,0.02)',
+                        border: '1px solid var(--glass-border)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '16px'
+                      }}>
+                        {/* App Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '1.2rem' }}>{app.icon || '📦'}</span>
+                            <span style={{ fontSize: '0.96rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              {app.label}
+                            </span>
+                            <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                              ({app.key})
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleGrantAllApp(app.key)}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                fontSize: '0.72rem',
+                                fontWeight: 600,
+                                background: 'rgba(139, 92, 246, 0.15)',
+                                color: '#a78bfa',
+                                border: '1px solid rgba(139, 92, 246, 0.3)',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Grant All
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleClearAllApp(app.key)}
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                fontSize: '0.72rem',
+                                fontWeight: 600,
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                color: '#f87171',
+                                border: '1px solid rgba(239, 68, 68, 0.25)',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Clear
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Environments Grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+                          {(['dev', 'qa', 'prod'] as const).map(env => {
+                            const currentActions = appGrants[env] || [];
+                            const isEnvActive = currentActions.length > 0;
+                            const envLabels = { dev: 'Dev', qa: 'QA', prod: 'Prod' };
+                            const envColors = { dev: '#10b981', qa: '#f59e0b', prod: '#ef4444' };
+
+                            return (
+                              <div key={env} style={{
+                                padding: '14px',
+                                borderRadius: '10px',
+                                background: isEnvActive ? 'rgba(139, 92, 246, 0.05)' : 'rgba(0,0,0,0.15)',
+                                border: isEnvActive ? `1px solid ${envColors[env]}50` : '1px solid rgba(255,255,255,0.05)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '10px'
+                              }}>
+                                {/* Environment Pill Header */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <div
+                                    onClick={() => handleToggleEnvAll(app.key, env)}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      cursor: 'pointer',
+                                      padding: '4px 10px',
+                                      borderRadius: '20px',
+                                      background: isEnvActive ? `${envColors[env]}25` : 'rgba(255,255,255,0.05)',
+                                      color: isEnvActive ? envColors[env] : 'var(--text-secondary)',
+                                      fontWeight: 700,
+                                      fontSize: '0.78rem',
+                                      border: `1px solid ${isEnvActive ? envColors[env] : 'transparent'}`
+                                    }}
+                                  >
+                                    <span style={{
+                                      width: '6px',
+                                      height: '6px',
+                                      borderRadius: '50%',
+                                      backgroundColor: isEnvActive ? envColors[env] : '#64748b'
+                                    }} />
+                                    <span>{envLabels[env]} Environment</span>
+                                  </div>
+                                </div>
+
+                                {/* Action Checkboxes */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '4px' }}>
+                                  {[
+                                    { key: 'view', label: '👁️ View Details' },
+                                    { key: 'deploy', label: '🚀 Re-Deploy / Build' },
+                                    { key: 'provision', label: '⚙️ Provision / Bind' },
+                                    { key: 'cost_remediation', label: '💰 Cost Remediation' },
+                                    { key: 'db_manage', label: '🗄️ DB Hub Manage' }
+                                  ].map(act => {
+                                    const hasAct = currentActions.includes(act.key);
+                                    return (
+                                      <label key={act.key} style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        fontSize: '0.74rem',
+                                        color: hasAct ? 'var(--text-primary)' : 'var(--text-secondary)',
+                                        cursor: 'pointer',
+                                        userSelect: 'none'
+                                      }}>
+                                        <input
+                                          type="checkbox"
+                                          checked={hasAct}
+                                          onChange={() => handleToggleEnvAction(app.key, env, act.key)}
+                                          style={{ accentColor: '#8b5cf6', cursor: 'pointer' }}
+                                        />
+                                        <span>{act.label}</span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '16px 28px',
+              borderTop: '1px solid var(--glass-border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: '12px',
+              background: 'rgba(0,0,0,0.2)'
+            }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setSelectedPermUser(null)}
+                style={{ padding: '8px 18px', fontSize: '0.84rem' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                disabled={savingPerms}
+                onClick={handleSavePermissions}
+                style={{
+                  padding: '8px 22px',
+                  fontSize: '0.84rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'linear-gradient(135deg, #8b5cf6, #d946ef)',
+                  border: 'none',
+                  color: '#fff',
+                  fontWeight: 600,
+                  borderRadius: '8px',
+                  cursor: savingPerms ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {savingPerms ? <RefreshCw size={14} className="spin-anim" /> : <Check size={14} />}
+                Save Access Permissions
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
