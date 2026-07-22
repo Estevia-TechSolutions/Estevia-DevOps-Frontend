@@ -1016,7 +1016,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                               >
                                 <KeyRound size={14} style={{ color: isLight ? '#0d9488' : '#2dd4bf' }} />
-                                <span>Manage Permissions 🔑</span>
+                                <span>Manage Permissions</span>
                               </button>
                             )}
 
