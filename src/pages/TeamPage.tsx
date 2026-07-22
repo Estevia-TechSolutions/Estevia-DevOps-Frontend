@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, RefreshCw, UserCheck, Shield, Award, Eye, X, Check, Terminal, ShieldAlert, ShieldX, KeyRound, ChevronDown, MoreVertical } from 'lucide-react';
+import { Users, RefreshCw, UserCheck, Shield, Award, Eye, X, Check, Terminal, ShieldAlert, ShieldX, KeyRound, ChevronDown, MoreVertical, Lock } from 'lucide-react';
 import { UserAuditLogDrawer } from '../components/team/UserAuditLogDrawer';
 
 // Dynamic environment branding suffix
@@ -1347,9 +1347,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                                         />
                                         <span>{act.label}</span>
                                         {isDisabledAction && (
-                                          <span style={{ fontSize: '0.66rem', color: '#94a3b8', fontStyle: 'italic', marginLeft: 'auto' }}>
-                                            (Viewer Read-Only)
-                                          </span>
+                                          <Lock size={12} style={{ color: isLight ? '#94a3b8' : '#64748b', marginLeft: 'auto' }} />
                                         )}
                                       </label>
                                     );
