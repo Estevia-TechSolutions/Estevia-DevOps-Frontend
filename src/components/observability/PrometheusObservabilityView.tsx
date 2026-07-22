@@ -24,12 +24,35 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
     const [selectedEnv, setSelectedEnv] = useState<'dev' | 'qa' | 'prod'>('dev');
     const [selectedApp, setSelectedApp] = useState<string>('connecthub');
     const [resourceType, setResourceType] = useState<'aca' | 'swa' | 'vm'>('aca');
+    const [appsCatalog, setAppsCatalog] = useState<Array<{ key: string; label: string; icon: string }>>([]);
     const [metrics, setMetrics] = useState<MetricItem[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
+        fetchCatalog();
+    }, []);
+
+    useEffect(() => {
         fetchMetrics();
     }, [timeWindow, selectedEnv, selectedApp, resourceType]);
+
+    const fetchCatalog = async () => {
+        try {
+            const token = localStorage.getItem('evaops_token');
+            const res = await fetch('/api/auth/resource-catalog', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setAppsCatalog(data.catalog || []);
+                if (data.catalog && data.catalog.length > 0) {
+                    setSelectedApp(data.catalog[0].key);
+                }
+            }
+        } catch (err) {
+            console.error('Failed to load resource catalog:', err);
+        }
+    };
 
     const fetchMetrics = async () => {
         setLoading(true);
@@ -130,10 +153,9 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                             border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)'
                         }}
                     >
-                        <option value="connecthub">ConnectHub</option>
-                        <option value="docai">DocAI Portal</option>
-                        <option value="protrack">ProTrack ERP</option>
-                        <option value="evafusion">EvaFusion Platform</option>
+                        {appsCatalog.map(app => (
+                            <option key={app.key} value={app.key}>{app.icon || '📦'} {app.label}</option>
+                        ))}
                     </select>
 
                     {/* Env Selector */}
