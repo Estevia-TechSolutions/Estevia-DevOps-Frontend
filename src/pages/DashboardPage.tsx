@@ -1784,7 +1784,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       // Health filter: applied at group level using ymlHealthMap and network checks
       if (healthFilter !== 'all') {
         const health = ymlHealthMap?.[group.key];
-        
+
         // 1. Resolve network issues (present on any active env of this group)
         let hasNetworkIssues = false;
         for (const app of group.envs) {
@@ -1814,9 +1814,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
         const isYmlHealthy = yml && (group.type === 'frontend' && !yml.exists ? true : (yml.exists && yml.valid && yml.warningCount === 0));
         const isDockerHealthy = group.type !== 'backend' || !docker || !docker.exists || (docker.valid && docker.warningCount === 0);
-        
+
         const isHealthy = isYmlHealthy && isDockerHealthy && !hasNetworkIssues;
-        
+
         const hasYmlIssues = yml && yml.exists && (!yml.valid || yml.warningCount > 0);
         const hasDockerIssues = docker && docker.exists && (!docker.valid || docker.warningCount > 0);
         const hasIssues = hasYmlIssues || hasDockerIssues || hasNetworkIssues;
@@ -2006,58 +2006,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
           {/* Cloud Scanning Sub-Tabs */}
-          <div style={{
-            display: 'flex',
-            gap: '12px',
-            marginBottom: '20px',
-            borderBottom: '1px solid var(--glass-border)',
-            paddingBottom: '10px'
-          }}>
-            <button
-              type="button"
-              onClick={() => setActiveSubTab('resources')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: activeSubTab === 'resources' ? 'var(--accent-purple)' : 'var(--text-secondary)',
-                borderBottom: activeSubTab === 'resources' ? '2px solid var(--accent-purple)' : '2px solid transparent',
-                padding: '8px 16px 12px 16px',
-                fontSize: '0.92rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.2s ease',
-                marginBottom: '-11px'
-              }}
-            >
-              <Server size={16} />
-              <span>Resource Discovery</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveSubTab('compliance')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: activeSubTab === 'compliance' ? 'var(--accent-purple)' : 'var(--text-secondary)',
-                borderBottom: activeSubTab === 'compliance' ? '2px solid var(--accent-purple)' : '2px solid transparent',
-                padding: '8px 16px 12px 16px',
-                fontSize: '0.92rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.2s ease',
-                marginBottom: '-11px'
-              }}
-            >
-              <Shield size={16} />
-              <span>Governance & Compliance</span>
-            </button>
-          </div>
 
           {activeSubTab === 'resources' ? (
             <>
@@ -3516,27 +3464,27 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                 )}
                                               </div>
                                               {item.dnsDetails?.fqdn && (() => {
-                                                 const fqdns = item.dnsDetails.fqdns || [item.dnsDetails.fqdn];
-                                                 return (
-                                                   <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
-                                                     <Globe size={12} style={{ opacity: 0.7, color: 'var(--accent-purple)', flexShrink: 0 }} />
-                                                     <span>Domains: </span>
-                                                     {fqdns.map((fqdn: string, idx: number) => (
-                                                       <span key={fqdn}>
-                                                         <a
-                                                           href={`https://${fqdn}`}
-                                                           target="_blank"
-                                                           rel="noreferrer"
-                                                           style={{ color: 'var(--accent-purple)', textDecoration: 'none', fontWeight: 600 }}
-                                                         >
-                                                           {fqdn}
-                                                         </a>
-                                                         {idx < fqdns.length - 1 && ', '}
-                                                       </span>
-                                                     ))}
-                                                   </div>
-                                                 );
-                                               })()}
+                                                const fqdns = item.dnsDetails.fqdns || [item.dnsDetails.fqdn];
+                                                return (
+                                                  <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
+                                                    <Globe size={12} style={{ opacity: 0.7, color: 'var(--accent-purple)', flexShrink: 0 }} />
+                                                    <span>Domains: </span>
+                                                    {fqdns.map((fqdn: string, idx: number) => (
+                                                      <span key={fqdn}>
+                                                        <a
+                                                          href={`https://${fqdn}`}
+                                                          target="_blank"
+                                                          rel="noreferrer"
+                                                          style={{ color: 'var(--accent-purple)', textDecoration: 'none', fontWeight: 600 }}
+                                                        >
+                                                          {fqdn}
+                                                        </a>
+                                                        {idx < fqdns.length - 1 && ', '}
+                                                      </span>
+                                                    ))}
+                                                  </div>
+                                                );
+                                              })()}
                                               {item.repositoryUrl && (
                                                 <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
                                                   <Github size={12} style={{ opacity: 0.7, color: 'var(--accent-blue)', flexShrink: 0 }} />
@@ -6925,11 +6873,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           >
             <div style={{ fontWeight: 700, marginBottom: '4px', color: '#ef4444', borderBottom: '1px solid rgba(239, 68, 68, 0.15)', paddingBottom: '3px' }}>Scan Error Detail:</div>
             <div style={{ wordBreak: 'break-word', color: '#fca5a5', marginBottom: '8px', fontSize: '0.70rem', opacity: 0.95 }}>{errorMessage || 'Check failed'}</div>
-            
+
             <div style={{ borderTop: '1px solid rgba(239, 68, 68, 0.15)', paddingTop: '6px' }}>
               <div style={{ color: '#ef4444', fontWeight: 700, fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: '2px' }}>Reason:</div>
               <div style={{ color: '#f87171', fontSize: '0.68rem', marginBottom: '6px' }}>{errorDetail.reason}</div>
-              
+
               <div style={{ color: '#10b981', fontWeight: 700, fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: '2px' }}>Recommended Fix:</div>
               <div style={{ color: '#a7f3d0', fontSize: '0.68rem' }}>{errorDetail.fix}</div>
             </div>
