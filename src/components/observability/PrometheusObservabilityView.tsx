@@ -43,6 +43,13 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
     const [loading, setLoading] = useState<boolean>(true);
     const [packageLocked, setPackageLocked] = useState<boolean>(!isPackageActive);
     const [expandedChart, setExpandedChart] = useState<{ title: string; type: string } | null>(null);
+    const [hoveredMetric, setHoveredMetric] = useState<{
+        index: number;
+        x: number;
+        y: number;
+        metric: MetricItem;
+        chartTitle: string;
+    } | null>(null);
 
     useEffect(() => {
         setPackageLocked(!isPackageActive);
@@ -84,16 +91,36 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
             }
 
             const fallbackCat = [
-                { key: 'estevia-frontend', label: 'Estevia DevOps Frontend (SWA)', icon: '🌐', resourceTypes: ['swa'] },
-                { key: 'estevia-backend', label: 'Estevia DevOps Backend (ACA)', icon: '📦', resourceTypes: ['aca'] },
-                { key: 'estevia-api', label: 'Estevia Core API (ACA)', icon: '📦', resourceTypes: ['aca'] },
-                { key: 'estevia-db-vm', label: 'Estevia Database Host (VM)', icon: '🖥️', resourceTypes: ['vm'] }
+                { key: 'connecthub', label: 'ConnectHub Enterprise Services', icon: '📦', resourceTypes: ['aca', 'swa'] },
+                { key: 'docai', label: 'DocAI Intelligent Processing Engine', icon: '📦', resourceTypes: ['aca', 'swa'] },
+                { key: 'protrack', label: 'ProTrack Execution Framework', icon: '📦', resourceTypes: ['aca', 'swa'] },
+                { key: 'talenthq', label: 'TalentHQ Recruitment Hub', icon: '📦', resourceTypes: ['aca', 'swa'] },
+                { key: 'evafusion', label: 'EvaFusion Orchestrator API', icon: '📦', resourceTypes: ['aca', 'swa'] },
+                { key: 'evaops', label: 'EvaOps DevOps Engine', icon: '📦', resourceTypes: ['aca', 'swa'] },
+                { key: 'estevia-frontend', label: 'Estevia DevOps Control Frontend', icon: '🌐', resourceTypes: ['swa'] },
+                { key: 'estevia-backend', label: 'Estevia DevOps Backend Engine', icon: '📦', resourceTypes: ['aca'] },
+                { key: 'estevia-api', label: 'Estevia Core Management API', icon: '📦', resourceTypes: ['aca'] },
+                { key: 'estevia-db-vm', label: 'Estevia Database Host Node', icon: '🖥️', resourceTypes: ['vm'] },
+                { key: 'prod-db-server', label: 'Production MySQL DB Host', icon: '🖥️', resourceTypes: ['vm'] },
+                { key: 'qa-db-server', label: 'QA Database Instance', icon: '🖥️', resourceTypes: ['vm'] },
+                { key: 'dev-db-server', label: 'Dev Sandbox Database Server', icon: '🖥️', resourceTypes: ['vm'] }
             ];
             setAppsCatalog(fallbackCat);
             if (!selectedApp) setSelectedApp(fallbackCat[0].key);
         } catch (err) {
             console.error('Failed to load resource catalog:', err);
         }
+    };
+
+    const getAppTypes = (app: any): string[] => {
+        if (app.resourceTypes && app.resourceTypes.length > 0) {
+            return app.resourceTypes.map((t: string) => t.toLowerCase());
+        }
+        const k = (app.key || '').toLowerCase();
+        if (k.includes('vm') || k.includes('db') || k.includes('database')) return ['vm'];
+        if (k.includes('frontend') || k.includes('swa')) return ['swa'];
+        if (k.includes('backend') || k.includes('api') || k.includes('aca')) return ['aca'];
+        return ['aca', 'swa'];
     };
 
     const fetchMetrics = async () => {
@@ -321,15 +348,11 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                         </option>
                         {appsCatalog
                             .filter(app => {
-                                const types = (app.resourceTypes && app.resourceTypes.length > 0)
-                                    ? app.resourceTypes.map((t: string) => t.toLowerCase())
-                                    : ((app.key || '').includes('backend') || (app.key || '').includes('api') || (app.key || '').includes('aca')) ? ['aca']
-                                    : ((app.key || '').includes('vm') || (app.key || '').includes('db') || (app.key || '').includes('database')) ? ['vm']
-                                    : ['swa'];
+                                const types = getAppTypes(app);
                                 return types.includes(resourceType.toLowerCase());
                             })
                             .map(app => (
-                                <option key={app.key} value={app.key}>{app.icon} {app.label}</option>
+                                <option key={app.key} value={app.key}>{app.icon || '📦'} {app.label || app.key}</option>
                             ))
                         }
                     </select>
@@ -503,7 +526,12 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                         </div>
                         <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'flex-end', gap: '6px', padding: '4px 0', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)' }}>
                             {metrics.map((m, idx) => (
-                                <div key={idx} className="group" style={{ flex: 1, display: 'flex', gap: '3px', alignItems: 'flex-end', height: '100%', justifyContent: 'center', position: 'relative', cursor: 'pointer' }}>
+                                <div key={idx} className="group" 
+                                    style={{ flex: 1, display: 'flex', gap: '3px', alignItems: 'flex-end', height: '100%', justifyContent: 'center', position: 'relative', cursor: 'pointer' }}
+                                    onMouseEnter={(e) => setHoveredMetric({ index: idx, x: e.clientX, y: e.clientY, metric: m, chartTitle: 'CPU Utilization & RAM Allocation' })}
+                                    onMouseMove={(e) => setHoveredMetric(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null)}
+                                    onMouseLeave={() => setHoveredMetric(null)}
+                                >
                                     <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, m.cpu_percent))}%`, background: m.cpu_percent > 85 ? '#ef4444' : 'linear-gradient(180deg, #8b5cf6, #3b82f6)', borderRadius: '3px' }} title={`CPU: ${m.cpu_percent.toFixed(1)}% | RAM: ${m.memory_mb} MB`} />
                                     <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, (m.memory_mb / 1024) * 100))}%`, background: 'linear-gradient(180deg, #2dd4bf, #06b6d4)', borderRadius: '3px' }} title={`CPU: ${m.cpu_percent.toFixed(1)}% | RAM: ${m.memory_mb} MB`} />
                                 </div>
@@ -539,7 +567,12 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                         </div>
                         <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'flex-end', gap: '6px', padding: '4px 0', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)' }}>
                             {metrics.map((m, idx) => (
-                                <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', cursor: 'pointer' }}>
+                                <div key={idx} 
+                                    style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', cursor: 'pointer' }}
+                                    onMouseEnter={(e) => setHoveredMetric({ index: idx, x: e.clientX, y: e.clientY, metric: m, chartTitle: 'Request Throughput & 5xx Spikes' })}
+                                    onMouseMove={(e) => setHoveredMetric(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null)}
+                                    onMouseLeave={() => setHoveredMetric(null)}
+                                >
                                     <div style={{ width: '100%', height: `${Math.min(100, Math.max(10, (m.request_rate / 250) * 100))}%`, background: m.http_5xx_count > 0 ? '#ef4444' : 'linear-gradient(180deg, #2dd4bf, #06b6d4)', borderRadius: '4px' }} title={`Throughput: ${m.request_rate} req/s | 5xx Errors: ${m.http_5xx_count}`} />
                                 </div>
                             ))}
@@ -574,7 +607,12 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                         </div>
                         <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'flex-end', gap: '6px', padding: '4px 0', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)' }}>
                             {metrics.map((m, idx) => (
-                                <div key={idx} style={{ flex: 1, display: 'flex', gap: '3px', alignItems: 'flex-end', height: '100%', justifyContent: 'center', cursor: 'pointer' }}>
+                                <div key={idx} 
+                                    style={{ flex: 1, display: 'flex', gap: '3px', alignItems: 'flex-end', height: '100%', justifyContent: 'center', cursor: 'pointer' }}
+                                    onMouseEnter={(e) => setHoveredMetric({ index: idx, x: e.clientX, y: e.clientY, metric: m, chartTitle: 'P95 / P99 Response Latency' })}
+                                    onMouseMove={(e) => setHoveredMetric(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null)}
+                                    onMouseLeave={() => setHoveredMetric(null)}
+                                >
                                     <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, (m.p95_latency_ms / 300) * 100))}%`, background: 'linear-gradient(180deg, #f59e0b, #d97706)', borderRadius: '3px' }} title={`p95 Latency: ${m.p95_latency_ms} ms | p99 Latency: ${m.p99_latency_ms || m.p95_latency_ms + 25} ms`} />
                                     <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, ((m.p99_latency_ms || m.p95_latency_ms + 25) / 300) * 100))}%`, background: 'linear-gradient(180deg, #ec4899, #be185d)', borderRadius: '3px' }} title={`p95 Latency: ${m.p95_latency_ms} ms | p99 Latency: ${m.p99_latency_ms || m.p95_latency_ms + 25} ms`} />
                                 </div>
@@ -610,7 +648,12 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                         </div>
                         <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'flex-end', gap: '6px', padding: '4px 0', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)' }}>
                             {metrics.map((m, idx) => (
-                                <div key={idx} style={{ flex: 1, display: 'flex', gap: '3px', alignItems: 'flex-end', height: '100%', justifyContent: 'center', cursor: 'pointer' }}>
+                                <div key={idx} 
+                                    style={{ flex: 1, display: 'flex', gap: '3px', alignItems: 'flex-end', height: '100%', justifyContent: 'center', cursor: 'pointer' }}
+                                    onMouseEnter={(e) => setHoveredMetric({ index: idx, x: e.clientX, y: e.clientY, metric: m, chartTitle: 'Replicas & DB Connections' })}
+                                    onMouseMove={(e) => setHoveredMetric(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null)}
+                                    onMouseLeave={() => setHoveredMetric(null)}
+                                >
                                     <div style={{ flex: 1, height: `${Math.min(100, Math.max(15, (m.replica_count / 10) * 100))}%`, background: 'linear-gradient(180deg, #3b82f6, #1d4ed8)', borderRadius: '3px' }} title={`Replicas: ${m.replica_count} | DB Connections: ${m.db_connections || 16}`} />
                                     <div style={{ flex: 1, height: `${Math.min(100, Math.max(15, ((m.db_connections || 16) / 50) * 100))}%`, background: 'linear-gradient(180deg, #06b6d4, #0891b2)', borderRadius: '3px' }} title={`Replicas: ${m.replica_count} | DB Connections: ${m.db_connections || 16}`} />
                                 </div>
@@ -646,7 +689,12 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                         </div>
                         <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'flex-end', gap: '6px', padding: '4px 0', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)' }}>
                             {metrics.map((m, idx) => (
-                                <div key={idx} style={{ flex: 1, display: 'flex', gap: '3px', alignItems: 'flex-end', height: '100%', justifyContent: 'center', cursor: 'pointer' }}>
+                                <div key={idx} 
+                                    style={{ flex: 1, display: 'flex', gap: '3px', alignItems: 'flex-end', height: '100%', justifyContent: 'center', cursor: 'pointer' }}
+                                    onMouseEnter={(e) => setHoveredMetric({ index: idx, x: e.clientX, y: e.clientY, metric: m, chartTitle: 'Network Bandwidth (KB/s)' })}
+                                    onMouseMove={(e) => setHoveredMetric(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null)}
+                                    onMouseLeave={() => setHoveredMetric(null)}
+                                >
                                     <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, ((m.network_in_kbps || 180) / 500) * 100))}%`, background: 'linear-gradient(180deg, #10b981, #059669)', borderRadius: '3px' }} title={`Ingress: ${(m.network_in_kbps || 180).toFixed(1)} KB/s | Egress: ${(m.network_out_kbps || 120).toFixed(1)} KB/s`} />
                                     <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, ((m.network_out_kbps || 120) / 500) * 100))}%`, background: 'linear-gradient(180deg, #6366f1, #4f46e5)', borderRadius: '3px' }} title={`Ingress: ${(m.network_in_kbps || 180).toFixed(1)} KB/s | Egress: ${(m.network_out_kbps || 120).toFixed(1)} KB/s`} />
                                 </div>
@@ -682,7 +730,12 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                         </div>
                         <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'flex-end', gap: '6px', padding: '4px 0', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)' }}>
                             {metrics.map((m, idx) => (
-                                <div key={idx} style={{ flex: 1, display: 'flex', gap: '3px', alignItems: 'flex-end', height: '100%', justifyContent: 'center', cursor: 'pointer' }}>
+                                <div key={idx} 
+                                    style={{ flex: 1, display: 'flex', gap: '3px', alignItems: 'flex-end', height: '100%', justifyContent: 'center', cursor: 'pointer' }}
+                                    onMouseEnter={(e) => setHoveredMetric({ index: idx, x: e.clientX, y: e.clientY, metric: m, chartTitle: 'Storage Volume & Disk IOPS' })}
+                                    onMouseMove={(e) => setHoveredMetric(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null)}
+                                    onMouseLeave={() => setHoveredMetric(null)}
+                                >
                                     <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, m.storage_percent || 40))}%`, background: 'linear-gradient(180deg, #a855f7, #7e22ce)', borderRadius: '3px' }} title={`Storage: ${(m.storage_percent || 40).toFixed(1)}% | IOPS: ${m.disk_iops || 550}`} />
                                     <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, ((m.disk_iops || 550) / 1000) * 100))}%`, background: 'linear-gradient(180deg, #f43f5e, #be123c)', borderRadius: '3px' }} title={`Storage: ${(m.storage_percent || 40).toFixed(1)}% | IOPS: ${m.disk_iops || 550}`} />
                                 </div>
@@ -791,7 +844,12 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                             </div>
                             <div style={{ flex: 1, display: 'flex', gap: '12px', alignItems: 'flex-end', position: 'relative', borderBottom: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px' }}>
                                 {metrics.map((m, idx) => (
-                                    <div key={idx} style={{ flex: 1, display: 'flex', gap: '4px', alignItems: 'flex-end', height: '100%', justifyContent: 'center' }}>
+                                    <div key={idx} 
+                                        style={{ flex: 1, display: 'flex', gap: '4px', alignItems: 'flex-end', height: '100%', justifyContent: 'center', cursor: 'pointer' }}
+                                        onMouseEnter={(e) => setHoveredMetric({ index: idx, x: e.clientX, y: e.clientY, metric: m, chartTitle: expandedChart.title })}
+                                        onMouseMove={(e) => setHoveredMetric(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null)}
+                                        onMouseLeave={() => setHoveredMetric(null)}
+                                    >
                                         {expandedChart.type === 'cpu_ram' && (
                                             <>
                                                 <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, m.cpu_percent))}%`, background: 'linear-gradient(180deg, #8b5cf6, #3b82f6)', borderRadius: '4px' }} title={`CPU: ${m.cpu_percent}%`} />
@@ -834,6 +892,49 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                                 ))}
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Instant Floating Hover Telemetry Tooltip Badge */}
+            {hoveredMetric && (
+                <div style={{
+                    position: 'fixed',
+                    top: Math.max(12, hoveredMetric.y - 125),
+                    left: Math.min(window.innerWidth - 260, Math.max(12, hoveredMetric.x - 110)),
+                    zIndex: 999999,
+                    pointerEvents: 'none',
+                    background: isLight ? 'rgba(15, 23, 42, 0.94)' : 'rgba(2, 6, 23, 0.96)',
+                    backdropFilter: 'blur(12px)',
+                    color: '#ffffff',
+                    padding: '10px 14px',
+                    borderRadius: '12px',
+                    boxShadow: '0 15px 35px rgba(0,0,0,0.6)',
+                    border: '1px solid rgba(139, 92, 246, 0.5)',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    minWidth: '230px'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.12)', paddingBottom: '4px' }}>
+                        <span style={{ color: '#a78bfa', fontWeight: 800 }}>{hoveredMetric.chartTitle}</span>
+                        <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontFamily: 'monospace' }}>
+                            {new Date(hoveredMetric.metric.recorded_at).toLocaleTimeString()}
+                        </span>
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#cbd5e1' }}>
+                        App Scope: <span style={{ color: '#38bdf8', fontWeight: 700 }}>{hoveredMetric.metric.app_key || selectedApp}</span> ({selectedEnv.toUpperCase()} • {resourceType.toUpperCase()})
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '3px', fontSize: '0.73rem' }}>
+                        <div style={{ color: '#c4b5fd' }}>• CPU Utilization: <strong>{hoveredMetric.metric.cpu_percent}%</strong></div>
+                        <div style={{ color: '#2dd4bf' }}>• Memory Pool: <strong>{hoveredMetric.metric.memory_mb} MB</strong></div>
+                        <div style={{ color: '#38bdf8' }}>• Throughput: <strong>{hoveredMetric.metric.request_rate} req/s</strong></div>
+                        <div style={{ color: '#f59e0b' }}>• p95 Latency: <strong>{hoveredMetric.metric.p95_latency_ms} ms</strong></div>
+                        <div style={{ color: '#60a5fa' }}>• Replicas: <strong>{hoveredMetric.metric.replica_count}</strong> | DB Conns: <strong>{hoveredMetric.metric.db_connections || 16}</strong></div>
+                        <div style={{ color: '#34d399' }}>• Ingress: <strong>{(hoveredMetric.metric.network_in_kbps || 180).toFixed(1)} KB/s</strong> | Egress: <strong>{(hoveredMetric.metric.network_out_kbps || 120).toFixed(1)} KB/s</strong></div>
+                        <div style={{ color: '#c084fc' }}>• Storage: <strong>{(hoveredMetric.metric.storage_percent || 40).toFixed(1)}%</strong> | IOPS: <strong>{hoveredMetric.metric.disk_iops || 550}</strong></div>
                     </div>
                 </div>
             )}
