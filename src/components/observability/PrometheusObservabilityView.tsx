@@ -295,11 +295,10 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                 background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.02)',
                 border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '12px'
+                flexDirection: 'column',
+                gap: '14px'
             }}>
+                {/* Row 1: Title */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{
                         width: '38px',
@@ -309,7 +308,8 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: '#fff'
+                        color: '#fff',
+                        flexShrink: 0
                     }}>
                         <Activity size={20} />
                     </div>
@@ -323,7 +323,15 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'nowrap', whiteSpace: 'nowrap', overflowX: 'auto', maxWidth: '100%', paddingBottom: '2px' }}>
+                {/* Row 2: All Filter Controls — full width, always visible */}
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    flexWrap: 'wrap',
+                    width: '100%'
+                }}>
+                    {/* Resource Type */}
                     <select
                         value={resourceType}
                         onChange={(e) => {
@@ -332,15 +340,15 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                             setSelectedApp('all');
                         }}
                         style={{
-                            flexShrink: 0,
                             padding: '8px 14px',
                             borderRadius: '8px',
                             fontSize: '0.82rem',
                             fontWeight: 600,
-                            background: isLight ? '#f1f5f9' : 'rgba(0,0,0,0.3)',
+                            background: isLight ? '#f1f5f9' : 'rgba(139, 92, 246, 0.15)',
                             color: isLight ? '#0f172a' : 'var(--text-primary)',
-                            border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
-                            cursor: 'pointer'
+                            border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(139, 92, 246, 0.4)',
+                            cursor: 'pointer',
+                            minWidth: '200px'
                         }}
                     >
                         <option value="all">⚡ All Resources (ACA, SWA, VM)</option>
@@ -349,19 +357,22 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                         <option value="vm">🖥️ Virtual Machine (VM)</option>
                     </select>
 
+                    {/* Application Select */}
                     <select
                         value={selectedApp}
                         onChange={(e) => setSelectedApp(e.target.value)}
                         style={{
-                            flexShrink: 0,
                             padding: '8px 14px',
                             borderRadius: '8px',
                             fontSize: '0.82rem',
                             fontWeight: 600,
-                            background: isLight ? '#f1f5f9' : 'rgba(0,0,0,0.3)',
+                            background: isLight ? '#f1f5f9' : 'rgba(59, 130, 246, 0.12)',
                             color: isLight ? '#0f172a' : 'var(--text-primary)',
-                            border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
-                            cursor: 'pointer'
+                            border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(59, 130, 246, 0.35)',
+                            cursor: 'pointer',
+                            minWidth: '240px',
+                            flex: '1 1 240px',
+                            maxWidth: '360px'
                         }}
                     >
                         <option value="all">
@@ -385,15 +396,17 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                         }
                     </select>
 
-                    <div style={{ flexShrink: 0, display: 'inline-flex', borderRadius: '8px', overflow: 'hidden', border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)' }}>
+                    {/* Separator */}
+                    <div style={{ width: '1px', height: '28px', background: isLight ? '#e2e8f0' : 'rgba(255,255,255,0.12)', flexShrink: 0 }} />
+
+                    {/* Environment Toggle */}
+                    <div style={{ display: 'inline-flex', borderRadius: '8px', overflow: 'hidden', border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)', flexShrink: 0 }}>
                         {(['dev', 'qa', 'prod'] as const).map(env => (
                             <button
                                 key={env}
                                 type="button"
                                 onClick={() => setSelectedEnv(env)}
                                 style={{
-                                    flexShrink: 0,
-                                    whiteSpace: 'nowrap',
                                     padding: '7px 16px',
                                     fontSize: '0.78rem',
                                     fontWeight: 700,
@@ -401,7 +414,8 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                                     background: selectedEnv === env ? '#8b5cf6' : (isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)'),
                                     color: selectedEnv === env ? '#fff' : (isLight ? '#475569' : 'var(--text-secondary)'),
                                     border: 'none',
-                                    cursor: 'pointer'
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap'
                                 }}
                             >
                                 {env}
@@ -409,22 +423,22 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                         ))}
                     </div>
 
-                    <div style={{ flexShrink: 0, display: 'inline-flex', borderRadius: '8px', overflow: 'hidden', border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)' }}>
+                    {/* Time Window Toggle */}
+                    <div style={{ display: 'inline-flex', borderRadius: '8px', overflow: 'hidden', border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)', flexShrink: 0 }}>
                         {(['15m', '1h', '6h', '24h', '7d'] as const).map(tw => (
                             <button
                                 key={tw}
                                 type="button"
                                 onClick={() => setTimeWindow(tw)}
                                 style={{
-                                    flexShrink: 0,
-                                    whiteSpace: 'nowrap',
                                     padding: '7px 14px',
                                     fontSize: '0.76rem',
                                     fontWeight: 600,
                                     background: timeWindow === tw ? '#6366f1' : (isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)'),
                                     color: timeWindow === tw ? '#fff' : (isLight ? '#475569' : 'var(--text-secondary)'),
                                     border: 'none',
-                                    cursor: 'pointer'
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap'
                                 }}
                             >
                                 {tw}
