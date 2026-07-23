@@ -28,6 +28,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
     const [showConfigModal, setShowConfigModal] = useState<boolean>(false);
     const [showInfoDrawer, setShowInfoDrawer] = useState<boolean>(false);
     const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+    const [resolvingIncident, setResolvingIncident] = useState<Incident | null>(null);
 
     // Dynamic Data State
     const [teamUsers, setTeamUsers] = useState<any[]>([]);
@@ -144,11 +145,15 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
         }
     };
 
-    const handleResolve = async (id: number) => {
-        if (!window.confirm('Are you sure you want to mark this incident as resolved?')) {
-            return;
-        }
+    const handleResolve = (inc: Incident) => {
+        setResolvingIncident(inc);
+    };
+
+    const confirmResolve = async () => {
+        if (!resolvingIncident) return;
+        const id = resolvingIncident.id;
         setIncidents(prev => prev.map(inc => inc.id === id ? { ...inc, status: 'resolved' } : inc));
+        setResolvingIncident(null);
         try {
             const token = getToken();
             await fetch(`${API_BASE}/apps/observability/incidents/${id}/resolve`, {
@@ -406,7 +411,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
                                                     {inc.status !== 'resolved' && (
                                                         <button
                                                             type="button"
-                                                            onClick={() => handleResolve(inc.id)}
+                                                            onClick={() => handleResolve(inc)}
                                                             style={{
                                                                 padding: '4px 10px',
                                                                 borderRadius: '6px',
@@ -577,7 +582,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
                                     {selectedIncident.status !== 'resolved' && (
                                         <button
                                             type="button"
-                                            onClick={() => { handleResolve(selectedIncident.id); setSelectedIncident(null); }}
+                                            onClick={() => { handleResolve(selectedIncident); setSelectedIncident(null); }}
                                             style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700, background: '#10b981', color: '#fff', border: 'none', cursor: 'pointer' }}
                                         >
                                             Mark Resolved ✅
@@ -887,6 +892,142 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
                                 style={{ padding: '8px 20px', fontSize: '0.82rem' }}
                             >
                                 Close Info
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Custom Glassmorphism Resolve Confirmation Modal */}
+            {resolvingIncident && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.7)',
+                    backdropFilter: 'blur(8px)',
+                    zIndex: 99999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '20px'
+                }}>
+                    <div style={{
+                        width: '100%',
+                        maxWidth: '480px',
+                        background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.95)',
+                        border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(16, 185, 129, 0.3)',
+                        borderRadius: '16px',
+                        boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5), 0 0 20px rgba(16, 185, 129, 0.2)',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column'
+                    }}>
+                        {/* Modal Header */}
+                        <div style={{
+                            padding: '20px 24px',
+                            borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1), transparent)'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <CheckCircle2 size={22} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+                                        Confirm Incident Resolution
+                                    </h3>
+                                    <div style={{ fontSize: '0.76rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
+                                        Marking ticket as resolved & persisting state to DB
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" onClick={() => setResolvingIncident(null)} style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : 'var(--text-secondary)', cursor: 'pointer' }}>
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div style={{ fontSize: '0.86rem', color: isLight ? '#334155' : 'var(--text-primary)', lineHeight: 1.5 }}>
+                                Are you sure you want to resolve this telemetry incident? Once marked resolved, status will be persisted into MySQL database.
+                            </div>
+
+                            <div style={{
+                                padding: '14px 16px',
+                                borderRadius: '10px',
+                                background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.03)',
+                                border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '8px',
+                                fontSize: '0.78rem'
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: isLight ? '#64748b' : 'var(--text-secondary)' }}>Incident ID:</span>
+                                    <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>#{resolvingIncident.id}</strong>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: isLight ? '#64748b' : 'var(--text-secondary)' }}>App & Environment:</span>
+                                    <strong style={{ color: '#8b5cf6' }}>{resolvingIncident.app_key} ({resolvingIncident.environment.toUpperCase()})</strong>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: isLight ? '#64748b' : 'var(--text-secondary)' }}>Title:</span>
+                                    <span style={{ fontWeight: 600, color: isLight ? '#0f172a' : '#fff' }}>{resolvingIncident.title}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Actions */}
+                        <div style={{
+                            padding: '16px 24px',
+                            borderTop: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            gap: '12px',
+                            background: isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.02)'
+                        }}>
+                            <button
+                                type="button"
+                                onClick={() => setResolvingIncident(null)}
+                                style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '8px',
+                                    fontSize: '0.82rem',
+                                    fontWeight: 600,
+                                    background: isLight ? '#e2e8f0' : 'rgba(255, 255, 255, 0.06)',
+                                    color: isLight ? '#475569' : 'var(--text-secondary)',
+                                    border: 'none',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={confirmResolve}
+                                style={{
+                                    padding: '8px 20px',
+                                    borderRadius: '8px',
+                                    fontSize: '0.82rem',
+                                    fontWeight: 700,
+                                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)'
+                                }}
+                            >
+                                <CheckCircle2 size={16} /> Confirm & Mark Resolved
                             </button>
                         </div>
                     </div>
