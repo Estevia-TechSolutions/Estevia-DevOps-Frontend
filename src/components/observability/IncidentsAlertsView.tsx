@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, AlertTriangle, CheckCircle, Clock, Bell, User, Mail, Settings, X, Check, RefreshCw, ChevronDown, Lock, CheckCircle2, Hand, Search, Globe, Package, Server } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, CheckCircle, Clock, Bell, User, Mail, Settings, X, Check, RefreshCw, ChevronDown, Lock, CheckCircle2, Hand, Search, Globe, Package, Server, Info, Cpu, Activity } from 'lucide-react';
 
 interface Incident {
     id: number;
@@ -26,6 +26,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
     const [incidents, setIncidents] = useState<Incident[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [showConfigModal, setShowConfigModal] = useState<boolean>(false);
+    const [showInfoDrawer, setShowInfoDrawer] = useState<boolean>(false);
     const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
 
     // Dynamic Data State
@@ -240,27 +241,50 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
                     </div>
                 </div>
 
-                <button
-                    type="button"
-                    onClick={() => setShowConfigModal(true)}
-                    style={{
-                        padding: '8px 16px',
-                        borderRadius: '8px',
-                        fontSize: '0.82rem',
-                        fontWeight: 600,
-                        background: 'linear-gradient(135deg, #8b5cf6, #d946ef)',
-                        color: '#fff',
-                        border: 'none',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)'
-                    }}
-                >
-                    <Bell size={16} />
-                    <span>🔔 Configure Alert Recipients</span>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <button
+                        type="button"
+                        onClick={() => setShowInfoDrawer(true)}
+                        style={{
+                            padding: '8px 16px',
+                            borderRadius: '8px',
+                            fontSize: '0.82rem',
+                            fontWeight: 600,
+                            background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.06)',
+                            color: isLight ? '#0f172a' : 'var(--text-primary)',
+                            border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}
+                    >
+                        <Info size={16} style={{ color: '#3b82f6' }} />
+                        <span>Incident Rules & Info</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => setShowConfigModal(true)}
+                        style={{
+                            padding: '8px 16px',
+                            borderRadius: '8px',
+                            fontSize: '0.82rem',
+                            fontWeight: 600,
+                            background: 'linear-gradient(135deg, #8b5cf6, #d946ef)',
+                            color: '#fff',
+                            border: 'none',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)'
+                        }}
+                    >
+                        <Bell size={16} />
+                        <span>Configure Alert Recipients</span>
+                    </button>
+                </div>
             </div>
 
             {/* Incidents Data Table */}
@@ -701,6 +725,168 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
                             <button type="button" onClick={handleSaveAlertConfig} disabled={savingConfig} className="btn-primary" style={{ padding: '8px 20px', fontSize: '0.82rem', background: 'linear-gradient(135deg, #8b5cf6, #d946ef)', color: '#fff', border: 'none', borderRadius: '8px' }}>
                                 {savingConfig ? <RefreshCw size={14} className="spin-anim" /> : <Check size={14} />}
                                 Save Alert Configuration
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Right-Side Slide-Over Information Drawer */}
+            {showInfoDrawer && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.65)',
+                    backdropFilter: 'blur(6px)',
+                    zIndex: 9999,
+                    display: 'flex',
+                    justifyContent: 'flex-end'
+                }}>
+                    <div style={{
+                        width: '100%',
+                        maxWidth: '460px',
+                        height: '100%',
+                        background: isLight ? '#ffffff' : '#0f172a',
+                        borderLeft: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
+                        boxShadow: '-8px 0 32px rgba(0, 0, 0, 0.4)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflowY: 'auto'
+                    }}>
+                        {/* Drawer Header */}
+                        <div style={{
+                            padding: '20px 24px',
+                            borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.02)'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6' }}>
+                                    <Info size={18} />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+                                        Incident Automation Rules
+                                    </h3>
+                                    <div style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
+                                        EvaPulse Telemetry Engine Specifications
+                                    </div>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowInfoDrawer(false)}
+                                style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : 'var(--text-secondary)', cursor: 'pointer' }}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Drawer Content Body */}
+                        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            {/* Section 1: Trigger Thresholds */}
+                            <div style={{
+                                padding: '16px',
+                                borderRadius: '12px',
+                                background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
+                                border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', marginBottom: '12px' }}>
+                                    <Cpu size={16} style={{ color: '#8b5cf6' }} />
+                                    <span>Real-Time Incident Detection Rules</span>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.78rem', color: isLight ? '#475569' : 'var(--text-secondary)' }}>
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                                        <AlertTriangle size={14} style={{ color: '#f59e0b', marginTop: '2px', flexShrink: 0 }} />
+                                        <div>
+                                            <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>HIGH_RESOURCE_PRESSURE:</strong> Triggers when CPU utilization exceeds <strong>85%</strong> threshold on SWA, ACA, or VM.
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                                        <ShieldAlert size={14} style={{ color: '#ef4444', marginTop: '2px', flexShrink: 0 }} />
+                                        <div>
+                                            <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>CRITICAL_OUTAGE:</strong> Triggers when HTTP 5xx errors reach <strong>≥ 5</strong> in a telemetry window.
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                                        <Clock size={14} style={{ color: '#3b82f6', marginTop: '2px', flexShrink: 0 }} />
+                                        <div>
+                                            <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>LATENCY_DEGRADATION:</strong> Triggers when p95 API response latency increases above <strong>2000 ms</strong>.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section 2: Incident Lifecycle */}
+                            <div style={{
+                                padding: '16px',
+                                borderRadius: '12px',
+                                background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
+                                border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', marginBottom: '12px' }}>
+                                    <Activity size={16} style={{ color: '#2dd4bf' }} />
+                                    <span>Incident Lifecycle States</span>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.78rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span style={{ padding: '2px 8px', borderRadius: '10px', background: 'rgba(239,68,68,0.15)', color: '#ef4444', fontWeight: 700, fontSize: '0.72rem' }}>
+                                            Triggered
+                                        </span>
+                                        <span style={{ color: isLight ? '#64748b' : 'var(--text-secondary)' }}>Newly detected breach. Default state until assigned.</span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span style={{ padding: '2px 8px', borderRadius: '10px', background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontWeight: 700, fontSize: '0.72rem' }}>
+                                            Acknowledged
+                                        </span>
+                                        <span style={{ color: isLight ? '#64748b' : 'var(--text-secondary)' }}>Claimed by owner engineer currently investigating.</span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span style={{ padding: '2px 8px', borderRadius: '10px', background: 'rgba(16,185,129,0.15)', color: '#10b981', fontWeight: 700, fontSize: '0.72rem' }}>
+                                            Resolved
+                                        </span>
+                                        <span style={{ color: isLight ? '#64748b' : 'var(--text-secondary)' }}>Fix deployed & verified with user confirmation.</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section 3: Deduplication & Email Pipeline */}
+                            <div style={{
+                                padding: '16px',
+                                borderRadius: '12px',
+                                background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
+                                border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', marginBottom: '12px' }}>
+                                    <Mail size={16} style={{ color: '#ec4899' }} />
+                                    <span>Alert Routing & Deduplication</span>
+                                </div>
+                                <div style={{ fontSize: '0.78rem', color: isLight ? '#475569' : 'var(--text-secondary)', lineHeight: 1.5 }}>
+                                    Active incident deduplication checks prevent email notification spamming for existing active breaches. HTML alert emails are dispatched to assigned Primary & Secondary resource owners.
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Drawer Footer */}
+                        <div style={{
+                            padding: '16px 24px',
+                            borderTop: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            marginTop: 'auto'
+                        }}>
+                            <button
+                                type="button"
+                                onClick={() => setShowInfoDrawer(false)}
+                                className="btn-secondary"
+                                style={{ padding: '8px 20px', fontSize: '0.82rem' }}
+                            >
+                                Close Info
                             </button>
                         </div>
                     </div>
