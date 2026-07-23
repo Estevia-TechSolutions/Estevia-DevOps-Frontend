@@ -453,11 +453,31 @@ export const CostPage: React.FC<CostPageProps> = ({
   const isLight = theme === 'light';
   const isViewer = currentUser?.role === 'viewer';
 
-  const nextDueInvoice = invoices && invoices.length > 0
-    ? [...invoices]
-        .filter(inv => inv.status.toLowerCase() === 'pending' || inv.status.toLowerCase() === 'overdue')
-        .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0]
-    : null;
+  const nextDueInvoice = (() => {
+    if (azureBills && azureBills.length > 0) {
+      const latestBill = [...azureBills].sort((a, b) => new Date(b.due_date).getTime() - new Date(a.due_date).getTime())[0];
+      if (latestBill) {
+        return {
+          amount: Number(latestBill.total_amount || 0),
+          due_date: latestBill.due_date,
+          currency: latestBill.currency || 'INR'
+        };
+      }
+    }
+    if (invoices && invoices.length > 0) {
+      const pending = [...invoices]
+        .filter(inv => (inv.status || '').toLowerCase() === 'pending' || (inv.status || '').toLowerCase() === 'overdue')
+        .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())[0];
+      if (pending) {
+        return {
+          amount: Number(pending.amount || 0),
+          due_date: pending.due_date,
+          currency: pending.currency || 'USD'
+        };
+      }
+    }
+    return null;
+  })();
 
   const filteredCosts = detailedCosts.filter(item => {
     // Search query
@@ -1055,10 +1075,10 @@ export const CostPage: React.FC<CostPageProps> = ({
                 {nextDueInvoice ? (
                   <>
                     <span style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                      ${Number(nextDueInvoice.amount).toFixed(2)}
+                      {getCurrencySymbol(nextDueInvoice.currency)}{Number(nextDueInvoice.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                     <div style={{ fontSize: '0.74rem', color: 'var(--warning)', marginTop: '2px', fontWeight: 600 }}>
-                      Due: {nextDueInvoice.due_date}
+                      Due: {nextDueInvoice.due_date} ({nextDueInvoice.currency})
                     </div>
                   </>
                 ) : (
