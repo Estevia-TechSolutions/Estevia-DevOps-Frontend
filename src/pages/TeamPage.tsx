@@ -126,7 +126,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
     }
 
     try {
-      const authToken = token || localStorage.getItem('evaops_token') || localStorage.getItem('token') || '';
+      const authToken = token || localStorage.getItem('evaops_token') || localStorage.getItem('devops_token') || localStorage.getItem('token') || localStorage.getItem('jwt') || '';
 
       let catRes = await fetch(`${API_BASE}/apps/observability/resource-catalog`).catch(() => null);
 
@@ -139,9 +139,11 @@ export const TeamPage: React.FC<TeamPageProps> = ({
         }).catch(() => null);
       }
 
+      let catalogList: any[] = initialCatalog;
       if (catRes && catRes.ok) {
         const catData = await catRes.json();
         if (catData.catalog && catData.catalog.length > 0) {
+          catalogList = catData.catalog;
           setResourceCatalog(catData.catalog);
         }
       }
@@ -152,10 +154,30 @@ export const TeamPage: React.FC<TeamPageProps> = ({
           }).catch(() => null)
         : null;
 
+      let loadedPerms: Record<string, any> = {};
       if (permRes && permRes.ok) {
         const permData = await permRes.json();
-        setUserPermMap(permData.permissions || {});
+        loadedPerms = permData.permissions || {};
       }
+
+      // Compute role-based default grants for unconfigured catalog items
+      const roleLower = (u.role || 'member').toLowerCase();
+      const defaultActions = (['owner', 'admin'].includes(roleLower))
+        ? ['view', 'deploy', 'provision', 'cost_remediation', 'db_manage']
+        : (roleLower === 'viewer')
+        ? ['view']
+        : ['view', 'deploy', 'provision', 'cost_remediation'];
+
+      const mergedPermMap: Record<string, { dev: string[]; qa: string[]; prod: string[] }> = { ...loadedPerms };
+      catalogList.forEach((cat: any) => {
+        const k = cat.key;
+        if (!mergedPermMap[k] || (!mergedPermMap[k].dev?.length && !mergedPermMap[k].qa?.length && !mergedPermMap[k].prod?.length)) {
+          mergedPermMap[k] = roleLower === 'member'
+            ? { dev: [...defaultActions], qa: [...defaultActions], prod: [] }
+            : { dev: [...defaultActions], qa: [...defaultActions], prod: [...defaultActions] };
+        }
+      });
+      setUserPermMap(mergedPermMap);
 
       let menuRes = await fetch(`${API_BASE}/apps/observability/menu-permissions/${u.id}`).catch(() => null);
 
@@ -173,7 +195,6 @@ export const TeamPage: React.FC<TeamPageProps> = ({
         const loadedMap = menuData.menuPermissions || {};
         
         // Populate default role grants if map is empty
-        const roleLower = (u.role || 'member').toLowerCase();
         const defaultMap: Record<string, boolean> = {};
         if (['owner', 'admin'].includes(roleLower)) {
           ['scan', 'provision', 'credentials', 'cost', 'optimization', 'databases', 'guide', 'users', 'events', 'emails', 'settings'].forEach(k => defaultMap[k] = true);
@@ -184,6 +205,16 @@ export const TeamPage: React.FC<TeamPageProps> = ({
         }
 
         setUserMenuPermMap({ ...defaultMap, ...loadedMap });
+      } else {
+        const defaultMap: Record<string, boolean> = {};
+        if (['owner', 'admin'].includes(roleLower)) {
+          ['scan', 'provision', 'credentials', 'cost', 'optimization', 'databases', 'guide', 'users', 'events', 'emails', 'settings'].forEach(k => defaultMap[k] = true);
+        } else if (['contributor', 'member'].includes(roleLower)) {
+          ['scan', 'provision', 'cost', 'optimization', 'guide', 'events'].forEach(k => defaultMap[k] = true);
+        } else if (roleLower === 'viewer') {
+          ['scan', 'optimization', 'guide', 'events'].forEach(k => defaultMap[k] = true);
+        }
+        setUserMenuPermMap(defaultMap);
       }
     } catch (e) {
       console.error('Failed to load permissions:', e);
@@ -247,12 +278,12 @@ export const TeamPage: React.FC<TeamPageProps> = ({
     if (!selectedPermUser) return;
     setSavingPerms(true);
     try {
-      const token = localStorage.getItem('evaops_token');
+      const activeToken = token || localStorage.getItem('evaops_token') || localStorage.getItem('devops_token') || localStorage.getItem('token') || localStorage.getItem('jwt') || '';
       const res = await fetch(`${API_BASE}/auth/users/${selectedPermUser.id}/resource-permissions`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${activeToken}`
         },
         body: JSON.stringify({ permissions: userPermMap })
       });
@@ -261,7 +292,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${activeToken}`
         },
         body: JSON.stringify({ menuPermissions: userMenuPermMap })
       });
