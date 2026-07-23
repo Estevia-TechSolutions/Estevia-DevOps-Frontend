@@ -486,15 +486,26 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                             <Maximize2 size={12} /> Expand
                         </button>
                     </div>
+
+                    {/* Chart 1 Legends */}
+                    <div style={{ display: 'flex', gap: '14px', fontSize: '0.72rem', fontWeight: 600, paddingBottom: '2px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#475569' : '#cbd5e1' }}>
+                            <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)' }} /> 🟣 CPU Utilization (%)
+                        </span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#475569' : '#cbd5e1' }}>
+                            <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'linear-gradient(135deg, #2dd4bf, #06b6d4)' }} /> 🟢 RAM Allocation (MB)
+                        </span>
+                    </div>
+
                     <div style={{ display: 'flex', gap: '10px', height: '170px', position: 'relative' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', fontSize: '0.68rem', color: isLight ? '#94a3b8' : 'var(--text-secondary)', fontWeight: 600, textAlign: 'right', minWidth: '38px' }}>
                             <span>100% / 1G</span><span>75% / 768M</span><span>50% / 512M</span><span>25% / 256M</span><span>0%</span>
                         </div>
                         <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'flex-end', gap: '6px', padding: '4px 0', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)' }}>
                             {metrics.map((m, idx) => (
-                                <div key={idx} style={{ flex: 1, display: 'flex', gap: '3px', alignItems: 'flex-end', height: '100%', justifyContent: 'center' }}>
-                                    <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, m.cpu_percent))}%`, background: m.cpu_percent > 85 ? '#ef4444' : 'linear-gradient(180deg, #8b5cf6, #3b82f6)', borderRadius: '3px' }} title={`CPU: ${m.cpu_percent}%`} />
-                                    <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, (m.memory_mb / 1024) * 100))}%`, background: 'linear-gradient(180deg, #2dd4bf, #06b6d4)', borderRadius: '3px' }} title={`RAM: ${m.memory_mb} MB`} />
+                                <div key={idx} className="group" style={{ flex: 1, display: 'flex', gap: '3px', alignItems: 'flex-end', height: '100%', justifyContent: 'center', position: 'relative', cursor: 'pointer' }}>
+                                    <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, m.cpu_percent))}%`, background: m.cpu_percent > 85 ? '#ef4444' : 'linear-gradient(180deg, #8b5cf6, #3b82f6)', borderRadius: '3px' }} title={`CPU: ${m.cpu_percent.toFixed(1)}% | RAM: ${m.memory_mb} MB`} />
+                                    <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, (m.memory_mb / 1024) * 100))}%`, background: 'linear-gradient(180deg, #2dd4bf, #06b6d4)', borderRadius: '3px' }} title={`CPU: ${m.cpu_percent.toFixed(1)}% | RAM: ${m.memory_mb} MB`} />
                                 </div>
                             ))}
                         </div>
@@ -511,14 +522,25 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                             <Maximize2 size={12} /> Expand
                         </button>
                     </div>
+
+                    {/* Chart 2 Legends */}
+                    <div style={{ display: 'flex', gap: '14px', fontSize: '0.72rem', fontWeight: 600, paddingBottom: '2px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#475569' : '#cbd5e1' }}>
+                            <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'linear-gradient(135deg, #2dd4bf, #06b6d4)' }} /> 🩵 Request Throughput (req/s)
+                        </span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#475569' : '#cbd5e1' }}>
+                            <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#ef4444' }} /> 🔴 5xx HTTP Error Spikes
+                        </span>
+                    </div>
+
                     <div style={{ display: 'flex', gap: '10px', height: '170px', position: 'relative' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', fontSize: '0.68rem', color: isLight ? '#94a3b8' : 'var(--text-secondary)', fontWeight: 600, textAlign: 'right', minWidth: '38px' }}>
                             <span>250 r/s</span><span>180 r/s</span><span>100 r/s</span><span>50 r/s</span><span>0 r/s</span>
                         </div>
                         <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'flex-end', gap: '6px', padding: '4px 0', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)' }}>
                             {metrics.map((m, idx) => (
-                                <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
-                                    <div style={{ width: '100%', height: `${Math.min(100, Math.max(10, (m.request_rate / 250) * 100))}%`, background: m.http_5xx_count > 0 ? '#ef4444' : 'linear-gradient(180deg, #2dd4bf, #06b6d4)', borderRadius: '4px' }} title={`Requests: ${m.request_rate} req/s, 5xx: ${m.http_5xx_count}`} />
+                                <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', cursor: 'pointer' }}>
+                                    <div style={{ width: '100%', height: `${Math.min(100, Math.max(10, (m.request_rate / 250) * 100))}%`, background: m.http_5xx_count > 0 ? '#ef4444' : 'linear-gradient(180deg, #2dd4bf, #06b6d4)', borderRadius: '4px' }} title={`Throughput: ${m.request_rate} req/s | 5xx Errors: ${m.http_5xx_count}`} />
                                 </div>
                             ))}
                         </div>
@@ -535,15 +557,26 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                             <Maximize2 size={12} /> Expand
                         </button>
                     </div>
+
+                    {/* Chart 3 Legends */}
+                    <div style={{ display: 'flex', gap: '14px', fontSize: '0.72rem', fontWeight: 600, paddingBottom: '2px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#475569' : '#cbd5e1' }}>
+                            <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'linear-gradient(135deg, #f59e0b, #d97706)' }} /> 🟡 p95 Latency (ms)
+                        </span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#475569' : '#cbd5e1' }}>
+                            <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'linear-gradient(135deg, #ec4899, #be185d)' }} /> 🩷 p99 Latency (ms)
+                        </span>
+                    </div>
+
                     <div style={{ display: 'flex', gap: '10px', height: '170px', position: 'relative' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', fontSize: '0.68rem', color: isLight ? '#94a3b8' : 'var(--text-secondary)', fontWeight: 600, textAlign: 'right', minWidth: '38px' }}>
                             <span>300 ms</span><span>200 ms</span><span>100 ms</span><span>50 ms</span><span>0 ms</span>
                         </div>
                         <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'flex-end', gap: '6px', padding: '4px 0', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)' }}>
                             {metrics.map((m, idx) => (
-                                <div key={idx} style={{ flex: 1, display: 'flex', gap: '3px', alignItems: 'flex-end', height: '100%', justifyContent: 'center' }}>
-                                    <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, (m.p95_latency_ms / 300) * 100))}%`, background: 'linear-gradient(180deg, #f59e0b, #d97706)', borderRadius: '3px' }} title={`P95: ${m.p95_latency_ms} ms`} />
-                                    <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, ((m.p99_latency_ms || m.p95_latency_ms + 25) / 300) * 100))}%`, background: 'linear-gradient(180deg, #ec4899, #be185d)', borderRadius: '3px' }} title={`P99: ${m.p99_latency_ms || m.p95_latency_ms + 25} ms`} />
+                                <div key={idx} style={{ flex: 1, display: 'flex', gap: '3px', alignItems: 'flex-end', height: '100%', justifyContent: 'center', cursor: 'pointer' }}>
+                                    <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, (m.p95_latency_ms / 300) * 100))}%`, background: 'linear-gradient(180deg, #f59e0b, #d97706)', borderRadius: '3px' }} title={`p95 Latency: ${m.p95_latency_ms} ms | p99 Latency: ${m.p99_latency_ms || m.p95_latency_ms + 25} ms`} />
+                                    <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, ((m.p99_latency_ms || m.p95_latency_ms + 25) / 300) * 100))}%`, background: 'linear-gradient(180deg, #ec4899, #be185d)', borderRadius: '3px' }} title={`p95 Latency: ${m.p95_latency_ms} ms | p99 Latency: ${m.p99_latency_ms || m.p95_latency_ms + 25} ms`} />
                                 </div>
                             ))}
                         </div>
@@ -560,15 +593,26 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                             <Maximize2 size={12} /> Expand
                         </button>
                     </div>
+
+                    {/* Chart 4 Legends */}
+                    <div style={{ display: 'flex', gap: '14px', fontSize: '0.72rem', fontWeight: 600, paddingBottom: '2px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#475569' : '#cbd5e1' }}>
+                            <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)' }} /> 🔵 Active Replicas
+                        </span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#475569' : '#cbd5e1' }}>
+                            <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'linear-gradient(135deg, #06b6d4, #0891b2)' }} /> 🩵 DB Pool Connections
+                        </span>
+                    </div>
+
                     <div style={{ display: 'flex', gap: '10px', height: '170px', position: 'relative' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', fontSize: '0.68rem', color: isLight ? '#94a3b8' : 'var(--text-secondary)', fontWeight: 600, textAlign: 'right', minWidth: '38px' }}>
                             <span>10 Rep / 50 Con</span><span>7 Rep / 35 Con</span><span>5 Rep / 25 Con</span><span>2 Rep / 10 Con</span><span>0</span>
                         </div>
                         <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'flex-end', gap: '6px', padding: '4px 0', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)' }}>
                             {metrics.map((m, idx) => (
-                                <div key={idx} style={{ flex: 1, display: 'flex', gap: '3px', alignItems: 'flex-end', height: '100%', justifyContent: 'center' }}>
-                                    <div style={{ flex: 1, height: `${Math.min(100, Math.max(15, (m.replica_count / 10) * 100))}%`, background: 'linear-gradient(180deg, #3b82f6, #1d4ed8)', borderRadius: '3px' }} title={`Replicas: ${m.replica_count}`} />
-                                    <div style={{ flex: 1, height: `${Math.min(100, Math.max(15, ((m.db_connections || 16) / 50) * 100))}%`, background: 'linear-gradient(180deg, #06b6d4, #0891b2)', borderRadius: '3px' }} title={`DB Connections: ${m.db_connections || 16}`} />
+                                <div key={idx} style={{ flex: 1, display: 'flex', gap: '3px', alignItems: 'flex-end', height: '100%', justifyContent: 'center', cursor: 'pointer' }}>
+                                    <div style={{ flex: 1, height: `${Math.min(100, Math.max(15, (m.replica_count / 10) * 100))}%`, background: 'linear-gradient(180deg, #3b82f6, #1d4ed8)', borderRadius: '3px' }} title={`Replicas: ${m.replica_count} | DB Connections: ${m.db_connections || 16}`} />
+                                    <div style={{ flex: 1, height: `${Math.min(100, Math.max(15, ((m.db_connections || 16) / 50) * 100))}%`, background: 'linear-gradient(180deg, #06b6d4, #0891b2)', borderRadius: '3px' }} title={`Replicas: ${m.replica_count} | DB Connections: ${m.db_connections || 16}`} />
                                 </div>
                             ))}
                         </div>
@@ -585,15 +629,26 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                             <Maximize2 size={12} /> Expand
                         </button>
                     </div>
+
+                    {/* Chart 5 Legends */}
+                    <div style={{ display: 'flex', gap: '14px', fontSize: '0.72rem', fontWeight: 600, paddingBottom: '2px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#475569' : '#cbd5e1' }}>
+                            <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'linear-gradient(135deg, #10b981, #059669)' }} /> 🟢 Network Ingress (KB/s)
+                        </span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#475569' : '#cbd5e1' }}>
+                            <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }} /> 🟣 Network Egress (KB/s)
+                        </span>
+                    </div>
+
                     <div style={{ display: 'flex', gap: '10px', height: '170px', position: 'relative' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', fontSize: '0.68rem', color: isLight ? '#94a3b8' : 'var(--text-secondary)', fontWeight: 600, textAlign: 'right', minWidth: '38px' }}>
                             <span>500 KB/s</span><span>375 KB/s</span><span>250 KB/s</span><span>125 KB/s</span><span>0 KB/s</span>
                         </div>
                         <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'flex-end', gap: '6px', padding: '4px 0', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)' }}>
                             {metrics.map((m, idx) => (
-                                <div key={idx} style={{ flex: 1, display: 'flex', gap: '3px', alignItems: 'flex-end', height: '100%', justifyContent: 'center' }}>
-                                    <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, ((m.network_in_kbps || 180) / 500) * 100))}%`, background: 'linear-gradient(180deg, #10b981, #059669)', borderRadius: '3px' }} title={`Ingress: ${m.network_in_kbps || 180} KB/s`} />
-                                    <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, ((m.network_out_kbps || 120) / 500) * 100))}%`, background: 'linear-gradient(180deg, #6366f1, #4f46e5)', borderRadius: '3px' }} title={`Egress: ${m.network_out_kbps || 120} KB/s`} />
+                                <div key={idx} style={{ flex: 1, display: 'flex', gap: '3px', alignItems: 'flex-end', height: '100%', justifyContent: 'center', cursor: 'pointer' }}>
+                                    <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, ((m.network_in_kbps || 180) / 500) * 100))}%`, background: 'linear-gradient(180deg, #10b981, #059669)', borderRadius: '3px' }} title={`Ingress: ${(m.network_in_kbps || 180).toFixed(1)} KB/s | Egress: ${(m.network_out_kbps || 120).toFixed(1)} KB/s`} />
+                                    <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, ((m.network_out_kbps || 120) / 500) * 100))}%`, background: 'linear-gradient(180deg, #6366f1, #4f46e5)', borderRadius: '3px' }} title={`Ingress: ${(m.network_in_kbps || 180).toFixed(1)} KB/s | Egress: ${(m.network_out_kbps || 120).toFixed(1)} KB/s`} />
                                 </div>
                             ))}
                         </div>
@@ -610,15 +665,26 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                             <Maximize2 size={12} /> Expand
                         </button>
                     </div>
+
+                    {/* Chart 6 Legends */}
+                    <div style={{ display: 'flex', gap: '14px', fontSize: '0.72rem', fontWeight: 600, paddingBottom: '2px' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#475569' : '#cbd5e1' }}>
+                            <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'linear-gradient(135deg, #a855f7, #7e22ce)' }} /> 🟣 Storage Volume (%)
+                        </span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#475569' : '#cbd5e1' }}>
+                            <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'linear-gradient(135deg, #f43f5e, #be123c)' }} /> 🔴 Disk IOPS Saturation
+                        </span>
+                    </div>
+
                     <div style={{ display: 'flex', gap: '10px', height: '170px', position: 'relative' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', fontSize: '0.68rem', color: isLight ? '#94a3b8' : 'var(--text-secondary)', fontWeight: 600, textAlign: 'right', minWidth: '38px' }}>
                             <span>100% / 1K</span><span>75% / 750</span><span>50% / 500</span><span>25% / 250</span><span>0</span>
                         </div>
                         <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'flex-end', gap: '6px', padding: '4px 0', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)' }}>
                             {metrics.map((m, idx) => (
-                                <div key={idx} style={{ flex: 1, display: 'flex', gap: '3px', alignItems: 'flex-end', height: '100%', justifyContent: 'center' }}>
-                                    <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, m.storage_percent || 40))}%`, background: 'linear-gradient(180deg, #a855f7, #7e22ce)', borderRadius: '3px' }} title={`Storage: ${m.storage_percent || 40}%`} />
-                                    <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, ((m.disk_iops || 550) / 1000) * 100))}%`, background: 'linear-gradient(180deg, #f43f5e, #be123c)', borderRadius: '3px' }} title={`IOPS: ${m.disk_iops || 550}`} />
+                                <div key={idx} style={{ flex: 1, display: 'flex', gap: '3px', alignItems: 'flex-end', height: '100%', justifyContent: 'center', cursor: 'pointer' }}>
+                                    <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, m.storage_percent || 40))}%`, background: 'linear-gradient(180deg, #a855f7, #7e22ce)', borderRadius: '3px' }} title={`Storage: ${(m.storage_percent || 40).toFixed(1)}% | IOPS: ${m.disk_iops || 550}`} />
+                                    <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, ((m.disk_iops || 550) / 1000) * 100))}%`, background: 'linear-gradient(180deg, #f43f5e, #be123c)', borderRadius: '3px' }} title={`Storage: ${(m.storage_percent || 40).toFixed(1)}% | IOPS: ${m.disk_iops || 550}`} />
                                 </div>
                             ))}
                         </div>
@@ -660,6 +726,69 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                             </button>
                         </div>
                         <div style={{ padding: '32px', height: '380px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            {/* Expanded Modal Legend Bar */}
+                            <div style={{ display: 'flex', gap: '16px', fontSize: '0.8rem', fontWeight: 700, paddingBottom: '4px' }}>
+                                {expandedChart.type === 'cpu_ram' && (
+                                    <>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#334155' : '#e2e8f0' }}>
+                                            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#8b5cf6' }} /> 🟣 CPU Utilization (%)
+                                        </span>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#334155' : '#e2e8f0' }}>
+                                            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#2dd4bf' }} /> 🟢 RAM Allocation (MB)
+                                        </span>
+                                    </>
+                                )}
+                                {expandedChart.type === 'requests' && (
+                                    <>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#334155' : '#e2e8f0' }}>
+                                            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#06b6d4' }} /> 🩵 Request Throughput (req/s)
+                                        </span>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#334155' : '#e2e8f0' }}>
+                                            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#ef4444' }} /> 🔴 5xx HTTP Error Spikes
+                                        </span>
+                                    </>
+                                )}
+                                {expandedChart.type === 'latency' && (
+                                    <>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#334155' : '#e2e8f0' }}>
+                                            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#f59e0b' }} /> 🟡 p95 API Latency (ms)
+                                        </span>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#334155' : '#e2e8f0' }}>
+                                            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#ec4899' }} /> 🩷 p99 API Latency (ms)
+                                        </span>
+                                    </>
+                                )}
+                                {expandedChart.type === 'replicas_db' && (
+                                    <>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#334155' : '#e2e8f0' }}>
+                                            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#3b82f6' }} /> 🔵 Active Replicas
+                                        </span>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#334155' : '#e2e8f0' }}>
+                                            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#06b6d4' }} /> 🩵 Active DB Connections
+                                        </span>
+                                    </>
+                                )}
+                                {expandedChart.type === 'network' && (
+                                    <>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#334155' : '#e2e8f0' }}>
+                                            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#10b981' }} /> 🟢 Network Ingress (KB/s)
+                                        </span>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#334155' : '#e2e8f0' }}>
+                                            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#6366f1' }} /> 🟣 Network Egress (KB/s)
+                                        </span>
+                                    </>
+                                )}
+                                {expandedChart.type === 'storage_iops' && (
+                                    <>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#334155' : '#e2e8f0' }}>
+                                            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#a855f7' }} /> 🟣 Storage Volume (%)
+                                        </span>
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: isLight ? '#334155' : '#e2e8f0' }}>
+                                            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#f43f5e' }} /> 🔴 Disk IOPS Saturation
+                                        </span>
+                                    </>
+                                )}
+                            </div>
                             <div style={{ flex: 1, display: 'flex', gap: '12px', alignItems: 'flex-end', position: 'relative', borderBottom: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px' }}>
                                 {metrics.map((m, idx) => (
                                     <div key={idx} style={{ flex: 1, display: 'flex', gap: '4px', alignItems: 'flex-end', height: '100%', justifyContent: 'center' }}>
