@@ -359,6 +359,17 @@ export const CostPage: React.FC<CostPageProps> = ({
     };
   }, []);
 
+  // Helper to format currency symbol (₹ for INR, $ for USD, € for EUR, etc.)
+  const getCurrencySymbol = (currencyStr?: string) => {
+    if (!currencyStr) return '₹';
+    const c = String(currencyStr).toUpperCase();
+    if (c === 'INR' || c === '₹') return '₹';
+    if (c === 'USD' || c === '$') return '$';
+    if (c === 'EUR' || c === '€') return '€';
+    if (c === 'GBP' || c === '£') return '£';
+    return '₹';
+  };
+
   // Azure Cloud Infrastructure Billing & Forecast states
   const [azureBills, setAzureBills] = useState<any[]>([]);
   const [loadingAzureBills, setLoadingAzureBills] = useState<boolean>(false);
@@ -2252,7 +2263,9 @@ export const CostPage: React.FC<CostPageProps> = ({
                         const totalHeightPct = Math.max(20, (totalVal / maxAmount) * baseMaxHeight);
                         const periodLabel = getBillPeriodLabel(b.billing_period);
 
-                        const hoverTooltipText = `Bill: ${b.invoice_number} | Period: ${b.billing_period}\nTotal: $${totalVal.toFixed(2)} USD\n• ACA Compute: $${acaVal.toFixed(2)}\n• MySQL DB: $${mysqlVal.toFixed(2)}\n• SWA & CDN: $${swaVal.toFixed(2)}\n• Storage/VM: $${storageVal.toFixed(2)}\n• Egress: $${egressVal.toFixed(2)}`;
+                        const currSym = getCurrencySymbol(b.currency);
+                        const currCode = (b.currency || 'INR').toUpperCase();
+                        const hoverTooltipText = `Bill: ${b.invoice_number} | Period: ${b.billing_period}\nTotal: ${currSym}${totalVal.toFixed(2)} ${currCode}\n• ACA Compute: ${currSym}${acaVal.toFixed(2)}\n• MySQL DB: ${currSym}${mysqlVal.toFixed(2)}\n• SWA & CDN: ${currSym}${swaVal.toFixed(2)}\n• Storage/VM: ${currSym}${storageVal.toFixed(2)}\n• Egress: ${currSym}${egressVal.toFixed(2)}`;
 
                         return (
                           <div key={b.id || b.invoice_number} style={{
@@ -2275,11 +2288,11 @@ export const CostPage: React.FC<CostPageProps> = ({
                               cursor: 'pointer',
                               position: 'relative'
                             }} title={hoverTooltipText}>
-                              <div style={{ height: `${(acaVal / totalVal) * 100}%`, background: '#8b5cf6' }} title={`ACA Compute: $${acaVal.toFixed(2)}`} />
-                              <div style={{ height: `${(mysqlVal / totalVal) * 100}%`, background: '#3b82f6' }} title={`MySQL DB: $${mysqlVal.toFixed(2)}`} />
-                              <div style={{ height: `${(swaVal / totalVal) * 100}%`, background: '#06b6d4' }} title={`SWA & CDN: $${swaVal.toFixed(2)}`} />
-                              <div style={{ height: `${(storageVal / totalVal) * 100}%`, background: '#10b981' }} title={`Storage & VM: $${storageVal.toFixed(2)}`} />
-                              <div style={{ height: `${(egressVal / totalVal) * 100}%`, background: '#6366f1' }} title={`Network Egress: $${egressVal.toFixed(2)}`} />
+                              <div style={{ height: `${(acaVal / totalVal) * 100}%`, background: '#8b5cf6' }} title={`ACA Compute: ${currSym}${acaVal.toFixed(2)}`} />
+                              <div style={{ height: `${(mysqlVal / totalVal) * 100}%`, background: '#3b82f6' }} title={`MySQL DB: ${currSym}${mysqlVal.toFixed(2)}`} />
+                              <div style={{ height: `${(swaVal / totalVal) * 100}%`, background: '#06b6d4' }} title={`SWA & CDN: ${currSym}${swaVal.toFixed(2)}`} />
+                              <div style={{ height: `${(storageVal / totalVal) * 100}%`, background: '#10b981' }} title={`Storage & VM: ${currSym}${storageVal.toFixed(2)}`} />
+                              <div style={{ height: `${(egressVal / totalVal) * 100}%`, background: '#6366f1' }} title={`Network Egress: ${currSym}${egressVal.toFixed(2)}`} />
 
                               {/* Value badge on top of bar */}
                               <div style={{
@@ -2293,7 +2306,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                                 color: isLight ? '#0f172a' : '#ffffff',
                                 whiteSpace: 'nowrap'
                               }}>
-                                ${totalVal.toFixed(0)}
+                                {currSym}{totalVal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                               </div>
                             </div>
 
@@ -2596,6 +2609,9 @@ export const CostPage: React.FC<CostPageProps> = ({
                       ? { color: 'var(--error)', bg: isLight ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.2)' }
                       : { color: 'var(--warning)', bg: isLight ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.2)' };
 
+                    const currSym = getCurrencySymbol(bill.currency);
+                    const currCode = (bill.currency || 'INR').toUpperCase();
+
                     return (
                       <tr key={bill.id || bill.invoice_number} style={{ borderBottom: '1px solid var(--divider)', fontSize: '0.86rem' }}>
                         <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -2612,21 +2628,21 @@ export const CostPage: React.FC<CostPageProps> = ({
                         <td style={{ padding: '14px 16px' }}>
                           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', fontSize: '0.7rem' }}>
                             <span style={{ padding: '2px 6px', borderRadius: '4px', background: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6', fontWeight: 600 }}>
-                              ACA: ${Number(bill.aca_compute_amount || 185.20).toFixed(2)}
+                              ACA: {currSym}{Number(bill.aca_compute_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                             </span>
                             <span style={{ padding: '2px 6px', borderRadius: '4px', background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', fontWeight: 600 }}>
-                              MySQL: ${Number(bill.mysql_db_amount || 142.00).toFixed(2)}
+                              MySQL: {currSym}{Number(bill.mysql_db_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                             </span>
                             <span style={{ padding: '2px 6px', borderRadius: '4px', background: 'rgba(6, 182, 212, 0.15)', color: '#06b6d4', fontWeight: 600 }}>
-                              SWA: ${Number(bill.swa_cdn_amount || 65.30).toFixed(2)}
+                              SWA: {currSym}{Number(bill.swa_cdn_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                             </span>
                             <span style={{ padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontWeight: 600 }}>
-                              Storage/VM: ${Number(bill.storage_vm_amount || 52.00).toFixed(2)}
+                              Storage/VM: {currSym}{Number(bill.storage_vm_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                             </span>
                           </div>
                         </td>
                         <td style={{ padding: '14px 16px', fontWeight: 800, color: '#10b981', fontFamily: 'monospace', fontSize: '0.95rem' }}>
-                          ${Number(bill.total_amount || 0).toFixed(2)} {bill.currency || 'USD'}
+                          {currSym}{Number(bill.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currCode}
                         </td>
                         <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{bill.issue_date}</td>
                         <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{bill.due_date}</td>
@@ -3494,6 +3510,8 @@ export const CostPage: React.FC<CostPageProps> = ({
                       const storageVal = Number(bill.storage_vm_amount || totalVal * 0.10);
                       const egressVal = Number(bill.network_egress_amount || totalVal * 0.08);
 
+                      const currSym = getCurrencySymbol(bill.currency);
+
                       return (
                         <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', height: '100%', justifyContent: 'flex-end' }}>
                           <div style={{
@@ -3504,14 +3522,14 @@ export const CostPage: React.FC<CostPageProps> = ({
                             borderRadius: '6px',
                             overflow: 'hidden',
                             boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                          }} title={`Period: ${bill.billing_period} | Total: $${totalVal.toFixed(2)}`}>
-                            <div style={{ height: `${(acaVal / totalVal) * 100}%`, background: '#8b5cf6' }} title={`ACA: $${acaVal.toFixed(2)}`} />
-                            <div style={{ height: `${(mysqlVal / totalVal) * 100}%`, background: '#3b82f6' }} title={`MySQL: $${mysqlVal.toFixed(2)}`} />
-                            <div style={{ height: `${(swaVal / totalVal) * 100}%`, background: '#06b6d4' }} title={`SWA: $${swaVal.toFixed(2)}`} />
-                            <div style={{ height: `${(storageVal / totalVal) * 100}%`, background: '#10b981' }} title={`Storage: $${storageVal.toFixed(2)}`} />
-                            <div style={{ height: `${(egressVal / totalVal) * 100}%`, background: '#6366f1' }} title={`Egress: $${egressVal.toFixed(2)}`} />
+                          }} title={`Period: ${bill.billing_period} | Total: ${currSym}${totalVal.toLocaleString('en-IN')}`}>
+                            <div style={{ height: `${(acaVal / totalVal) * 100}%`, background: '#8b5cf6' }} title={`ACA: ${currSym}${acaVal.toFixed(2)}`} />
+                            <div style={{ height: `${(mysqlVal / totalVal) * 100}%`, background: '#3b82f6' }} title={`MySQL: ${currSym}${mysqlVal.toFixed(2)}`} />
+                            <div style={{ height: `${(swaVal / totalVal) * 100}%`, background: '#06b6d4' }} title={`SWA: ${currSym}${swaVal.toFixed(2)}`} />
+                            <div style={{ height: `${(storageVal / totalVal) * 100}%`, background: '#10b981' }} title={`Storage: ${currSym}${storageVal.toFixed(2)}`} />
+                            <div style={{ height: `${(egressVal / totalVal) * 100}%`, background: '#6366f1' }} title={`Egress: ${currSym}${egressVal.toFixed(2)}`} />
                           </div>
-                          <span style={{ fontSize: '0.74rem', color: isLight ? '#0f172a' : '#fff', fontWeight: 700 }}>${totalVal.toFixed(0)}</span>
+                          <span style={{ fontSize: '0.74rem', color: isLight ? '#0f172a' : '#fff', fontWeight: 700 }}>{currSym}{totalVal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
                           <span style={{ fontSize: '0.66rem', color: isLight ? '#64748b' : '#94a3b8', fontWeight: 600 }}>{bill.billing_period}</span>
                         </div>
                       );
