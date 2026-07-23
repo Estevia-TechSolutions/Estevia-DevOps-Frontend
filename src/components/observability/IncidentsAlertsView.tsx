@@ -868,34 +868,117 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
 
                         {/* Drawer Content Body */}
                         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                            {/* Section 1: Trigger Thresholds */}
+                            {/* Section 1: Detailed Incident Automation Rules */}
                             <div style={{
                                 padding: '16px',
                                 borderRadius: '12px',
                                 background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
-                                border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)'
+                                border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '12px'
                             }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', marginBottom: '12px' }}>
-                                    <Cpu size={16} style={{ color: '#8b5cf6' }} />
-                                    <span>Real-Time Incident Detection Rules</span>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.92rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+                                        <Cpu size={18} style={{ color: '#8b5cf6' }} />
+                                        <span>Incident Automation Rule Specifications</span>
+                                    </div>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '12px', background: 'rgba(139,92,246,0.15)', color: '#8b5cf6' }}>
+                                        6 Active Categories
+                                    </span>
                                 </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.78rem', color: isLight ? '#475569' : 'var(--text-secondary)' }}>
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                                        <AlertTriangle size={14} style={{ color: '#f59e0b', marginTop: '2px', flexShrink: 0 }} />
-                                        <div>
-                                            <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>HIGH_RESOURCE_PRESSURE:</strong> Triggers when CPU utilization exceeds <strong>85%</strong> threshold on SWA, ACA, or VM.
+                                <div style={{ fontSize: '0.76rem', color: isLight ? '#64748b' : 'var(--text-secondary)', lineHeight: 1.45 }}>
+                                    EvaPulse scans telemetry streams in 60-second cycles against these 6 automated breach condition rules:
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
+                                    {/* Rule 1: CRITICAL_OUTAGE */}
+                                    <div style={{ padding: '12px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(0,0,0,0.25)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                            <span style={{ fontWeight: 800, fontSize: '0.8rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <ShieldAlert size={14} /> CRITICAL_OUTAGE
+                                            </span>
+                                            <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>P1_CRITICAL</span>
+                                        </div>
+                                        <div style={{ fontSize: '0.74rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.5 }}>
+                                            <strong>Condition:</strong> <code>HTTP 5xx Errors ≥ 5 / interval</code> OR <code>Unreachable Status</code><br />
+                                            <strong>Scope:</strong> Container Apps (ACA) & Static Web Apps (SWA)<br />
+                                            <strong>Action:</strong> Instant P1 owner email dispatch + Eva AI root-cause snapshot prompt. Auto-clears when 5xx count returns to 0.
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                                        <ShieldAlert size={14} style={{ color: '#ef4444', marginTop: '2px', flexShrink: 0 }} />
-                                        <div>
-                                            <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>CRITICAL_OUTAGE:</strong> Triggers when HTTP 5xx errors reach <strong>≥ 5</strong> in a telemetry window.
+
+                                    {/* Rule 2: HIGH_RESOURCE_PRESSURE */}
+                                    <div style={{ padding: '12px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(0,0,0,0.25)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                            <span style={{ fontWeight: 800, fontSize: '0.8rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <AlertTriangle size={14} /> HIGH_RESOURCE_PRESSURE
+                                            </span>
+                                            <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>P2_HIGH</span>
+                                        </div>
+                                        <div style={{ fontSize: '0.74rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.5 }}>
+                                            <strong>Condition:</strong> <code>CPU Utilization &gt; 85.0%</code> OR <code>RAM &gt; 90%</code> limit<br />
+                                            <strong>Scope:</strong> ACA, SWA & Virtual Machines (VM)<br />
+                                            <strong>Action:</strong> P2 alert dispatch + auto-scale evaluation (+1 replica trigger). Auto-clears when CPU drops below 70.0%.
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                                        <Clock size={14} style={{ color: '#3b82f6', marginTop: '2px', flexShrink: 0 }} />
-                                        <div>
-                                            <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>LATENCY_DEGRADATION:</strong> Triggers when p95 API response latency increases above <strong>2000 ms</strong>.
+
+                                    {/* Rule 3: LATENCY_DEGRADATION */}
+                                    <div style={{ padding: '12px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(0,0,0,0.25)', border: '1px solid rgba(59,130,246,0.25)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                            <span style={{ fontWeight: 800, fontSize: '0.8rem', color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <Clock size={14} /> LATENCY_DEGRADATION
+                                            </span>
+                                            <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: 'rgba(59,130,246,0.15)', color: '#3b82f6' }}>P3_MEDIUM</span>
+                                        </div>
+                                        <div style={{ fontSize: '0.74rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.5 }}>
+                                            <strong>Condition:</strong> <code>p95 Latency &gt; 2000 ms</code> OR <code>p99 Latency &gt; 3500 ms</code><br />
+                                            <strong>Scope:</strong> ACA API Endpoints & Database Pools<br />
+                                            <strong>Action:</strong> P3 alert notification to assigned resource owners + database connection pool snapshot.
+                                        </div>
+                                    </div>
+
+                                    {/* Rule 4: HEALTH_CHECK_FAILURE */}
+                                    <div style={{ padding: '12px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(0,0,0,0.25)', border: '1px solid rgba(236,72,153,0.25)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                            <span style={{ fontWeight: 800, fontSize: '0.8rem', color: '#ec4899', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <Activity size={14} /> HEALTH_CHECK_FAILURE
+                                            </span>
+                                            <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: 'rgba(236,72,153,0.15)', color: '#ec4899' }}>P2_HIGH</span>
+                                        </div>
+                                        <div style={{ fontSize: '0.74rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.5 }}>
+                                            <strong>Condition:</strong> <code>Replica Count = 0</code> OR <code>Probe Status ≠ 200 OK</code><br />
+                                            <strong>Scope:</strong> Container Apps (ACA)<br />
+                                            <strong>Action:</strong> Triggers Container App revision restart & owner alert dispatch.
+                                        </div>
+                                    </div>
+
+                                    {/* Rule 5: SSL_CERT_EXPIRING */}
+                                    <div style={{ padding: '12px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(0,0,0,0.25)', border: '1px solid rgba(16,185,129,0.25)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                            <span style={{ fontWeight: 800, fontSize: '0.8rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <Lock size={14} /> SSL_CERT_EXPIRING
+                                            </span>
+                                            <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>P3_MEDIUM</span>
+                                        </div>
+                                        <div style={{ fontSize: '0.74rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.5 }}>
+                                            <strong>Condition:</strong> <code>SSL Expiry ≤ 15 Days</code><br />
+                                            <strong>Scope:</strong> Static Web Apps (SWA) & Custom Domains<br />
+                                            <strong>Action:</strong> Automated TLS certificate renewal notification + GoDaddy DNS audit alert.
+                                        </div>
+                                    </div>
+
+                                    {/* Rule 6: STORAGE_VOLUME_FULL */}
+                                    <div style={{ padding: '12px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(0,0,0,0.25)', border: '1px solid rgba(139,92,246,0.25)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                                            <span style={{ fontWeight: 800, fontSize: '0.8rem', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <Cpu size={14} /> STORAGE_VOLUME_FULL
+                                            </span>
+                                            <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: 'rgba(139,92,246,0.15)', color: '#8b5cf6' }}>P3_MEDIUM</span>
+                                        </div>
+                                        <div style={{ fontSize: '0.74rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.5 }}>
+                                            <strong>Condition:</strong> <code>Storage Volume &gt; 90.0%</code> OR <code>Disk IOPS Saturation ≥ 95%</code><br />
+                                            <strong>Scope:</strong> Virtual Machines (VM) & Database Volumes<br />
+                                            <strong>Action:</strong> Disk expansion recommendation + notification dispatched to primary storage owner.
                                         </div>
                                     </div>
                                 </div>
