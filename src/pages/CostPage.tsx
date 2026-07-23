@@ -2258,20 +2258,27 @@ export const CostPage: React.FC<CostPageProps> = ({
                     </div>
 
                     {/* Stacked Itemized Bar Chart Container */}
-                    <div style={{ 
-                      display: 'flex', 
-                      gap: '28px', 
-                      alignItems: 'flex-end', 
-                      height: '230px', 
-                      padding: '20px 24px', 
-                      backgroundColor: isLight ? '#f8fafc' : 'rgba(0,0,0,0.25)', 
-                      borderRadius: '12px',
-                      border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
-                      overflowX: 'auto',
+                    <div style={{
                       position: 'relative',
-                      whiteSpace: 'nowrap',
+                      paddingTop: '200px',
+                      marginTop: '-180px',
+                      overflowX: 'auto',
+                      overflowY: 'visible',
                       scrollbarWidth: 'thin'
                     }}>
+                      <div style={{ 
+                        display: 'flex', 
+                        gap: '28px', 
+                        alignItems: 'flex-end', 
+                        height: '230px', 
+                        padding: '20px 24px', 
+                        backgroundColor: isLight ? '#f8fafc' : 'rgba(0,0,0,0.25)', 
+                        borderRadius: '12px',
+                        border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                        position: 'relative',
+                        whiteSpace: 'nowrap',
+                        overflow: 'visible'
+                      }}>
                       {sortedAzureBills.map((b) => {
                         const totalVal = Number(b.total_amount || 0);
                         const acaVal = b.aca_compute_amount !== undefined && b.aca_compute_amount !== null ? Number(b.aca_compute_amount) : (totalVal * 0.38);
@@ -2406,6 +2413,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                           </div>
                         );
                       })}
+                      </div>
                     </div>
 
                     {/* Azure Billing Summary Scorecard */}
