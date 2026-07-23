@@ -128,12 +128,13 @@ export const TeamPage: React.FC<TeamPageProps> = ({
     try {
       const authToken = token || localStorage.getItem('evaops_token') || localStorage.getItem('token') || '';
 
-      let catRes = await fetch(`${API_BASE}/apps/observability/resource-catalog`, {
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      }).catch(() => null);
+      let catRes = await fetch(`${API_BASE}/apps/observability/resource-catalog`).catch(() => null);
 
       if (!catRes || !catRes.ok) {
-        catRes = await fetch(`${API_BASE}/auth/resource-catalog`, {
+        catRes = await fetch(`${API_BASE}/auth/resource-catalog`).catch(() => null);
+      }
+      if ((!catRes || !catRes.ok) && authToken) {
+        catRes = await fetch(`${API_BASE}/apps/observability/resource-catalog`, {
           headers: { 'Authorization': `Bearer ${authToken}` }
         }).catch(() => null);
       }
@@ -145,20 +146,24 @@ export const TeamPage: React.FC<TeamPageProps> = ({
         }
       }
 
-      const permRes = await fetch(`${API_BASE}/auth/users/${u.id}/resource-permissions`, {
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      }).catch(() => null);
+      const permRes = authToken
+        ? await fetch(`${API_BASE}/auth/users/${u.id}/resource-permissions`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          }).catch(() => null)
+        : null;
+
       if (permRes && permRes.ok) {
         const permData = await permRes.json();
         setUserPermMap(permData.permissions || {});
       }
 
-      let menuRes = await fetch(`${API_BASE}/apps/observability/menu-permissions/${u.id}`, {
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      }).catch(() => null);
+      let menuRes = await fetch(`${API_BASE}/apps/observability/menu-permissions/${u.id}`).catch(() => null);
 
       if (!menuRes || !menuRes.ok) {
-        menuRes = await fetch(`${API_BASE}/observability/menu-permissions/${u.id}`, {
+        menuRes = await fetch(`${API_BASE}/auth/menu-permissions/${u.id}`).catch(() => null);
+      }
+      if ((!menuRes || !menuRes.ok) && authToken) {
+        menuRes = await fetch(`${API_BASE}/apps/observability/menu-permissions/${u.id}`, {
           headers: { 'Authorization': `Bearer ${authToken}` }
         }).catch(() => null);
       }
