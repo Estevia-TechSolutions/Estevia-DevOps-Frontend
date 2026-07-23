@@ -1273,48 +1273,44 @@ export const CostPage: React.FC<CostPageProps> = ({
       )}
 
       {/* Cost Sub-tabs */}
-      <div className="tabs-container" style={{ 
-        marginBottom: '10px', 
-        marginTop: '10px', 
-        background: 'rgba(255, 255, 255, 0.02)', 
+      <div style={{ 
+        background: isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(0, 0, 0, 0.3)', 
         padding: '6px', 
         borderRadius: '12px', 
         display: 'inline-flex', 
-        width: 'auto',
-        border: '1px solid var(--glass-border)'
+        alignItems: 'center',
+        gap: '6px',
+        width: 'fit-content',
+        border: '1px solid var(--glass-border)',
+        boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.2)'
       }}>
-        <button 
-          type="button"
-          className={`tab-btn tab-btn-cost ${activeTabToShow === 'breakdown' ? 'active' : ''}`} 
-          onClick={() => setCostTab('breakdown')}
-          style={{ fontSize: '0.85rem', padding: '8px 20px', borderRadius: '8px' }}
-        >
-          Resource Cost Breakdown
-        </button>
-        <button 
-          type="button"
-          className={`tab-btn tab-btn-cost ${activeTabToShow === 'billing' ? 'active' : ''}`} 
-          onClick={() => setCostTab('billing')}
-          style={{ fontSize: '0.85rem', padding: '8px 20px', borderRadius: '8px' }}
-        >
-          Billing & Invoices History
-        </button>
-        <button 
-          type="button"
-          className={`tab-btn tab-btn-cost ${activeTabToShow === 'recommendations' ? 'active' : ''}`} 
-          onClick={() => setCostTab('recommendations')}
-          style={{ fontSize: '0.85rem', padding: '8px 20px', borderRadius: '8px' }}
-        >
-          Optimization Recommendations
-        </button>
-        <button 
-          type="button"
-          className={`tab-btn tab-btn-cost ${activeTabToShow === 'schedules' ? 'active' : ''}`} 
-          onClick={() => setCostTab('schedules')}
-          style={{ fontSize: '0.85rem', padding: '8px 20px', borderRadius: '8px' }}
-        >
-          Schedules & Budgets
-        </button>
+        {[
+          { key: 'breakdown', label: '📊 Resource Cost Breakdown' },
+          { key: 'billing', label: '💳 Billing & Invoices History' },
+          { key: 'recommendations', label: '⚡ Optimization Recommendations' },
+          { key: 'schedules', label: '⏰ Schedules & Budgets' }
+        ].map(tab => {
+          const isActive = activeTabToShow === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              className={`tab-btn tab-btn-cost ${isActive ? 'active' : ''}`}
+              onClick={() => setCostTab(tab.key as any)}
+              style={{
+                fontSize: '0.84rem',
+                padding: '8px 18px',
+                borderRadius: '8px',
+                fontWeight: isActive ? 700 : 600,
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Sub-tab content */}

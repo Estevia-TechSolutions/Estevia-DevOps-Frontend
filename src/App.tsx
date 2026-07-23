@@ -7295,84 +7295,48 @@ function App() {
         {/* TAB 1: CLOUD RESOURCE SCANNING */}
         {activeTab === 'scan' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* Cloud Scanning Single-Row 4-Sub-Tab Navigation Bar */}
+            {/* Cloud Scanning Sub-Menu Tab Bar (Pill Container) */}
             <div style={{
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '10px',
+              gap: '6px',
               padding: '6px',
               borderRadius: '12px',
-              background: theme === 'light' ? '#f1f5f9' : 'rgba(255, 255, 255, 0.03)',
-              border: theme === 'light' ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
+              background: theme === 'light' ? 'rgba(0, 0, 0, 0.04)' : 'rgba(0, 0, 0, 0.3)',
+              border: '1px solid var(--glass-border)',
+              boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.2)',
               width: 'fit-content'
             }}>
-              <button
-                type="button"
-                onClick={() => setScanSubTab('discovery')}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '8px',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: scanSubTab === 'discovery' ? '#8b5cf6' : 'transparent',
-                  color: scanSubTab === 'discovery' ? '#ffffff' : (theme === 'light' ? '#475569' : 'var(--text-secondary)')
-                }}
-              >
-                🌐 Resource Discovery
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setScanSubTab('compliance')}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '8px',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: scanSubTab === 'compliance' ? '#8b5cf6' : 'transparent',
-                  color: scanSubTab === 'compliance' ? '#ffffff' : (theme === 'light' ? '#475569' : 'var(--text-secondary)')
-                }}
-              >
-                🛡️ Governance & Compliance
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setScanSubTab('observability')}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '8px',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: scanSubTab === 'observability' ? '#8b5cf6' : 'transparent',
-                  color: scanSubTab === 'observability' ? '#ffffff' : (theme === 'light' ? '#475569' : 'var(--text-secondary)')
-                }}
-              >
-                📊 Prometheus Observability
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setScanSubTab('incidents')}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '8px',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  border: 'none',
-                  cursor: 'pointer',
-                  background: scanSubTab === 'incidents' ? '#8b5cf6' : 'transparent',
-                  color: scanSubTab === 'incidents' ? '#ffffff' : (theme === 'light' ? '#475569' : 'var(--text-secondary)')
-                }}
-              >
-                🚨 Incidents & Alerts
-              </button>
+              {[
+                { key: 'discovery', label: '🌐 Resource Discovery' },
+                { key: 'compliance', label: '🛡️ Governance & Compliance' },
+                { key: 'observability', label: '📊 Prometheus Observability' },
+                { key: 'incidents', label: '🚨 Incidents & Alerts' }
+              ].map(tab => {
+                const isActive = scanSubTab === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    className={`tab-btn tab-btn-cost ${isActive ? 'active' : ''}`}
+                    onClick={() => setScanSubTab(tab.key as any)}
+                    style={{
+                      padding: '8px 18px',
+                      borderRadius: '8px',
+                      fontSize: '0.84rem',
+                      fontWeight: isActive ? 700 : 600,
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: isActive ? 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' : 'transparent',
+                      color: isActive ? '#ffffff' : (theme === 'light' ? '#475569' : 'var(--text-secondary)'),
+                      boxShadow: isActive ? '0 2px 12px rgba(139, 92, 246, 0.35)' : 'none',
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Sub-Tab Content Switcher */}
