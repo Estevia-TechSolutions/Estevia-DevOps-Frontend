@@ -37,7 +37,7 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
     const [timeWindow, setTimeWindow] = useState<'15m' | '1h' | '6h' | '24h' | '7d'>('24h');
     const [selectedEnv, setSelectedEnv] = useState<'dev' | 'qa' | 'prod'>('dev');
     const [selectedApp, setSelectedApp] = useState<string>('connecthub');
-    const [resourceType, setResourceType] = useState<'aca' | 'swa' | 'vm'>('aca');
+    const [resourceType, setResourceType] = useState<'all' | 'aca' | 'swa' | 'vm'>('all');
     const [appsCatalog, setAppsCatalog] = useState<Array<{ key: string; label: string; icon: string; resourceTypes?: string[] }>>([]);
     const [metrics, setMetrics] = useState<MetricItem[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -58,6 +58,17 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
     useEffect(() => {
         fetchCatalog();
     }, []);
+
+    useEffect(() => {
+        const filteredApps = appsCatalog.filter(app => {
+            if (resourceType === 'all') return true;
+            const types = getAppTypes(app);
+            return types.includes(resourceType.toLowerCase());
+        });
+        if (selectedApp !== 'all' && filteredApps.length > 0 && !filteredApps.some(app => app.key === selectedApp)) {
+            setSelectedApp('all');
+        }
+    }, [resourceType, appsCatalog]);
 
     useEffect(() => {
         if (!packageLocked) {
@@ -113,13 +124,20 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
     };
 
     const getAppTypes = (app: any): string[] => {
-        if (app.resourceTypes && app.resourceTypes.length > 0) {
-            return app.resourceTypes.map((t: string) => t.toLowerCase());
-        }
         const k = (app.key || '').toLowerCase();
-        if (k.includes('vm') || k.includes('db') || k.includes('database')) return ['vm'];
-        if (k.includes('frontend') || k.includes('swa')) return ['swa'];
-        if (k.includes('backend') || k.includes('api') || k.includes('aca')) return ['aca'];
+        if (k.includes('vm') || k.includes('db') || k.includes('database') || k.includes('server')) {
+            return ['vm'];
+        }
+        if (k.includes('frontend') || k.includes('swa') || k.includes('web')) {
+            return ['swa', 'aca'];
+        }
+        if (k.includes('backend') || k.includes('api') || k.includes('aca')) {
+            return ['aca', 'swa'];
+        }
+        if (app.resourceTypes && app.resourceTypes.length > 0) {
+            const set = new Set([...app.resourceTypes.map((t: string) => t.toLowerCase()), 'aca', 'swa']);
+            return Array.from(set);
+        }
         return ['aca', 'swa'];
     };
 
@@ -321,12 +339,14 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                             fontWeight: 600,
                             background: isLight ? '#f1f5f9' : 'rgba(0,0,0,0.3)',
                             color: isLight ? '#0f172a' : 'var(--text-primary)',
-                            border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)'
+                            border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
+                            cursor: 'pointer'
                         }}
                     >
-                        <option value="aca">Container App (ACA)</option>
-                        <option value="swa">Static Web App (SWA)</option>
-                        <option value="vm">Virtual Machine (VM)</option>
+                        <option value="all">⚡ All Resources (ACA, SWA, VM)</option>
+                        <option value="aca">📦 Container App (ACA)</option>
+                        <option value="swa">🌐 Static Web App (SWA)</option>
+                        <option value="vm">🖥️ Virtual Machine (VM)</option>
                     </select>
 
                     <select
@@ -340,14 +360,22 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                             fontWeight: 600,
                             background: isLight ? '#f1f5f9' : 'rgba(0,0,0,0.3)',
                             color: isLight ? '#0f172a' : 'var(--text-primary)',
-                            border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)'
+                            border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
+                            cursor: 'pointer'
                         }}
                     >
                         <option value="all">
-                            {resourceType === 'aca' ? '📦 All Container Apps (ACA)' : resourceType === 'swa' ? '🌐 All Static Web Apps (SWA)' : '🖥️ All Virtual Machines (VM)'}
+                            {resourceType === 'all'
+                                ? '⚡ All Applications & Resources'
+                                : resourceType === 'aca'
+                                ? '📦 All Container Apps (ACA)'
+                                : resourceType === 'swa'
+                                ? '🌐 All Static Web Apps (SWA)'
+                                : '🖥️ All Virtual Machines (VM)'}
                         </option>
                         {appsCatalog
                             .filter(app => {
+                                if (resourceType === 'all') return true;
                                 const types = getAppTypes(app);
                                 return types.includes(resourceType.toLowerCase());
                             })
