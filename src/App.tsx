@@ -7310,7 +7310,7 @@ function App() {
               {[
                 { key: 'discovery', label: '🌐 Resource Discovery' },
                 { key: 'compliance', label: '🛡️ Governance & Compliance' },
-                { key: 'observability', label: '📊 Prometheus Observability' },
+                { key: 'observability', label: '📊 EvaPulse Live Observability' },
                 { key: 'incidents', label: '🚨 Incidents & Alerts' }
               ].map(tab => {
                 const isActive = scanSubTab === tab.key;

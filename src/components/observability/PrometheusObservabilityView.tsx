@@ -167,7 +167,7 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                     </div>
                     <div>
                         <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
-                            Prometheus & Grafana Observability
+                            EvaPulse Live Observability & Telemetry Engine
                         </h3>
                         <div style={{ fontSize: '0.78rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
                             Live time-series telemetry for Container Apps (ACA), Static Web Apps (SWA) & Virtual Machines (VM)
@@ -212,9 +212,12 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                         <option value="all">⚡ All {resourceType.toUpperCase()} Resources</option>
                         {appsCatalog
                             .filter(app => {
-                                if (!app.resourceTypes || app.resourceTypes.length === 0) return true;
-                                const types = app.resourceTypes.map((t: string) => t.toLowerCase());
-                                return types.includes(resourceType.toLowerCase());
+                                const types = (app.resourceTypes || []).map((t: string) => t.toLowerCase());
+                                const keyLower = (app.key || '').toLowerCase();
+                                if (resourceType === 'aca') return types.includes('aca') || keyLower.includes('backend') || keyLower.includes('api') || keyLower.includes('aca');
+                                if (resourceType === 'vm') return types.includes('vm') || keyLower.includes('vm') || keyLower.includes('db') || keyLower.includes('database');
+                                if (resourceType === 'swa') return types.includes('swa') || keyLower.includes('frontend') || keyLower.includes('swa');
+                                return true;
                             })
                             .map(app => (
                                 <option key={app.key} value={app.key}>
@@ -247,23 +250,21 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                         ))}
                     </div>
 
-                    {/* Time Window Buttons */}
-                    <div style={{ display: 'flex', gap: '4px', background: isLight ? '#f1f5f9' : 'rgba(0,0,0,0.2)', padding: '3px', borderRadius: '8px' }}>
+                    {/* Time Window Selector */}
+                    <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)' }}>
                         {(['15m', '1h', '6h', '24h', '7d'] as const).map(tw => (
                             <button
                                 key={tw}
                                 type="button"
                                 onClick={() => setTimeWindow(tw)}
                                 style={{
-                                    padding: '4px 10px',
+                                    padding: '6px 10px',
                                     fontSize: '0.74rem',
                                     fontWeight: 600,
-                                    borderRadius: '6px',
-                                    background: timeWindow === tw ? (isLight ? '#ffffff' : 'rgba(139, 92, 246, 0.25)') : 'transparent',
-                                    color: timeWindow === tw ? (isLight ? '#6d28d9' : '#a78bfa') : (isLight ? '#64748b' : 'var(--text-secondary)'),
+                                    background: timeWindow === tw ? '#6366f1' : (isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)'),
+                                    color: timeWindow === tw ? '#fff' : (isLight ? '#475569' : 'var(--text-secondary)'),
                                     border: 'none',
-                                    cursor: 'pointer',
-                                    boxShadow: timeWindow === tw && isLight ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                                    cursor: 'pointer'
                                 }}
                             >
                                 {tw}
@@ -350,7 +351,7 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
 
             {/* Grafana-Style Live Visual Charts */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '20px' }}>
-                {/* Chart 1: CPU & Memory */}
+                {/* Chart 1: CPU & Memory with Y-Axis Scale & X-Axis Timestamps */}
                 <div className="glass-panel" style={{
                     padding: '20px',
                     borderRadius: '16px',
@@ -369,27 +370,50 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                         </span>
                     </div>
 
-                    {/* SVG Live Bar Telemetry Chart */}
-                    <div style={{ height: '180px', display: 'flex', alignItems: 'flex-end', gap: '8px', padding: '10px 0', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.05)' }}>
-                        {metrics.map((m, idx) => (
-                            <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', height: '100%', justifyContent: 'flex-end' }}>
-                                <div style={{
-                                    width: '100%',
-                                    height: `${Math.min(100, Math.max(10, m.cpu_percent))}%`,
-                                    background: m.cpu_percent > 85 ? '#ef4444' : 'linear-gradient(180deg, #8b5cf6, #3b82f6)',
-                                    borderRadius: '4px',
-                                    transition: 'height 0.3s'
-                                }} title={`CPU: ${m.cpu_percent}%`} />
-                            </div>
-                        ))}
+                    {/* Chart Frame with Y-Axis column and horizontal gridlines */}
+                    <div style={{ display: 'flex', gap: '10px', height: '180px', position: 'relative' }}>
+                        {/* Y-Axis Label Column */}
+                        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', fontSize: '0.68rem', color: isLight ? '#94a3b8' : 'var(--text-secondary)', fontWeight: 600, paddingRight: '4px', textAlign: 'right', minWidth: '38px' }}>
+                            <span>100%</span>
+                            <span>75%</span>
+                            <span>50%</span>
+                            <span>25%</span>
+                            <span>0%</span>
+                        </div>
+
+                        {/* Chart Bars & Gridlines Container */}
+                        <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'flex-end', gap: '8px', padding: '4px 0', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)' }}>
+                            {/* Translucent horizontal gridlines */}
+                            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, borderTop: isLight ? '1px dashed #e2e8f0' : '1px dashed rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
+                            <div style={{ position: 'absolute', top: '25%', left: 0, right: 0, borderTop: isLight ? '1px dashed #e2e8f0' : '1px dashed rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
+                            <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, borderTop: isLight ? '1px dashed #e2e8f0' : '1px dashed rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
+                            <div style={{ position: 'absolute', top: '75%', left: 0, right: 0, borderTop: isLight ? '1px dashed #e2e8f0' : '1px dashed rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
+
+                            {metrics.map((m, idx) => (
+                                <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', height: '100%', justifyContent: 'flex-end', zIndex: 2 }}>
+                                    <div style={{
+                                        width: '100%',
+                                        height: `${Math.min(100, Math.max(10, m.cpu_percent))}%`,
+                                        background: m.cpu_percent > 85 ? '#ef4444' : 'linear-gradient(180deg, #8b5cf6, #3b82f6)',
+                                        borderRadius: '4px',
+                                        transition: 'height 0.3s'
+                                    }} title={`CPU: ${m.cpu_percent}% | Memory: ${m.memory_mb} MB (${new Date(m.recorded_at).toLocaleTimeString()})`} />
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: isLight ? '#94a3b8' : 'var(--text-secondary)' }}>
-                        <span>Earlier ({timeWindow})</span>
-                        <span>Now</span>
+
+                    {/* X-Axis Timestamp Row */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: '48px', fontSize: '0.68rem', color: isLight ? '#94a3b8' : 'var(--text-secondary)', fontWeight: 600 }}>
+                        {metrics.filter((_, idx) => idx % Math.ceil(metrics.length / 5) === 0).map((m, idx) => (
+                            <span key={idx}>
+                                {new Date(m.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                        ))}
                     </div>
                 </div>
 
-                {/* Chart 2: Requests & 5xx Error Spikes */}
+                {/* Chart 2: Requests & 5xx Error Spikes with Y-Axis Scale & X-Axis Timestamps */}
                 <div className="glass-panel" style={{
                     padding: '20px',
                     borderRadius: '16px',
@@ -408,22 +432,46 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                         </span>
                     </div>
 
-                    <div style={{ height: '180px', display: 'flex', alignItems: 'flex-end', gap: '8px', padding: '10px 0', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.05)' }}>
-                        {metrics.map((m, idx) => (
-                            <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', height: '100%', justifyContent: 'flex-end' }}>
-                                <div style={{
-                                    width: '100%',
-                                    height: `${Math.min(100, Math.max(10, (m.request_rate / 250) * 100))}%`,
-                                    background: m.http_5xx_count > 0 ? '#ef4444' : 'linear-gradient(180deg, #2dd4bf, #06b6d4)',
-                                    borderRadius: '4px',
-                                    transition: 'height 0.3s'
-                                }} title={`Requests: ${m.request_rate} req/s, 5xx: ${m.http_5xx_count}`} />
-                            </div>
-                        ))}
+                    {/* Chart Frame with Y-Axis column and horizontal gridlines */}
+                    <div style={{ display: 'flex', gap: '10px', height: '180px', position: 'relative' }}>
+                        {/* Y-Axis Label Column */}
+                        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', fontSize: '0.68rem', color: isLight ? '#94a3b8' : 'var(--text-secondary)', fontWeight: 600, paddingRight: '4px', textAlign: 'right', minWidth: '38px' }}>
+                            <span>250 r/s</span>
+                            <span>180 r/s</span>
+                            <span>100 r/s</span>
+                            <span>50 r/s</span>
+                            <span>0 r/s</span>
+                        </div>
+
+                        {/* Chart Bars & Gridlines Container */}
+                        <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'flex-end', gap: '8px', padding: '4px 0', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)' }}>
+                            {/* Translucent horizontal gridlines */}
+                            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, borderTop: isLight ? '1px dashed #e2e8f0' : '1px dashed rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
+                            <div style={{ position: 'absolute', top: '25%', left: 0, right: 0, borderTop: isLight ? '1px dashed #e2e8f0' : '1px dashed rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
+                            <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, borderTop: isLight ? '1px dashed #e2e8f0' : '1px dashed rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
+                            <div style={{ position: 'absolute', top: '75%', left: 0, right: 0, borderTop: isLight ? '1px dashed #e2e8f0' : '1px dashed rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
+
+                            {metrics.map((m, idx) => (
+                                <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', height: '100%', justifyContent: 'flex-end', zIndex: 2 }}>
+                                    <div style={{
+                                        width: '100%',
+                                        height: `${Math.min(100, Math.max(10, (m.request_rate / 250) * 100))}%`,
+                                        background: m.http_5xx_count > 0 ? '#ef4444' : 'linear-gradient(180deg, #2dd4bf, #06b6d4)',
+                                        borderRadius: '4px',
+                                        transition: 'height 0.3s'
+                                    }} title={`Requests: ${m.request_rate} req/s, 5xx: ${m.http_5xx_count} (${new Date(m.recorded_at).toLocaleTimeString()})`} />
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: isLight ? '#94a3b8' : 'var(--text-secondary)' }}>
-                        <span>Earlier ({timeWindow})</span>
-                        <span>Now</span>
+
+                    {/* X-Axis Timestamp Row */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: '48px', fontSize: '0.68rem', color: isLight ? '#94a3b8' : 'var(--text-secondary)', fontWeight: 600 }}>
+                        {metrics.filter((_, idx) => idx % Math.ceil(metrics.length / 5) === 0).map((m, idx) => (
+                            <span key={idx}>
+                                {new Date(m.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                        ))}
                     </div>
                 </div>
             </div>

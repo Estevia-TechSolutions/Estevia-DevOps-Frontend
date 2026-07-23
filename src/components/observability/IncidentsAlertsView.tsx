@@ -133,7 +133,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
                     resource_type: 'aca',
                     category: 'LATENCY_DEGRADATION',
                     severity: 'P1_CRITICAL',
-                    status: 'acknowledged',
+                    status: 'triggered',
                     title: 'Elevated P95 Latency Spike',
                     description: 'Elevated P95 Latency spikes detected on database query pool',
                     telemetry_snapshot: { p95_latency_ms: 412, active_connections: 92 },

@@ -1464,22 +1464,25 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                   {resourceCatalog
                     .filter(app => {
                       if (modalCategoryTab === 'all') return true;
-                      const types = (app.resourceTypes || []).map(t => t.toLowerCase());
-                      const keyLower = (app.key || '').toLowerCase();
+                      const types = (app.resourceTypes && app.resourceTypes.length > 0)
+                        ? app.resourceTypes.map(t => t.toLowerCase())
+                        : ((app.key || '').includes('backend') || (app.key || '').includes('api') || (app.key || '').includes('aca')) ? ['aca']
+                        : ((app.key || '').includes('vm') || (app.key || '').includes('db') || (app.key || '').includes('database')) ? ['vm']
+                        : ['swa'];
 
-                      if (modalCategoryTab === 'swa') {
-                        return types.includes('swa') || keyLower.includes('swa') || keyLower.includes('frontend') || ['connecthub', 'docai', 'talenthq', 'evafusion'].includes(keyLower);
-                      }
-                      if (modalCategoryTab === 'aca') {
-                        return types.includes('aca') || keyLower.includes('aca') || keyLower.includes('backend') || keyLower.includes('api') || ['connecthub', 'docai', 'protrack', 'talenthq', 'evafusion', 'evaops'].includes(keyLower);
-                      }
-                      if (modalCategoryTab === 'vm') {
-                        return types.includes('vm') || keyLower.includes('vm') || keyLower.includes('db') || keyLower.includes('database') || ['connecthub', 'protrack', 'evafusion', 'evaops'].includes(keyLower);
-                      }
+                      if (modalCategoryTab === 'swa') return types.includes('swa');
+                      if (modalCategoryTab === 'aca') return types.includes('aca');
+                      if (modalCategoryTab === 'vm') return types.includes('vm');
                       return true;
                     })
                     .map(app => {
                     const appGrants = userPermMap[app.key] || { dev: [], qa: [], prod: [] };
+                    const derivedTypes = (app.resourceTypes && app.resourceTypes.length > 0)
+                      ? app.resourceTypes.map(t => t.toLowerCase())
+                      : ((app.key || '').includes('backend') || (app.key || '').includes('api') || (app.key || '').includes('aca')) ? ['aca']
+                      : ((app.key || '').includes('vm') || (app.key || '').includes('db') || (app.key || '').includes('database')) ? ['vm']
+                      : ['swa'];
+
                     return (
                       <div key={app.key} style={{
                         padding: '20px 24px',
@@ -1493,7 +1496,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                         {/* App Header */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '1.25rem' }}>{app.icon || '📦'}</span>
+                            <span style={{ fontSize: '1.25rem' }}>{app.icon || (derivedTypes.includes('swa') ? '🌐' : derivedTypes.includes('vm') ? '🖥️' : '📦')}</span>
                             <span style={{ fontSize: '0.98rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
                               {app.label}
                             </span>
@@ -1503,7 +1506,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
 
                             {/* Resource Asset Type Badges (SWA, ACA, VM) */}
                              <div style={{ display: 'flex', gap: '4px', marginLeft: '6px' }}>
-                               {(app.resourceTypes || ['swa']).map(type => {
+                               {derivedTypes.map(type => {
                                  if (type === 'swa') return (
                                    <span key="swa" style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 7px', borderRadius: '10px', background: 'rgba(59,130,246,0.12)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.25)' }}>
                                      🌐 SWA
