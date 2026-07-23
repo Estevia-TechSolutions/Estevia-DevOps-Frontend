@@ -320,7 +320,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'nowrap', whiteSpace: 'nowrap', overflowX: 'auto' }}>
                     <button
                         type="button"
                         onClick={() => setShowInfoDrawer(true)}

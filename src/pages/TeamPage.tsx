@@ -223,12 +223,13 @@ export const TeamPage: React.FC<TeamPageProps> = ({
   };
 
   const handleGrantAllApp = (appKey: string) => {
+    const allActions = ['view', 'deploy', 'provision', 'cost_remediation', 'db_manage'];
     setUserPermMap(prev => {
       const copy = JSON.parse(JSON.stringify(prev));
       copy[appKey] = {
-        dev: ['read', 'logs', 'restart', 'deploy'],
-        qa: ['read', 'logs', 'restart', 'deploy'],
-        prod: ['read', 'logs', 'restart', 'deploy']
+        dev: [...allActions],
+        qa: [...allActions],
+        prod: [...allActions]
       };
       return copy;
     });

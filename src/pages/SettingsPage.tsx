@@ -352,13 +352,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const devopsPriceUSD = draftDevops ? 150 : 0;
   const developerPriceUSD = draftDeveloper ? 99 : 0;
   const securityPriceUSD = draftSecurity ? 120 : 0;
+  const observabilityPriceUSD = draftObservability ? 149 : 0;
 
   const devopsPriceINR = draftDevops ? 12500 : 0;
   const developerPriceINR = draftDeveloper ? 8250 : 0;
   const securityPriceINR = draftSecurity ? 10000 : 0;
+  const observabilityPriceINR = draftObservability ? 12000 : 0;
 
-  const projectedUSD = activePricing.baseUSD + activePricing.seatUSD * currentWriteUsers + devopsPriceUSD + developerPriceUSD + securityPriceUSD;
-  const projectedINR = Math.round((activePricing.baseUSD + activePricing.seatUSD * currentWriteUsers) * usdToInrRate) + devopsPriceINR + developerPriceINR + securityPriceINR;
+  const projectedUSD = activePricing.baseUSD + activePricing.seatUSD * currentWriteUsers + devopsPriceUSD + developerPriceUSD + securityPriceUSD + observabilityPriceUSD;
+  const projectedINR = Math.round((activePricing.baseUSD + activePricing.seatUSD * currentWriteUsers) * usdToInrRate) + devopsPriceINR + developerPriceINR + securityPriceINR + observabilityPriceINR;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '1200px', margin: '0 auto', padding: '10px 0' }}>
@@ -483,22 +485,28 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 <span>{currentWriteUsers} active seat{currentWriteUsers !== 1 ? 's' : ''} × ${activePricing.seatUSD}</span>
                 <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>${(activePricing.seatUSD * currentWriteUsers).toLocaleString()}</span>
               </div>
-              {subPackageDevops && (
+              {draftDevops && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
                   <span>🚀 DevOps Sub-Package</span>
                   <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>+$150</span>
                 </div>
               )}
-              {subPackageDeveloper && (
+              {draftDeveloper && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
                   <span>💻 Developer Sub-Package</span>
                   <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>+$99</span>
                 </div>
               )}
-              {subPackageSecurity && (
+              {draftSecurity && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
                   <span>🛡️ Security Sub-Package</span>
                   <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>+$120</span>
+                </div>
+              )}
+              {draftObservability && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                  <span>📊 Observability Sub-Package</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>+$149</span>
                 </div>
               )}
               <div style={{ height: '1px', background: 'var(--glass-border)', margin: '2px 0' }} />

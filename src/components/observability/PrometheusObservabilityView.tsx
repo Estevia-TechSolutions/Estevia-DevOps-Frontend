@@ -278,10 +278,14 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'nowrap', whiteSpace: 'nowrap', overflowX: 'auto', maxWidth: '100%' }}>
                     <select
                         value={resourceType}
-                        onChange={(e) => setResourceType(e.target.value as any)}
+                        onChange={(e) => {
+                            const newType = e.target.value as any;
+                            setResourceType(newType);
+                            setSelectedApp('all');
+                        }}
                         style={{
                             padding: '8px 14px',
                             borderRadius: '8px',
@@ -310,9 +314,22 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                             border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)'
                         }}
                     >
-                        {appsCatalog.map(app => (
-                            <option key={app.key} value={app.key}>{app.icon} {app.label}</option>
-                        ))}
+                        <option value="all">
+                            {resourceType === 'aca' ? '📦 All Container Apps (ACA)' : resourceType === 'swa' ? '🌐 All Static Web Apps (SWA)' : '🖥️ All Virtual Machines (VM)'}
+                        </option>
+                        {appsCatalog
+                            .filter(app => {
+                                const types = (app.resourceTypes && app.resourceTypes.length > 0)
+                                    ? app.resourceTypes.map((t: string) => t.toLowerCase())
+                                    : ((app.key || '').includes('backend') || (app.key || '').includes('api') || (app.key || '').includes('aca')) ? ['aca']
+                                    : ((app.key || '').includes('vm') || (app.key || '').includes('db') || (app.key || '').includes('database')) ? ['vm']
+                                    : ['swa'];
+                                return types.includes(resourceType.toLowerCase());
+                            })
+                            .map(app => (
+                                <option key={app.key} value={app.key}>{app.icon} {app.label}</option>
+                            ))
+                        }
                     </select>
 
                     <div style={{ display: 'inline-flex', borderRadius: '8px', overflow: 'hidden', border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)' }}>
