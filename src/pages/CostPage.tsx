@@ -388,15 +388,7 @@ export const CostPage: React.FC<CostPageProps> = ({
         }
 
         // Fallback Azure Cloud Bills data
-        const subId = 'sub-estevia-devops-prod-01';
-        setAzureBills([
-          { id: 1, organization_id: organizationId, azure_subscription_id: subId, invoice_number: 'AZ-2026-06-8812', billing_period: '2026-06', issue_date: '2026-06-01', due_date: '2026-06-15', payment_date: '2026-06-10', status: 'Paid', currency: 'USD', total_amount: 482.50, aca_compute_amount: 185.20, mysql_db_amount: 142.00, swa_cdn_amount: 65.30, storage_vm_amount: 52.00, network_egress_amount: 38.00 },
-          { id: 2, organization_id: organizationId, azure_subscription_id: subId, invoice_number: 'AZ-2026-05-7741', billing_period: '2026-05', issue_date: '2026-05-01', due_date: '2026-05-15', payment_date: '2026-05-12', status: 'Paid', currency: 'USD', total_amount: 465.10, aca_compute_amount: 178.50, mysql_db_amount: 138.00, swa_cdn_amount: 62.10, storage_vm_amount: 49.50, network_egress_amount: 37.00 },
-          { id: 3, organization_id: organizationId, azure_subscription_id: subId, invoice_number: 'AZ-2026-04-6632', billing_period: '2026-04', issue_date: '2026-04-01', due_date: '2026-04-15', payment_date: '2026-04-14', status: 'Paid', currency: 'USD', total_amount: 440.00, aca_compute_amount: 168.00, mysql_db_amount: 132.00, swa_cdn_amount: 58.00, storage_vm_amount: 47.00, network_egress_amount: 35.00 },
-          { id: 4, organization_id: organizationId, azure_subscription_id: subId, invoice_number: 'AZ-2026-03-5521', billing_period: '2026-03', issue_date: '2026-03-01', due_date: '2026-03-15', payment_date: '2026-03-11', status: 'Paid', currency: 'USD', total_amount: 425.80, aca_compute_amount: 162.30, mysql_db_amount: 128.00, swa_cdn_amount: 56.50, storage_vm_amount: 45.00, network_egress_amount: 34.00 },
-          { id: 5, organization_id: organizationId, azure_subscription_id: subId, invoice_number: 'AZ-2026-02-4410', billing_period: '2026-02', issue_date: '2026-02-01', due_date: '2026-02-15', payment_date: '2026-02-13', status: 'Paid', currency: 'USD', total_amount: 410.20, aca_compute_amount: 156.00, mysql_db_amount: 124.00, swa_cdn_amount: 54.20, storage_vm_amount: 43.00, network_egress_amount: 33.00 },
-          { id: 6, organization_id: organizationId, azure_subscription_id: subId, invoice_number: 'AZ-2026-01-3309', billing_period: '2026-01', issue_date: '2026-01-01', due_date: '2026-01-15', payment_date: '2026-01-12', status: 'Paid', currency: 'USD', total_amount: 395.00, aca_compute_amount: 150.00, mysql_db_amount: 120.00, swa_cdn_amount: 52.00, storage_vm_amount: 41.00, network_egress_amount: 32.00 }
-        ]);
+        setAzureBills([]);
       } catch (err) {
         console.error('Failed to fetch Azure bills:', err);
       } finally {
