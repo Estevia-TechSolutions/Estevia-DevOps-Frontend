@@ -2274,28 +2274,92 @@ export const CostPage: React.FC<CostPageProps> = ({
                     }}>
                       {sortedAzureBills.map((b) => {
                         const totalVal = Number(b.total_amount || 0);
-                        const acaVal = Number(b.aca_compute_amount || totalVal * 0.38);
-                        const mysqlVal = Number(b.mysql_db_amount || totalVal * 0.30);
-                        const swaVal = Number(b.swa_cdn_amount || totalVal * 0.14);
-                        const storageVal = Number(b.storage_vm_amount || totalVal * 0.10);
-                        const egressVal = Number(b.network_egress_amount || totalVal * 0.08);
+                        const acaVal = b.aca_compute_amount !== undefined && b.aca_compute_amount !== null ? Number(b.aca_compute_amount) : (totalVal * 0.38);
+                        const mysqlVal = b.mysql_db_amount !== undefined && b.mysql_db_amount !== null ? Number(b.mysql_db_amount) : (totalVal * 0.30);
+                        const swaVal = b.swa_cdn_amount !== undefined && b.swa_cdn_amount !== null ? Number(b.swa_cdn_amount) : (totalVal * 0.14);
+                        const storageVal = b.storage_vm_amount !== undefined && b.storage_vm_amount !== null ? Number(b.storage_vm_amount) : (totalVal * 0.10);
+                        const egressVal = b.network_egress_amount !== undefined && b.network_egress_amount !== null ? Number(b.network_egress_amount) : (totalVal * 0.08);
 
                         const totalHeightPct = Math.max(20, (totalVal / maxAmount) * baseMaxHeight);
                         const periodLabel = getBillPeriodLabel(b.billing_period);
 
                         const currSym = getCurrencySymbol(b.currency);
                         const currCode = (b.currency || 'INR').toUpperCase();
-                        const hoverTooltipText = `Bill: ${b.invoice_number} | Period: ${b.billing_period}\nTotal: ${currSym}${totalVal.toFixed(2)} ${currCode}\n• ACA Compute: ${currSym}${acaVal.toFixed(2)}\n• MySQL DB: ${currSym}${mysqlVal.toFixed(2)}\n• SWA & CDN: ${currSym}${swaVal.toFixed(2)}\n• Storage/VM: ${currSym}${storageVal.toFixed(2)}\n• Egress: ${currSym}${egressVal.toFixed(2)}`;
+                        const safeTotal = totalVal || 1;
 
                         return (
-                          <div key={b.id || b.invoice_number} style={{
+                          <div key={b.id || b.invoice_number} className="opt-hover-wrapper" style={{
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
                             gap: '10px',
                             minWidth: '105px',
-                            flexShrink: 0
+                            flexShrink: 0,
+                            position: 'relative'
                           }}>
+                            {/* Rich Glassmorphism Tooltip Card */}
+                            <div className="opt-hover-card" style={{
+                              visibility: 'hidden',
+                              opacity: 0,
+                              position: 'absolute',
+                              bottom: '105%',
+                              left: '50%',
+                              transform: 'translateX(-50%) translateY(5px)',
+                              background: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.98)',
+                              backdropFilter: 'blur(20px)',
+                              WebkitBackdropFilter: 'blur(20px)',
+                              border: '1px solid var(--glass-border)',
+                              color: 'var(--text-primary)',
+                              padding: '16px',
+                              borderRadius: '12px',
+                              fontSize: '0.78rem',
+                              width: '260px',
+                              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+                              pointerEvents: 'none',
+                              zIndex: 99999,
+                              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                              whiteSpace: 'normal',
+                              textAlign: 'left',
+                              lineHeight: '1.45',
+                            }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', borderBottom: '1px solid var(--divider)', paddingBottom: '6px' }}>
+                                <span style={{ fontWeight: 800, fontSize: '0.82rem', color: isLight ? '#0f172a' : '#fff' }}>
+                                  Period: {b.billing_period}
+                                </span>
+                                <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: (b.status || '').toLowerCase() === 'paid' ? 'rgba(34,197,94,0.15)' : 'rgba(245,158,11,0.15)', color: (b.status || '').toLowerCase() === 'paid' ? '#10b981' : '#f59e0b' }}>
+                                  {b.status || 'Paid'}
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8b5cf6', fontWeight: 600 }}>
+                                  <span>🟣 ACA Compute:</span>
+                                  <span>{currSym}{acaVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#3b82f6', fontWeight: 600 }}>
+                                  <span>🔵 MySQL DB:</span>
+                                  <span>{currSym}{mysqlVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#06b6d4', fontWeight: 600 }}>
+                                  <span>🩵 SWA & CDN:</span>
+                                  <span>{currSym}{swaVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981', fontWeight: 600 }}>
+                                  <span>🟢 Storage & VMs:</span>
+                                  <span>{currSym}{storageVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6366f1', fontWeight: 600 }}>
+                                  <span>🟣 Network Egress:</span>
+                                  <span>{currSym}{egressVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                              </div>
+                              <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid var(--divider)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontWeight: 700, fontSize: '0.75rem', color: isLight ? '#64748b' : '#cbd5e1' }}>Total Azure Bill:</span>
+                                <span style={{ fontWeight: 800, fontSize: '0.92rem', color: '#10b981', fontFamily: 'monospace' }}>
+                                  {currSym}{totalVal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currCode}
+                                </span>
+                              </div>
+                            </div>
+
                             {/* Stacked Bar */}
                             <div style={{
                               display: 'flex',
@@ -2307,12 +2371,12 @@ export const CostPage: React.FC<CostPageProps> = ({
                               boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
                               cursor: 'pointer',
                               position: 'relative'
-                            }} title={hoverTooltipText}>
-                              <div style={{ height: `${(acaVal / totalVal) * 100}%`, background: '#8b5cf6' }} title={`ACA Compute: ${currSym}${acaVal.toFixed(2)}`} />
-                              <div style={{ height: `${(mysqlVal / totalVal) * 100}%`, background: '#3b82f6' }} title={`MySQL DB: ${currSym}${mysqlVal.toFixed(2)}`} />
-                              <div style={{ height: `${(swaVal / totalVal) * 100}%`, background: '#06b6d4' }} title={`SWA & CDN: ${currSym}${swaVal.toFixed(2)}`} />
-                              <div style={{ height: `${(storageVal / totalVal) * 100}%`, background: '#10b981' }} title={`Storage & VM: ${currSym}${storageVal.toFixed(2)}`} />
-                              <div style={{ height: `${(egressVal / totalVal) * 100}%`, background: '#6366f1' }} title={`Network Egress: ${currSym}${egressVal.toFixed(2)}`} />
+                            }}>
+                              <div style={{ height: `${(acaVal / safeTotal) * 100}%`, background: '#8b5cf6' }} />
+                              <div style={{ height: `${(mysqlVal / safeTotal) * 100}%`, background: '#3b82f6' }} />
+                              <div style={{ height: `${(swaVal / safeTotal) * 100}%`, background: '#06b6d4' }} />
+                              <div style={{ height: `${(storageVal / safeTotal) * 100}%`, background: '#10b981' }} />
+                              <div style={{ height: `${(egressVal / safeTotal) * 100}%`, background: '#6366f1' }} />
 
                               {/* Value badge on top of bar */}
                               <div style={{
