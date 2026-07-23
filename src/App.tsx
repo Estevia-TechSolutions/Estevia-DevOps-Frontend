@@ -7308,10 +7308,10 @@ function App() {
               width: 'fit-content'
             }}>
               {[
-                { key: 'discovery', label: '🌐 Resource Discovery' },
-                { key: 'compliance', label: '🛡️ Governance & Compliance' },
-                { key: 'observability', label: '📊 EvaPulse Live Observability' },
-                { key: 'incidents', label: '🚨 Incidents & Alerts' }
+                { key: 'discovery', label: 'Resource Discovery', icon: <Globe size={15} /> },
+                { key: 'compliance', label: 'Governance & Compliance', icon: <ShieldCheck size={15} /> },
+                { key: 'observability', label: 'EvaPulse Live Observability', icon: <Activity size={15} /> },
+                { key: 'incidents', label: 'Incidents & Alerts', icon: <AlertTriangle size={15} /> }
               ].map(tab => {
                 const isActive = scanSubTab === tab.key;
                 return (
@@ -7330,10 +7330,14 @@ function App() {
                       background: isActive ? 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' : 'transparent',
                       color: isActive ? '#ffffff' : (theme === 'light' ? '#475569' : 'var(--text-secondary)'),
                       boxShadow: isActive ? '0 2px 12px rgba(139, 92, 246, 0.35)' : 'none',
-                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px'
                     }}
                   >
-                    {tab.label}
+                    {tab.icon}
+                    <span>{tab.label}</span>
                   </button>
                 );
               })}

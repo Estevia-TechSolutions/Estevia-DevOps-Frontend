@@ -175,109 +175,141 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', flex: '1 1 auto', justifyContent: 'flex-end' }}>
-                    {/* Resource Type Selector */}
-                    <select
-                        value={resourceType}
-                        onChange={(e) => setResourceType(e.target.value as any)}
-                        style={{
-                            padding: '6px 14px',
-                            borderRadius: '8px',
-                            fontSize: '0.8rem',
-                            fontWeight: 600,
-                            flexShrink: 0,
-                            maxWidth: '100%',
-                            background: isLight ? '#f1f5f9' : 'rgba(0,0,0,0.3)',
-                            color: isLight ? '#0f172a' : 'var(--text-primary)',
-                            border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)'
-                        }}
-                    >
-                        <option value="aca">📦 Container App (ACA)</option>
-                        <option value="swa">🌐 Static Web App (SWA)</option>
-                        <option value="vm">🖥️ Virtual Machine (VM)</option>
-                    </select>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: '1 1 auto', maxWidth: '100%' }}>
+                    {/* Line 1: Dropdown Combo Boxes */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', width: '100%' }}>
+                        {/* Resource Type Selector */}
+                        <select
+                            value={resourceType}
+                            onChange={(e) => setResourceType(e.target.value as any)}
+                            style={{
+                                padding: '8px 14px',
+                                borderRadius: '8px',
+                                fontSize: '0.82rem',
+                                fontWeight: 600,
+                                flex: '1 1 200px',
+                                minWidth: '180px',
+                                background: isLight ? '#f1f5f9' : 'rgba(0,0,0,0.3)',
+                                color: isLight ? '#0f172a' : 'var(--text-primary)',
+                                border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)'
+                            }}
+                        >
+                            <option value="aca">Container App (ACA)</option>
+                            <option value="swa">Static Web App (SWA)</option>
+                            <option value="vm">Virtual Machine (VM)</option>
+                        </select>
 
-                    {/* App Selector */}
-                    <select
-                        value={selectedApp}
-                        onChange={(e) => setSelectedApp(e.target.value)}
-                        style={{
-                            padding: '6px 14px',
-                            borderRadius: '8px',
-                            fontSize: '0.8rem',
-                            fontWeight: 600,
-                            flexShrink: 0,
-                            maxWidth: '100%',
-                            background: isLight ? '#f1f5f9' : 'rgba(0,0,0,0.3)',
-                            color: isLight ? '#0f172a' : 'var(--text-primary)',
-                            border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)'
-                        }}
-                    >
-                        <option value="all">⚡ All {resourceType.toUpperCase()} Resources</option>
-                        {appsCatalog
-                            .filter(app => {
-                                const types = (app.resourceTypes || []).map((t: string) => t.toLowerCase());
-                                const keyLower = (app.key || '').toLowerCase();
-                                if (resourceType === 'aca') return types.includes('aca') || keyLower.includes('backend') || keyLower.includes('api') || keyLower.includes('aca');
-                                if (resourceType === 'vm') return types.includes('vm') || keyLower.includes('vm') || keyLower.includes('db') || keyLower.includes('database');
-                                if (resourceType === 'swa') return types.includes('swa') || keyLower.includes('frontend') || keyLower.includes('swa');
-                                return true;
-                            })
-                            .map(app => (
-                                <option key={app.key} value={app.key}>
-                                    {app.icon || (resourceType === 'swa' ? '🌐' : resourceType === 'vm' ? '🖥️' : '📦')} {app.label}
-                                </option>
-                            ))
-                        }
-                    </select>
-
-                    {/* Env Selector */}
-                    <div style={{ display: 'inline-flex', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)' }}>
-                        {(['dev', 'qa', 'prod'] as const).map(env => (
-                            <button
-                                key={env}
-                                type="button"
-                                onClick={() => setSelectedEnv(env)}
-                                style={{
-                                    padding: '6px 14px',
-                                    fontSize: '0.76rem',
-                                    fontWeight: 700,
-                                    textTransform: 'uppercase',
-                                    whiteSpace: 'nowrap',
-                                    flexShrink: 0,
-                                    background: selectedEnv === env ? '#8b5cf6' : (isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)'),
-                                    color: selectedEnv === env ? '#fff' : (isLight ? '#475569' : 'var(--text-secondary)'),
-                                    border: 'none',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                {env}
-                            </button>
-                        ))}
+                        {/* App Selector */}
+                        <select
+                            value={selectedApp}
+                            onChange={(e) => setSelectedApp(e.target.value)}
+                            style={{
+                                padding: '8px 14px',
+                                borderRadius: '8px',
+                                fontSize: '0.82rem',
+                                fontWeight: 600,
+                                flex: '2 1 300px',
+                                minWidth: '220px',
+                                background: isLight ? '#f1f5f9' : 'rgba(0,0,0,0.3)',
+                                color: isLight ? '#0f172a' : 'var(--text-primary)',
+                                border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)'
+                            }}
+                        >
+                            <option value="all">⚡ All {resourceType.toUpperCase()} Resources</option>
+                            {appsCatalog
+                                .filter(app => {
+                                    const types = (app.resourceTypes || []).map((t: string) => t.toLowerCase());
+                                    const keyLower = (app.key || '').toLowerCase();
+                                    if (resourceType === 'aca') return types.includes('aca') || keyLower.includes('backend') || keyLower.includes('api') || keyLower.includes('aca');
+                                    if (resourceType === 'vm') return types.includes('vm') || keyLower.includes('vm') || keyLower.includes('db') || keyLower.includes('database');
+                                    if (resourceType === 'swa') return types.includes('swa') || keyLower.includes('frontend') || keyLower.includes('swa');
+                                    return true;
+                                })
+                                .map(app => (
+                                    <option key={app.key} value={app.key}>
+                                        {app.label} ({app.key})
+                                    </option>
+                                ))
+                            }
+                        </select>
                     </div>
 
-                    {/* Time Window Selector */}
-                    <div style={{ display: 'inline-flex', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)' }}>
-                        {(['15m', '1h', '6h', '24h', '7d'] as const).map(tw => (
+                    {/* Line 2: Environment & Time Window Selectors */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', width: '100%' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                                Environment:
+                            </span>
+                            <div style={{ display: 'inline-flex', borderRadius: '8px', overflow: 'hidden', border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)' }}>
+                                {(['dev', 'qa', 'prod'] as const).map(env => (
+                                    <button
+                                        key={env}
+                                        type="button"
+                                        onClick={() => setSelectedEnv(env)}
+                                        style={{
+                                            padding: '6px 14px',
+                                            fontSize: '0.76rem',
+                                            fontWeight: 700,
+                                            textTransform: 'uppercase',
+                                            whiteSpace: 'nowrap',
+                                            background: selectedEnv === env ? '#8b5cf6' : (isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)'),
+                                            color: selectedEnv === env ? '#fff' : (isLight ? '#475569' : 'var(--text-secondary)'),
+                                            border: 'none',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        {env}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '0.74rem', fontWeight: 700, color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                                Window:
+                            </span>
+                            <div style={{ display: 'inline-flex', borderRadius: '8px', overflow: 'hidden', border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)' }}>
+                                {(['15m', '1h', '6h', '24h', '7d'] as const).map(tw => (
+                                    <button
+                                        key={tw}
+                                        type="button"
+                                        onClick={() => setTimeWindow(tw)}
+                                        style={{
+                                            padding: '6px 12px',
+                                            fontSize: '0.74rem',
+                                            fontWeight: 600,
+                                            whiteSpace: 'nowrap',
+                                            background: timeWindow === tw ? '#6366f1' : (isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)'),
+                                            color: timeWindow === tw ? '#fff' : (isLight ? '#475569' : 'var(--text-secondary)'),
+                                            border: 'none',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        {tw}
+                                    </button>
+                                ))}
+                            </div>
+
                             <button
-                                key={tw}
                                 type="button"
-                                onClick={() => setTimeWindow(tw)}
+                                onClick={() => fetchMetrics()}
                                 style={{
                                     padding: '6px 12px',
-                                    fontSize: '0.74rem',
+                                    borderRadius: '8px',
+                                    fontSize: '0.76rem',
                                     fontWeight: 600,
-                                    whiteSpace: 'nowrap',
-                                    flexShrink: 0,
-                                    background: timeWindow === tw ? '#6366f1' : (isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)'),
-                                    color: timeWindow === tw ? '#fff' : (isLight ? '#475569' : 'var(--text-secondary)'),
-                                    border: 'none',
-                                    cursor: 'pointer'
+                                    background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.06)',
+                                    color: isLight ? '#475569' : 'var(--text-primary)',
+                                    border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
                                 }}
                             >
-                                {tw}
+                                <RefreshCw size={12} className={loading ? 'spin' : ''} /> Refresh
                             </button>
-                        ))}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -369,13 +401,23 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                     flexDirection: 'column',
                     gap: '14px'
                 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
-                            📊 CPU Utilization (%) & Memory Allocation
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                        <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Cpu size={16} style={{ color: '#8b5cf6' }} /> CPU Utilization (%) & RAM Allocation
                         </h4>
-                        <span style={{ fontSize: '0.72rem', color: '#10b981', padding: '2px 8px', borderRadius: '12px', background: 'rgba(16,185,129,0.1)', fontWeight: 700 }}>
-                            {latest.replica_count} Active Replicas Healthy
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ display: 'flex', gap: '12px', fontSize: '0.72rem', fontWeight: 600 }}>
+                                <span style={{ color: isLight ? '#475569' : '#a78bfa', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#8b5cf6' }} /> CPU %
+                                </span>
+                                <span style={{ color: isLight ? '#475569' : '#5eead4', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#2dd4bf' }} /> RAM MB
+                                </span>
+                            </div>
+                            <span style={{ fontSize: '0.72rem', color: '#10b981', padding: '2px 8px', borderRadius: '12px', background: 'rgba(16,185,129,0.1)', fontWeight: 700 }}>
+                                {latest.replica_count} Replicas
+                            </span>
+                        </div>
                     </div>
 
                     {/* Chart Frame with Y-Axis column and horizontal gridlines */}
@@ -405,7 +447,7 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                                         background: m.cpu_percent > 85 ? '#ef4444' : 'linear-gradient(180deg, #8b5cf6, #3b82f6)',
                                         borderRadius: '4px',
                                         transition: 'height 0.3s'
-                                    }} title={`CPU: ${m.cpu_percent}% | Memory: ${m.memory_mb} MB (${new Date(m.recorded_at).toLocaleTimeString()})`} />
+                                    }} title={`CPU: ${m.cpu_percent}% | RAM: ${m.memory_mb} MB (${new Date(m.recorded_at).toLocaleTimeString()})`} />
                                 </div>
                             ))}
                         </div>
@@ -431,13 +473,23 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                     flexDirection: 'column',
                     gap: '14px'
                 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
-                            🚀 Request Throughput (req/s) & 5xx Spikes
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                        <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Zap size={16} style={{ color: '#06b6d4' }} /> Request Throughput (req/s) & 5xx Spikes
                         </h4>
-                        <span style={{ fontSize: '0.72rem', color: latest.http_5xx_count > 0 ? '#ef4444' : '#10b981', fontWeight: 700 }}>
-                            {latest.http_5xx_count > 0 ? `⚠️ ${latest.http_5xx_count} 5xx Errors` : '0 Server Errors'}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ display: 'flex', gap: '12px', fontSize: '0.72rem', fontWeight: 600 }}>
+                                <span style={{ color: isLight ? '#475569' : '#67e8f9', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#06b6d4' }} /> req/s
+                                </span>
+                                <span style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }} /> 5xx Errors
+                                </span>
+                            </div>
+                            <span style={{ fontSize: '0.72rem', color: latest.http_5xx_count > 0 ? '#ef4444' : '#10b981', fontWeight: 700 }}>
+                                {latest.http_5xx_count > 0 ? `⚠️ ${latest.http_5xx_count} 5xx Errors` : '0 Server Errors'}
+                            </span>
+                        </div>
                     </div>
 
                     {/* Chart Frame with Y-Axis column and horizontal gridlines */}

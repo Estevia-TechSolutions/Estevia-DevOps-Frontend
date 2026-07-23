@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, AlertTriangle, CheckCircle, Clock, Bell, User, Mail, Settings, X, Check, RefreshCw, ChevronDown, Lock } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, CheckCircle, Clock, Bell, User, Mail, Settings, X, Check, RefreshCw, ChevronDown, Lock, CheckCircle2, Hand, Search, Globe, Package, Server } from 'lucide-react';
 
 interface Incident {
     id: number;
@@ -29,8 +29,8 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
     const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
 
     // Dynamic Data State
-    const [teamUsers, setTeamUsers] = useState<Array<{ id: string; name: string; email: string }>>([]);
-    const [appsCatalog, setAppsCatalog] = useState<Array<{ key: string; label: string; icon: string }>>([]);
+    const [teamUsers, setTeamUsers] = useState<any[]>([]);
+    const [appsCatalog, setAppsCatalog] = useState<any[]>([]);
 
     // Grouped Alert Config State per Resource Type
     const [configApp, setConfigApp] = useState<string>('connecthub');
@@ -38,44 +38,33 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
     const [configEnv, setConfigEnv] = useState<'dev' | 'qa' | 'prod'>('dev');
     const [primaryOwner, setPrimaryOwner] = useState<string>('');
     const [secondaryOwner, setSecondaryOwner] = useState<string>('');
-    const [notificationEmail, setNotificationEmail] = useState<string>('devops-alerts@estevia.com');
-    const [selectedCategories, setSelectedCategories] = useState<string[]>([
-        'CRITICAL_OUTAGE',
-        'HIGH_RESOURCE_PRESSURE',
-        'LATENCY_DEGRADATION'
-    ]);
+    const [notificationEmail, setNotificationEmail] = useState<string>('');
+    const [selectedCategories, setSelectedCategories] = useState<string[]>(['CRITICAL_OUTAGE', 'HIGH_RESOURCE_PRESSURE']);
     const [savingConfig, setSavingConfig] = useState<boolean>(false);
+
+    const getToken = () => {
+        return localStorage.getItem('evaops_token') || localStorage.getItem('token') || '';
+    };
 
     useEffect(() => {
         fetchIncidents();
-        fetchTeamUsersAndCatalog();
+        fetchTeamAndCatalog();
     }, []);
 
-    const getToken = () => localStorage.getItem('evaops_token') || localStorage.getItem('token') || '';
-
-    const fetchTeamUsersAndCatalog = async () => {
+    const fetchTeamAndCatalog = async () => {
         try {
             const token = getToken();
-            let catRes = await fetch(`${API_BASE}/apps/observability/resource-catalog`).catch(() => null);
-
-            if (!catRes || !catRes.ok) {
-                catRes = await fetch(`${API_BASE}/auth/resource-catalog`).catch(() => null);
-            }
-            if ((!catRes || !catRes.ok) && token) {
-                catRes = await fetch(`${API_BASE}/apps/observability/resource-catalog`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                }).catch(() => null);
+            const uRes = await fetch(`${API_BASE}/users`, {
+                headers: { Authorization: `Bearer ${token}` }
+            }).catch(() => null);
+            if (uRes && uRes.ok) {
+                const uData = await uRes.json();
+                setTeamUsers(uData.users || uData || []);
             }
 
-            let usersRes = token
-                ? await fetch(`${API_BASE}/auth/users`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null)
-                : null;
-
-            if (usersRes && usersRes.ok) {
-                const uData = await usersRes.json();
-                setTeamUsers(uData.users || []);
-            }
-
+            const catRes = await fetch(`${API_BASE}/apps/observability/resource-catalog`, {
+                headers: { Authorization: `Bearer ${token}` }
+            }).catch(() => null);
             if (catRes && catRes.ok) {
                 const cData = await catRes.json();
                 setAppsCatalog(cData.catalog || []);
@@ -92,21 +81,15 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
         setLoading(true);
         try {
             const token = getToken();
-            let res = await fetch(`${API_BASE}/apps/observability/incidents`).catch(() => null);
-
-            if (!res || !res.ok) {
-                res = await fetch(`${API_BASE}/auth/incidents`).catch(() => null);
-            }
-            if ((!res || !res.ok) && token) {
-                res = await fetch(`${API_BASE}/apps/observability/incidents`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                }).catch(() => null);
-            }
+            let res = await fetch(`${API_BASE}/apps/observability/incidents`, {
+                headers: { Authorization: `Bearer ${token}` }
+            }).catch(() => null);
 
             if (res && res.ok) {
                 const data = await res.json();
                 if (data.success && data.incidents && data.incidents.length > 0) {
-                    setIncidents(data.incidents);
+                    setIncidents(data.incidents.map((i: any) => ({ ...i, status: i.status || 'triggered' })));
+                    setLoading(false);
                     return;
                 }
             }
@@ -148,26 +131,26 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
     };
 
     const handleAcknowledge = async (id: number) => {
+        setIncidents(prev => prev.map(inc => inc.id === id ? { ...inc, status: 'acknowledged' } : inc));
         try {
             const token = getToken();
             await fetch(`${API_BASE}/apps/observability/incidents/${id}/acknowledge`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` }
-            });
-            fetchIncidents();
+            }).catch(() => null);
         } catch (err) {
             console.error('Failed to acknowledge incident:', err);
         }
     };
 
     const handleResolve = async (id: number) => {
+        setIncidents(prev => prev.map(inc => inc.id === id ? { ...inc, status: 'resolved' } : inc));
         try {
             const token = getToken();
             await fetch(`${API_BASE}/apps/observability/incidents/${id}/resolve`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` }
-            });
-            fetchIncidents();
+            }).catch(() => null);
         } catch (err) {
             console.error('Failed to resolve incident:', err);
         }
@@ -364,10 +347,13 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
                                                             background: 'rgba(139, 92, 246, 0.15)',
                                                             color: '#a78bfa',
                                                             border: '1px solid rgba(139, 92, 246, 0.3)',
-                                                            cursor: 'pointer'
+                                                            cursor: 'pointer',
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '4px'
                                                         }}
                                                     >
-                                                        Details 🔍
+                                                        <Search size={12} /> Details
                                                     </button>
                                                     {inc.status === 'triggered' && (
                                                         <button
@@ -381,10 +367,13 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
                                                                 background: 'rgba(245, 158, 11, 0.15)',
                                                                 color: '#f59e0b',
                                                                 border: '1px solid rgba(245, 158, 11, 0.3)',
-                                                                cursor: 'pointer'
+                                                                cursor: 'pointer',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '4px'
                                                             }}
                                                         >
-                                                            Acknowledge ✋
+                                                            <Hand size={12} /> Acknowledge
                                                         </button>
                                                     )}
                                                     {inc.status !== 'resolved' && (
@@ -399,10 +388,13 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
                                                                 background: 'rgba(16, 185, 129, 0.15)',
                                                                 color: '#10b981',
                                                                 border: '1px solid rgba(16, 185, 129, 0.3)',
-                                                                cursor: 'pointer'
+                                                                cursor: 'pointer',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '4px'
                                                             }}
                                                         >
-                                                            Resolve ✅
+                                                            <CheckCircle2 size={12} /> Resolve
                                                         </button>
                                                     )}
                                                 </div>
