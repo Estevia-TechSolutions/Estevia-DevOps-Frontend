@@ -372,25 +372,41 @@ export const CostPage: React.FC<CostPageProps> = ({
   // Fetch Azure Infrastructure Cloud Bills
   React.useEffect(() => {
     const fetchAzureBills = async () => {
+      const url = `${API_BASE}/apps/cost/azure-bills?organizationId=${organizationId}`;
+      console.log(`[BillingFetch] Starting Azure Cloud Bills fetch request. URL: ${url}`);
       setLoadingAzureBills(true);
       try {
         const token = localStorage.getItem('evaops_token') || localStorage.getItem('devops_token');
         const headers: Record<string, string> = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        let res = await fetch(`${API_BASE}/apps/cost/azure-bills?organizationId=${organizationId}`, { headers }).catch(() => null);
-        if (res && res.ok) {
-          const data = await res.json();
-          if (data.azureBills && data.azureBills.length > 0) {
-            setAzureBills(data.azureBills);
-            return;
+        let res = await fetch(url, { headers }).catch((err) => {
+          console.error(`[BillingFetch] API request connection failed:`, err);
+          return null;
+        });
+
+        if (res) {
+          console.log(`[BillingFetch] Received API response. Status: ${res.status} (${res.statusText})`);
+          if (res.ok) {
+            const data = await res.json();
+            console.log(`[BillingFetch] Successfully parsed response JSON:`, data);
+            if (data.azureBills && data.azureBills.length > 0) {
+              console.log(`[BillingFetch] Set ${data.azureBills.length} Azure bills to frontend state:`, data.azureBills);
+              setAzureBills(data.azureBills);
+              return;
+            } else {
+              console.warn(`[BillingFetch] Mapped 'azureBills' array is empty.`);
+            }
+          } else {
+            console.error(`[BillingFetch] Server responded with error status.`);
           }
         }
 
         // Fallback Azure Cloud Bills data
+        console.log(`[BillingFetch] Defaulting to empty fallback array.`);
         setAzureBills([]);
       } catch (err) {
-        console.error('Failed to fetch Azure bills:', err);
+        console.error('[BillingFetch] Unexpected error parsing Azure bills:', err);
       } finally {
         setLoadingAzureBills(false);
       }
@@ -401,11 +417,13 @@ export const CostPage: React.FC<CostPageProps> = ({
   // Compute Forecast strictly from Azure Cloud Bills baseline
   React.useEffect(() => {
     if (activeTabToShow === 'billing') {
+      console.log(`[BillingForecast] Recalculating forecast. Input bills payload count: ${azureBills ? azureBills.length : 0}`);
       const baseRunRate = (azureBills && azureBills.length > 0)
         ? (azureBills.reduce((sum: number, b: any) => sum + Number(b.total_amount || 0), 0) / azureBills.length)
         : (costSummary ? (costSummary.totalCost || 480) : 480);
 
       const monthlySavings = Math.round(baseRunRate * 0.22); // ~22% optimization savings
+      console.log(`[BillingForecast] Computed Baseline Run-Rate: $${baseRunRate.toFixed(2)} | Projected Savings: $${monthlySavings.toFixed(2)}`);
 
       setForecastData({
         success: true,
