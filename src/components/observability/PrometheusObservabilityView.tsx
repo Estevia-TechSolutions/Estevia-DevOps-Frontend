@@ -175,16 +175,18 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', flex: '1 1 auto', justifyContent: 'flex-end' }}>
                     {/* Resource Type Selector */}
                     <select
                         value={resourceType}
                         onChange={(e) => setResourceType(e.target.value as any)}
                         style={{
-                            padding: '6px 12px',
+                            padding: '6px 14px',
                             borderRadius: '8px',
                             fontSize: '0.8rem',
                             fontWeight: 600,
+                            flexShrink: 0,
+                            maxWidth: '100%',
                             background: isLight ? '#f1f5f9' : 'rgba(0,0,0,0.3)',
                             color: isLight ? '#0f172a' : 'var(--text-primary)',
                             border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)'
@@ -200,10 +202,12 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                         value={selectedApp}
                         onChange={(e) => setSelectedApp(e.target.value)}
                         style={{
-                            padding: '6px 12px',
+                            padding: '6px 14px',
                             borderRadius: '8px',
                             fontSize: '0.8rem',
                             fontWeight: 600,
+                            flexShrink: 0,
+                            maxWidth: '100%',
                             background: isLight ? '#f1f5f9' : 'rgba(0,0,0,0.3)',
                             color: isLight ? '#0f172a' : 'var(--text-primary)',
                             border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)'
@@ -228,17 +232,19 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                     </select>
 
                     {/* Env Selector */}
-                    <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)' }}>
+                    <div style={{ display: 'inline-flex', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)' }}>
                         {(['dev', 'qa', 'prod'] as const).map(env => (
                             <button
                                 key={env}
                                 type="button"
                                 onClick={() => setSelectedEnv(env)}
                                 style={{
-                                    padding: '6px 12px',
+                                    padding: '6px 14px',
                                     fontSize: '0.76rem',
                                     fontWeight: 700,
                                     textTransform: 'uppercase',
+                                    whiteSpace: 'nowrap',
+                                    flexShrink: 0,
                                     background: selectedEnv === env ? '#8b5cf6' : (isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)'),
                                     color: selectedEnv === env ? '#fff' : (isLight ? '#475569' : 'var(--text-secondary)'),
                                     border: 'none',
@@ -251,16 +257,18 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                     </div>
 
                     {/* Time Window Selector */}
-                    <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)' }}>
+                    <div style={{ display: 'inline-flex', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)' }}>
                         {(['15m', '1h', '6h', '24h', '7d'] as const).map(tw => (
                             <button
                                 key={tw}
                                 type="button"
                                 onClick={() => setTimeWindow(tw)}
                                 style={{
-                                    padding: '6px 10px',
+                                    padding: '6px 12px',
                                     fontSize: '0.74rem',
                                     fontWeight: 600,
+                                    whiteSpace: 'nowrap',
+                                    flexShrink: 0,
                                     background: timeWindow === tw ? '#6366f1' : (isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)'),
                                     color: timeWindow === tw ? '#fff' : (isLight ? '#475569' : 'var(--text-secondary)'),
                                     border: 'none',
