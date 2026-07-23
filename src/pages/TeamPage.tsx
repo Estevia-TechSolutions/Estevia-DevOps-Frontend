@@ -126,9 +126,18 @@ export const TeamPage: React.FC<TeamPageProps> = ({
     }
 
     try {
-      const catRes = await fetch(`${API_BASE}/auth/resource-catalog`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const authToken = token || localStorage.getItem('evaops_token') || localStorage.getItem('token') || '';
+
+      let catRes = await fetch(`${API_BASE}/apps/observability/resource-catalog`, {
+        headers: { 'Authorization': `Bearer ${authToken}` }
       }).catch(() => null);
+
+      if (!catRes || !catRes.ok) {
+        catRes = await fetch(`${API_BASE}/auth/resource-catalog`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        }).catch(() => null);
+      }
+
       if (catRes && catRes.ok) {
         const catData = await catRes.json();
         if (catData.catalog && catData.catalog.length > 0) {
@@ -137,17 +146,24 @@ export const TeamPage: React.FC<TeamPageProps> = ({
       }
 
       const permRes = await fetch(`${API_BASE}/auth/users/${u.id}/resource-permissions`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (permRes.ok) {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      }).catch(() => null);
+      if (permRes && permRes.ok) {
         const permData = await permRes.json();
         setUserPermMap(permData.permissions || {});
       }
 
-      const menuRes = await fetch(`${API_BASE}/observability/menu-permissions/${u.id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (menuRes.ok) {
+      let menuRes = await fetch(`${API_BASE}/apps/observability/menu-permissions/${u.id}`, {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      }).catch(() => null);
+
+      if (!menuRes || !menuRes.ok) {
+        menuRes = await fetch(`${API_BASE}/observability/menu-permissions/${u.id}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        }).catch(() => null);
+      }
+
+      if (menuRes && menuRes.ok) {
         const menuData = await menuRes.json();
         const loadedMap = menuData.menuPermissions || {};
         

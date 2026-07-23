@@ -51,20 +51,24 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
         fetchTeamUsersAndCatalog();
     }, []);
 
+    const getToken = () => localStorage.getItem('evaops_token') || localStorage.getItem('token') || '';
+
     const fetchTeamUsersAndCatalog = async () => {
         try {
-            const token = localStorage.getItem('evaops_token');
-            const [usersRes, catRes] = await Promise.all([
-                fetch(`${API_BASE}/auth/users`, { headers: { Authorization: `Bearer ${token}` } }),
-                fetch(`${API_BASE}/auth/resource-catalog`, { headers: { Authorization: `Bearer ${token}` } })
-            ]);
+            const token = getToken();
+            let usersRes = await fetch(`${API_BASE}/auth/users`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
+            let catRes = await fetch(`${API_BASE}/apps/observability/resource-catalog`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
 
-            if (usersRes.ok) {
+            if (!catRes || !catRes.ok) {
+                catRes = await fetch(`${API_BASE}/auth/resource-catalog`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
+            }
+
+            if (usersRes && usersRes.ok) {
                 const uData = await usersRes.json();
                 setTeamUsers(uData.users || []);
             }
 
-            if (catRes.ok) {
+            if (catRes && catRes.ok) {
                 const cData = await catRes.json();
                 setAppsCatalog(cData.catalog || []);
                 if (cData.catalog && cData.catalog.length > 0) {
@@ -79,13 +83,22 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
     const fetchIncidents = async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('evaops_token');
-            const res = await fetch(`${API_BASE}/observability/incidents`, {
+            const token = getToken();
+            let res = await fetch(`${API_BASE}/apps/observability/incidents`, {
                 headers: { Authorization: `Bearer ${token}` }
-            });
-            const data = await res.json();
-            if (data.success) {
-                setIncidents(data.incidents || []);
+            }).catch(() => null);
+
+            if (!res || !res.ok) {
+                res = await fetch(`${API_BASE}/observability/incidents`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                }).catch(() => null);
+            }
+
+            if (res && res.ok) {
+                const data = await res.json();
+                if (data.success) {
+                    setIncidents(data.incidents || []);
+                }
             }
         } catch (err) {
             console.error('Failed to load incidents:', err);
@@ -96,8 +109,8 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
 
     const handleAcknowledge = async (id: number) => {
         try {
-            const token = localStorage.getItem('evaops_token');
-            await fetch(`${API_BASE}/observability/incidents/${id}/acknowledge`, {
+            const token = getToken();
+            await fetch(`${API_BASE}/apps/observability/incidents/${id}/acknowledge`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -109,8 +122,8 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
 
     const handleResolve = async (id: number) => {
         try {
-            const token = localStorage.getItem('evaops_token');
-            await fetch(`${API_BASE}/observability/incidents/${id}/resolve`, {
+            const token = getToken();
+            await fetch(`${API_BASE}/apps/observability/incidents/${id}/resolve`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -123,8 +136,8 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
     const handleSaveAlertConfig = async () => {
         setSavingConfig(true);
         try {
-            const token = localStorage.getItem('evaops_token');
-            await fetch(`${API_BASE}/observability/owners`, {
+            const token = getToken();
+            await fetch(`${API_BASE}/apps/observability/owners`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

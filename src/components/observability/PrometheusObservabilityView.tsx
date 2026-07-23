@@ -37,13 +37,22 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
         fetchMetrics();
     }, [timeWindow, selectedEnv, selectedApp, resourceType]);
 
+    const getToken = () => localStorage.getItem('evaops_token') || localStorage.getItem('token') || '';
+
     const fetchCatalog = async () => {
         try {
-            const token = localStorage.getItem('evaops_token');
-            const res = await fetch(`${API_BASE}/auth/resource-catalog`, {
+            const token = getToken();
+            let res = await fetch(`${API_BASE}/apps/observability/resource-catalog`, {
                 headers: { Authorization: `Bearer ${token}` }
-            });
-            if (res.ok) {
+            }).catch(() => null);
+
+            if (!res || !res.ok) {
+                res = await fetch(`${API_BASE}/auth/resource-catalog`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                }).catch(() => null);
+            }
+
+            if (res && res.ok) {
                 const data = await res.json();
                 setAppsCatalog(data.catalog || []);
                 if (data.catalog && data.catalog.length > 0) {
@@ -58,14 +67,14 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
     const fetchMetrics = async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('evaops_token');
+            const token = getToken();
             const queryStr = `app_key=${selectedApp}&environment=${selectedEnv}&time_window=${timeWindow}&resource_type=${resourceType}`;
-            let res = await fetch(`${API_BASE}/observability/metrics?${queryStr}`, {
+            let res = await fetch(`${API_BASE}/apps/observability/metrics?${queryStr}`, {
                 headers: { Authorization: `Bearer ${token}` }
             }).catch(() => null);
 
             if (!res || !res.ok) {
-                res = await fetch(`${API_BASE}/auth/observability/metrics?${queryStr}`, {
+                res = await fetch(`${API_BASE}/observability/metrics?${queryStr}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 }).catch(() => null);
             }
