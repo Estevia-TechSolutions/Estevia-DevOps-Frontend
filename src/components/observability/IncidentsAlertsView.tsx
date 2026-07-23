@@ -328,8 +328,12 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
                                                 </div>
                                             </td>
                                             <td style={{ padding: '14px 18px' }}>
-                                                <div style={{ fontWeight: 600, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>{inc.title}</div>
-                                                <div style={{ fontSize: '0.76rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>{inc.description}</div>
+                                                <div style={{ fontWeight: 600, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+                                                    {inc.title || (inc as any).incident_title || (inc as any).summary || (inc as any).metric_type || 'Telemetry Incident Alert'}
+                                                </div>
+                                                <div style={{ fontSize: '0.76rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
+                                                    {inc.description || (inc as any).incident_description || (inc as any).details || (inc as any).summary || 'Automated incident alert recorded by EvaOps Observability monitor.'}
+                                                </div>
                                             </td>
                                             <td style={{ padding: '14px 18px' }}>
                                                 <span style={{
@@ -349,6 +353,22 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
                                             </td>
                                             <td style={{ padding: '14px 18px', textAlign: 'right' }}>
                                                 <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedIncident(inc)}
+                                                        style={{
+                                                            padding: '4px 10px',
+                                                            borderRadius: '6px',
+                                                            fontSize: '0.74rem',
+                                                            fontWeight: 600,
+                                                            background: 'rgba(139, 92, 246, 0.15)',
+                                                            color: '#a78bfa',
+                                                            border: '1px solid rgba(139, 92, 246, 0.3)',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        Details 🔍
+                                                    </button>
                                                     {inc.status === 'triggered' && (
                                                         <button
                                                             type="button"
@@ -395,6 +415,168 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
                     </table>
                 </div>
             </div>
+
+            {/* Modal: Incident Detail & Telemetry Snapshot View */}
+            {selectedIncident && (() => {
+                const sev = getSeverityBadge(selectedIncident.severity);
+                const titleText = selectedIncident.title || (selectedIncident as any).incident_title || (selectedIncident as any).summary || (selectedIncident as any).metric_type || 'Telemetry Incident Alert';
+                const descText = selectedIncident.description || (selectedIncident as any).incident_description || (selectedIncident as any).details || (selectedIncident as any).summary || 'Automated incident alert recorded by EvaOps Observability monitor.';
+                const snapshot = selectedIncident.telemetry_snapshot || {};
+
+                return (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: isLight ? 'rgba(15, 23, 42, 0.5)' : 'rgba(2, 6, 23, 0.82)',
+                        backdropFilter: 'blur(16px)',
+                        zIndex: 99999,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: '24px'
+                    }}>
+                        <div className="glass-panel" style={{
+                            width: '680px',
+                            maxWidth: '100%',
+                            borderRadius: '20px',
+                            background: isLight ? '#ffffff' : '#0f172a',
+                            border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(139, 92, 246, 0.3)',
+                            boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+                            display: 'flex', flexDirection: 'column',
+                            overflow: 'hidden'
+                        }}>
+                            {/* Modal Header */}
+                            <div style={{
+                                padding: '20px 24px',
+                                borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <ShieldAlert size={22} style={{ color: sev.color }} />
+                                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+                                        Incident Details #{selectedIncident.id}
+                                    </h3>
+                                    <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.72rem', fontWeight: 700, background: sev.bg, color: sev.color }}>
+                                        {sev.text}
+                                    </span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedIncident(null)}
+                                    style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : 'var(--text-secondary)', cursor: 'pointer' }}
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            {/* Modal Body */}
+                            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px', overflowY: 'auto', maxHeight: '75vh' }}>
+                                {/* Resource Meta Banner */}
+                                <div style={{
+                                    padding: '14px 18px',
+                                    borderRadius: '12px',
+                                    background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
+                                    border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                                    display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px'
+                                }}>
+                                    <div>
+                                        <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Application</div>
+                                        <div style={{ fontSize: '0.92rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>{selectedIncident.app_key}</div>
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Environment / Type</div>
+                                        <div style={{ fontSize: '0.92rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', textTransform: 'uppercase' }}>
+                                            {selectedIncident.environment} • {selectedIncident.resource_type || 'aca'}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Recorded Time</div>
+                                        <div style={{ fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+                                            {new Date(selectedIncident.created_at).toLocaleString()}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Title & Description */}
+                                <div>
+                                    <h4 style={{ margin: '0 0 6px 0', fontSize: '1.02rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+                                        {titleText}
+                                    </h4>
+                                    <p style={{ margin: 0, fontSize: '0.86rem', color: isLight ? '#475569' : 'var(--text-secondary)', lineHeight: 1.6 }}>
+                                        {descText}
+                                    </p>
+                                </div>
+
+                                {/* Telemetry Snapshot */}
+                                <div>
+                                    <h5 style={{ margin: '0 0 10px 0', fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', color: isLight ? '#64748b' : 'var(--text-secondary)', letterSpacing: '0.04em' }}>
+                                        ⚡ Telemetry Snapshot at Incident Time
+                                    </h5>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                                        {Object.entries(snapshot).length > 0 ? (
+                                            Object.entries(snapshot).map(([key, val]) => (
+                                                <div key={key} style={{
+                                                    padding: '10px 14px',
+                                                    borderRadius: '10px',
+                                                    background: isLight ? '#f1f5f9' : 'rgba(139, 92, 246, 0.08)',
+                                                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(139, 92, 246, 0.2)'
+                                                }}>
+                                                    <div style={{ fontSize: '0.7rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>
+                                                        {key.replace(/_/g, ' ')}
+                                                    </div>
+                                                    <div style={{ fontSize: '1rem', fontWeight: 800, color: isLight ? '#0f172a' : '#a78bfa', marginTop: '2px' }}>
+                                                        {typeof val === 'number' ? val.toLocaleString() : String(val)}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div style={{ gridColumn: 'span 3', padding: '12px', fontSize: '0.8rem', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
+                                                No telemetry snapshot captured.
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Modal Footer Actions */}
+                            <div style={{
+                                padding: '16px 24px',
+                                borderTop: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                            }}>
+                                <span style={{ fontSize: '0.78rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
+                                    Status: <strong style={{ textTransform: 'uppercase', color: selectedIncident.status === 'triggered' ? '#ef4444' : selectedIncident.status === 'acknowledged' ? '#f59e0b' : '#10b981' }}>{selectedIncident.status}</strong>
+                                </span>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    {selectedIncident.status === 'triggered' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => { handleAcknowledge(selectedIncident.id); setSelectedIncident(null); }}
+                                            style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700, background: '#f59e0b', color: '#fff', border: 'none', cursor: 'pointer' }}
+                                        >
+                                            Acknowledge Alert ✋
+                                        </button>
+                                    )}
+                                    {selectedIncident.status !== 'resolved' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => { handleResolve(selectedIncident.id); setSelectedIncident(null); }}
+                                            style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700, background: '#10b981', color: '#fff', border: 'none', cursor: 'pointer' }}
+                                        >
+                                            Mark Resolved ✅
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedIncident(null)}
+                                        style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, background: isLight ? '#e2e8f0' : 'rgba(255,255,255,0.08)', color: isLight ? '#475569' : 'var(--text-primary)', border: 'none', cursor: 'pointer' }}
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* Modal: Grouped Alert Notification Settings (SWA, ACA, VM) */}
             {showConfigModal && (

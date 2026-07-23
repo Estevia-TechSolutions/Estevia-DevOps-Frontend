@@ -25,7 +25,7 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
     const [selectedEnv, setSelectedEnv] = useState<'dev' | 'qa' | 'prod'>('dev');
     const [selectedApp, setSelectedApp] = useState<string>('connecthub');
     const [resourceType, setResourceType] = useState<'aca' | 'swa' | 'vm'>('aca');
-    const [appsCatalog, setAppsCatalog] = useState<Array<{ key: string; label: string; icon: string }>>([]);
+    const [appsCatalog, setAppsCatalog] = useState<Array<{ key: string; label: string; icon: string; resourceTypes?: string[] }>>([]);
     const [metrics, setMetrics] = useState<MetricItem[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
 
@@ -209,9 +209,19 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                             border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)'
                         }}
                     >
-                        {appsCatalog.map(app => (
-                            <option key={app.key} value={app.key}>{app.icon || '📦'} {app.label}</option>
-                        ))}
+                        <option value="all">⚡ All {resourceType.toUpperCase()} Resources</option>
+                        {appsCatalog
+                            .filter(app => {
+                                if (!app.resourceTypes || app.resourceTypes.length === 0) return true;
+                                const types = app.resourceTypes.map((t: string) => t.toLowerCase());
+                                return types.includes(resourceType.toLowerCase());
+                            })
+                            .map(app => (
+                                <option key={app.key} value={app.key}>
+                                    {app.icon || (resourceType === 'swa' ? '🌐' : resourceType === 'vm' ? '🖥️' : '📦')} {app.label}
+                                </option>
+                            ))
+                        }
                     </select>
 
                     {/* Env Selector */}

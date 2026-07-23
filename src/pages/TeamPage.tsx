@@ -1464,10 +1464,18 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                   {resourceCatalog
                     .filter(app => {
                       if (modalCategoryTab === 'all') return true;
-                      const types = app.resourceTypes || ['swa', 'aca', 'vm'];
-                      if (modalCategoryTab === 'swa') return types.includes('swa') || ['connecthub', 'docai', 'talenthq', 'evafusion'].includes(app.key);
-                      if (modalCategoryTab === 'aca') return types.includes('aca') || ['connecthub', 'docai', 'protrack', 'talenthq', 'evafusion', 'evaops'].includes(app.key);
-                      if (modalCategoryTab === 'vm') return types.includes('vm') || ['connecthub', 'protrack', 'evafusion', 'evaops'].includes(app.key);
+                      const types = (app.resourceTypes || []).map(t => t.toLowerCase());
+                      const keyLower = (app.key || '').toLowerCase();
+
+                      if (modalCategoryTab === 'swa') {
+                        return types.includes('swa') || keyLower.includes('swa') || keyLower.includes('frontend') || ['connecthub', 'docai', 'talenthq', 'evafusion'].includes(keyLower);
+                      }
+                      if (modalCategoryTab === 'aca') {
+                        return types.includes('aca') || keyLower.includes('aca') || keyLower.includes('backend') || keyLower.includes('api') || ['connecthub', 'docai', 'protrack', 'talenthq', 'evafusion', 'evaops'].includes(keyLower);
+                      }
+                      if (modalCategoryTab === 'vm') {
+                        return types.includes('vm') || keyLower.includes('vm') || keyLower.includes('db') || keyLower.includes('database') || ['connecthub', 'protrack', 'evafusion', 'evaops'].includes(keyLower);
+                      }
                       return true;
                     })
                     .map(app => {
