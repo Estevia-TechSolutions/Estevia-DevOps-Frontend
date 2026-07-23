@@ -56,6 +56,8 @@ interface SettingsPageProps {
   setSubPackageDeveloper?: (val: boolean) => void;
   subPackageSecurity?: boolean;
   setSubPackageSecurity?: (val: boolean) => void;
+  subPackageObservability?: boolean;
+  setSubPackageObservability?: (val: boolean) => void;
 }
 
 // ── Primary color family aligned with app design tokens ──────────────────────
@@ -101,6 +103,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   setSubPackageDeveloper,
   subPackageSecurity = false,
   setSubPackageSecurity,
+  subPackageObservability = false,
+  setSubPackageObservability,
 }) => {
   const isOwnerOrAdmin = userRole === 'owner' || userRole === 'admin';
 
@@ -142,6 +146,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const [draftDevops, setDraftDevops] = React.useState<boolean>(subPackageDevops);
   const [draftDeveloper, setDraftDeveloper] = React.useState<boolean>(subPackageDeveloper);
   const [draftSecurity, setDraftSecurity] = React.useState<boolean>(subPackageSecurity);
+  const [draftObservability, setDraftObservability] = React.useState<boolean>(subPackageObservability);
 
   // Sync draft states to props only when canonical props update (e.g. after a successful save)
   React.useEffect(() => {
@@ -151,7 +156,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     setDraftDevops(subPackageDevops);
     setDraftDeveloper(subPackageDeveloper);
     setDraftSecurity(subPackageSecurity);
-  }, [licenseTier, operatorSeatsLimit, billingCurrency, subPackageDevops, subPackageDeveloper, subPackageSecurity]);
+    setDraftObservability(subPackageObservability);
+  }, [licenseTier, operatorSeatsLimit, billingCurrency, subPackageDevops, subPackageDeveloper, subPackageSecurity, subPackageObservability]);
 
   const activeTier = draftTier ?? licenseTier;
   const currentTierInfo = TIER_LABELS[licenseTier] ?? TIER_LABELS.growth;
@@ -223,7 +229,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const hasDevopsChange = draftDevops !== subPackageDevops;
   const hasDevChange = draftDeveloper !== subPackageDeveloper;
   const hasSecChange = draftSecurity !== subPackageSecurity;
-  const hasAnyChange = hasTierChange || hasSeatsChange || hasCurrencyChange || hasDevopsChange || hasDevChange || hasSecChange;
+  const hasObsChange = draftObservability !== subPackageObservability;
+  const hasAnyChange = hasTierChange || hasSeatsChange || hasCurrencyChange || hasDevopsChange || hasDevChange || hasSecChange || hasObsChange;
 
   // Downgrade detection (needed to decide whether to show confirm prompt vs downgrade modal)
   const tierRank: Record<string, number> = { growth: 1, enterprise: 2, sovereign: 3 };
@@ -239,6 +246,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     setSubPackageDevops?.(draftDevops);
     setSubPackageDeveloper?.(draftDeveloper);
     setSubPackageSecurity?.(draftSecurity);
+    setSubPackageObservability?.(draftObservability);
     
     if (isDowngrade) {
       // Let the existing downgrade modal handle it
@@ -262,6 +270,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     setSubPackageDevops?.(subPackageDevops);
     setSubPackageDeveloper?.(subPackageDeveloper);
     setSubPackageSecurity?.(subPackageSecurity);
+    setSubPackageObservability?.(subPackageObservability);
   };
 
   const handleCancelDowngrade = () => {
@@ -1119,6 +1128,68 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                     </div>
                   </div>
                 </div>
+
+                {/* Observability & AI Package Card */}
+                <div style={{
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: `1.5px solid ${draftObservability ? 'var(--accent-purple)' : 'var(--glass-border)'}`,
+                  background: draftObservability ? 'rgba(139,92,246,0.04)' : 'rgba(255,255,255,0.005)',
+                  transition: 'all 0.25s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  minHeight: '220px'
+                }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '0.94rem', fontWeight: 800, color: 'var(--text-primary)' }}>📊 Observability & AI Package</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{
+                          fontSize: '0.64rem', fontWeight: 700, padding: '2px 8px', borderRadius: '20px',
+                          background: draftObservability ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
+                          color: draftObservability ? '#4ade80' : 'var(--text-secondary)',
+                          border: draftObservability ? '1px solid rgba(34,197,94,0.25)' : '1px solid var(--glass-border)'
+                        }}>
+                          {draftObservability ? 'Subscribed' : 'Inactive'}
+                        </span>
+                        <input 
+                          type="checkbox"
+                          checked={draftObservability}
+                          disabled={!isOwnerOrAdmin || isOrgDisabled}
+                          onChange={(e) => {
+                            setDraftObservability(e.target.checked);
+                            setShowSaveConfirmPrompt(false);
+                          }}
+                          style={{ width: '16px', height: '16px', cursor: (isOwnerOrAdmin && !isOrgDisabled) ? 'pointer' : 'default' }}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                        <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)' }}>
+                          {billingCurrency === 'INR' ? '₹12,000' : '$149.00'}
+                        </span>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>/ month</span>
+                      </div>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                        {billingCurrency === 'INR' ? '≈ $149.00 / month' : '≈ ₹12,000 / month'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                      {[
+                        '24/7 Prometheus Metrics & Telemetry History',
+                        'Automated Incident Detection & Email Alerts',
+                        'Eva AI Cost & Remediation Assistant'
+                      ].map((f, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Check size={12} style={{ color: 'var(--accent-purple)', flexShrink: 0 }} />
+                          <span>{f}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1712,8 +1783,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             const securityPriceUSD = subPackageSecurity ? 120 : 0;
             const securityPriceINR = subPackageSecurity ? 10000 : 0;
             
-            const totalUSD = basePriceUSD + (currentWriteUsers * seatPriceUSD) + devopsPriceUSD + developerPriceUSD + securityPriceUSD;
-            const totalINR = basePriceINR + (currentWriteUsers * seatPriceINR) + devopsPriceINR + developerPriceINR + securityPriceINR;
+            const observabilityPriceUSD = subPackageObservability ? 149 : 0;
+            const observabilityPriceINR = subPackageObservability ? 12000 : 0;
+            
+            const totalUSD = basePriceUSD + (currentWriteUsers * seatPriceUSD) + devopsPriceUSD + developerPriceUSD + securityPriceUSD + observabilityPriceUSD;
+            const totalINR = basePriceINR + (currentWriteUsers * seatPriceINR) + devopsPriceINR + developerPriceINR + securityPriceINR + observabilityPriceINR;
 
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'fade-in-anim 0.2s ease-out' }}>
@@ -1823,6 +1897,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                             <td style={{ padding: '12px 14px' }}>₹10,000/mo</td>
                             <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>$120</td>
                             <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>₹10,000</td>
+                          </tr>
+                        )}
+                        {subPackageObservability && (
+                          <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                            <td style={{ padding: '12px 14px', fontWeight: 600 }}>📊 Observability & AI Sub-Package</td>
+                            <td style={{ padding: '12px 14px' }}>Active</td>
+                            <td style={{ padding: '12px 14px' }}>$149/mo</td>
+                            <td style={{ padding: '12px 14px' }}>₹12,000/mo</td>
+                            <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>$149</td>
+                            <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>₹12,000</td>
                           </tr>
                         )}
 

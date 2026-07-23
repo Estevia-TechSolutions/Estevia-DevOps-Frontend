@@ -19,9 +19,16 @@ interface Incident {
 interface IncidentsAlertsViewProps {
     theme?: 'dark' | 'light';
     API_BASE?: string;
+    isPackageActive?: boolean;
+    onNavigateSettings?: () => void;
 }
 
-export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme = 'dark', API_BASE = 'http://localhost:5005/api' }) => {
+export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ 
+    theme = 'dark', 
+    API_BASE = 'http://localhost:5005/api',
+    isPackageActive = true,
+    onNavigateSettings
+}) => {
     const isLight = theme === 'light';
     const [incidents, setIncidents] = useState<Incident[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -29,6 +36,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
     const [showInfoDrawer, setShowInfoDrawer] = useState<boolean>(false);
     const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
     const [resolvingIncident, setResolvingIncident] = useState<Incident | null>(null);
+    const [packageLocked, setPackageLocked] = useState<boolean>(!isPackageActive);
 
     // Dynamic Data State
     const [teamUsers, setTeamUsers] = useState<any[]>([]);
@@ -44,14 +52,22 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
     const [selectedCategories, setSelectedCategories] = useState<string[]>(['CRITICAL_OUTAGE', 'HIGH_RESOURCE_PRESSURE']);
     const [savingConfig, setSavingConfig] = useState<boolean>(false);
 
+    useEffect(() => {
+        setPackageLocked(!isPackageActive);
+    }, [isPackageActive]);
+
+    useEffect(() => {
+        if (!packageLocked) {
+            fetchIncidents();
+            fetchTeamAndCatalog();
+        } else {
+            setLoading(false);
+        }
+    }, [packageLocked]);
+
     const getToken = () => {
         return localStorage.getItem('evaops_token') || localStorage.getItem('token') || '';
     };
-
-    useEffect(() => {
-        fetchIncidents();
-        fetchTeamAndCatalog();
-    }, []);
 
     const fetchTeamAndCatalog = async () => {
         try {
@@ -87,10 +103,17 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
                 headers: { Authorization: `Bearer ${token}` }
             }).catch(() => null);
 
+            if (res && res.status === 403) {
+                setPackageLocked(true);
+                setLoading(false);
+                return;
+            }
+
             if (res && res.ok) {
                 const data = await res.json();
                 if (data.success && data.incidents && data.incidents.length > 0) {
                     setIncidents(data.incidents.map((i: any) => ({ ...i, status: i.status || 'triggered' })));
+                    setPackageLocked(false);
                     setLoading(false);
                     return;
                 }
@@ -208,6 +231,57 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
         if (sev === 'P3_MEDIUM') return { bg: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', text: '🟡 P3 MEDIUM' };
         return { bg: 'rgba(16, 185, 129, 0.15)', color: '#10b981', text: '🔵 P4 LOW' };
     };
+
+    if (packageLocked) {
+        return (
+            <div className="glass-panel" style={{
+                padding: '56px 36px',
+                borderRadius: '24px',
+                textAlign: 'center',
+                background: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.65)',
+                border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(139, 92, 246, 0.3)',
+                boxShadow: '0 20px 50px rgba(0,0,0,0.4)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '24px'
+            }}>
+                <div style={{
+                    width: '72px', height: '72px', borderRadius: '20px',
+                    background: 'rgba(239, 68, 68, 0.12)', border: '1.5px solid rgba(239, 68, 68, 0.3)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444'
+                }}>
+                    <Lock size={36} />
+                </div>
+                <div style={{ maxWidth: '600px' }}>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 900, margin: '0 0 12px 0', color: isLight ? '#0f172a' : '#fff' }}>
+                        Observability & AI Package Inactive
+                    </h2>
+                    <p style={{ fontSize: '0.9rem', color: isLight ? '#64748b' : 'var(--text-secondary)', lineHeight: '1.65', margin: 0 }}>
+                        Multi-category incident detection, telemetry root-cause snapshots, automated email alerts, and Eva AI resolution requires an active <strong>Observability & AI Package</strong> subscription ($149.00/mo).
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={() => {
+                        if (onNavigateSettings) onNavigateSettings();
+                        else window.location.hash = '#settings';
+                    }}
+                    style={{
+                        padding: '12px 28px',
+                        fontSize: '0.9rem',
+                        fontWeight: 700,
+                        background: 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)',
+                        boxShadow: '0 8px 25px rgba(139, 92, 246, 0.4)',
+                        cursor: 'pointer'
+                    }}
+                >
+                    Activate Observability & AI Package ($149/mo)
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>

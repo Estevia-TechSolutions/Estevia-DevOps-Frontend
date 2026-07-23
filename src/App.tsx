@@ -1824,6 +1824,7 @@ function App() {
   const [subPackageDevops, setSubPackageDevops] = useState(false);
   const [subPackageDeveloper, setSubPackageDeveloper] = useState(false);
   const [subPackageSecurity, setSubPackageSecurity] = useState(false);
+  const [subPackageObservability, setSubPackageObservability] = useState(false);
   const [upgradePackageModal, setUpgradePackageModal] = useState<string | null>(null);
   // ── End License / Credential Gate States ──────────────────────────────────
 
@@ -3249,6 +3250,7 @@ function App() {
         setSubPackageDevops(data.settings.sub_package_devops === 1 || data.settings.sub_package_devops === true);
         setSubPackageDeveloper(data.settings.sub_package_developer === 1 || data.settings.sub_package_developer === true);
         setSubPackageSecurity(data.settings.sub_package_security === 1 || data.settings.sub_package_security === true);
+        setSubPackageObservability(data.settings.sub_package_observability === 1 || data.settings.sub_package_observability === true);
         setManualMfaRequired(data.settings.manual_mfa_required === 1 || data.settings.manual_mfa_required === true);
         setSsoMfaRequired(data.settings.sso_mfa_required === 1 || data.settings.sso_mfa_required === true);
         // ─────────────────────────────────────────────────────────────────
@@ -3367,7 +3369,8 @@ function App() {
           billingCurrency,
           subPackageDevops,
           subPackageDeveloper,
-          subPackageSecurity
+          subPackageSecurity,
+          subPackageObservability
         })
       });
       const data = await res.json();
@@ -7426,11 +7429,11 @@ function App() {
             )}
 
             {scanSubTab === 'observability' && (
-              <PrometheusObservabilityView API_BASE={API_BASE} theme={theme} />
+              <PrometheusObservabilityView API_BASE={API_BASE} theme={theme} isPackageActive={subPackageObservability} onNavigateSettings={() => setActiveTab('settings')} />
             )}
 
             {scanSubTab === 'incidents' && (
-              <IncidentsAlertsView API_BASE={API_BASE} theme={theme} />
+              <IncidentsAlertsView API_BASE={API_BASE} theme={theme} isPackageActive={subPackageObservability} onNavigateSettings={() => setActiveTab('settings')} />
             )}
           </div>
         )}
@@ -7844,6 +7847,8 @@ function App() {
             setSubPackageDeveloper={setSubPackageDeveloper}
             subPackageSecurity={subPackageSecurity}
             setSubPackageSecurity={setSubPackageSecurity}
+            subPackageObservability={subPackageObservability}
+            setSubPackageObservability={setSubPackageObservability}
             invoices={invoices}
             onPayInvoice={handlePayInvoice}
           />
