@@ -81,16 +81,15 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
         try {
             const token = getToken();
             const queryStr = `app_key=${selectedApp}&environment=${selectedEnv}&time_window=${timeWindow}&resource_type=${resourceType}`;
+            const headers: Record<string, string> = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
 
-            let res = await fetch(`${API_BASE}/apps/observability/metrics?${queryStr}`).catch(() => null);
+            let res = await fetch(`${API_BASE}/apps/observability/metrics?${queryStr}`, { headers }).catch(() => null);
 
             if (!res || !res.ok) {
-                res = await fetch(`${API_BASE}/auth/metrics?${queryStr}`).catch(() => null);
-            }
-            if ((!res || !res.ok) && token) {
-                res = await fetch(`${API_BASE}/apps/observability/metrics?${queryStr}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                }).catch(() => null);
+                res = await fetch(`${API_BASE}/auth/metrics?${queryStr}`, { headers }).catch(() => null);
             }
 
             if (res && res.ok) {
@@ -101,14 +100,17 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                 }
             }
 
-            // Fallback dynamic in-memory telemetry points
+            // Fallback dynamic in-memory telemetry points scaled to active timeWindow
+            const windowMinutes = timeWindow === '15m' ? 15 : timeWindow === '6h' ? 360 : timeWindow === '24h' ? 1440 : timeWindow === '7d' ? 10080 : 60;
             const now = Date.now();
-            const points = 12;
+            const points = 15;
+            const stepMs = (windowMinutes * 60 * 1000) / points;
             const pts = [];
+
             for (let i = points; i >= 0; i--) {
                 pts.push({
                     id: i + 1,
-                    app_key: selectedApp || 'estevia-frontend',
+                    app_key: selectedApp || 'connecthub',
                     environment: selectedEnv || 'dev',
                     resource_type: resourceType || 'aca',
                     cpu_percent: Math.floor(25 + Math.random() * 30),
@@ -116,8 +118,8 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                     request_rate: Math.floor(100 + Math.random() * 60),
                     p95_latency_ms: Math.floor(40 + Math.random() * 50),
                     http_5xx_count: 0,
-                    replica_count: 3,
-                    recorded_at: new Date(now - i * 5 * 60 * 1000).toISOString()
+                    replica_count: resourceType === 'aca' ? 3 : 1,
+                    recorded_at: new Date(now - i * stepMs).toISOString()
                 });
             }
             setMetrics(pts);

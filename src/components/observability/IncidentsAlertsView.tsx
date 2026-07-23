@@ -144,6 +144,9 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ theme 
     };
 
     const handleResolve = async (id: number) => {
+        if (!window.confirm('Are you sure you want to mark this incident as resolved?')) {
+            return;
+        }
         setIncidents(prev => prev.map(inc => inc.id === id ? { ...inc, status: 'resolved' } : inc));
         try {
             const token = getToken();
