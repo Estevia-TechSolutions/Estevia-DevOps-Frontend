@@ -114,19 +114,22 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
             }
 
             const fallbackCat = [
-                { key: 'connecthub', label: 'ConnectHub Enterprise Services', icon: '📦', resourceTypes: ['aca', 'swa'] },
-                { key: 'docai', label: 'DocAI Intelligent Processing Engine', icon: '📦', resourceTypes: ['aca', 'swa'] },
-                { key: 'protrack', label: 'ProTrack Execution Framework', icon: '📦', resourceTypes: ['aca', 'swa'] },
-                { key: 'talenthq', label: 'TalentHQ Recruitment Hub', icon: '📦', resourceTypes: ['aca', 'swa'] },
-                { key: 'evafusion', label: 'EvaFusion Orchestrator API', icon: '📦', resourceTypes: ['aca', 'swa'] },
-                { key: 'evaops', label: 'EvaOps DevOps Engine', icon: '📦', resourceTypes: ['aca', 'swa'] },
-                { key: 'estevia-frontend', label: 'Estevia DevOps Control Frontend', icon: '🌐', resourceTypes: ['swa'] },
-                { key: 'estevia-backend', label: 'Estevia DevOps Backend Engine', icon: '📦', resourceTypes: ['aca'] },
-                { key: 'estevia-api', label: 'Estevia Core Management API', icon: '📦', resourceTypes: ['aca'] },
-                { key: 'estevia-db-vm', label: 'Estevia Database Host Node', icon: '🖥️', resourceTypes: ['vm'] },
-                { key: 'prod-db-server', label: 'Production MySQL DB Host', icon: '🖥️', resourceTypes: ['vm'] },
-                { key: 'qa-db-server', label: 'QA Database Instance', icon: '🖥️', resourceTypes: ['vm'] },
-                { key: 'dev-db-server', label: 'Dev Sandbox Database Server', icon: '🖥️', resourceTypes: ['vm'] }
+                { key: 'connecthub', label: 'ConnectHub Enterprise Services (ACA)', icon: '📦', resourceTypes: ['aca'] },
+                { key: 'docai', label: 'DocAI Intelligent Processing Engine (ACA)', icon: '📦', resourceTypes: ['aca'] },
+                { key: 'protrack', label: 'ProTrack Execution Framework (ACA)', icon: '📦', resourceTypes: ['aca'] },
+                { key: 'talenthq', label: 'TalentHQ Recruitment Hub (ACA)', icon: '📦', resourceTypes: ['aca'] },
+                { key: 'evafusion', label: 'EvaFusion Orchestrator API (ACA)', icon: '📦', resourceTypes: ['aca'] },
+                { key: 'evaops', label: 'EvaOps DevOps Engine (ACA)', icon: '📦', resourceTypes: ['aca'] },
+                { key: 'estevia-backend', label: 'Estevia DevOps Backend Engine (ACA)', icon: '📦', resourceTypes: ['aca'] },
+                { key: 'estevia-api', label: 'Estevia Core Management API (ACA)', icon: '📦', resourceTypes: ['aca'] },
+                { key: 'estevia-frontend', label: 'Estevia DevOps Control Frontend (SWA)', icon: '🌐', resourceTypes: ['swa'] },
+                { key: 'connecthub-web', label: 'ConnectHub Web UI (SWA)', icon: '🌐', resourceTypes: ['swa'] },
+                { key: 'docai-web', label: 'DocAI Web UI (SWA)', icon: '🌐', resourceTypes: ['swa'] },
+                { key: 'protrack-web', label: 'ProTrack Web UI (SWA)', icon: '🌐', resourceTypes: ['swa'] },
+                { key: 'estevia-db-vm', label: 'Estevia Database Host Node (VM)', icon: '🖥️', resourceTypes: ['vm'] },
+                { key: 'prod-db-server', label: 'Production MySQL DB Host (VM)', icon: '🖥️', resourceTypes: ['vm'] },
+                { key: 'qa-db-server', label: 'QA Database Instance (VM)', icon: '🖥️', resourceTypes: ['vm'] },
+                { key: 'dev-db-server', label: 'Dev Sandbox Database Server (VM)', icon: '🖥️', resourceTypes: ['vm'] }
             ];
             setAppsCatalog(fallbackCat);
             if (!selectedApp) setSelectedApp(fallbackCat[0].key);
@@ -136,21 +139,14 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
     };
 
     const getAppTypes = (app: any): string[] => {
-        const k = (app.key || '').toLowerCase();
-        if (k.includes('vm') || k.includes('db') || k.includes('database') || k.includes('server')) {
+        const k = (app.key || '').toLowerCase() + ' ' + (app.label || '').toLowerCase();
+        if (k.includes('vm') || k.includes('db') || k.includes('database') || k.includes('server') || k.includes('host') || k.includes('node')) {
             return ['vm'];
         }
-        if (k.includes('frontend') || k.includes('swa') || k.includes('web')) {
-            return ['swa', 'aca'];
+        if (k.includes('frontend') || k.includes('swa') || k.includes('web') || k.includes('ui') || k.includes('control')) {
+            return ['swa'];
         }
-        if (k.includes('backend') || k.includes('api') || k.includes('aca')) {
-            return ['aca', 'swa'];
-        }
-        if (app.resourceTypes && app.resourceTypes.length > 0) {
-            const set = new Set([...app.resourceTypes.map((t: string) => t.toLowerCase()), 'aca', 'swa']);
-            return Array.from(set);
-        }
-        return ['aca', 'swa'];
+        return ['aca'];
     };
 
     const fetchMetrics = async () => {
