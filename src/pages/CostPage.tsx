@@ -2270,13 +2270,30 @@ export const CostPage: React.FC<CostPageProps> = ({
                       </div>
                     </div>
 
+                    {/* Live Hover Cost Inspection Header Panel */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 16px',
+                      borderRadius: '10px',
+                      backgroundColor: isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.5)',
+                      border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                      fontSize: '0.78rem',
+                      color: 'var(--text-secondary)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontWeight: 'bold', color: '#10b981' }}>💡 Live Cost Inspector:</span>
+                        <span>Hover over any bar below to view itemized Azure invoice breakdown.</span>
+                      </div>
+                    </div>
+
                     {/* Stacked Itemized Bar Chart Container */}
                     <div style={{
                       position: 'relative',
-                      paddingTop: '180px',
                       overflowX: 'auto',
-                      overflowY: 'visible',
-                      scrollbarWidth: 'thin'
+                      scrollbarWidth: 'thin',
+                      paddingTop: '160px'
                     }}>
                       <div style={{ 
                         display: 'flex', 
@@ -2284,8 +2301,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                         alignItems: 'flex-end', 
                         height: '230px', 
                         position: 'relative',
-                        whiteSpace: 'nowrap',
-                        overflow: 'visible'
+                        whiteSpace: 'nowrap'
                       }}>
                       {sortedAzureBills.map((b, idx) => {
                         const isFirst = idx === 0;
@@ -2319,11 +2335,11 @@ export const CostPage: React.FC<CostPageProps> = ({
                               visibility: 'hidden',
                               opacity: 0,
                               position: 'absolute',
-                              top: '-165px',
-                              bottom: 'auto',
-                              left: isFirst ? '0%' : (isLast ? 'auto' : '50%'),
-                              right: isLast ? '0%' : 'auto',
-                              transform: isFirst ? 'translateY(5px)' : (isLast ? 'translateY(5px)' : 'translateX(-50%) translateY(5px)'),
+                              bottom: 'calc(100% + 8px)',
+                              top: 'auto',
+                              left: isFirst ? '0px' : (isLast ? 'auto' : '50%'),
+                              right: isLast ? '0px' : 'auto',
+                              transform: (isFirst || isLast) ? 'none' : 'translateX(-50%)',
                               background: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.98)',
                               backdropFilter: 'blur(20px)',
                               WebkitBackdropFilter: 'blur(20px)',
