@@ -5306,7 +5306,7 @@ function App() {
               top: 0, left: 0, right: 0, bottom: 0,
               pointerEvents: 'none',
               zIndex: 1,
-              opacity: 0.30
+              opacity: 0.50
             }}>
               <svg width="100%" height="100%" viewBox="0 0 420 640" fill="none" preserveAspectRatio="xMidYMid slice">
 
