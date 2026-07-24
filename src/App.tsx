@@ -5231,6 +5231,37 @@ function App() {
         transition: 'all 0.3s ease',
         fontFamily: "'Inter', sans-serif"
       }}>
+        <style>{`
+          @keyframes scanLine {
+            0% { top: -5%; opacity: 0; }
+            10% { opacity: 0.95; }
+            90% { opacity: 0.95; }
+            100% { top: 105%; opacity: 0; }
+          }
+          @keyframes pulseGlow {
+            0%, 100% { opacity: 0.25; transform: scale(1); }
+            50% { opacity: 0.50; transform: scale(1.12); }
+          }
+          @keyframes packetPulse {
+            0%, 100% { opacity: 0.5; filter: drop-shadow(0 0 4px #a78bfa); }
+            50% { opacity: 1; filter: drop-shadow(0 0 14px #c084fc); }
+          }
+          @keyframes rotateCloudOrbit {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          .sec-scan-line-purple {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent 10%, #a78bfa 50%, transparent 90%);
+            box-shadow: 0 0 25px #a78bfa, 0 0 50px rgba(124, 58, 237, 0.7);
+            animation: scanLine 5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            pointer-events: none;
+            z-index: 10;
+          }
+        `}</style>
         {/* Main outer card */}
         <div style={{
           width: '960px',
@@ -5258,9 +5289,44 @@ function App() {
             overflow: 'hidden',
             boxSizing: 'border-box'
           }}>
-            {/* Ambient glows */}
-            <div style={{ position: 'absolute', top: '-120px', left: '-120px', width: '340px', height: '340px', borderRadius: '50%', background: 'rgba(124, 58, 237, 0.14)', filter: 'blur(90px)', pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', bottom: '-80px', right: '-80px', width: '260px', height: '260px', borderRadius: '50%', background: 'rgba(124, 58, 237, 0.08)', filter: 'blur(90px)', pointerEvents: 'none' }} />
+            {/* Luminous Purple Laser Sweeper */}
+            <div className="sec-scan-line-purple" />
+
+            {/* High-Impact Ambient Mesh Glows */}
+            <div style={{ position: 'absolute', top: '-120px', left: '-120px', width: '380px', height: '380px', borderRadius: '50%', background: 'rgba(124, 58, 237, 0.28)', filter: 'blur(95px)', pointerEvents: 'none', animation: 'pulseGlow 8s ease-in-out infinite' }} />
+            <div style={{ position: 'absolute', bottom: '-80px', right: '-80px', width: '300px', height: '300px', borderRadius: '50%', background: 'rgba(109, 40, 217, 0.20)', filter: 'blur(95px)', pointerEvents: 'none', animation: 'pulseGlow 8s ease-in-out infinite 4s' }} />
+
+            {/* CloudOps Topology Node Mesh & Pipeline Telemetry Stream (SVG) */}
+            <div style={{
+              position: 'absolute',
+              top: 0, left: 0, right: 0, bottom: 0,
+              pointerEvents: 'none',
+              zIndex: 1,
+              opacity: 0.85
+            }}>
+              <svg width="100%" height="100%" viewBox="0 0 450 640" fill="none" preserveAspectRatio="xMidYMid slice">
+                {/* Pipeline Axon Connection Lines */}
+                <g stroke="rgba(167, 139, 250, 0.25)" strokeWidth="1.5" strokeDasharray="5 5">
+                  <line x1="70" y1="130" x2="220" y2="230" />
+                  <line x1="220" y1="230" x2="380" y2="170" />
+                  <line x1="220" y1="230" x2="140" y2="390" />
+                  <line x1="220" y1="230" x2="340" y2="440" />
+                  <line x1="140" y1="390" x2="340" y2="440" />
+                  <line x1="70" y1="130" x2="140" y2="390" />
+                  <line x1="380" y1="170" x2="340" y2="440" />
+                </g>
+
+                {/* Firing Pipeline Data Packets */}
+                <circle cx="70" cy="130" r="4.5" fill="#a78bfa" style={{ animation: 'packetPulse 3s ease-in-out infinite' }} />
+                <circle cx="380" cy="170" r="5" fill="#c084fc" style={{ animation: 'packetPulse 3.5s ease-in-out infinite 0.5s' }} />
+                <circle cx="140" cy="390" r="5.5" fill="#60a5fa" style={{ animation: 'packetPulse 4s ease-in-out infinite 1s' }} />
+                <circle cx="340" cy="440" r="4.5" fill="#a78bfa" style={{ animation: 'packetPulse 3.2s ease-in-out infinite 1.5s' }} />
+
+                {/* Central CloudOps Hub Node & Orbit Ring */}
+                <circle cx="220" cy="230" r="9" fill="#7c3aed" style={{ animation: 'packetPulse 2.5s ease-in-out infinite' }} />
+                <circle cx="220" cy="230" r="18" fill="none" stroke="rgba(167, 139, 250, 0.6)" strokeWidth="1.5" strokeDasharray="3 3" style={{ animation: 'rotateCloudOrbit 12s linear infinite' }} />
+              </svg>
+            </div>
 
             {/* App logo row */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative', zIndex: 2 }}>
