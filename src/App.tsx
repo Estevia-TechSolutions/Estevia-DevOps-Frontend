@@ -100,19 +100,31 @@ function AuthenticatorPreviewCard({ issuer, account }: { issuer: string; account
         }
       `}</style>
 
-      {/* Top Header Instruction Strip */}
+      {/* Top Combined Header Strip — EvaOps Purple Theme */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '8px',
-        padding: '9px 14px',
+        gap: '10px',
+        padding: '10px 14px',
         background: 'rgba(124,58,237,0.10)',
         borderBottom: '1px solid rgba(124,58,237,0.2)',
       }}>
-        <Smartphone size={15} style={{ color: '#7c3aed', flexShrink: 0 }} />
-        <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          Open your authenticator app & find this entry:
-        </span>
+        <div style={{
+          width: '28px', height: '28px', borderRadius: '7px',
+          background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#7c3aed', flexShrink: 0
+        }}>
+          <ShieldCheck size={15} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+            Two-Factor Authentication
+          </div>
+          <div style={{ fontSize: '0.70rem', fontWeight: 600, color: '#a78bfa', marginTop: '1px' }}>
+            Open your authenticator app & find this entry:
+          </div>
+        </div>
       </div>
 
       {/* Card Body — Account Details */}
