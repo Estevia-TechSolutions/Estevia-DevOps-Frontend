@@ -2236,7 +2236,16 @@ export const CostPage: React.FC<CostPageProps> = ({
                 };
 
                 return (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '24px' }}>
+                  <div style={{
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '20px', 
+                    marginTop: '24px',
+                    padding: '20px 24px',
+                    backgroundColor: isLight ? '#f8fafc' : 'rgba(0,0,0,0.25)',
+                    borderRadius: '14px',
+                    border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)'
+                  }}>
                     {/* Graph Color Legends */}
                     <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center', fontSize: '0.76rem', fontWeight: 600 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: isLight ? '#334155' : '#cbd5e1' }}>
@@ -2274,15 +2283,13 @@ export const CostPage: React.FC<CostPageProps> = ({
                         gap: '28px', 
                         alignItems: 'flex-end', 
                         height: '230px', 
-                        padding: '20px 24px', 
-                        backgroundColor: isLight ? '#f8fafc' : 'rgba(0,0,0,0.25)', 
-                        borderRadius: '12px',
-                        border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
                         position: 'relative',
                         whiteSpace: 'nowrap',
                         overflow: 'visible'
                       }}>
-                      {sortedAzureBills.map((b) => {
+                      {sortedAzureBills.map((b, idx) => {
+                        const isFirst = idx === 0;
+                        const isLast = idx === sortedAzureBills.length - 1;
                         const totalVal = Number(b.total_amount || 0);
                         const acaVal = b.aca_compute_amount !== undefined && b.aca_compute_amount !== null ? Number(b.aca_compute_amount) : (totalVal * 0.38);
                         const mysqlVal = b.mysql_db_amount !== undefined && b.mysql_db_amount !== null ? Number(b.mysql_db_amount) : (totalVal * 0.30);
@@ -2314,8 +2321,9 @@ export const CostPage: React.FC<CostPageProps> = ({
                               position: 'absolute',
                               top: '-165px',
                               bottom: 'auto',
-                              left: '50%',
-                              transform: 'translateX(-50%) translateY(5px)',
+                              left: isFirst ? '0%' : (isLast ? 'auto' : '50%'),
+                              right: isLast ? '0%' : 'auto',
+                              transform: isFirst ? 'translateY(5px)' : (isLast ? 'translateY(5px)' : 'translateX(-50%) translateY(5px)'),
                               background: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.98)',
                               backdropFilter: 'blur(20px)',
                               WebkitBackdropFilter: 'blur(20px)',
