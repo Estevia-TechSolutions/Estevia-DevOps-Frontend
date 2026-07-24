@@ -5337,13 +5337,14 @@ function App() {
           {/* Right panel: Authentications */}
           <div style={{
             flex: '1.25',
-            padding: '40px 56px 40px 40px',
+            padding: '32px 52px',
             display: 'flex',
             alignItems: 'center',
             background: 'var(--bg-card, rgba(8,12,22,0.6))',
-            boxSizing: 'border-box'
+            boxSizing: 'border-box',
+            overflowY: 'auto'
           }}>
-            <div style={{ maxWidth: '400px', width: '100%', margin: '0 auto' }}>
+            <div style={{ maxWidth: '410px', width: '100%', margin: 'auto', padding: '16px 0' }}>
               <div style={{ marginBottom: '28px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
                 <div style={{ flex: 1 }}>
                   <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px', margin: 0 }}>Access Portal</h3>
@@ -5791,7 +5792,7 @@ function App() {
               )}
 
               {authStep === 'mfa-verify' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', margin: '8px 0 12px 0' }}>
                   {/* Premium Dual-Theme Multi-Mode MFA Selector Pills */}
                   <div style={{
                     display: 'grid',
