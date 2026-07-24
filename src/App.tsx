@@ -41,7 +41,8 @@ import {
   Lock,
   Cloud,
   Mail,
-  Smartphone
+  Smartphone,
+  Zap
 } from 'lucide-react';
 import './App.css';
 
@@ -5275,33 +5276,48 @@ function App() {
                 justifyContent: 'center',
                 overflow: 'hidden'
               }}>
-                <img src="/evaops-logo.png" alt="EvaOps Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'invert(1)' }} />
+                {authStep !== 'login' ? (
+                  <ShieldCheck size={24} style={{ color: '#a78bfa' }} />
+                ) : (
+                  <img src="/evaops-logo.png" alt="EvaOps Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'invert(1)' }} />
+                )}
               </div>
               <div>
                 <h2 style={{
                   fontFamily: "'Outfit', sans-serif", fontSize: '1.45rem', fontWeight: 800, letterSpacing: '-0.02em',
-                  background: 'linear-gradient(135deg, #ffffff 30%, #7c3aed 100%)',
+                  background: 'linear-gradient(135deg, #ffffff 30%, #a78bfa 100%)',
                   WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: 0
-                }}>EvaOps</h2>
-                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.1em' }}>CloudOps Management</span>
+                }}>
+                  {authStep !== 'login' ? 'EvaOps Authenticator' : 'EvaOps'}
+                </h2>
+                <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  {authStep !== 'login' ? 'CloudOps Security Gateway' : 'CloudOps Management'}
+                </span>
               </div>
             </div>
 
-            {/* Capability Checklist */}
+            {/* Capability / Security Checklist */}
             <div style={{ position: 'relative', zIndex: 2, margin: '40px 0' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '16px' }}>Platform Capabilities</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '16px' }}>
+                {authStep !== 'login' ? 'Zero-Trust Security Safeguards' : 'Platform Capabilities'}
+              </span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {[
+                {(authStep !== 'login' ? [
+                  { title: 'Zero-Trust Infrastructure', desc: 'Verifying deployment authority & security policies', icon: ShieldCheck },
+                  { title: 'Federated Cloud Gateway', desc: 'Authenticated via enterprise DevOps identity', icon: Lock },
+                  { title: 'Multi-Factor Challenge', desc: 'Confirming session ownership with authenticator', icon: Smartphone },
+                  { title: 'Dynamic Session Handshake', desc: 'Issuing short-lived ephemeral STS access tokens', icon: Zap }
+                ] : [
                   { title: 'Cloud Discovery Scanning', desc: 'Auto-maps SWA and ACA environments', icon: Cloud },
                   { title: 'DNS Automation', desc: 'One-click CNAME binds via GoDaddy API', icon: Globe },
                   { title: 'DevOps Pipelines', desc: 'Committer-driven YML setup templates', icon: Terminal },
                   { title: 'Cost Pulse Analytics', desc: 'Optimization insights & active cost tracking', icon: TrendingDown }
-                ].map((f, i) => (
+                ]).map((f, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
                     <div style={{
                       width: '36px', height: '36px', borderRadius: '10px',
                       background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#7c3aed', flexShrink: 0
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a78bfa', flexShrink: 0
                     }}>
                       <f.icon size={16} />
                     </div>
