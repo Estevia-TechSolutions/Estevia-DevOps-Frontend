@@ -5336,8 +5336,8 @@ function App() {
 
           {/* Right panel: Authentications */}
           <div style={{
-            flex: '1.2',
-            padding: '48px',
+            flex: '1.25',
+            padding: '40px 56px 40px 40px',
             display: 'flex',
             alignItems: 'center',
             background: 'var(--bg-card, rgba(8,12,22,0.6))',
