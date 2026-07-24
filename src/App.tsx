@@ -5242,13 +5242,17 @@ function App() {
             0%, 100% { opacity: 0.25; transform: scale(1); }
             50% { opacity: 0.50; transform: scale(1.12); }
           }
-          @keyframes packetPulse {
-            0%, 100% { opacity: 0.5; filter: drop-shadow(0 0 4px #a78bfa); }
-            50% { opacity: 1; filter: drop-shadow(0 0 14px #c084fc); }
+          @keyframes podPulse {
+            0%, 100% { opacity: 0.35; filter: drop-shadow(0 0 3px #a78bfa); }
+            50% { opacity: 0.9; filter: drop-shadow(0 0 10px #7c3aed); }
           }
-          @keyframes rotateCloudOrbit {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+          @keyframes stageCardBlink {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+          }
+          @keyframes pipelineFlow {
+            0% { stroke-dashoffset: 40; }
+            100% { stroke-dashoffset: 0; }
           }
           .sec-scan-line-purple {
             position: absolute;
@@ -5296,35 +5300,71 @@ function App() {
             <div style={{ position: 'absolute', top: '-120px', left: '-120px', width: '380px', height: '380px', borderRadius: '50%', background: 'rgba(124, 58, 237, 0.28)', filter: 'blur(95px)', pointerEvents: 'none', animation: 'pulseGlow 8s ease-in-out infinite' }} />
             <div style={{ position: 'absolute', bottom: '-80px', right: '-80px', width: '300px', height: '300px', borderRadius: '50%', background: 'rgba(109, 40, 217, 0.20)', filter: 'blur(95px)', pointerEvents: 'none', animation: 'pulseGlow 8s ease-in-out infinite 4s' }} />
 
-            {/* CloudOps Topology Node Mesh & Pipeline Telemetry Stream (SVG) */}
+            {/* CI/CD Pipeline Flow & Kubernetes Pod Grid (DevOps-native animation) */}
             <div style={{
               position: 'absolute',
               top: 0, left: 0, right: 0, bottom: 0,
               pointerEvents: 'none',
               zIndex: 1,
-              opacity: 0.85
+              opacity: 0.88
             }}>
-              <svg width="100%" height="100%" viewBox="0 0 450 640" fill="none" preserveAspectRatio="xMidYMid slice">
-                {/* Pipeline Axon Connection Lines */}
-                <g stroke="rgba(167, 139, 250, 0.25)" strokeWidth="1.5" strokeDasharray="5 5">
-                  <line x1="70" y1="130" x2="220" y2="230" />
-                  <line x1="220" y1="230" x2="380" y2="170" />
-                  <line x1="220" y1="230" x2="140" y2="390" />
-                  <line x1="220" y1="230" x2="340" y2="440" />
-                  <line x1="140" y1="390" x2="340" y2="440" />
-                  <line x1="70" y1="130" x2="140" y2="390" />
-                  <line x1="380" y1="170" x2="340" y2="440" />
-                </g>
+              <svg width="100%" height="100%" viewBox="0 0 420 640" fill="none" preserveAspectRatio="xMidYMid slice">
 
-                {/* Firing Pipeline Data Packets */}
-                <circle cx="70" cy="130" r="4.5" fill="#a78bfa" style={{ animation: 'packetPulse 3s ease-in-out infinite' }} />
-                <circle cx="380" cy="170" r="5" fill="#c084fc" style={{ animation: 'packetPulse 3.5s ease-in-out infinite 0.5s' }} />
-                <circle cx="140" cy="390" r="5.5" fill="#60a5fa" style={{ animation: 'packetPulse 4s ease-in-out infinite 1s' }} />
-                <circle cx="340" cy="440" r="4.5" fill="#a78bfa" style={{ animation: 'packetPulse 3.2s ease-in-out infinite 1.5s' }} />
+                {/* ── CI/CD Pipeline Row ──────────────────────── */}
+                {/* Connector lines with pipelineFlow animation */}
+                <line x1="60" y1="160" x2="120" y2="160" stroke="rgba(167,139,250,0.5)" strokeWidth="1.5" strokeDasharray="6 4" style={{ animation: 'pipelineFlow 1.5s linear infinite' }} />
+                <line x1="180" y1="160" x2="240" y2="160" stroke="rgba(96,165,250,0.5)" strokeWidth="1.5" strokeDasharray="6 4" style={{ animation: 'pipelineFlow 1.5s linear infinite 0.4s' }} />
+                <line x1="300" y1="160" x2="360" y2="160" stroke="rgba(52,211,153,0.5)" strokeWidth="1.5" strokeDasharray="6 4" style={{ animation: 'pipelineFlow 1.5s linear infinite 0.8s' }} />
 
-                {/* Central CloudOps Hub Node & Orbit Ring */}
-                <circle cx="220" cy="230" r="9" fill="#7c3aed" style={{ animation: 'packetPulse 2.5s ease-in-out infinite' }} />
-                <circle cx="220" cy="230" r="18" fill="none" stroke="rgba(167, 139, 250, 0.6)" strokeWidth="1.5" strokeDasharray="3 3" style={{ animation: 'rotateCloudOrbit 12s linear infinite' }} />
+                {/* Stage nodes: CODE */}
+                <circle cx="40" cy="160" r="18" fill="rgba(124,58,237,0.15)" stroke="rgba(167,139,250,0.6)" strokeWidth="1.5" style={{ animation: 'stageCardBlink 2.4s ease-in-out infinite' }} />
+                <text x="40" y="164" textAnchor="middle" fontSize="7" fill="#c084fc" fontFamily="monospace" fontWeight="700">CODE</text>
+
+                {/* Stage nodes: BUILD */}
+                <circle cx="150" cy="160" r="18" fill="rgba(59,130,246,0.15)" stroke="rgba(96,165,250,0.6)" strokeWidth="1.5" style={{ animation: 'stageCardBlink 2.4s ease-in-out infinite 0.6s' }} />
+                <text x="150" y="164" textAnchor="middle" fontSize="7" fill="#60a5fa" fontFamily="monospace" fontWeight="700">BUILD</text>
+
+                {/* Stage nodes: TEST */}
+                <circle cx="260" cy="160" r="18" fill="rgba(16,185,129,0.15)" stroke="rgba(52,211,153,0.6)" strokeWidth="1.5" style={{ animation: 'stageCardBlink 2.4s ease-in-out infinite 1.2s' }} />
+                <text x="260" y="164" textAnchor="middle" fontSize="7" fill="#34d399" fontFamily="monospace" fontWeight="700">TEST</text>
+
+                {/* Stage nodes: DEPLOY */}
+                <circle cx="375" cy="160" r="18" fill="rgba(245,158,11,0.15)" stroke="rgba(251,191,36,0.6)" strokeWidth="1.5" style={{ animation: 'stageCardBlink 2.4s ease-in-out infinite 1.8s' }} />
+                <text x="375" y="164" textAnchor="middle" fontSize="7" fill="#fbbf24" fontFamily="monospace" fontWeight="700">DEPLOY</text>
+
+                {/* Branch lines from BUILD stage */}
+                <line x1="150" y1="178" x2="150" y2="230" stroke="rgba(96,165,250,0.25)" strokeWidth="1" strokeDasharray="3 3" />
+                <line x1="150" y1="230" x2="100" y2="270" stroke="rgba(96,165,250,0.2)" strokeWidth="1" strokeDasharray="3 3" />
+                <line x1="150" y1="230" x2="210" y2="270" stroke="rgba(96,165,250,0.2)" strokeWidth="1" strokeDasharray="3 3" />
+
+                {/* ── Kubernetes Pod Hexagonal Grid ───────────── */}
+                {/* Row 1: 3 pods */}
+                <polygon points="80,310 97,320 97,340 80,350 63,340 63,320" fill="rgba(124,58,237,0.12)" stroke="rgba(167,139,250,0.55)" strokeWidth="1.2" style={{ animation: 'podPulse 3s ease-in-out infinite' }} />
+                <text x="80" y="334" textAnchor="middle" fontSize="6" fill="#a78bfa" fontFamily="monospace">pod</text>
+
+                <polygon points="165,310 182,320 182,340 165,350 148,340 148,320" fill="rgba(59,130,246,0.12)" stroke="rgba(96,165,250,0.55)" strokeWidth="1.2" style={{ animation: 'podPulse 3s ease-in-out infinite 0.5s' }} />
+                <text x="165" y="334" textAnchor="middle" fontSize="6" fill="#60a5fa" fontFamily="monospace">pod</text>
+
+                <polygon points="250,310 267,320 267,340 250,350 233,340 233,320" fill="rgba(16,185,129,0.12)" stroke="rgba(52,211,153,0.55)" strokeWidth="1.2" style={{ animation: 'podPulse 3s ease-in-out infinite 1s' }} />
+                <text x="250" y="334" textAnchor="middle" fontSize="6" fill="#34d399" fontFamily="monospace">pod</text>
+
+                <polygon points="335,310 352,320 352,340 335,350 318,340 318,320" fill="rgba(245,158,11,0.12)" stroke="rgba(251,191,36,0.5)" strokeWidth="1.2" style={{ animation: 'podPulse 3s ease-in-out infinite 1.5s' }} />
+                <text x="335" y="334" textAnchor="middle" fontSize="6" fill="#fbbf24" fontFamily="monospace">pod</text>
+
+                {/* Row 2: 2 staggered pods */}
+                <polygon points="122,370 139,380 139,400 122,410 105,400 105,380" fill="rgba(139,92,246,0.12)" stroke="rgba(196,181,253,0.5)" strokeWidth="1.2" style={{ animation: 'podPulse 3s ease-in-out infinite 2s' }} />
+                <text x="122" y="394" textAnchor="middle" fontSize="6" fill="#c4b5fd" fontFamily="monospace">pod</text>
+
+                <polygon points="207,370 224,380 224,400 207,410 190,400 190,380" fill="rgba(6,182,212,0.12)" stroke="rgba(34,211,238,0.5)" strokeWidth="1.2" style={{ animation: 'podPulse 3s ease-in-out infinite 2.5s' }} />
+                <text x="207" y="394" textAnchor="middle" fontSize="6" fill="#22d3ee" fontFamily="monospace">pod</text>
+
+                {/* Ingress label */}
+                <text x="210" y="450" textAnchor="middle" fontSize="8" fill="rgba(167,139,250,0.5)" fontFamily="monospace" letterSpacing="2">INGRESS</text>
+                <line x1="150" y1="455" x2="270" y2="455" stroke="rgba(167,139,250,0.2)" strokeWidth="1" strokeDasharray="3 3" />
+
+                {/* Namespace boundary box */}
+                <rect x="45" y="295" width="325" height="130" rx="8" fill="none" stroke="rgba(124,58,237,0.18)" strokeWidth="1" strokeDasharray="4 4" />
+                <text x="57" y="308" fontSize="7" fill="rgba(167,139,250,0.45)" fontFamily="monospace">namespace: evaops-prod</text>
               </svg>
             </div>
 
