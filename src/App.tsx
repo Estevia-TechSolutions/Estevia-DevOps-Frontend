@@ -5297,8 +5297,8 @@ function App() {
             <div className="sec-scan-line-purple" />
 
             {/* High-Impact Ambient Mesh Glows */}
-            <div style={{ position: 'absolute', top: '-120px', left: '-120px', width: '380px', height: '380px', borderRadius: '50%', background: 'rgba(124, 58, 237, 0.40)', filter: 'blur(95px)', pointerEvents: 'none', animation: 'pulseGlow 8s ease-in-out infinite' }} />
-            <div style={{ position: 'absolute', bottom: '-80px', right: '-80px', width: '300px', height: '300px', borderRadius: '50%', background: 'rgba(109, 40, 217, 0.32)', filter: 'blur(95px)', pointerEvents: 'none', animation: 'pulseGlow 8s ease-in-out infinite 4s' }} />
+            <div style={{ position: 'absolute', top: '-120px', left: '-120px', width: '380px', height: '380px', borderRadius: '50%', background: 'rgba(124, 58, 237, 0.22)', filter: 'blur(95px)', pointerEvents: 'none', animation: 'pulseGlow 8s ease-in-out infinite' }} />
+            <div style={{ position: 'absolute', bottom: '-80px', right: '-80px', width: '300px', height: '300px', borderRadius: '50%', background: 'rgba(109, 40, 217, 0.16)', filter: 'blur(95px)', pointerEvents: 'none', animation: 'pulseGlow 8s ease-in-out infinite 4s' }} />
 
             {/* CI/CD Pipeline Flow & Kubernetes Pod Grid (DevOps-native animation) */}
             <div style={{
@@ -5306,7 +5306,7 @@ function App() {
               top: 0, left: 0, right: 0, bottom: 0,
               pointerEvents: 'none',
               zIndex: 1,
-              opacity: 1.0
+              opacity: 0.30
             }}>
               <svg width="100%" height="100%" viewBox="0 0 420 640" fill="none" preserveAspectRatio="xMidYMid slice">
 
