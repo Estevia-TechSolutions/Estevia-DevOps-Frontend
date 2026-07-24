@@ -78,6 +78,18 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
 
     const getToken = () => localStorage.getItem('evaops_token') || localStorage.getItem('token') || '';
 
+    const formatTimestamp = (dateStr: string, window: string) => {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        if (window === '7d') {
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit' });
+        } else if (window === '24h' || window === '6h') {
+            return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        } else {
+            return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+    };
+
     const fetchCatalog = async () => {
         try {
             const token = getToken();
@@ -580,6 +592,21 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                             ))}
                         </div>
                     </div>
+                    {/* X-Axis Time Bar */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '2px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: isLight ? '#64748b' : '#94a3b8', fontWeight: 600, paddingLeft: '48px' }}>
+                            {metrics.length > 0 && (
+                                <>
+                                    <span>{formatTimestamp(metrics[0].recorded_at, timeWindow)}</span>
+                                    <span>{formatTimestamp(metrics[Math.floor(metrics.length / 2)].recorded_at, timeWindow)}</span>
+                                    <span>{formatTimestamp(metrics[metrics.length - 1].recorded_at, timeWindow)}</span>
+                                </>
+                            )}
+                        </div>
+                        <div style={{ textAlign: 'center', fontSize: '0.63rem', fontWeight: 700, color: isLight ? '#94a3b8' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Time Axis ({timeWindow === '15m' ? '15 Min Window' : timeWindow === '1h' ? '1 Hour Window' : timeWindow === '6h' ? '6 Hour Window' : timeWindow === '24h' ? '24 Hour Timeline' : '7 Day History'})
+                        </div>
+                    </div>
                 </div>
 
                 {/* Chart 2: Request Throughput & 5xx Spikes */}
@@ -618,6 +645,21 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                                     <div style={{ width: '100%', height: `${Math.min(100, Math.max(10, (m.request_rate / 250) * 100))}%`, background: m.http_5xx_count > 0 ? '#ef4444' : 'linear-gradient(180deg, #2dd4bf, #06b6d4)', borderRadius: '4px' }} title={`Throughput: ${m.request_rate} req/s | 5xx Errors: ${m.http_5xx_count}`} />
                                 </div>
                             ))}
+                        </div>
+                    </div>
+                    {/* X-Axis Time Bar */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '2px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: isLight ? '#64748b' : '#94a3b8', fontWeight: 600, paddingLeft: '48px' }}>
+                            {metrics.length > 0 && (
+                                <>
+                                    <span>{formatTimestamp(metrics[0].recorded_at, timeWindow)}</span>
+                                    <span>{formatTimestamp(metrics[Math.floor(metrics.length / 2)].recorded_at, timeWindow)}</span>
+                                    <span>{formatTimestamp(metrics[metrics.length - 1].recorded_at, timeWindow)}</span>
+                                </>
+                            )}
+                        </div>
+                        <div style={{ textAlign: 'center', fontSize: '0.63rem', fontWeight: 700, color: isLight ? '#94a3b8' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Time Axis ({timeWindow === '15m' ? '15 Min Window' : timeWindow === '1h' ? '1 Hour Window' : timeWindow === '6h' ? '6 Hour Window' : timeWindow === '24h' ? '24 Hour Timeline' : '7 Day History'})
                         </div>
                     </div>
                 </div>
@@ -661,6 +703,21 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                             ))}
                         </div>
                     </div>
+                    {/* X-Axis Time Bar */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '2px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: isLight ? '#64748b' : '#94a3b8', fontWeight: 600, paddingLeft: '48px' }}>
+                            {metrics.length > 0 && (
+                                <>
+                                    <span>{formatTimestamp(metrics[0].recorded_at, timeWindow)}</span>
+                                    <span>{formatTimestamp(metrics[Math.floor(metrics.length / 2)].recorded_at, timeWindow)}</span>
+                                    <span>{formatTimestamp(metrics[metrics.length - 1].recorded_at, timeWindow)}</span>
+                                </>
+                            )}
+                        </div>
+                        <div style={{ textAlign: 'center', fontSize: '0.63rem', fontWeight: 700, color: isLight ? '#94a3b8' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Time Axis ({timeWindow === '15m' ? '15 Min Window' : timeWindow === '1h' ? '1 Hour Window' : timeWindow === '6h' ? '6 Hour Window' : timeWindow === '24h' ? '24 Hour Timeline' : '7 Day History'})
+                        </div>
+                    </div>
                 </div>
 
                 {/* Chart 4: Replicas & Active DB Connections */}
@@ -700,6 +757,21 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                                     <div style={{ flex: 1, height: `${Math.min(100, Math.max(15, ((m.db_connections || 16) / 50) * 100))}%`, background: 'linear-gradient(180deg, #06b6d4, #0891b2)', borderRadius: '3px' }} title={`Replicas: ${m.replica_count} | DB Connections: ${m.db_connections || 16}`} />
                                 </div>
                             ))}
+                        </div>
+                    </div>
+                    {/* X-Axis Time Bar */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '2px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: isLight ? '#64748b' : '#94a3b8', fontWeight: 600, paddingLeft: '48px' }}>
+                            {metrics.length > 0 && (
+                                <>
+                                    <span>{formatTimestamp(metrics[0].recorded_at, timeWindow)}</span>
+                                    <span>{formatTimestamp(metrics[Math.floor(metrics.length / 2)].recorded_at, timeWindow)}</span>
+                                    <span>{formatTimestamp(metrics[metrics.length - 1].recorded_at, timeWindow)}</span>
+                                </>
+                            )}
+                        </div>
+                        <div style={{ textAlign: 'center', fontSize: '0.63rem', fontWeight: 700, color: isLight ? '#94a3b8' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Time Axis ({timeWindow === '15m' ? '15 Min Window' : timeWindow === '1h' ? '1 Hour Window' : timeWindow === '6h' ? '6 Hour Window' : timeWindow === '24h' ? '24 Hour Timeline' : '7 Day History'})
                         </div>
                     </div>
                 </div>
@@ -743,6 +815,21 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                             ))}
                         </div>
                     </div>
+                    {/* X-Axis Time Bar */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '2px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: isLight ? '#64748b' : '#94a3b8', fontWeight: 600, paddingLeft: '48px' }}>
+                            {metrics.length > 0 && (
+                                <>
+                                    <span>{formatTimestamp(metrics[0].recorded_at, timeWindow)}</span>
+                                    <span>{formatTimestamp(metrics[Math.floor(metrics.length / 2)].recorded_at, timeWindow)}</span>
+                                    <span>{formatTimestamp(metrics[metrics.length - 1].recorded_at, timeWindow)}</span>
+                                </>
+                            )}
+                        </div>
+                        <div style={{ textAlign: 'center', fontSize: '0.63rem', fontWeight: 700, color: isLight ? '#94a3b8' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Time Axis ({timeWindow === '15m' ? '15 Min Window' : timeWindow === '1h' ? '1 Hour Window' : timeWindow === '6h' ? '6 Hour Window' : timeWindow === '24h' ? '24 Hour Timeline' : '7 Day History'})
+                        </div>
+                    </div>
                 </div>
 
                 {/* Chart 6: Storage Utilization & Disk IOPS */}
@@ -782,6 +869,21 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
                                     <div style={{ flex: 1, height: `${Math.min(100, Math.max(10, ((m.disk_iops || 550) / 1000) * 100))}%`, background: 'linear-gradient(180deg, #f43f5e, #be123c)', borderRadius: '3px' }} title={`Storage: ${(m.storage_percent || 40).toFixed(1)}% | IOPS: ${m.disk_iops || 550}`} />
                                 </div>
                             ))}
+                        </div>
+                    </div>
+                    {/* X-Axis Time Bar */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '2px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: isLight ? '#64748b' : '#94a3b8', fontWeight: 600, paddingLeft: '48px' }}>
+                            {metrics.length > 0 && (
+                                <>
+                                    <span>{formatTimestamp(metrics[0].recorded_at, timeWindow)}</span>
+                                    <span>{formatTimestamp(metrics[Math.floor(metrics.length / 2)].recorded_at, timeWindow)}</span>
+                                    <span>{formatTimestamp(metrics[metrics.length - 1].recorded_at, timeWindow)}</span>
+                                </>
+                            )}
+                        </div>
+                        <div style={{ textAlign: 'center', fontSize: '0.63rem', fontWeight: 700, color: isLight ? '#94a3b8' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Time Axis ({timeWindow === '15m' ? '15 Min Window' : timeWindow === '1h' ? '1 Hour Window' : timeWindow === '6h' ? '6 Hour Window' : timeWindow === '24h' ? '24 Hour Timeline' : '7 Day History'})
                         </div>
                     </div>
                 </div>
