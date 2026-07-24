@@ -40,7 +40,8 @@ import {
   Crown,
   Lock,
   Cloud,
-  Mail
+  Mail,
+  Smartphone
 } from 'lucide-react';
 import './App.css';
 
@@ -5867,9 +5868,26 @@ function App() {
                       {/* App Account Preview Card */}
                       {(mfaRegIssuer || mfaRegName) && (
                         <div>
-                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'left' }}>
-                            Look for this in your app:
-                          </span>
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            padding: '10px 14px',
+                            marginBottom: '10px',
+                            background: 'rgba(124,58,237,0.08)',
+                            border: '1px solid rgba(124,58,237,0.3)',
+                            borderRadius: '10px',
+                          }}>
+                            <Smartphone size={18} style={{ color: '#7c3aed', flexShrink: 0 }} />
+                            <div>
+                              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#a78bfa', lineHeight: 1.3 }}>
+                                Open your authenticator app
+                              </div>
+                              <div style={{ fontSize: '0.70rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                Find and tap the entry below to get your 6-digit code
+                              </div>
+                            </div>
+                          </div>
                           <AuthenticatorPreviewCard issuer={mfaRegIssuer} account={mfaRegName} />
                         </div>
                       )}
