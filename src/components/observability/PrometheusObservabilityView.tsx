@@ -139,7 +139,35 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
     };
 
     const getAppTypes = (app: any): string[] => {
-        const k = (app.key || '').toLowerCase() + ' ' + (app.label || '').toLowerCase();
+        if (!app) return ['aca'];
+
+        // 1. Inspect dynamic resourceTypes array / string from API or object metadata
+        let rawTypes: string[] = [];
+        if (Array.isArray(app.resourceTypes)) {
+            rawTypes = app.resourceTypes.map((t: any) => String(t).toLowerCase());
+        } else if (typeof app.resourceTypes === 'string') {
+            rawTypes = [app.resourceTypes.toLowerCase()];
+        }
+
+        const typeStr = [
+            app.type,
+            app.app_type,
+            app.resource_type,
+            ...rawTypes
+        ].filter(Boolean).map(s => String(s).toLowerCase()).join(' ');
+
+        if (typeStr.includes('vm') || typeStr.includes('virtualmachine') || typeStr.includes('database') || typeStr.includes('db-server')) {
+            return ['vm'];
+        }
+        if (typeStr.includes('swa') || typeStr.includes('staticwebapp') || typeStr.includes('frontend')) {
+            return ['swa'];
+        }
+        if (typeStr.includes('aca') || typeStr.includes('containerapp') || typeStr.includes('backend')) {
+            return ['aca'];
+        }
+
+        // 2. Dynamic property inspection from key / label
+        const k = ((app.key || '') + ' ' + (app.label || '')).toLowerCase();
         if (k.includes('vm') || k.includes('db') || k.includes('database') || k.includes('server') || k.includes('host') || k.includes('node')) {
             return ['vm'];
         }
