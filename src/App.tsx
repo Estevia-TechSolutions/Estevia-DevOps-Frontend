@@ -80,19 +80,16 @@ const formatIssuerWithEnv = (issuerName: string, defaultFallback: string): strin
   return `${cleanedName}${suffix}`;
 };
 
-// 📱 Authenticator App Account Preview Card (with ellipsis text overflow safeguards)
+// 📱 Authenticator App Account Preview Card (Combined Unified Card)
 function AuthenticatorPreviewCard({ issuer, account }: { issuer: string; account: string }) {
   const displayIssuer = formatIssuerWithEnv(issuer, 'EvaOps');
   return (
     <div style={{
       background: 'var(--bg-slate)',
-      border: '1px solid var(--border-slate)',
+      border: '1px solid rgba(124,58,237,0.3)',
       borderRadius: '16px',
-      padding: '12px 12px 12px 14px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+      overflow: 'hidden',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
       width: '100%',
       boxSizing: 'border-box',
     }}>
@@ -103,59 +100,82 @@ function AuthenticatorPreviewCard({ issuer, account }: { issuer: string; account
         }
       `}</style>
 
-      {/* Lock Icon Box — DevOps teal/emerald gradient */}
+      {/* Top Header Instruction Strip */}
       <div style={{
-        width: '42px', height: '42px', borderRadius: '10px', flexShrink: 0,
-        background: 'linear-gradient(135deg, rgba(16,185,129,0.18) 0%, rgba(5,150,105,0.12) 100%)',
-        border: '1px solid rgba(16,185,129,0.22)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 0 14px rgba(16,185,129,0.15)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '9px 14px',
+        background: 'rgba(124,58,237,0.10)',
+        borderBottom: '1px solid rgba(124,58,237,0.2)',
       }}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="11" width="18" height="12" rx="2" stroke="#10b981" strokeWidth="2" fill="rgba(16,185,129,0.15)"/>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#10b981" strokeWidth="2" strokeLinecap="round"/>
-          <circle cx="12" cy="17" r="1.5" fill="#10b981"/>
-        </svg>
+        <Smartphone size={15} style={{ color: '#7c3aed', flexShrink: 0 }} />
+        <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          Open your authenticator app & find this entry:
+        </span>
       </div>
 
-      {/* Text stack — ellipsis-clamped */}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
-        <div style={{
-          fontWeight: 700, color: 'var(--text-primary, #0f172a)',
-          fontSize: '0.85rem', letterSpacing: '-0.01em', lineHeight: 1.25,
-          wordBreak: 'break-word',
-        }}>
-          {displayIssuer}
-        </div>
-        <div style={{
-          color: 'var(--text-secondary, #64748b)', fontSize: '0.73rem',
-          fontWeight: 500, lineHeight: 1.25,
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>
-          {account || 'user@esteviatech.com'}
-        </div>
-      </div>
-
-      {/* Arc timer panel */}
+      {/* Card Body — Account Details */}
       <div style={{
-        background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.15)',
-        borderRadius: '10px', padding: '7px 10px', display: 'flex',
-        flexDirection: 'column', alignItems: 'center', gap: '5px', flexShrink: 0,
+        padding: '12px 14px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
       }}>
-        <svg width="28" height="28" viewBox="0 0 28 28" style={{
-          animation: 'preview-svg-spin 10s linear infinite',
-          transformOrigin: 'center'
-        }}>
-          <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(16,185,129,0.15)" strokeWidth="2.5"/>
-          <circle cx="14" cy="14" r="11" fill="none" stroke="#10b981" strokeWidth="2.5"
-            strokeLinecap="round" strokeDasharray="51.84 69.12"
-            transform="rotate(-90 14 14)"/>
-        </svg>
+        {/* Lock Icon Box — DevOps purple gradient */}
         <div style={{
-          color: '#10b981', fontWeight: 800, fontSize: '0.78rem',
-          letterSpacing: '0.06em', fontFamily: 'monospace', lineHeight: 1,
+          width: '40px', height: '40px', borderRadius: '10px', flexShrink: 0,
+          background: 'linear-gradient(135deg, rgba(124,58,237,0.18) 0%, rgba(109,40,217,0.12) 100%)',
+          border: '1px solid rgba(124,58,237,0.22)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 0 14px rgba(124,58,237,0.15)',
         }}>
-          ••• •••
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="11" width="18" height="12" rx="2" stroke="#7c3aed" strokeWidth="2" fill="rgba(124,58,237,0.15)"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round"/>
+            <circle cx="12" cy="17" r="1.5" fill="#7c3aed"/>
+          </svg>
+        </div>
+
+        {/* Text stack */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+          <div style={{
+            fontWeight: 800, color: 'var(--text-primary, #0f172a)',
+            fontSize: '0.85rem', letterSpacing: '-0.01em', lineHeight: 1.25,
+            wordBreak: 'break-word',
+          }}>
+            {displayIssuer}
+          </div>
+          <div style={{
+            color: 'var(--text-secondary, #64748b)', fontSize: '0.73rem',
+            fontWeight: 500, lineHeight: 1.25,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {account || 'user@esteviatech.com'}
+          </div>
+        </div>
+
+        {/* Arc timer panel */}
+        <div style={{
+          background: 'rgba(124,58,237,0.07)', border: '1px solid rgba(124,58,237,0.15)',
+          borderRadius: '10px', padding: '6px 9px', display: 'flex',
+          flexDirection: 'column', alignItems: 'center', gap: '4px', flexShrink: 0,
+        }}>
+          <svg width="24" height="24" viewBox="0 0 28 28" style={{
+            animation: 'preview-svg-spin 10s linear infinite',
+            transformOrigin: 'center'
+          }}>
+            <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(124,58,237,0.15)" strokeWidth="2.5"/>
+            <circle cx="14" cy="14" r="11" fill="none" stroke="#7c3aed" strokeWidth="2.5"
+              strokeLinecap="round" strokeDasharray="51.84 69.12"
+              transform="rotate(-90 14 14)"/>
+          </svg>
+          <div style={{
+            color: '#a78bfa', fontWeight: 800, fontSize: '0.75rem',
+            letterSpacing: '0.06em', fontFamily: 'monospace', lineHeight: 1,
+          }}>
+            ••• •••
+          </div>
         </div>
       </div>
     </div>
@@ -5867,27 +5887,7 @@ function App() {
                     <>
                       {/* App Account Preview Card */}
                       {(mfaRegIssuer || mfaRegName) && (
-                        <div>
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                            padding: '10px 14px',
-                            marginBottom: '10px',
-                            background: 'rgba(124,58,237,0.08)',
-                            border: '1px solid rgba(124,58,237,0.3)',
-                            borderRadius: '10px',
-                          }}>
-                            <Smartphone size={18} style={{ color: '#7c3aed', flexShrink: 0 }} />
-                            <div>
-                              <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#a78bfa', lineHeight: 1.3 }}>
-                                Open your authenticator app
-                              </div>
-                              <div style={{ fontSize: '0.70rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                Find and tap the entry below to get your 6-digit code
-                              </div>
-                            </div>
-                          </div>
+                        <div style={{ marginBottom: '14px' }}>
                           <AuthenticatorPreviewCard issuer={mfaRegIssuer} account={mfaRegName} />
                         </div>
                       )}
