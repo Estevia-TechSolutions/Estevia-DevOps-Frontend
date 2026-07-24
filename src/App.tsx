@@ -5234,7 +5234,7 @@ function App() {
         {/* Main outer card */}
         <div style={{
           width: '960px',
-          height: '640px',
+          height: authStep !== 'login' ? '740px' : '640px',
           display: 'flex',
           background: 'var(--bg-card, rgba(8,12,22,0.6))',
           borderRadius: '24px',
