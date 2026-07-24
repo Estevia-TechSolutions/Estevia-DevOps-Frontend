@@ -565,9 +565,10 @@ export const CostPage: React.FC<CostPageProps> = ({
           visibility: visible !important;
           opacity: 1 !important;
           transform: translateX(-50%) translateY(0) !important;
+          z-index: 999999 !important;
         }
         .opt-hover-wrapper:hover {
-          z-index: 10005 !important;
+          z-index: 999999 !important;
         }
         tr:hover {
           position: relative;
@@ -2046,7 +2047,10 @@ export const CostPage: React.FC<CostPageProps> = ({
             padding: '24px', 
             borderRadius: '12px', 
             backgroundColor: 'rgba(255,255,255,0.01)', 
-            border: '1px solid var(--glass-border)' 
+            border: '1px solid var(--glass-border)',
+            overflow: 'visible',
+            position: 'relative',
+            zIndex: 50
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
               <div>
