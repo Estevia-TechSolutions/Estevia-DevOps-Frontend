@@ -2264,8 +2264,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                     {/* Stacked Itemized Bar Chart Container */}
                     <div style={{
                       position: 'relative',
-                      paddingTop: '200px',
-                      marginTop: '-180px',
+                      paddingTop: '180px',
                       overflowX: 'auto',
                       overflowY: 'visible',
                       scrollbarWidth: 'thin'
@@ -2313,7 +2312,8 @@ export const CostPage: React.FC<CostPageProps> = ({
                               visibility: 'hidden',
                               opacity: 0,
                               position: 'absolute',
-                              bottom: '105%',
+                              top: '-165px',
+                              bottom: 'auto',
                               left: '50%',
                               transform: 'translateX(-50%) translateY(5px)',
                               background: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.98)',
