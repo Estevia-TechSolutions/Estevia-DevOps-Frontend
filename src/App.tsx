@@ -51,6 +51,7 @@ import { ConfirmationModal } from './components/ConfirmationModal';
 import { SiteHeader, ControlBanner } from './components/DevOpsHeader';
 import { BuildHistoryDrawer } from './components/BuildHistoryDrawer';
 import { EsteviaLoginBadge } from './components/shared/EsteviaLoginBadge';
+import { PWAUpdateManager } from './components/shared/PWAUpdateManager';
 import { EmailTemplatesPage } from './pages/EmailTemplatesPage';
 
 // Dynamic environment branding suffix
@@ -10357,7 +10358,7 @@ function App() {
           );
         })}
       </div>
-
+      <PWAUpdateManager />
       </div>
     </div>
   );
