@@ -1165,7 +1165,9 @@ function App() {
 
   // Theme state
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    return (localStorage.getItem('devops_theme') as 'dark' | 'light') || 'dark';
+    const saved = localStorage.getItem('theme') || localStorage.getItem('devops_theme');
+    if (saved === 'dark' || saved === 'light') return saved;
+    return 'light';
   });
 
   const [activeLogsAppName, setActiveLogsAppName] = useState<string | null>(null);
@@ -3248,10 +3250,35 @@ function App() {
   // Apply theme to document root
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
     localStorage.setItem('devops_theme', theme);
   }, [theme]);
 
-  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
+  const toggleTheme = () => {
+    setTheme(t => {
+      const nextTheme = t === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', nextTheme);
+      localStorage.setItem('devops_theme', nextTheme);
+      if (token) {
+        fetch(`${API_BASE}/auth/theme`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ theme: nextTheme })
+        }).catch(() => {});
+      }
+      return nextTheme;
+    });
+  };
 
   const fetchOrgSettings = async () => {
     try {
