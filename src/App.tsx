@@ -53,6 +53,7 @@ import { BuildHistoryDrawer } from './components/BuildHistoryDrawer';
 import { EsteviaLoginBadge } from './components/shared/EsteviaLoginBadge';
 import { PWAUpdateManager } from './components/shared/PWAUpdateManager';
 import { EmailTemplatesPage } from './pages/EmailTemplatesPage';
+import { AppStartLoader } from './components/shared/AppStartLoader';
 
 // Dynamic environment branding suffix
 const getEnvSuffix = (): string => {
@@ -5220,6 +5221,9 @@ function App() {
   };
 
   if (!token) {
+    if (authLoading || ssoLoadingProvider) {
+      return <AppStartLoader message="Auditing Azure Cloud Containers & CI/CD Pipelines..." />;
+    }
     return (
       <div style={{
         minHeight: '100vh',
