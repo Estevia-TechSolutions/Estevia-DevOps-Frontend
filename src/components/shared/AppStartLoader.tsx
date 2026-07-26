@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Terminal, Server } from 'lucide-react';
 
 interface AppStartLoaderProps {
@@ -10,6 +11,7 @@ export const AppStartLoader: React.FC<AppStartLoaderProps> = ({
 }) => {
   const [isLight, setIsLight] = useState(false);
   const [bootProgress, setBootProgress] = useState(45);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const checkTheme = () => {
@@ -30,8 +32,37 @@ export const AppStartLoader: React.FC<AppStartLoaderProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  return (
-    <div style={{
+  // Guaranteed Minimum 1.5s Display Guard with Smooth Fade Out
+  useEffect(() => {
+    const mountTime = Date.now();
+    const portalDiv = containerRef.current;
+
+    return () => {
+      if (portalDiv && portalDiv.parentNode) {
+        const elapsed = Date.now() - mountTime;
+        const remaining = Math.max(0, 1500 - elapsed);
+
+        const clone = portalDiv.cloneNode(true) as HTMLDivElement;
+        clone.style.transition = 'opacity 300ms cubic-bezier(0.16, 1, 0.3, 1), transform 300ms cubic-bezier(0.16, 1, 0.3, 1)';
+        clone.style.opacity = '1';
+        clone.style.transform = 'scale(1)';
+        document.body.appendChild(clone);
+
+        setTimeout(() => {
+          clone.style.opacity = '0';
+          clone.style.transform = 'scale(1.02)';
+          setTimeout(() => {
+            if (clone.parentNode) {
+              clone.parentNode.removeChild(clone);
+            }
+          }, 300);
+        }, remaining);
+      }
+    };
+  }, []);
+
+  return createPortal(
+    <div ref={containerRef} style={{
       position: 'fixed', inset: 0, zIndex: 999999,
       background: isLight 
         ? 'radial-gradient(circle at 50% 40%, rgba(255,255,255,0.99) 0%, rgba(236,253,245,0.97) 100%)' 
@@ -161,6 +192,7 @@ export const AppStartLoader: React.FC<AppStartLoaderProps> = ({
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
