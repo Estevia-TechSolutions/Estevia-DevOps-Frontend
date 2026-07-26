@@ -2238,7 +2238,9 @@ function App() {
       const res = await window.fetch(`${API_BASE}/auth/login-url`);
       const data = await res.json();
       if (data.url) {
-        window.location.href = data.url;
+        setTimeout(() => {
+          window.location.href = data.url;
+        }, 1500);
       } else {
         throw new Error('Could not retrieve Microsoft login URL from backend.');
       }
