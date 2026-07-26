@@ -631,10 +631,18 @@ function App() {
       return null;
     }
   });
+  const [pageBootLoading, setPageBootLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [ssoLoadingProvider, setSsoLoadingProvider] = useState<'microsoft' | 'google' | null>(null);
   const [showOnboardingGuide, setShowOnboardingGuide] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPageBootLoading(false);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Custom authenticated fetch wrapper (shadows standard fetch)
   const authFetch = async (url: RequestInfo | URL, options: RequestInit = {}) => {
@@ -5223,7 +5231,7 @@ function App() {
   };
 
   if (!token) {
-    if (authLoading || ssoLoadingProvider) {
+    if (pageBootLoading || authLoading || ssoLoadingProvider) {
       return <AppStartLoader message="Auditing Azure Cloud Containers & CI/CD Pipelines..." />;
     }
     return (
