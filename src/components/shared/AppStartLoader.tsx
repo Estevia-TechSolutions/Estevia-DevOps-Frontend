@@ -15,12 +15,19 @@ export const AppStartLoader: React.FC<AppStartLoaderProps> = ({
 
   useEffect(() => {
     const checkTheme = () => {
-      const isL = document.documentElement.classList.contains('light') ||
-                 document.body.classList.contains('light') ||
-                 localStorage.getItem('theme') === 'light' ||
-                 localStorage.getItem('devops-theme') === 'light' ||
-                 localStorage.getItem('platform-theme') === 'light';
-      setIsLight(isL);
+      const stored = localStorage.getItem('theme') || 
+                     localStorage.getItem('devops-theme') || 
+                     localStorage.getItem('platform-theme') || 
+                     localStorage.getItem('evafusion_theme');
+      
+      const isDarkClass = document.documentElement.classList.contains('dark') || document.body.classList.contains('dark');
+      const isLightClass = document.documentElement.classList.contains('light') || document.body.classList.contains('light');
+
+      if (stored === 'dark' || (isDarkClass && !isLightClass)) {
+        setIsLight(false);
+      } else {
+        setIsLight(true);
+      }
     };
     checkTheme();
     const interval = setInterval(checkTheme, 300);
