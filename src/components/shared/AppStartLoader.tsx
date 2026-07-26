@@ -40,7 +40,7 @@ export const AppStartLoader: React.FC<AppStartLoaderProps> = ({
     return () => {
       if (portalDiv && portalDiv.parentNode) {
         const elapsed = Date.now() - mountTime;
-        const remaining = Math.max(0, 1500 - elapsed);
+        const remaining = Math.max(0, 2500 - elapsed);
 
         const clone = portalDiv.cloneNode(true) as HTMLDivElement;
         clone.style.transition = 'opacity 300ms cubic-bezier(0.16, 1, 0.3, 1), transform 300ms cubic-bezier(0.16, 1, 0.3, 1)';
