@@ -1981,6 +1981,16 @@ function App() {
 
   // ── Pay invoice handler (client-side) ──────────────────────────────────────
   const handlePayInvoice = async (invoiceId: number): Promise<boolean> => {
+    // 1. Optimistic UI Update: Mark invoice as SETTLED / PAID in local state instantly (0ms delay)
+    setInvoices((prevInvoices: any[]) =>
+      prevInvoices.map((inv: any) =>
+        Number(inv.id) === Number(invoiceId)
+          ? { ...inv, status: 'PAID', is_settled: true, paid_at: new Date().toISOString() }
+          : inv
+      )
+    );
+    setIsOrgDisabled(false);
+
     try {
       const res = await window.fetch(`${API_BASE}/org/invoices/${invoiceId}/pay`, {
         method: 'POST',
@@ -1991,8 +2001,9 @@ function App() {
         if (data.is_disabled !== undefined) {
           setIsOrgDisabled(data.is_disabled);
         }
-        await checkCredentialGateStatus();
-        await fetchCostData(); // Reload cost data & invoices history list
+        // Async background sync
+        checkCredentialGateStatus();
+        fetchCostData();
         return true;
       }
       return false;
