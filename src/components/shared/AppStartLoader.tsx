@@ -158,16 +158,30 @@ export const AppStartLoader: React.FC<AppStartLoaderProps> = ({
             </span>
           </div>
 
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 900, letterSpacing: '-0.02em', margin: 0, color: isLight ? '#0f172a' : '#f8fafc' }}>
+          <h2 style={{
+            fontSize: '1.2rem', fontWeight: 900, letterSpacing: '-0.02em', margin: 0,
+            color: isLight ? '#0f172a' : '#f8fafc',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%'
+          }}>
             {message}
           </h2>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 800, color: isLight ? '#6d28d9' : '#a78bfa', background: isLight ? 'rgba(124,58,237,0.12)' : 'rgba(124,58,237,0.25)', padding: '3px 10px', borderRadius: '99px' }}>
-              Azure Cloud Hydration
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '2px',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%'
+          }}>
+            <span style={{
+              fontSize: '0.68rem', fontWeight: 800, color: isLight ? '#6d28d9' : '#a78bfa',
+              background: isLight ? 'rgba(124,58,237,0.12)' : 'rgba(124,58,237,0.25)', padding: '3px 10px', borderRadius: '99px',
+              whiteSpace: 'nowrap'
+            }}>
+              {message.includes('Authenticator') ? 'EVA Authenticator' : 'Azure Cloud Hydration'}
             </span>
-            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: isLight ? '#475569' : '#94a3b8' }}>
-              • Container Boot: {bootProgress}%
+            <span style={{
+              fontSize: '0.68rem', fontWeight: 700, color: isLight ? '#475569' : '#94a3b8',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+            }}>
+              • {message.includes('Authenticator') ? 'Verifying 2FA Neural Handshake' : `Container Boot: ${bootProgress}%`}
             </span>
           </div>
         </div>

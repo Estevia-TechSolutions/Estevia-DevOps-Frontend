@@ -5259,7 +5259,10 @@ function App() {
 
   if (!token) {
     if (pageBootLoading || authLoading || ssoLoadingProvider) {
-      return <AppStartLoader message="Auditing Azure Cloud Containers & CI/CD Pipelines..." />;
+      const loaderMsg = authStep !== 'login'
+        ? "Authenticating via EVA Authenticator Neural Shield..."
+        : "Auditing Azure Cloud Containers & CI/CD Pipelines...";
+      return <AppStartLoader message={loaderMsg} />;
     }
     return (
       <div style={{
