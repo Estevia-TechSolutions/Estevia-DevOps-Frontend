@@ -1,4 +1,5 @@
 import React, { useState, Fragment, useRef, useEffect } from 'react';
+import { redirectToEvaPayCheckout } from '../services/evaPayService';
 import { 
   Database, 
   CheckCircle2, 
@@ -2767,18 +2768,39 @@ export const CostPage: React.FC<CostPageProps> = ({
                         <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{bill.issue_date}</td>
                         <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{bill.due_date}</td>
                         <td style={{ padding: '14px 16px' }}>
-                          <span style={{
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            textTransform: 'uppercase',
-                            padding: '2px 8px',
-                            borderRadius: '8px',
-                            color: badgeColor.color,
-                            backgroundColor: badgeColor.bg,
-                            border: `1px solid ${badgeColor.border}`
-                          }}>
-                            {bill.status || 'Paid'}
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              textTransform: 'uppercase',
+                              padding: '2px 8px',
+                              borderRadius: '8px',
+                              color: badgeColor.color,
+                              backgroundColor: badgeColor.bg,
+                              border: `1px solid ${badgeColor.border}`
+                            }}>
+                              {bill.status || 'Paid'}
+                            </span>
+                            {status !== 'paid' && (
+                              <button
+                                type="button"
+                                onClick={() => redirectToEvaPayCheckout({
+                                  app_id: 'EvaOps',
+                                  amount: Number(bill.total_amount || 0),
+                                  currency: bill.currency || 'INR',
+                                  return_url: `${window.location.origin}/?tab=cost`
+                                })}
+                                style={{
+                                  padding: '4px 10px', borderRadius: '6px', border: 'none',
+                                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#ffffff',
+                                  fontWeight: 800, fontSize: '0.7rem', cursor: 'pointer', display: 'inline-flex',
+                                  alignItems: 'center', gap: '4px', boxShadow: '0 2px 8px rgba(16,185,129,0.25)'
+                                }}
+                              >
+                                <CreditCard size={12} /> Pay Now via EvaPay
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
