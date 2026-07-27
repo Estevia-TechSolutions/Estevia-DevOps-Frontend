@@ -107,22 +107,22 @@ export const EvaPayModal: React.FC<EvaPayModalProps> = ({
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
       const { data } = event;
-      if (!data || data.type !== 'EVAPAY_SUCCESS') return;
+      if (!data || (data.type !== 'EVAPAY_SUCCESS' && data.type !== 'EVAPAY_PAYMENT_SUCCESS')) return;
 
-      const { orderId, transactionId } = data;
-      if (orderId && orderId === orderData?.orderId) {
-        console.log('[EvaPayModal] Received SUCCESS postMessage from checkout:', transactionId);
-        setTxId(transactionId);
-        setPaymentFinished(true);
+      const transactionId = data.transactionId || data.orderId || invoiceId;
+      console.log('[EvaPayModal] Received SUCCESS postMessage from checkout:', transactionId);
+      setTxId(transactionId);
+      setPaymentFinished(true);
 
-        // Parent component's onSuccess handles refreshing the invoice status via API immediately
+      // Parent component's onSuccess handles refreshing the invoice status via API immediately
+      if (onSuccess) {
         onSuccess(transactionId);
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [orderData, invoiceId, onSuccess]);
+  }, [invoiceId, onSuccess]);
 
   // 4. Fallback status verification poller
   const handleVerifyStatusFallback = async () => {
