@@ -1,5 +1,6 @@
 import React from 'react';
 import { redirectToEvaPayCheckout } from '../services/evaPayService';
+import { EvaPayModal } from '../components/shared/EvaPayModal';
 import { Crown, ShieldAlert, AlertTriangle, Check, ShieldCheck, Zap, CreditCard, ChevronDown, ChevronUp, AlertCircle, ArrowRight, Info, TrendingUp } from 'lucide-react';
 
 interface SettingsPageProps {
@@ -113,6 +114,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const [activeSubTab, setActiveSubTab] = React.useState<'licensing' | 'billing' | 'forecast'>('licensing');
   const [payingInvoiceId, setPayingInvoiceId] = React.useState<number | null>(null);
   const [payError, setPayError] = React.useState<string | null>(null);
+  const [evaPayInvoice, setEvaPayInvoice] = React.useState<any | null>(null);
 
   // Exchange rate state
   const [usdToInrRate, setUsdToInrRate] = React.useState<number>(94.43);
@@ -1579,12 +1581,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                                   {inv.status === 'Pending' ? (
                                     <button
                                       type="button"
-                                      onClick={() => redirectToEvaPayCheckout({
-                                        app_id: 'EvaOps',
-                                        amount: parseFloat(inv.amount || '0'),
-                                        currency: inv.currency || 'INR',
-                                        return_url: `${window.location.origin}/?tab=settings`
-                                      })}
+                                      onClick={() => setEvaPayInvoice(inv)}
                                       style={{
                                         padding: '6px 14px',
                                         borderRadius: '8px',
@@ -2096,6 +2093,22 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             </div>
           </div>
         </div>
+      )}
+      {evaPayInvoice && (
+        <EvaPayModal
+          invoiceId={evaPayInvoice.id.toString()}
+          amount={parseFloat(evaPayInvoice.amount || '0')}
+          currency={evaPayInvoice.currency || 'INR'}
+          appId="EvaOps"
+          orgId={organizationId}
+          onSuccess={async () => {
+            setEvaPayInvoice(null);
+            if (onPayInvoice) {
+              await onPayInvoice(evaPayInvoice.id);
+            }
+          }}
+          onClose={() => setEvaPayInvoice(null)}
+        />
       )}
     </div>
   );
