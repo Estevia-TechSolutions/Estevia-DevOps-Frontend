@@ -29,7 +29,7 @@ export const EvaPayModal: React.FC<EvaPayModalProps> = ({
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [orderData, setOrderData] = useState<{ token: string; orderId: string } | null>(null);
+  const [orderData, setOrderData] = useState<{ token: string; orderId: string; mode?: string; exchangeRate?: number } | null>(null);
   const [paymentFinished, setPaymentFinished] = useState(false);
   const [txId, setTxId] = useState<string>('');
 
@@ -76,7 +76,9 @@ export const EvaPayModal: React.FC<EvaPayModalProps> = ({
           if (data && data.success) {
             setOrderData({
               token: data.transaction_id,
-              orderId: data.merchant_order_id
+              orderId: data.merchant_order_id,
+              mode: data.gateway_config?.mode,
+              exchangeRate: data.exchange_rate
             });
           } else {
             throw new Error(data.message || 'Failed to create payment transaction.');
@@ -152,7 +154,7 @@ export const EvaPayModal: React.FC<EvaPayModalProps> = ({
   // Compile iframe checkout URL
   const gatewayUrl = getEvaPayGatewayUrl();
   const iframeSrc = orderData
-    ? `${gatewayUrl}?token=${orderData.token}&orderId=${orderData.orderId}&amount=${amount}&invoice_id=${invoiceId}&customerName=${encodeURIComponent(customerName)}&customerEmail=${encodeURIComponent(customerEmail)}&embedded=true`
+    ? `${gatewayUrl}?token=${orderData.token}&orderId=${orderData.orderId}&amount=${amount}&currency=${currency}&mode=${orderData.mode || ''}&exchangeRate=${orderData.exchangeRate || ''}&invoice_id=${invoiceId}&customerName=${encodeURIComponent(customerName)}&customerEmail=${encodeURIComponent(customerEmail)}&embedded=true`
     : '';
 
   const modalContent = (

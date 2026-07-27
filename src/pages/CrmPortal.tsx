@@ -52,6 +52,27 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
     return (localStorage.getItem('devops_theme') as 'dark' | 'light') || theme || 'dark';
   });
 
+  const [usdToInrRate, setUsdToInrRate] = useState<number>(83.3333);
+
+  useEffect(() => {
+    let active = true;
+    const fetchRate = async () => {
+      try {
+        const res = await fetch('https://open.er-api.com/v6/latest/USD');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.rates && typeof data.rates.INR === 'number') {
+            if (active) setUsdToInrRate(data.rates.INR);
+          }
+        }
+      } catch (_) {}
+    };
+    fetchRate();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', localTheme);
     localStorage.setItem('devops_theme', localTheme);
@@ -176,19 +197,19 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
       lines.push(
         { label: 'Item Type', value: '🚀 DevOps Sub-Package Fee' },
         { label: 'Base Subscription Price', value: formatValue(150, 12500, ' / month') },
-        { label: 'Total Billed', value: formatValue(isINR ? amount / 83.3333 : amount, isINR ? amount : amount * 83.3333), bold: true }
+        { label: 'Total Billed', value: formatValue(isINR ? amount / usdToInrRate : amount, isINR ? amount : amount * usdToInrRate), bold: true }
       );
     } else if (type === 'developer_package' || type === 'developer') {
       lines.push(
         { label: 'Item Type', value: '💻 Developer Sub-Package Fee' },
         { label: 'Base Subscription Price', value: formatValue(99, 8250, ' / month') },
-        { label: 'Total Billed', value: formatValue(isINR ? amount / 83.3333 : amount, isINR ? amount : amount * 83.3333), bold: true }
+        { label: 'Total Billed', value: formatValue(isINR ? amount / usdToInrRate : amount, isINR ? amount : amount * usdToInrRate), bold: true }
       );
     } else if (type === 'security_package' || type === 'security') {
       lines.push(
         { label: 'Item Type', value: '🛡️ Security Sub-Package Fee' },
         { label: 'Base Subscription Price', value: formatValue(120, 10000, ' / month') },
-        { label: 'Total Billed', value: formatValue(isINR ? amount / 83.3333 : amount, isINR ? amount : amount * 83.3333), bold: true }
+        { label: 'Total Billed', value: formatValue(isINR ? amount / usdToInrRate : amount, isINR ? amount : amount * usdToInrRate), bold: true }
       );
     } else {
       const baseRateUSD = tier === 'growth' ? 1000 : tier === 'enterprise' ? 2000 : 4000;
@@ -209,7 +230,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
         { label: 'Seat Allocation', value: `${billedSeats} active seat${billedSeats !== 1 ? 's' : ''}` },
         { label: 'Rate Per Seat', value: formatValue(seatPriceUSD, seatPriceINR, ' / seat') },
         { label: 'Total Seat Surcharge', value: formatValue(seatTotalUSD, seatTotalINR) },
-        { label: 'Total Amount Due', value: formatValue(isINR ? amount / 83.3333 : amount, isINR ? amount : amount * 83.3333), bold: true }
+        { label: 'Total Amount Due', value: formatValue(isINR ? amount / usdToInrRate : amount, isINR ? amount : amount * usdToInrRate), bold: true }
       );
     }
     return lines;

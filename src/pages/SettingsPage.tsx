@@ -187,19 +187,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       lines.push(
         { label: 'Item Type', value: '🚀 DevOps Sub-Package Fee' },
         { label: 'Base Subscription Price', value: formatValue(150, 12500, ' / month') },
-        { label: 'Total Billed', value: formatValue(isINR ? amount / 83.3333 : amount, isINR ? amount : amount * 83.3333), bold: true }
+        { label: 'Total Billed', value: formatValue(isINR ? amount / usdToInrRate : amount, isINR ? amount : amount * usdToInrRate), bold: true }
       );
     } else if (type === 'developer_package') {
       lines.push(
         { label: 'Item Type', value: '💻 Developer Sub-Package Fee' },
         { label: 'Base Subscription Price', value: formatValue(99, 8250, ' / month') },
-        { label: 'Total Billed', value: formatValue(isINR ? amount / 83.3333 : amount, isINR ? amount : amount * 83.3333), bold: true }
+        { label: 'Total Billed', value: formatValue(isINR ? amount / usdToInrRate : amount, isINR ? amount : amount * usdToInrRate), bold: true }
       );
     } else if (type === 'security_package') {
       lines.push(
         { label: 'Item Type', value: '🛡️ Security Sub-Package Fee' },
         { label: 'Base Subscription Price', value: formatValue(120, 10000, ' / month') },
-        { label: 'Total Billed', value: formatValue(isINR ? amount / 83.3333 : amount, isINR ? amount : amount * 83.3333), bold: true }
+        { label: 'Total Billed', value: formatValue(isINR ? amount / usdToInrRate : amount, isINR ? amount : amount * usdToInrRate), bold: true }
       );
     } else {
       const baseRateUSD = licenseTier === 'growth' ? 1000 : licenseTier === 'enterprise' ? 2000 : 4000;
@@ -220,7 +220,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         { label: 'Seat Allocation', value: `${billedSeats} active seat${billedSeats !== 1 ? 's' : ''}` },
         { label: 'Rate Per Seat', value: formatValue(seatPriceUSD, seatPriceINR, ' / seat') },
         { label: 'Total Seat Surcharge', value: formatValue(seatTotalUSD, seatTotalINR) },
-        { label: 'Total Amount Due', value: formatValue(isINR ? amount / 83.3333 : amount, isINR ? amount : amount * 83.3333), bold: true }
+        { label: 'Total Amount Due', value: formatValue(isINR ? amount / usdToInrRate : amount, isINR ? amount : amount * usdToInrRate), bold: true }
       );
     }
     return lines;
@@ -1533,8 +1533,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                                     </span>
                                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                                       {inv.currency === 'INR'
-                                        ? `≈ $${(parseFloat(inv.amount) / 83.3333).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                        : `≈ ₹${Math.round(parseFloat(inv.amount) * 83.3333).toLocaleString(undefined, { minimumFractionDigits: 0 })}`
+                                        ? `≈ $${(parseFloat(inv.amount) / usdToInrRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                        : `≈ ₹${Math.round(parseFloat(inv.amount) * usdToInrRate).toLocaleString(undefined, { minimumFractionDigits: 0 })}`
                                       }
                                     </span>
                                   </div>
@@ -1695,8 +1695,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                             if (!inv) return '—';
                             const amt = parseFloat(inv.amount || '0');
                             return inv.currency === 'INR'
-                              ? `₹${amt.toLocaleString()} (≈ $${(amt / 83.3333).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`
-                              : `$${amt.toLocaleString()} (≈ ₹${Math.round(amt * 83.3333).toLocaleString()})`;
+                              ? `₹${amt.toLocaleString()} (≈ $${(amt / usdToInrRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`
+                              : `$${amt.toLocaleString()} (≈ ₹${Math.round(amt * usdToInrRate).toLocaleString()})`;
                           })()}
                         </div>
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
