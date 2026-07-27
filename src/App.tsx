@@ -485,12 +485,17 @@ function groupApps(apps: AppResource[]): AppGroup[] {
     if (app.type === 'vm') {
       key = 'virtual-machines';
     } else if (app.repositoryUrl) {
-      // Group by repo path (lowercased for stable key)
-      repoPath = app.repositoryUrl
+      // Group by canonical repo path (lowercased for stable key, stripping optional org prefix from repo segment)
+      const rawPath = app.repositoryUrl
         .replace('https://github.com/', '')
         .replace(/\/$/, '')
         .toLowerCase();
-      key = repoPath;
+      const parts = rawPath.split('/');
+      const org = parts[0] || '';
+      const orgPrefix = org.replace('-techsolutions', '').replace('-solutions', '').split('-')[0];
+      const repo = (parts[1] || '').replace(new RegExp(`^${orgPrefix}-`), '');
+      key = `${org}/${repo}`;
+      repoPath = rawPath;
     } else {
       // No repo URL — derive key from base name, stripping env + platform suffixes
       key = app.name
