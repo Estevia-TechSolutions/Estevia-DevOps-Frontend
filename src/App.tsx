@@ -640,7 +640,7 @@ function App() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setPageBootLoading(false);
-    }, 2500);
+    }, 500);
     return () => clearTimeout(timer);
   }, []);
 

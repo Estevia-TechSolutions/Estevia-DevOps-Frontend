@@ -49,22 +49,22 @@ export const AppStartLoader: React.FC<AppStartLoaderProps> = ({
     return () => {
       if (portalDiv && portalDiv.parentNode) {
         const elapsed = Date.now() - mountTime;
-        const remaining = Math.max(0, 2500 - elapsed);
+        const remaining = Math.max(0, 400 - elapsed);
 
         const clone = portalDiv.cloneNode(true) as HTMLDivElement;
-        clone.style.transition = 'opacity 300ms cubic-bezier(0.16, 1, 0.3, 1), transform 300ms cubic-bezier(0.16, 1, 0.3, 1)';
+        clone.style.transition = 'opacity 150ms cubic-bezier(0.16, 1, 0.3, 1), transform 150ms cubic-bezier(0.16, 1, 0.3, 1)';
         clone.style.opacity = '1';
         clone.style.transform = 'scale(1)';
         document.body.appendChild(clone);
 
         setTimeout(() => {
           clone.style.opacity = '0';
-          clone.style.transform = 'scale(1.02)';
+          clone.style.transform = 'scale(1.01)';
           setTimeout(() => {
             if (clone.parentNode) {
               clone.parentNode.removeChild(clone);
             }
-          }, 300);
+          }, 150);
         }, remaining);
       }
     };
