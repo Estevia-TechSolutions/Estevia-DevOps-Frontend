@@ -165,7 +165,7 @@ export const EvaPayModal: React.FC<EvaPayModalProps> = ({
       padding: '20px', fontFamily: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
     }}>
       <div style={{
-        position: 'relative', width: '100%', maxWidth: '960px', height: '680px',
+        position: 'relative', width: '100%', maxWidth: '820px', height: '560px',
         borderRadius: '24px', overflow: 'hidden',
         background: theme === 'dark' ? '#0f172a' : '#ffffff',
         border: `1.5px solid ${theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
