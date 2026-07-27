@@ -1992,6 +1992,7 @@ function App() {
           setIsOrgDisabled(data.is_disabled);
         }
         await checkCredentialGateStatus();
+        await fetchCostData(); // Reload cost data & invoices history list
         return true;
       }
       return false;

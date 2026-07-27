@@ -29,7 +29,7 @@ export const EvaPayModal: React.FC<EvaPayModalProps> = ({
   const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [orderData, setOrderData] = useState<{ token: string; orderId: string; mode?: string; exchangeRate?: number } | null>(null);
+  const [orderData, setOrderData] = useState<{ token: string; orderId: string; mode?: string; exchangeRate?: number; upi?: { is_active: boolean; vpa: string; merchant_name: string; mcc: string } } | null>(null);
   const [paymentFinished, setPaymentFinished] = useState(false);
   const [txId, setTxId] = useState<string>('');
 
@@ -78,7 +78,8 @@ export const EvaPayModal: React.FC<EvaPayModalProps> = ({
               token: data.transaction_id,
               orderId: data.merchant_order_id,
               mode: data.gateway_config?.mode,
-              exchangeRate: data.exchange_rate
+              exchangeRate: data.exchange_rate,
+              upi: data.gateway_config?.upi
             });
           } else {
             throw new Error(data.message || 'Failed to create payment transaction.');
@@ -154,7 +155,7 @@ export const EvaPayModal: React.FC<EvaPayModalProps> = ({
   // Compile iframe checkout URL
   const gatewayUrl = getEvaPayGatewayUrl();
   const iframeSrc = orderData
-    ? `${gatewayUrl}?token=${orderData.token}&orderId=${orderData.orderId}&amount=${amount}&currency=${currency}&mode=${orderData.mode || ''}&exchangeRate=${orderData.exchangeRate || ''}&invoice_id=${invoiceId}&customerName=${encodeURIComponent(customerName)}&customerEmail=${encodeURIComponent(customerEmail)}&embedded=true`
+    ? `${gatewayUrl}?token=${orderData.token}&orderId=${orderData.orderId}&amount=${amount}&currency=${currency}&mode=${orderData.mode || ''}&exchangeRate=${orderData.exchangeRate || ''}&invoice_id=${invoiceId}&customerName=${encodeURIComponent(customerName)}&customerEmail=${encodeURIComponent(customerEmail)}&theme=${theme}&upi_vpa=${encodeURIComponent(orderData.upi?.vpa || '')}&upi_name=${encodeURIComponent(orderData.upi?.merchant_name || '')}&upi_mcc=${orderData.upi?.mcc || ''}&embedded=true`
     : '';
 
   const modalContent = (
