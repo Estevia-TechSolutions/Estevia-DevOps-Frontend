@@ -4,31 +4,35 @@
  */
 
 export const getApiBaseUrl = (): string => {
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL as string;
-  }
+  let url = (import.meta.env.VITE_API_URL as string) || '';
 
-  if (typeof window !== 'undefined') {
+  if (!url && typeof window !== 'undefined') {
     const host = window.location.hostname;
     if (host.includes('dev-') || host.includes('-dev')) {
-      return 'https://api-dev.esteviatech.com/api';
-    }
-    if (host.includes('qa-') || host.includes('-qa')) {
-      return 'https://api-qa.esteviatech.com/api';
-    }
-    if (host.includes('esteviatech.com')) {
-      return 'https://api.esteviatech.com/api';
+      url = 'https://api-dev.esteviatech.com/api';
+    } else if (host.includes('qa-') || host.includes('-qa')) {
+      url = 'https://api-qa.esteviatech.com/api';
+    } else if (host.includes('esteviatech.com')) {
+      url = 'https://api.esteviatech.com/api';
     }
   }
 
-  const env = (import.meta.env.VITE_APP_ENV || 'development').toLowerCase();
-  if (env === 'production' || env === 'prod') {
-    return 'https://api.esteviatech.com/api';
+  if (!url) {
+    const env = (import.meta.env.VITE_APP_ENV || 'development').toLowerCase();
+    if (env === 'production' || env === 'prod') {
+      url = 'https://api.esteviatech.com/api';
+    } else if (env === 'qa' || env === 'staging') {
+      url = 'https://api-qa.esteviatech.com/api';
+    } else {
+      url = 'https://api-dev.esteviatech.com/api';
+    }
   }
-  if (env === 'qa' || env === 'staging') {
-    return 'https://api-qa.esteviatech.com/api';
+
+  url = url.replace(/\/$/, '');
+  if (!url.endsWith('/api')) {
+    url = `${url}/api`;
   }
-  return 'https://api-dev.esteviatech.com/api';
+  return url;
 };
 
 export const getEvaPayGatewayUrl = (): string => {
