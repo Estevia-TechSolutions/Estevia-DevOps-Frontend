@@ -1,4 +1,5 @@
 import React from 'react';
+import { redirectToEvaPayCheckout } from '../services/evaPayService';
 import { Crown, ShieldAlert, AlertTriangle, Check, ShieldCheck, Zap, CreditCard, ChevronDown, ChevronUp, AlertCircle, ArrowRight, Info, TrendingUp } from 'lucide-react';
 
 interface SettingsPageProps {
@@ -1578,19 +1579,28 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                                   {inv.status === 'Pending' ? (
                                     <button
                                       type="button"
-                                      onClick={() => { setPayingInvoiceId(inv.id); setPayError(null); }}
+                                      onClick={() => redirectToEvaPayCheckout({
+                                        app_id: 'EvaOps',
+                                        amount: parseFloat(inv.amount || '0'),
+                                        currency: inv.currency || 'INR',
+                                        return_url: `${window.location.origin}/?tab=settings`
+                                      })}
                                       style={{
-                                        padding: '5px 12px',
-                                        borderRadius: '6px',
+                                        padding: '6px 14px',
+                                        borderRadius: '8px',
                                         border: 'none',
-                                        background: 'linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-blue) 100%)',
+                                        background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
                                         color: '#ffffff',
-                                        fontSize: '0.74rem',
-                                        fontWeight: 600,
-                                        cursor: 'pointer'
+                                        fontSize: '0.76rem',
+                                        fontWeight: 800,
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        boxShadow: '0 2px 8px rgba(16,185,129,0.3)'
                                       }}
                                     >
-                                      Pay Now
+                                      <CreditCard size={13} /> Pay via EvaPay
                                     </button>
                                   ) : (
                                     <span style={{ color: 'var(--text-muted)', fontSize: '0.76rem' }}>
