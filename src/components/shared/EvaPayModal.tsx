@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, CreditCard, ShieldCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
-import axios from 'axios';
 import { getApiBaseUrl, getEvaPayGatewayUrl } from '../../services/evaPayService';
 
 interface EvaPayModalProps {
@@ -52,31 +51,41 @@ export const EvaPayModal: React.FC<EvaPayModalProps> = ({
         setLoading(true);
         setError(null);
         const apiBase = getApiBaseUrl();
-        const res = await axios.post(`${apiBase}/evapay/order/create`, {
-          app_id: appId,
-          org_id: orgId || null,
-          invoice_id: invoiceId,
-          source_app: appId,
-          amount: amount,
-          currency: currency,
-          customer_name: customerName,
-          customer_email: customerEmail
+        const res = await window.fetch(`${apiBase}/evapay/order/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            app_id: appId,
+            org_id: orgId || null,
+            invoice_id: invoiceId,
+            source_app: appId,
+            amount: amount,
+            currency: currency,
+            customer_name: customerName,
+            customer_email: customerEmail
+          })
         });
 
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || 'Failed to create payment transaction.');
+        }
+
+        const data = await res.json();
         if (active) {
-          if (res.data && res.data.success) {
+          if (data && data.success) {
             setOrderData({
-              token: res.data.transaction_id,
-              orderId: res.data.merchant_order_id
+              token: data.transaction_id,
+              orderId: data.merchant_order_id
             });
           } else {
-            throw new Error(res.data?.message || 'Failed to create payment transaction.');
+            throw new Error(data.message || 'Failed to create payment transaction.');
           }
         }
       } catch (err: any) {
         if (active) {
           console.error('[EvaPayModal] Order initialization failed:', err);
-          setError(err.response?.data?.message || err.message || 'Payment initialization error.');
+          setError(err.message || 'Payment initialization error.');
         }
       } finally {
         if (active) {
@@ -103,27 +112,7 @@ export const EvaPayModal: React.FC<EvaPayModalProps> = ({
         setTxId(transactionId);
         setPaymentFinished(true);
 
-        // Call the parent success notification
-        try {
-          const apiBase = getApiBaseUrl();
-          const token = localStorage.getItem('token');
-          
-          // Re-verify and trigger invoice mark as paid as safety net (CORS & permissions check inside)
-          await axios.post(
-            `${apiBase}/organization/invoices/pay`,
-            {
-              invoice_id: invoiceId,
-              payment_method: 'EvaPay / SBIePay',
-              transaction_id: transactionId
-            },
-            {
-              headers: { Authorization: `Bearer ${token}` }
-            }
-          );
-        } catch (confirmErr: any) {
-          console.warn('[EvaPayModal] Optional invoice/pay verification endpoint failed, callback might have already handled it:', confirmErr.message);
-        }
-
+        // Parent component's onSuccess handles refreshing the invoice status via API
         setTimeout(() => {
           onSuccess(transactionId);
         }, 2000);
@@ -134,15 +123,19 @@ export const EvaPayModal: React.FC<EvaPayModalProps> = ({
     return () => window.removeEventListener('message', handleMessage);
   }, [orderData, invoiceId, onSuccess]);
 
-  // 4. Fallback status verification poller (if postMessage gets dropped or blocked)
+  // 4. Fallback status verification poller
   const handleVerifyStatusFallback = async () => {
     if (!orderData) return;
     try {
       setLoading(true);
       const apiBase = getApiBaseUrl();
-      const res = await axios.get(`${apiBase}/evapay/transaction/status?orderId=${orderData.orderId}`);
-      if (res.data?.success && res.data.transaction?.status === 'SUCCESS') {
-        const transactionId = res.data.transaction.id;
+      const res = await window.fetch(`${apiBase}/evapay/transaction/status?orderId=${orderData.orderId}`);
+      if (!res.ok) {
+        throw new Error('Status verification request failed.');
+      }
+      const data = await res.json();
+      if (data?.success && data.transaction?.status === 'SUCCESS') {
+        const transactionId = data.transaction.id;
         setTxId(transactionId);
         setPaymentFinished(true);
         setTimeout(() => onSuccess(transactionId), 1500);
@@ -150,7 +143,7 @@ export const EvaPayModal: React.FC<EvaPayModalProps> = ({
         alert('Transaction is still processing. Please complete the payment steps inside checkout.');
       }
     } catch (verifyErr: any) {
-      alert(verifyErr.response?.data?.message || 'Error checking payment status.');
+      alert(verifyErr.message || 'Error checking payment status.');
     } finally {
       setLoading(false);
     }
