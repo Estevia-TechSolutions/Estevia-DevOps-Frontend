@@ -115,10 +115,8 @@ export const EvaPayModal: React.FC<EvaPayModalProps> = ({
         setTxId(transactionId);
         setPaymentFinished(true);
 
-        // Parent component's onSuccess handles refreshing the invoice status via API
-        setTimeout(() => {
-          onSuccess(transactionId);
-        }, 2000);
+        // Parent component's onSuccess handles refreshing the invoice status via API immediately
+        onSuccess(transactionId);
       }
     };
 
