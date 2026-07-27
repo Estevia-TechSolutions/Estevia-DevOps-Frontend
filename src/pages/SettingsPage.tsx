@@ -1,7 +1,7 @@
 import React from 'react';
 import { redirectToEvaPayCheckout } from '../services/evaPayService';
 import { EvaPayModal } from '../components/shared/EvaPayModal';
-import { Crown, ShieldAlert, AlertTriangle, Check, ShieldCheck, Zap, CreditCard, ChevronDown, ChevronUp, AlertCircle, ArrowRight, Info, TrendingUp, CheckCircle2, Copy, X } from 'lucide-react';
+import { Crown, ShieldAlert, AlertTriangle, Check, ShieldCheck, Zap, CreditCard, ChevronDown, ChevronUp, AlertCircle, ArrowRight, Info, TrendingUp, CheckCircle2, Copy, X, Printer, Mail } from 'lucide-react';
 
 interface SettingsPageProps {
   azureSubscriptionId: string;
@@ -1616,10 +1616,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                                         display: 'inline-flex',
                                         alignItems: 'center',
                                         gap: '5px',
+                                        whiteSpace: 'nowrap',
+                                        flexShrink: 0,
                                         transition: 'all 0.2s ease'
                                       }}
                                     >
-                                      <CheckCircle2 size={13} /> Settled &bull; View Receipt
+                                      <CheckCircle2 size={13} /> Receipt
                                     </button>
                                   )}
                                 </td>
@@ -2154,7 +2156,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   <CheckCircle2 size={20} />
                 </div>
                 <div>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 900, margin: 0, color: '#fff' }}>Payment Settlement Receipt</h4>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 900, margin: 0, color: '#fff' }}>Estevia Corporate Settlement Receipt</h4>
                   <span style={{ fontSize: '0.68rem', color: '#10b981', fontWeight: 800 }}>VERIFIED TRANSACTIONS AUDIT</span>
                 </div>
               </div>
@@ -2225,12 +2227,63 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               </div>
             </div>
 
+            {/* Action Bar */}
+            <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+              <button
+                onClick={() => window.print()}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.4)',
+                  background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', fontWeight: 800,
+                  cursor: 'pointer', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                }}
+              >
+                <Printer size={14} /> Print / Save PDF
+              </button>
+              <button
+                onClick={async () => {
+                  const targetEmail = prompt('Enter recipient email address for receipt dispatch:', 'user@esteviatech.com');
+                  if (!targetEmail) return;
+                  try {
+                    const API_BASE = (import.meta.env.VITE_API_URL as string) || 'http://localhost:5001/api';
+                    const res = await fetch(`${API_BASE}/evapay/email-receipt`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        recipient_email: targetEmail,
+                        invoice_number: viewingPaymentDetailsInvoice.invoice_number,
+                        amount: viewingPaymentDetailsInvoice.amount,
+                        currency: viewingPaymentDetailsInvoice.currency || 'USD',
+                        transaction_id: viewingPaymentDetailsInvoice.transaction_id || `SBI-${Date.now().toString().slice(-8)}`,
+                        payment_method: viewingPaymentDetailsInvoice.payment_method || 'EvaPay Quantum Gateway',
+                        paid_at: viewingPaymentDetailsInvoice.paid_at || new Date().toLocaleString()
+                      })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      alert(`✓ Receipt successfully dispatched to ${targetEmail}!`);
+                    } else {
+                      alert(data.message || 'Failed to email receipt.');
+                    }
+                  } catch (e: any) {
+                    alert('Error emailing receipt: ' + (e.message || e));
+                  }
+                }}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid rgba(99, 102, 241, 0.4)',
+                  background: 'rgba(99, 102, 241, 0.15)', color: '#a5b4fc', fontWeight: 800,
+                  cursor: 'pointer', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                }}
+              >
+                <Mail size={14} /> Email Receipt
+              </button>
+            </div>
+
             <button
               onClick={() => setViewingPaymentDetailsInvoice(null)}
               style={{
                 width: '100%', padding: '10px', borderRadius: '10px', border: 'none',
-                background: 'rgba(255,255,255,0.1)', color: '#fff', fontWeight: 800,
-                cursor: 'pointer', fontSize: '0.8rem', marginTop: '6px'
+                background: 'rgba(255,255,255,0.08)', color: '#94a3b8', fontWeight: 700,
+                cursor: 'pointer', fontSize: '0.78rem'
               }}
             >
               Close Receipt

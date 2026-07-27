@@ -114,6 +114,25 @@ export const EvaPayModal: React.FC<EvaPayModalProps> = ({
       setTxId(transactionId);
       setPaymentFinished(true);
 
+      // Automatically send receipt email to logged-in user who made the payment
+      const userEmail = customerEmail || localStorage.getItem('user_email') || 'billing@esteviatech.com';
+      try {
+        const apiBase = getApiBaseUrl();
+        fetch(`${apiBase}/evapay/email-receipt`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipient_email: userEmail,
+            invoice_number: invoiceId,
+            amount: amount,
+            currency: currency,
+            transaction_id: transactionId,
+            payment_method: 'EvaPay Quantum Gateway',
+            paid_at: new Date().toLocaleString()
+          })
+        }).catch(() => {});
+      } catch (e) {}
+
       // Parent component's onSuccess handles refreshing the invoice status via API immediately
       if (onSuccess) {
         onSuccess(transactionId);
@@ -122,7 +141,7 @@ export const EvaPayModal: React.FC<EvaPayModalProps> = ({
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [invoiceId, onSuccess]);
+  }, [invoiceId, amount, currency, customerEmail, onSuccess]);
 
   // 4. Fallback status verification poller
   const handleVerifyStatusFallback = async () => {
