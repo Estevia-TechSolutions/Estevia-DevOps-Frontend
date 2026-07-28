@@ -5,7 +5,7 @@ trigger:
       - main
 
 pool:
-  vmImage: 'ubuntu-latest'
+  name: 'Estevia-Self-Hosted'
 
 variables:
   - group: estevia-frontend-vars
