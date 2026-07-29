@@ -956,31 +956,41 @@ const Step1Content: React.FC<Step1ContentProps> = ({
           {(() => {
             if (!selectedRepo) return null;
 
-            const activeSelectedBranches = selectedBranches && selectedBranches.length > 0 
-              ? selectedBranches 
-              : (selectedBranch ? [selectedBranch] : []);
-
-            // Requirement 1: If no branch selection is done, do NOT show the warning message
-            if (activeSelectedBranches.length === 0) {
+            // 1. If no target branches are checked in selectedBranches, hide warning message immediately
+            if (!selectedBranches || selectedBranches.length === 0) {
               return null;
             }
 
-            const normalize = (str?: string) => (str || '').toLowerCase().replace(/\.git$/, '').split('/').filter(Boolean).pop() || '';
-            const repoSlug = normalize(selectedRepo);
+            const cleanSlug = (s?: string) => {
+              if (!s) return '';
+              return (s || '')
+                .toLowerCase()
+                .replace(/\.git$/, '')
+                .split('/').filter(Boolean).pop()!
+                .replace(/^estevia-/, '')
+                .replace(/-(dev|qa|prod|production|staging|test)(-swa)?$/i, '')
+                .replace(/(-swa)?$/i, '')
+                .replace(/-(web|app|api|service|website)$/i, '')
+                .replace(/-/g, '');
+            };
 
-            // Requirement 2: Validate main/master branch against prod environment and dev/qa against dev/qa
+            const targetSlug = cleanSlug(selectedRepo);
+
+            // 2. Validate selected branch against deployed apps & environments
             const matchingApp = apps.find(a => {
-              const url1 = normalize(a.repositoryUrl);
-              const url2 = normalize((a as any).repo_url);
-              const url3 = normalize((a as any).gitUrl);
-              const url4 = normalize(a.azureResourceDetails?.repoUrl || a.azureResourceDetails?.repo_url);
-              const matchesRepo = repoSlug && (url1 === repoSlug || url2 === repoSlug || url3 === repoSlug || url4 === repoSlug);
+              const u1 = cleanSlug(a.repositoryUrl);
+              const u2 = cleanSlug((a as any).repo_url);
+              const u3 = cleanSlug((a as any).gitUrl);
+              const u4 = cleanSlug(a.azureResourceDetails?.repoUrl || a.azureResourceDetails?.repo_url);
+              const u5 = cleanSlug(a.name);
+
+              const matchesRepo = targetSlug && (u1 === targetSlug || u2 === targetSlug || u3 === targetSlug || u4 === targetSlug || u5 === targetSlug);
               if (!matchesRepo) return false;
 
               const appBranch = ((a as any).branch || (a as any).gitBranch || a.azureResourceDetails?.branch || a.azureResourceDetails?.targetBranch || 'main').replace('refs/heads/', '').toLowerCase();
               const appEnv = (a.environment || a.azureResourceDetails?.environment || '').toLowerCase();
 
-              return activeSelectedBranches.some(selBranch => {
+              return selectedBranches.some(selBranch => {
                 const cleanSel = selBranch.replace('refs/heads/', '').toLowerCase();
                 const isMain = ['main', 'master', 'prod', 'production', 'live'].includes(cleanSel);
                 const isDev = ['dev', 'development', 'develop'].includes(cleanSel);
@@ -1003,10 +1013,10 @@ const Step1Content: React.FC<Step1ContentProps> = ({
 
             const appBranch = (matchingApp as any).branch || (matchingApp as any).gitBranch || matchingApp.azureResourceDetails?.branch || matchingApp.azureResourceDetails?.targetBranch || 'main';
             const appBranchClean = appBranch.replace('refs/heads/', '').toLowerCase();
-            const targetBranchDisplay = activeSelectedBranches.find(b => {
+            const targetBranchDisplay = selectedBranches.find(b => {
               const c = b.replace('refs/heads/', '').toLowerCase();
               return c === appBranchClean || ((c === 'main' || c === 'master' || c === 'prod') && (appBranchClean === 'main' || appBranchClean === 'master' || appBranchClean === 'prod'));
-            }) || activeSelectedBranches[0] || 'main';
+            }) || selectedBranches[0] || 'main';
 
             const resId = matchingApp.resourceId || matchingApp.azureResourceDetails?.resourceId || '';
             const subIdMatch = resId.match(/\/subscriptions\/([^\/]+)/i);
