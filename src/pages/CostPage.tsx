@@ -158,6 +158,8 @@ interface CostPageProps {
   controllingResource?: string | null;
   mode?: 'cost' | 'optimization';
   fetchCostData?: () => void;
+  selectedSubscriptionId?: string;
+  selectedControlResourceGroup?: string;
 }
 
 export const CostPage: React.FC<CostPageProps> = ({
@@ -185,7 +187,9 @@ export const CostPage: React.FC<CostPageProps> = ({
   onResourceControl,
   controllingResource,
   fetchCostData,
-  mode: propMode = 'optimization'
+  mode: propMode = 'optimization',
+  selectedSubscriptionId = '',
+  selectedControlResourceGroup = ''
 }) => {
 
   const mode = (costTab === 'breakdown' || costTab === 'billing') ? 'cost' : 'optimization';
@@ -326,7 +330,12 @@ export const CostPage: React.FC<CostPageProps> = ({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ question: questionText, organizationId })
+        body: JSON.stringify({
+          question: questionText,
+          organizationId,
+          subscriptionId: selectedSubscriptionId,
+          resourceGroup: selectedControlResourceGroup
+        })
       });
 
       if (response.ok) {

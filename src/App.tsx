@@ -972,6 +972,8 @@ function App() {
   const [selectedSubscriptionId, setSelectedSubscriptionId] = useState<string>(() => {
     return localStorage.getItem('selectedControlSubscriptionId') || '';
   });
+  const [isScopeDropdownOpen, setIsScopeDropdownOpen] = useState<boolean>(false);
+  const scopeDropdownRef = useRef<HTMLDivElement>(null);
 
   const currentSub = useMemo(() => {
     return subscriptionsList.find(sub => sub.id === selectedSubscriptionId);
@@ -2921,12 +2923,14 @@ function App() {
   };
 
   // Cost Management handler
-  const fetchCostData = async () => {
+  const fetchCostData = async (subId?: string, rg?: string) => {
     setLoadingCosts(true);
     setCostError(null);
     let billingTimeoutId: any = null;
     try {
-      const res = await fetch(`${API_BASE}/apps/cost?organizationId=${organizationId}`);
+      const activeSub = subId || selectedSubscriptionId;
+      const activeRg = rg || selectedControlResourceGroup;
+      const res = await fetch(`${API_BASE}/apps/cost?organizationId=${organizationId}&subscriptionId=${activeSub}&resourceGroup=${activeRg}`);
       
       let data: any;
       try {
@@ -3264,6 +3268,29 @@ function App() {
       }
     }
   }, [organizationId, token, user?.role, requiresOnboarding]);
+
+  // Refetch database servers and cost data whenever target scope changes
+  useEffect(() => {
+    if (token && selectedSubscriptionId && selectedControlResourceGroup) {
+      fetchCostData(selectedSubscriptionId, selectedControlResourceGroup);
+      fetchDbServers(selectedSubscriptionId, selectedControlResourceGroup);
+    }
+  }, [selectedSubscriptionId, selectedControlResourceGroup, token]);
+
+  // Handle click outside to close target scope dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (scopeDropdownRef.current && !scopeDropdownRef.current.contains(event.target as Node)) {
+        setIsScopeDropdownOpen(false);
+      }
+    };
+    if (isScopeDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isScopeDropdownOpen]);
 
   // Auto-scan cloud resources and refresh costs with a 30-minute countdown timer
   useEffect(() => {
@@ -3701,10 +3728,12 @@ function App() {
     }
   };
 
-  const fetchDbServers = async () => {
+  const fetchDbServers = async (subId?: string, rg?: string) => {
     setLoadingDbServers(true);
     try {
-      const res = await fetch(`${API_BASE}/apps/db-servers?organizationId=${organizationId}`);
+      const activeSub = subId || selectedSubscriptionId;
+      const activeRg = rg || selectedControlResourceGroup;
+      const res = await fetch(`${API_BASE}/apps/db-servers?organizationId=${organizationId}&subscriptionId=${activeSub}&resourceGroup=${activeRg}`);
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
@@ -7065,62 +7094,185 @@ function App() {
                   {/* Subscription & Resource Group Selector */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
                     {subscriptionsList && subscriptionsList.length > 0 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', whiteSpace: 'nowrap' }}>
+                      <div ref={scopeDropdownRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '10px', whiteSpace: 'nowrap' }}>
+                        <style>{`
+                          .scope-dropdown-item {
+                            display: flex;
+                            align-items: center;
+                            justify-content: space-between;
+                            padding: 9px 18px 9px 24px;
+                            color: var(--text-secondary);
+                            font-size: 0.8rem;
+                            font-weight: 500;
+                            cursor: pointer;
+                            transition: all 0.15s ease;
+                          }
+                          .scope-dropdown-item:hover {
+                            background-color: rgba(255, 255, 255, 0.04);
+                            color: var(--text-primary);
+                            padding-left: 28px;
+                          }
+                          .scope-dropdown-item.selected {
+                            background-color: rgba(139, 92, 246, 0.08);
+                            color: #a78bfa;
+                            font-weight: 700;
+                          }
+                          .scope-dropdown-scrollbar::-webkit-scrollbar {
+                            width: 6px;
+                          }
+                          .scope-dropdown-scrollbar::-webkit-scrollbar-track {
+                            background: transparent;
+                          }
+                          .scope-dropdown-scrollbar::-webkit-scrollbar-thumb {
+                            background: rgba(255, 255, 255, 0.1);
+                            border-radius: 3px;
+                          }
+                          .scope-dropdown-scrollbar::-webkit-scrollbar-thumb:hover {
+                            background: rgba(255, 255, 255, 0.2);
+                          }
+                        `}</style>
                         <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>Target Scope:</span>
-                        <select
-                          value={`${selectedSubscriptionId}/${selectedControlResourceGroup}`}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            const slashIndex = val.indexOf('/');
-                            if (slashIndex !== -1) {
-                              const subId = val.substring(0, slashIndex);
-                              const rg = val.substring(slashIndex + 1);
-                              setSelectedSubscriptionId(subId);
-                              localStorage.setItem('selectedControlSubscriptionId', subId);
-                              
-                              const matchedSub = subscriptionsList.find(sub => sub.id === subId);
-                              const rgs = matchedSub ? matchedSub.resourceGroups || [] : [];
-                              setControlResourceGroups(rgs);
-                              
-                              setSelectedControlResourceGroup(rg);
-                              localStorage.setItem('selectedControlResourceGroup', rg);
-                              
-                              handleScan(rg, false, false, subId);
-                            }
-                          }}
+                        
+                        {/* Selector Trigger Button */}
+                        <div
+                          onClick={() => setIsScopeDropdownOpen(!isScopeDropdownOpen)}
                           style={{
-                            padding: '6px 12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '6px 14px',
                             fontSize: '0.8rem',
                             fontWeight: 650,
                             borderRadius: '8px',
-                            border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
-                            backgroundColor: 'rgba(15, 23, 42, 0.4)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            backgroundColor: isScopeDropdownOpen ? 'rgba(15, 23, 42, 0.65)' : 'rgba(15, 23, 42, 0.4)',
                             color: 'var(--text-primary)',
-                            outline: 'none',
                             cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                            maxWidth: '350px',
-                            textOverflow: 'ellipsis'
+                            transition: 'all 0.2s ease',
+                            userSelect: 'none',
+                            maxWidth: '360px',
+                            justifyContent: 'space-between',
+                            boxShadow: isScopeDropdownOpen ? '0 0 12px rgba(139, 92, 246, 0.15)' : 'none'
                           }}
                         >
-                          {subscriptionsList.map((sub) => (
-                            <optgroup 
-                              key={sub.id} 
-                              label={`${sub.displayName} (${sub.status})`}
-                              style={{ backgroundColor: '#0f172a', color: 'var(--text-secondary)' }}
-                            >
-                              {(sub.resourceGroups || []).map((rg: string) => (
-                                <option 
-                                  key={`${sub.id}/${rg}`} 
-                                  value={`${sub.id}/${rg}`}
-                                  style={{ backgroundColor: '#0f172a', color: '#fff' }}
-                                >
-                                  {rg} {rg === primaryResourceGroup ? ' (Primary)' : ''}
-                                </option>
-                              ))}
-                            </optgroup>
-                          ))}
-                        </select>
+                          <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', marginRight: '4px' }}>
+                            {currentSub ? currentSub.displayName : selectedSubscriptionId} / {selectedControlResourceGroup}
+                          </span>
+                          <ChevronDown 
+                            size={14} 
+                            style={{ 
+                              color: 'var(--text-secondary)', 
+                              transition: 'transform 0.2s ease', 
+                              transform: isScopeDropdownOpen ? 'rotate(180deg)' : 'rotate(0)' 
+                            }} 
+                          />
+                        </div>
+
+                        {/* Custom Dropdown Panel */}
+                        {isScopeDropdownOpen && (
+                          <div 
+                            className="scope-dropdown-scrollbar"
+                            style={{
+                              position: 'absolute',
+                              top: 'calc(100% + 8px)',
+                              right: 0,
+                              width: '380px',
+                              maxHeight: '350px',
+                              overflowY: 'auto',
+                              zIndex: 1000,
+                              borderRadius: '12px',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                              backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                              backdropFilter: 'blur(20px)',
+                              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5), 0 10px 10px -5px rgba(0,0,0,0.5)',
+                              padding: '10px 0',
+                              animation: 'fade-in-anim 0.15s ease-out'
+                            }}
+                          >
+                            {subscriptionsList.map((sub) => {
+                              const isActive = sub.status === 'active';
+                              const isWarned = sub.status === 'warned';
+                              const statusColor = isActive ? '#22c55e' : isWarned ? '#f59e0b' : '#64748b';
+                              return (
+                                <div key={sub.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                                  {/* Subscription Header */}
+                                  <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '8px 16px',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.01)',
+                                    borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+                                    marginTop: '4px'
+                                  }}>
+                                    <span style={{
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                      color: '#94a3b8',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.04em',
+                                      textOverflow: 'ellipsis',
+                                      overflow: 'hidden',
+                                      whiteSpace: 'nowrap',
+                                      maxWidth: '260px'
+                                    }}>
+                                      {sub.displayName}
+                                    </span>
+                                    
+                                    {/* Status Badge */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                      <span style={{
+                                        width: '6px',
+                                        height: '6px',
+                                        borderRadius: '50%',
+                                        backgroundColor: statusColor,
+                                        boxShadow: `0 0 6px ${statusColor}`
+                                      }} />
+                                      <span style={{ fontSize: '0.68rem', color: '#64748b', textTransform: 'capitalize', fontWeight: 600 }}>
+                                        {sub.status}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Resource Groups */}
+                                  {(sub.resourceGroups || []).map((rg: string) => {
+                                    const isSelected = selectedSubscriptionId === sub.id && selectedControlResourceGroup === rg;
+                                    return (
+                                      <div
+                                        key={`${sub.id}/${rg}`}
+                                        className={`scope-dropdown-item ${isSelected ? 'selected' : ''}`}
+                                        onClick={() => {
+                                          setSelectedSubscriptionId(sub.id);
+                                          localStorage.setItem('selectedControlSubscriptionId', sub.id);
+                                          
+                                          const matchedSub = subscriptionsList.find(s => s.id === sub.id);
+                                          const rgs = matchedSub ? matchedSub.resourceGroups || [] : [];
+                                          setControlResourceGroups(rgs);
+                                          
+                                          setSelectedControlResourceGroup(rg);
+                                          localStorage.setItem('selectedControlResourceGroup', rg);
+                                          
+                                          setIsScopeDropdownOpen(false);
+                                          handleScan(rg, false, false, sub.id);
+                                        }}
+                                      >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                          <Database size={13} style={{ opacity: isSelected ? 1 : 0.4, color: isSelected ? '#a78bfa' : 'inherit' }} />
+                                          <span>{rg}</span>
+                                        </div>
+                                        {rg === primaryResourceGroup && (
+                                          <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', color: '#64748b', fontWeight: 600 }}>
+                                            Primary
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -8077,6 +8229,8 @@ function App() {
               controllingResource={controllingResource}
               fetchCostData={fetchCostData}
               mode={(costTab === 'breakdown' || costTab === 'billing') ? 'cost' : 'optimization'}
+              selectedSubscriptionId={selectedSubscriptionId}
+              selectedControlResourceGroup={selectedControlResourceGroup}
             />
           </div>
         )}
