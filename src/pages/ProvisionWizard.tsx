@@ -196,6 +196,8 @@ interface AppResource {
   gitUrl?: string;
   subscriptionId?: string;
   resourceGroup?: string;
+  environment?: string;
+  targetEnvironment?: string;
   azureResourceDetails?: {
     resourceId?: string;
     subscriptionId?: string;
@@ -207,6 +209,8 @@ interface AppResource {
     managedEnvironmentId?: string;
     branch?: string;
     targetBranch?: string;
+    environment?: string;
+    targetEnvironment?: string;
   };
   dnsDetails?: {
     subdomain?: string;
@@ -951,35 +955,54 @@ const Step1Content: React.FC<Step1ContentProps> = ({
           {/* ── Repository deployment warning ── */}
           {(() => {
             if (!selectedRepo) return null;
-            const normalize = (str?: string) => (str || '').toLowerCase().replace(/\.git$/, '').split('/').filter(Boolean).pop() || '';
-            const repoSlug = normalize(selectedRepo);
-
-            const matchingApp = apps.find(a => {
-              const url1 = normalize(a.repositoryUrl);
-              const url2 = normalize((a as any).repo_url);
-              const url3 = normalize((a as any).gitUrl);
-              const url4 = normalize(a.azureResourceDetails?.repoUrl || a.azureResourceDetails?.repo_url);
-              return repoSlug && (url1 === repoSlug || url2 === repoSlug || url3 === repoSlug || url4 === repoSlug);
-            });
-
-            if (!matchingApp) return null;
-
-            // Check if selected branch matches the app's deployed branch
-            const appBranch = (matchingApp as any).branch || (matchingApp as any).gitBranch || matchingApp.azureResourceDetails?.branch || matchingApp.azureResourceDetails?.targetBranch || 'main';
-            const appBranchClean = appBranch.replace('refs/heads/', '').toLowerCase();
 
             const activeSelectedBranches = selectedBranches && selectedBranches.length > 0 
               ? selectedBranches 
               : (selectedBranch ? [selectedBranch] : []);
 
-            const matchingBranch = activeSelectedBranches.find(b => b.replace('refs/heads/', '').toLowerCase() === appBranchClean);
-            
-            // If branch is selected and does NOT match deployed branch, skip warning
-            if (activeSelectedBranches.length > 0 && !matchingBranch) {
+            // Requirement 1: If no branch selection is done, do NOT show the warning message
+            if (activeSelectedBranches.length === 0) {
               return null;
             }
 
-            const targetBranchDisplay = matchingBranch || appBranchClean || 'main';
+            const normalize = (str?: string) => (str || '').toLowerCase().replace(/\.git$/, '').split('/').filter(Boolean).pop() || '';
+            const repoSlug = normalize(selectedRepo);
+
+            // Requirement 2: Validate main/master branch against prod environment and dev/qa against dev/qa
+            const matchingApp = apps.find(a => {
+              const url1 = normalize(a.repositoryUrl);
+              const url2 = normalize((a as any).repo_url);
+              const url3 = normalize((a as any).gitUrl);
+              const url4 = normalize(a.azureResourceDetails?.repoUrl || a.azureResourceDetails?.repo_url);
+              const matchesRepo = repoSlug && (url1 === repoSlug || url2 === repoSlug || url3 === repoSlug || url4 === repoSlug);
+              if (!matchesRepo) return false;
+
+              const appBranch = ((a as any).branch || (a as any).gitBranch || a.azureResourceDetails?.branch || a.azureResourceDetails?.targetBranch || 'main').replace('refs/heads/', '').toLowerCase();
+              const appEnv = (a.environment || a.azureResourceDetails?.environment || '').toLowerCase();
+
+              return activeSelectedBranches.some(selBranch => {
+                const cleanSel = selBranch.replace('refs/heads/', '').toLowerCase();
+                if (cleanSel === 'main' || cleanSel === 'master' || cleanSel === 'prod') {
+                  return appBranch === 'main' || appBranch === 'master' || appBranch === 'prod' || appEnv === 'prod' || appEnv === 'production';
+                }
+                if (cleanSel === 'dev' || cleanSel === 'development') {
+                  return appBranch === 'dev' || appBranch === 'development' || appEnv === 'dev' || appEnv === 'development';
+                }
+                if (cleanSel === 'qa') {
+                  return appBranch === 'qa' || appEnv === 'qa';
+                }
+                return appBranch === cleanSel;
+              });
+            });
+
+            if (!matchingApp) return null;
+
+            const appBranch = (matchingApp as any).branch || (matchingApp as any).gitBranch || matchingApp.azureResourceDetails?.branch || matchingApp.azureResourceDetails?.targetBranch || 'main';
+            const appBranchClean = appBranch.replace('refs/heads/', '').toLowerCase();
+            const targetBranchDisplay = activeSelectedBranches.find(b => {
+              const c = b.replace('refs/heads/', '').toLowerCase();
+              return c === appBranchClean || ((c === 'main' || c === 'master' || c === 'prod') && (appBranchClean === 'main' || appBranchClean === 'master' || appBranchClean === 'prod'));
+            }) || activeSelectedBranches[0] || 'main';
 
             const resId = matchingApp.resourceId || matchingApp.azureResourceDetails?.resourceId || '';
             const subIdMatch = resId.match(/\/subscriptions\/([^\/]+)/i);
