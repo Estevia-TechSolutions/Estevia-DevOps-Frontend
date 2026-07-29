@@ -307,11 +307,13 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '14px'
+                flexWrap: 'nowrap',
+                whiteSpace: 'nowrap',
+                overflowX: 'auto',
+                gap: '16px'
             }}>
                 {/* Title Section */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
                     <div style={{
                         width: '38px',
                         height: '38px',
@@ -326,17 +328,17 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                         <ShieldAlert size={20} />
                     </div>
                     <div>
-                        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+                        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', whiteSpace: 'nowrap' }}>
                             Incident Management & Telemetry Alerts
                         </h3>
-                        <div style={{ fontSize: '0.78rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
+                        <div style={{ fontSize: '0.78rem', color: isLight ? '#64748b' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                             Multi-category lifecycle tracking, telemetry root-cause snapshots & email notifications
                         </div>
                     </div>
                 </div>
 
-                {/* Inline Filters & Actions Block (Single Line Flex) */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                {/* Inline Filters & Actions Block (Strict Single Line Flex) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap', flexShrink: 0 }}>
                     {/* Search Input */}
                     <div style={{ position: 'relative', width: '200px' }}>
                         <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: isLight ? '#94a3b8' : 'var(--text-secondary)' }} />
