@@ -7129,11 +7129,11 @@ function App() {
                         : (!isLight && isScopeDropdownOpen) 
                           ? '0 0 12px rgba(139, 92, 246, 0.15)' 
                           : 'none';
-                      const panelBg = isLight ? 'rgba(255, 255, 255, 0.96)' : 'rgba(15, 23, 42, 0.95)';
-                      const panelBorder = isLight ? '1px solid rgba(0, 0, 0, 0.08)' : '1px solid rgba(255, 255, 255, 0.08)';
+                      const panelBg = isLight ? '#ffffff' : '#0f172a';
+                      const panelBorder = isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.16)';
                       const panelShadow = isLight
-                        ? '0 20px 25px -5px rgba(0,0,0,0.06), 0 10px 10px -5px rgba(0,0,0,0.03)'
-                        : '0 20px 25px -5px rgba(0,0,0,0.5), 0 10px 10px -5px rgba(0,0,0,0.5)';
+                        ? '0 20px 25px -5px rgba(0,0,0,0.12), 0 10px 10px -5px rgba(0,0,0,0.06)'
+                        : '0 20px 25px -5px rgba(0,0,0,0.8), 0 10px 10px -5px rgba(0,0,0,0.6)';
                       const subHeaderBg = isLight ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.01)';
                       const subHeaderBorder = isLight ? '1px solid rgba(0, 0, 0, 0.04)' : '1px solid rgba(255, 255, 255, 0.03)';
                       
