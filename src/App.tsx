@@ -968,6 +968,10 @@ function App() {
     return localStorage.getItem('selectedControlResourceGroup') || '';
   });
   const [primaryResourceGroup, setPrimaryResourceGroup] = useState<string>('');
+  const [subscriptionsList, setSubscriptionsList] = useState<any[]>([]);
+  const [selectedSubscriptionId, setSelectedSubscriptionId] = useState<string>(() => {
+    return localStorage.getItem('selectedControlSubscriptionId') || '';
+  });
 
   useEffect(() => {
     let interval: any = null;
@@ -3988,7 +3992,7 @@ function App() {
     }
   };
 
-  const handleScan = async (rg?: string, skipHealthChecks = false, buildsOnly = false) => {
+  const handleScan = async (rg?: string, skipHealthChecks = false, buildsOnly = false, subId?: string) => {
     if (buildsOnly) {
       if (buildsScanningRef.current) {
         console.log('[DevOps Scan] Background builds status polling already in progress, skipping.');
@@ -4005,7 +4009,8 @@ function App() {
       setScanError(null);
     }
     const activeRg = rg !== undefined ? rg : selectedControlResourceGroup;
-    const scanUrl = `${API_BASE}/apps/scan?organizationId=${organizationId}${activeRg ? `&resourceGroup=${activeRg}` : ''}${buildsOnly ? '&buildsOnly=true' : ''}`;
+    const activeSub = subId !== undefined ? subId : selectedSubscriptionId;
+    const scanUrl = `${API_BASE}/apps/scan?organizationId=${organizationId}${activeRg ? `&resourceGroup=${activeRg}` : ''}${activeSub ? `&subscriptionId=${activeSub}` : ''}${buildsOnly ? '&buildsOnly=true' : ''}`;
     console.log('[DevOps Scan] [START] Initiating Cloud Scan.', { organizationId, scanUrl, buildsOnly });
     try {
       const res = await fetch(scanUrl);
@@ -4089,20 +4094,29 @@ function App() {
       const res = await fetch(`${API_BASE}/apps/resource-groups?organizationId=${organizationId}`);
       const data = await res.json();
       if (data.success) {
-        if (Array.isArray(data.resourceGroups)) {
+        if (Array.isArray(data.subscriptions)) {
+          setSubscriptionsList(data.subscriptions);
+          
+          let initialSubId = localStorage.getItem('selectedControlSubscriptionId') || '';
+          if (!initialSubId && data.subscriptions.length > 0) {
+            const activeSub = data.subscriptions.find((sub: any) => sub.status === 'active') || data.subscriptions[0];
+            initialSubId = activeSub.id;
+          }
+          setSelectedSubscriptionId(initialSubId);
+          localStorage.setItem('selectedControlSubscriptionId', initialSubId);
+
+          const matchedSub = data.subscriptions.find((sub: any) => sub.id === initialSubId);
+          const rgs = matchedSub ? matchedSub.resourceGroups || [] : [];
+          setControlResourceGroups(rgs);
+
+          let initialRg = localStorage.getItem('selectedControlResourceGroup') || '';
+          if (!initialRg || !rgs.includes(initialRg)) {
+            initialRg = rgs.length > 0 ? rgs[0] : '';
+          }
+          setSelectedControlResourceGroup(initialRg);
+          localStorage.setItem('selectedControlResourceGroup', initialRg);
+        } else if (Array.isArray(data.resourceGroups)) {
           setControlResourceGroups(data.resourceGroups);
-        } else if (Array.isArray(data.subscriptions)) {
-          const allRGs: string[] = [];
-          data.subscriptions.forEach((sub: any) => {
-            if (Array.isArray(sub.resourceGroups)) {
-              sub.resourceGroups.forEach((rg: string) => {
-                if (!allRGs.includes(rg)) {
-                  allRGs.push(rg);
-                }
-              });
-            }
-          });
-          setControlResourceGroups(allRGs);
         }
       }
     } catch (e) {
@@ -4110,10 +4124,25 @@ function App() {
     }
   };
 
+  const handleSubscriptionChange = (subId: string) => {
+    setSelectedSubscriptionId(subId);
+    localStorage.setItem('selectedControlSubscriptionId', subId);
+
+    const matchedSub = subscriptionsList.find(sub => sub.id === subId);
+    const rgs = matchedSub ? matchedSub.resourceGroups || [] : [];
+    setControlResourceGroups(rgs);
+
+    const initialRg = rgs.length > 0 ? rgs[0] : '';
+    setSelectedControlResourceGroup(initialRg);
+    localStorage.setItem('selectedControlResourceGroup', initialRg);
+
+    handleScan(initialRg, false, false, subId);
+  };
+
   const handleResourceGroupChange = (rg: string) => {
     setSelectedControlResourceGroup(rg);
     localStorage.setItem('selectedControlResourceGroup', rg);
-    handleScan(rg);
+    handleScan(rg, false, false, selectedSubscriptionId);
   };
 
   const handleSaveCredential = async (provider: string, secrets: any, name: string, expiresAt?: string) => {
@@ -6952,8 +6981,38 @@ function App() {
                     </h1>
                   </div>
 
-                  {/* Resource Group Dropdown Selector & Status Display */}
+                  {/* Subscription & Resource Group Selector */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+                    {subscriptionsList && subscriptionsList.length > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>Subscription:</span>
+                        <select
+                          value={selectedSubscriptionId}
+                          onChange={(e) => handleSubscriptionChange(e.target.value)}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '0.8rem',
+                            fontWeight: 650,
+                            borderRadius: '8px',
+                            border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
+                            backgroundColor: 'rgba(15, 23, 42, 0.4)',
+                            color: 'var(--text-primary)',
+                            outline: 'none',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            maxWidth: '240px',
+                            textOverflow: 'ellipsis'
+                          }}
+                        >
+                          {subscriptionsList.map((sub) => (
+                            <option key={sub.id} value={sub.id} style={{ backgroundColor: '#0f172a', color: '#fff' }}>
+                              {sub.displayName} ({sub.status})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
                     {controlResourceGroups && controlResourceGroups.length > 0 && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', whiteSpace: 'nowrap' }}>
                         <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>Resource Group:</span>
