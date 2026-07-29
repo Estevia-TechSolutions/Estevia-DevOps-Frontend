@@ -55,6 +55,11 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
     const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('ALL');
     const [selectedEnvFilter, setSelectedEnvFilter] = useState<string>('ALL');
 
+    // Info Drawer State & Priority Filtering
+    const [drawerTab, setDrawerTab] = useState<'rules' | 'self_healing' | 'escalation'>('rules');
+    const [drawerSearch, setDrawerSearch] = useState<string>('');
+    const [drawerPriorityFilter, setDrawerPriorityFilter] = useState<string>('ALL');
+
     const getScopeInfoForApp = (appKey?: string) => {
         const keyLow = (appKey || '').toLowerCase();
         let sub = '4a551976-35a8-4305-b128-fe592805be41';
@@ -1034,19 +1039,19 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                     left: 0,
                     right: 0,
                     bottom: 0,
-                    background: 'rgba(0, 0, 0, 0.65)',
-                    backdropFilter: 'blur(6px)',
+                    background: 'rgba(0, 0, 0, 0.7)',
+                    backdropFilter: 'blur(8px)',
                     zIndex: 9999,
                     display: 'flex',
                     justifyContent: 'flex-end'
                 }}>
                     <div style={{
-                        width: '100%',
-                        maxWidth: '460px',
+                        width: '92vw',
+                        maxWidth: '820px',
                         height: '100%',
                         background: isLight ? '#ffffff' : '#0f172a',
                         borderLeft: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
-                        boxShadow: '-8px 0 32px rgba(0, 0, 0, 0.4)',
+                        boxShadow: '-12px 0 40px rgba(0, 0, 0, 0.5)',
                         display: 'flex',
                         flexDirection: 'column',
                         overflowY: 'auto'
@@ -1060,194 +1065,450 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                             justifyContent: 'space-between',
                             background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.02)'
                         }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6' }}>
-                                    <Info size={18} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', boxShadow: '0 4px 12px rgba(139,92,246,0.3)' }}>
+                                    <Cpu size={22} />
                                 </div>
                                 <div>
-                                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
-                                        Incident Automation Rules
+                                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+                                        EvaPulse Rule Specifications & Self-Healing Engine
                                     </h3>
-                                    <div style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
-                                        EvaPulse Telemetry Engine Specifications
+                                    <div style={{ fontSize: '0.78rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
+                                        Automated telemetry breach evaluation, priority categorization & self-healing triggers
                                     </div>
                                 </div>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setShowInfoDrawer(false)}
-                                style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : 'var(--text-secondary)', cursor: 'pointer' }}
+                                style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : 'var(--text-secondary)', cursor: 'pointer', padding: '4px' }}
                             >
-                                <X size={20} />
+                                <X size={22} />
                             </button>
                         </div>
 
+                        {/* Navigation Tabs Bar */}
+                        <div style={{
+                            padding: '12px 24px',
+                            borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                            background: isLight ? '#f1f5f9' : 'rgba(0, 0, 0, 0.15)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: '12px'
+                        }}>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setDrawerTab('rules')}
+                                    style={{
+                                        padding: '6px 14px',
+                                        borderRadius: '8px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: 700,
+                                        background: drawerTab === 'rules' ? 'linear-gradient(135deg, #8b5cf6, #3b82f6)' : (isLight ? '#ffffff' : 'rgba(255,255,255,0.05)'),
+                                        color: drawerTab === 'rules' ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)'),
+                                        border: drawerTab === 'rules' ? 'none' : (isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)'),
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Rule Specifications (10)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setDrawerTab('self_healing')}
+                                    style={{
+                                        padding: '6px 14px',
+                                        borderRadius: '8px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: 700,
+                                        background: drawerTab === 'self_healing' ? 'linear-gradient(135deg, #8b5cf6, #3b82f6)' : (isLight ? '#ffffff' : 'rgba(255,255,255,0.05)'),
+                                        color: drawerTab === 'self_healing' ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)'),
+                                        border: drawerTab === 'self_healing' ? 'none' : (isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)'),
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Self-Healing Engine
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setDrawerTab('escalation')}
+                                    style={{
+                                        padding: '6px 14px',
+                                        borderRadius: '8px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: 700,
+                                        background: drawerTab === 'escalation' ? 'linear-gradient(135deg, #8b5cf6, #3b82f6)' : (isLight ? '#ffffff' : 'rgba(255,255,255,0.05)'),
+                                        color: drawerTab === 'escalation' ? '#ffffff' : (isLight ? '#475569' : 'var(--text-secondary)'),
+                                        border: drawerTab === 'escalation' ? 'none' : (isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)'),
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Escalation & Routing Policy
+                                </button>
+                            </div>
+
+                            {/* Search In Drawer */}
+                            <div style={{ position: 'relative', width: '220px' }}>
+                                <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: isLight ? '#94a3b8' : 'var(--text-secondary)' }} />
+                                <input
+                                    type="text"
+                                    placeholder="Search rules, scopes..."
+                                    value={drawerSearch}
+                                    onChange={(e) => setDrawerSearch(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '6px 10px 6px 30px',
+                                        borderRadius: '8px',
+                                        fontSize: '0.78rem',
+                                        border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
+                                        background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.2)',
+                                        color: isLight ? '#0f172a' : '#fff',
+                                        outline: 'none'
+                                    }}
+                                />
+                            </div>
+                        </div>
+
                         {/* Drawer Content Body */}
-                        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                            {/* Section 1: Detailed Incident Automation Rules */}
-                            <div style={{
-                                padding: '16px',
-                                borderRadius: '12px',
-                                background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
-                                border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '12px'
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.92rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
-                                        <Cpu size={18} style={{ color: '#8b5cf6' }} />
-                                        <span>Incident Automation Rule Specifications</span>
+                        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, overflowY: 'auto' }}>
+                            {drawerTab === 'rules' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                                    {/* Priority Filter Pills */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                        <span style={{ fontSize: '0.78rem', fontWeight: 600, color: isLight ? '#64748b' : 'var(--text-secondary)', marginRight: '4px' }}>Filter by Priority:</span>
+                                        {[
+                                            { id: 'ALL', label: 'All Rules (10)', bg: 'rgba(139,92,246,0.15)', color: '#8b5cf6' },
+                                            { id: 'P1_CRITICAL', label: '🔴 P1 Critical (2)', bg: 'rgba(239,68,68,0.15)', color: '#ef4444' },
+                                            { id: 'P2_HIGH', label: '🟠 P2 High (4)', bg: 'rgba(245,158,11,0.15)', color: '#f59e0b' },
+                                            { id: 'P3_MEDIUM', label: '🔵 P3 Medium (3)', bg: 'rgba(59,130,246,0.15)', color: '#3b82f6' },
+                                            { id: 'P4_LOW', label: '🟢 P4 Low (1)', bg: 'rgba(16,185,129,0.15)', color: '#10b981' }
+                                        ].map(p => (
+                                            <button
+                                                key={p.id}
+                                                type="button"
+                                                onClick={() => setDrawerPriorityFilter(p.id)}
+                                                style={{
+                                                    padding: '4px 12px',
+                                                    borderRadius: '12px',
+                                                    fontSize: '0.74rem',
+                                                    fontWeight: 700,
+                                                    background: drawerPriorityFilter === p.id ? p.color : p.bg,
+                                                    color: drawerPriorityFilter === p.id ? '#ffffff' : p.color,
+                                                    border: 'none',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                {p.label}
+                                            </button>
+                                        ))}
                                     </div>
-                                    <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '12px', background: 'rgba(139,92,246,0.15)', color: '#8b5cf6' }}>
-                                        6 Active Categories
-                                    </span>
+
+                                    {/* Rule Cards Grouped by Priority */}
+                                    {(() => {
+                                        const rulesList = [
+                                            // P1 Critical Rules
+                                            {
+                                                id: 'CRITICAL_OUTAGE',
+                                                priority: 'P1_CRITICAL',
+                                                priorityLabel: 'P1 CRITICAL',
+                                                category: 'CRITICAL_OUTAGE',
+                                                title: 'Critical Outage / Server Down',
+                                                icon: ShieldAlert,
+                                                color: '#ef4444',
+                                                borderColor: 'rgba(239,68,68,0.3)',
+                                                condition: 'HTTP 5xx Errors ≥ 5 / 60s OR Unreachable Status Probe',
+                                                scope: 'Container Apps (ACA) & Static Web Apps (SWA)',
+                                                action: 'Instant P1 owner email dispatch + Eva AI root-cause snapshot prompt.',
+                                                autoClear: 'Auto-clears when 5xx count drops to 0 across 2 consecutive scan windows.'
+                                            },
+                                            {
+                                                id: 'DB_POOL_EXHAUSTION',
+                                                priority: 'P1_CRITICAL',
+                                                priorityLabel: 'P1 CRITICAL',
+                                                category: 'DB_POOL_EXHAUSTION',
+                                                title: 'Database Connection Pool Exhaustion',
+                                                icon: Cpu,
+                                                color: '#ef4444',
+                                                borderColor: 'rgba(239,68,68,0.3)',
+                                                condition: 'Active Connection Pool > 95% OR ER_TOO_MANY_USER_CONNECTIONS',
+                                                scope: 'MySQL Flexible Server & Application Connection Pools',
+                                                action: 'P1 critical alert dispatch + connection pool recycle & active query dump.',
+                                                autoClear: 'Auto-clears when connection pool saturation drops below 80%.'
+                                            },
+                                            // P2 High Rules
+                                            {
+                                                id: 'HIGH_RESOURCE_PRESSURE',
+                                                priority: 'P2_HIGH',
+                                                priorityLabel: 'P2 HIGH',
+                                                category: 'HIGH_RESOURCE_PRESSURE',
+                                                title: 'High Resource Pressure (CPU / Memory)',
+                                                icon: AlertTriangle,
+                                                color: '#f59e0b',
+                                                borderColor: 'rgba(245,158,11,0.3)',
+                                                condition: 'CPU Utilization > 85.0% OR RAM Utilization > 90.0%',
+                                                scope: 'ACA, SWA & Virtual Machines (VM)',
+                                                action: 'P2 alert dispatch + auto-scale evaluation (+1 replica trigger).',
+                                                autoClear: 'Auto-clears when CPU drops below 70.0%.'
+                                            },
+                                            {
+                                                id: 'HEALTH_CHECK_FAILURE',
+                                                priority: 'P2_HIGH',
+                                                priorityLabel: 'P2 HIGH',
+                                                category: 'HEALTH_CHECK_FAILURE',
+                                                title: 'Container Health Probe Failure',
+                                                icon: Activity,
+                                                color: '#ec4899',
+                                                borderColor: 'rgba(236,72,153,0.3)',
+                                                condition: 'Replica Count = 0 OR Probe Status ≠ 200 OK',
+                                                scope: 'Container Apps (ACA)',
+                                                action: 'Triggers Container App revision restart & owner alert dispatch.',
+                                                autoClear: 'Auto-clears when at least 1 replica reports HTTP 200 OK.'
+                                            },
+                                            {
+                                                id: 'PIPELINE_BUILD_FAILURE',
+                                                priority: 'P2_HIGH',
+                                                priorityLabel: 'P2 HIGH',
+                                                category: 'PIPELINE_BUILD_FAILURE',
+                                                title: 'CI/CD Deployment Pipeline Failure',
+                                                icon: Settings,
+                                                color: '#f59e0b',
+                                                borderColor: 'rgba(245,158,11,0.3)',
+                                                condition: 'Build Status = Failed OR Pipeline Execution Error',
+                                                scope: 'GitHub Actions & Azure DevOps Release Pipelines',
+                                                action: 'P2 build alert dispatch + automatic rollback to last stable deployment revision.',
+                                                autoClear: 'Auto-clears upon successful green pipeline build run.'
+                                            },
+                                            {
+                                                id: 'MEMORY_LEAK_WARNING',
+                                                priority: 'P2_HIGH',
+                                                priorityLabel: 'P2 HIGH',
+                                                category: 'MEMORY_LEAK_WARNING',
+                                                title: 'Sustained Memory Growth Leak Warning',
+                                                icon: Cpu,
+                                                color: '#d946ef',
+                                                borderColor: 'rgba(217,70,239,0.3)',
+                                                condition: 'Heap Memory Utilization > 85% for 3 consecutive scan cycles',
+                                                scope: 'Node.js / Java Container App Runtimes',
+                                                action: 'P2 alert dispatch + heap dump snapshot + worker thread memory recycle.',
+                                                autoClear: 'Auto-clears when heap memory drops below 70%.'
+                                            },
+                                            // P3 Medium Rules
+                                            {
+                                                id: 'LATENCY_DEGRADATION',
+                                                priority: 'P3_MEDIUM',
+                                                priorityLabel: 'P3 MEDIUM',
+                                                category: 'LATENCY_DEGRADATION',
+                                                title: 'API Endpoint Latency Degradation',
+                                                icon: Clock,
+                                                color: '#3b82f6',
+                                                borderColor: 'rgba(59,130,246,0.3)',
+                                                condition: 'p95 Latency > 2000 ms OR p99 Latency > 3500 ms',
+                                                scope: 'ACA API Endpoints & Database Pools',
+                                                action: 'P3 alert notification to assigned resource owners + DB pool snapshot.',
+                                                autoClear: 'Auto-clears when p95 latency drops below 1200ms.'
+                                            },
+                                            {
+                                                id: 'SSL_CERT_EXPIRING',
+                                                priority: 'P3_MEDIUM',
+                                                priorityLabel: 'P3 MEDIUM',
+                                                category: 'SSL_CERT_EXPIRING',
+                                                title: 'SSL / TLS Certificate Expiring',
+                                                icon: Lock,
+                                                color: '#10b981',
+                                                borderColor: 'rgba(16,185,129,0.3)',
+                                                condition: 'SSL Expiry ≤ 15 Days',
+                                                scope: 'Static Web Apps (SWA) & Custom Domains',
+                                                action: 'Automated TLS certificate renewal notification + GoDaddy DNS audit alert.',
+                                                autoClear: 'Auto-clears when certificate is renewed with > 30 days validity.'
+                                            },
+                                            {
+                                                id: 'STORAGE_VOLUME_FULL',
+                                                priority: 'P3_MEDIUM',
+                                                priorityLabel: 'P3 MEDIUM',
+                                                category: 'STORAGE_VOLUME_FULL',
+                                                title: 'Disk Storage Volume Capacity Full',
+                                                icon: Cpu,
+                                                color: '#8b5cf6',
+                                                borderColor: 'rgba(139,92,246,0.3)',
+                                                condition: 'Storage Volume > 90.0% OR Disk IOPS Saturation ≥ 95%',
+                                                scope: 'Virtual Machines (VM) & Database Storage Volumes',
+                                                action: 'Disk expansion recommendation + notification dispatched to primary storage owner.',
+                                                autoClear: 'Auto-clears when available disk space rises above 20%.'
+                                            },
+                                            // P4 Low Rules
+                                            {
+                                                id: 'NETWORK_INGRESS_SPIKE',
+                                                priority: 'P4_LOW',
+                                                priorityLabel: 'P4 LOW',
+                                                category: 'NETWORK_INGRESS_SPIKE',
+                                                title: 'Network Ingress Traffic Spike / Anomaly',
+                                                icon: Activity,
+                                                color: '#10b981',
+                                                borderColor: 'rgba(16,185,129,0.3)',
+                                                condition: 'Inbound HTTP Traffic > 10,000 req/min OR Bandwidth > 500 Mbps',
+                                                scope: 'Static Web Apps (SWA) & Edge Endpoints',
+                                                action: 'P4 telemetry warning + rate limit rule activation & DDoS evaluation.',
+                                                autoClear: 'Auto-clears when HTTP request rate normalizes below 5,000 req/min.'
+                                            }
+                                        ];
+
+                                        // Apply Filter & Search
+                                        const filtered = rulesList.filter(r => {
+                                            if (drawerPriorityFilter !== 'ALL' && r.priority !== drawerPriorityFilter) return false;
+                                            if (drawerSearch.trim() !== '') {
+                                                const q = drawerSearch.toLowerCase();
+                                                const matchCat = r.category.toLowerCase().includes(q);
+                                                const matchTitle = r.title.toLowerCase().includes(q);
+                                                const matchCond = r.condition.toLowerCase().includes(q);
+                                                const matchScope = r.scope.toLowerCase().includes(q);
+                                                if (!matchCat && !matchTitle && !matchCond && !matchScope) return false;
+                                            }
+                                            return true;
+                                        });
+
+                                        const groups = [
+                                            { id: 'P1_CRITICAL', title: '🔴 P1 Critical Priority Rules', color: '#ef4444' },
+                                            { id: 'P2_HIGH', title: '🟠 P2 High Priority Rules', color: '#f59e0b' },
+                                            { id: 'P3_MEDIUM', title: '🔵 P3 Medium Priority Rules', color: '#3b82f6' },
+                                            { id: 'P4_LOW', title: '🟢 P4 Low Priority Rules', color: '#10b981' }
+                                        ];
+
+                                        if (filtered.length === 0) {
+                                            return (
+                                                <div style={{ padding: '40px', textAlign: 'center', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
+                                                    <Info size={32} style={{ color: '#8b5cf6', marginBottom: '8px' }} />
+                                                    <div>No automation rules match your active priority filter or search query.</div>
+                                                </div>
+                                            );
+                                        }
+
+                                        return groups.map(g => {
+                                            const groupRules = filtered.filter(r => r.priority === g.id);
+                                            if (groupRules.length === 0) return null;
+
+                                            return (
+                                                <div key={g.id} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.88rem', fontWeight: 800, color: g.color }}>
+                                                        <span>{g.title}</span>
+                                                        <span style={{ fontSize: '0.72rem', padding: '1px 8px', borderRadius: '10px', background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.06)', color: isLight ? '#475569' : 'var(--text-secondary)' }}>
+                                                            {groupRules.length} {groupRules.length === 1 ? 'Rule' : 'Rules'}
+                                                        </span>
+                                                    </div>
+
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                        {groupRules.map(r => {
+                                                            const IconComp = r.icon;
+                                                            return (
+                                                                <div key={r.id} style={{
+                                                                    padding: '14px 16px',
+                                                                    borderRadius: '12px',
+                                                                    background: isLight ? '#ffffff' : 'rgba(0,0,0,0.25)',
+                                                                    border: `1px solid ${r.borderColor}`,
+                                                                    display: 'flex',
+                                                                    flexDirection: 'column',
+                                                                    gap: '8px'
+                                                                }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                            <IconComp size={16} style={{ color: r.color }} />
+                                                                            <span style={{ fontWeight: 800, fontSize: '0.86rem', color: isLight ? '#0f172a' : '#ffffff' }}>
+                                                                                {r.category}
+                                                                            </span>
+                                                                            <span style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
+                                                                                — {r.title}
+                                                                            </span>
+                                                                        </div>
+                                                                        <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: `${r.color}20`, color: r.color }}>
+                                                                            {r.priorityLabel}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.74rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.5, marginTop: '2px' }}>
+                                                                        <div>
+                                                                            <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>Condition:</strong> <code style={{ fontSize: '0.72rem', padding: '1px 4px', borderRadius: '4px', background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.06)' }}>{r.condition}</code>
+                                                                        </div>
+                                                                        <div>
+                                                                            <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>Target Scope:</strong> {r.scope}
+                                                                        </div>
+                                                                        <div>
+                                                                            <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>Self-Healing Action:</strong> {r.action}
+                                                                        </div>
+                                                                        <div>
+                                                                            <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>Auto-Clear Criteria:</strong> {r.autoClear}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            );
+                                        });
+                                    })()}
                                 </div>
-                                <div style={{ fontSize: '0.76rem', color: isLight ? '#64748b' : 'var(--text-secondary)', lineHeight: 1.45 }}>
-                                    EvaPulse scans telemetry streams in 60-second cycles against these 6 automated breach condition rules:
-                                </div>
+                            )}
 
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
-                                    {/* Rule 1: CRITICAL_OUTAGE */}
-                                    <div style={{ padding: '12px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(0,0,0,0.25)', border: '1px solid rgba(239,68,68,0.25)' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                                            <span style={{ fontWeight: 800, fontSize: '0.8rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <ShieldAlert size={14} /> CRITICAL_OUTAGE
-                                            </span>
-                                            <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>P1_CRITICAL</span>
+                            {drawerTab === 'self_healing' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    <div style={{
+                                        padding: '16px',
+                                        borderRadius: '12px',
+                                        background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
+                                        border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', marginBottom: '10px' }}>
+                                            <Activity size={18} style={{ color: '#10b981' }} />
+                                            <span>Eva AI Automated Remediation Engine</span>
                                         </div>
-                                        <div style={{ fontSize: '0.74rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.5 }}>
-                                            <strong>Condition:</strong> <code>HTTP 5xx Errors ≥ 5 / interval</code> OR <code>Unreachable Status</code><br />
-                                            <strong>Scope:</strong> Container Apps (ACA) & Static Web Apps (SWA)<br />
-                                            <strong>Action:</strong> Instant P1 owner email dispatch + Eva AI root-cause snapshot prompt. Auto-clears when 5xx count returns to 0.
+                                        <div style={{ fontSize: '0.78rem', color: isLight ? '#475569' : 'var(--text-secondary)', lineHeight: 1.6 }}>
+                                            When an incident is generated, EvaPulse automatically executes Tier 1 remediation steps before notifying on-call engineers:
                                         </div>
-                                    </div>
-
-                                    {/* Rule 2: HIGH_RESOURCE_PRESSURE */}
-                                    <div style={{ padding: '12px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(0,0,0,0.25)', border: '1px solid rgba(245,158,11,0.25)' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                                            <span style={{ fontWeight: 800, fontSize: '0.8rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <AlertTriangle size={14} /> HIGH_RESOURCE_PRESSURE
-                                            </span>
-                                            <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>P2_HIGH</span>
-                                        </div>
-                                        <div style={{ fontSize: '0.74rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.5 }}>
-                                            <strong>Condition:</strong> <code>CPU Utilization &gt; 85.0%</code> OR <code>RAM &gt; 90%</code> limit<br />
-                                            <strong>Scope:</strong> ACA, SWA & Virtual Machines (VM)<br />
-                                            <strong>Action:</strong> P2 alert dispatch + auto-scale evaluation (+1 replica trigger). Auto-clears when CPU drops below 70.0%.
-                                        </div>
-                                    </div>
-
-                                    {/* Rule 3: LATENCY_DEGRADATION */}
-                                    <div style={{ padding: '12px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(0,0,0,0.25)', border: '1px solid rgba(59,130,246,0.25)' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                                            <span style={{ fontWeight: 800, fontSize: '0.8rem', color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <Clock size={14} /> LATENCY_DEGRADATION
-                                            </span>
-                                            <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: 'rgba(59,130,246,0.15)', color: '#3b82f6' }}>P3_MEDIUM</span>
-                                        </div>
-                                        <div style={{ fontSize: '0.74rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.5 }}>
-                                            <strong>Condition:</strong> <code>p95 Latency &gt; 2000 ms</code> OR <code>p99 Latency &gt; 3500 ms</code><br />
-                                            <strong>Scope:</strong> ACA API Endpoints & Database Pools<br />
-                                            <strong>Action:</strong> P3 alert notification to assigned resource owners + database connection pool snapshot.
-                                        </div>
-                                    </div>
-
-                                    {/* Rule 4: HEALTH_CHECK_FAILURE */}
-                                    <div style={{ padding: '12px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(0,0,0,0.25)', border: '1px solid rgba(236,72,153,0.25)' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                                            <span style={{ fontWeight: 800, fontSize: '0.8rem', color: '#ec4899', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <Activity size={14} /> HEALTH_CHECK_FAILURE
-                                            </span>
-                                            <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: 'rgba(236,72,153,0.15)', color: '#ec4899' }}>P2_HIGH</span>
-                                        </div>
-                                        <div style={{ fontSize: '0.74rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.5 }}>
-                                            <strong>Condition:</strong> <code>Replica Count = 0</code> OR <code>Probe Status ≠ 200 OK</code><br />
-                                            <strong>Scope:</strong> Container Apps (ACA)<br />
-                                            <strong>Action:</strong> Triggers Container App revision restart & owner alert dispatch.
-                                        </div>
-                                    </div>
-
-                                    {/* Rule 5: SSL_CERT_EXPIRING */}
-                                    <div style={{ padding: '12px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(0,0,0,0.25)', border: '1px solid rgba(16,185,129,0.25)' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                                            <span style={{ fontWeight: 800, fontSize: '0.8rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <Lock size={14} /> SSL_CERT_EXPIRING
-                                            </span>
-                                            <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>P3_MEDIUM</span>
-                                        </div>
-                                        <div style={{ fontSize: '0.74rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.5 }}>
-                                            <strong>Condition:</strong> <code>SSL Expiry ≤ 15 Days</code><br />
-                                            <strong>Scope:</strong> Static Web Apps (SWA) & Custom Domains<br />
-                                            <strong>Action:</strong> Automated TLS certificate renewal notification + GoDaddy DNS audit alert.
-                                        </div>
-                                    </div>
-
-                                    {/* Rule 6: STORAGE_VOLUME_FULL */}
-                                    <div style={{ padding: '12px', borderRadius: '10px', background: isLight ? '#ffffff' : 'rgba(0,0,0,0.25)', border: '1px solid rgba(139,92,246,0.25)' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                                            <span style={{ fontWeight: 800, fontSize: '0.8rem', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                <Cpu size={14} /> STORAGE_VOLUME_FULL
-                                            </span>
-                                            <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: 'rgba(139,92,246,0.15)', color: '#8b5cf6' }}>P3_MEDIUM</span>
-                                        </div>
-                                        <div style={{ fontSize: '0.74rem', color: isLight ? '#334155' : '#cbd5e1', lineHeight: 1.5 }}>
-                                            <strong>Condition:</strong> <code>Storage Volume &gt; 90.0%</code> OR <code>Disk IOPS Saturation ≥ 95%</code><br />
-                                            <strong>Scope:</strong> Virtual Machines (VM) & Database Volumes<br />
-                                            <strong>Action:</strong> Disk expansion recommendation + notification dispatched to primary storage owner.
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px', fontSize: '0.76rem' }}>
+                                            <div style={{ padding: '10px 14px', borderRadius: '8px', background: isLight ? '#ffffff' : 'rgba(0,0,0,0.2)', border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)' }}>
+                                                <strong style={{ color: '#10b981' }}>1. Auto-Replica Scaling (+1 Instance):</strong> Evaluates CPU pressure on Container Apps and scales out replicas to absorb sudden traffic spikes.
+                                            </div>
+                                            <div style={{ padding: '10px 14px', borderRadius: '8px', background: isLight ? '#ffffff' : 'rgba(0,0,0,0.2)', border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)' }}>
+                                                <strong style={{ color: '#3b82f6' }}>2. Container Revision Restart:</strong> Triggers zero-downtime revision restarts on health probe failures to clear deadlocked worker threads.
+                                            </div>
+                                            <div style={{ padding: '10px 14px', borderRadius: '8px', background: isLight ? '#ffffff' : 'rgba(0,0,0,0.2)', border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)' }}>
+                                                <strong style={{ color: '#8b5cf6' }}>3. Connection Pool Recycle:</strong> Flushes idle MySQL database connection pools when connection limits are approached.
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
 
-                            {/* Section 2: Incident Lifecycle */}
-                            <div style={{
-                                padding: '16px',
-                                borderRadius: '12px',
-                                background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
-                                border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)'
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', marginBottom: '12px' }}>
-                                    <Activity size={16} style={{ color: '#2dd4bf' }} />
-                                    <span>Incident Lifecycle States</span>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.78rem' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <span style={{ padding: '2px 8px', borderRadius: '10px', background: 'rgba(239,68,68,0.15)', color: '#ef4444', fontWeight: 700, fontSize: '0.72rem' }}>
-                                            Triggered
-                                        </span>
-                                        <span style={{ color: isLight ? '#64748b' : 'var(--text-secondary)' }}>Newly detected breach. Default state until assigned.</span>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <span style={{ padding: '2px 8px', borderRadius: '10px', background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontWeight: 700, fontSize: '0.72rem' }}>
-                                            Acknowledged
-                                        </span>
-                                        <span style={{ color: isLight ? '#64748b' : 'var(--text-secondary)' }}>Claimed by owner engineer currently investigating.</span>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <span style={{ padding: '2px 8px', borderRadius: '10px', background: 'rgba(16,185,129,0.15)', color: '#10b981', fontWeight: 700, fontSize: '0.72rem' }}>
-                                            Resolved
-                                        </span>
-                                        <span style={{ color: isLight ? '#64748b' : 'var(--text-secondary)' }}>Fix deployed & verified with user confirmation.</span>
+                            {drawerTab === 'escalation' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    <div style={{
+                                        padding: '16px',
+                                        borderRadius: '12px',
+                                        background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
+                                        border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', marginBottom: '10px' }}>
+                                            <Mail size={18} style={{ color: '#ec4899' }} />
+                                            <span>3-Tier Alert Routing & Escalation Matrix</span>
+                                        </div>
+                                        <div style={{ fontSize: '0.78rem', color: isLight ? '#475569' : 'var(--text-secondary)', lineHeight: 1.6 }}>
+                                            Incident notifications follow assigned owner routing and automatic escalation tiers:
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px', fontSize: '0.76rem' }}>
+                                            <div style={{ padding: '10px 14px', borderRadius: '8px', background: isLight ? '#ffffff' : 'rgba(0,0,0,0.2)', border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)' }}>
+                                                <strong style={{ color: '#ef4444' }}>Tier 1 — AI Root-Cause Snapshot (0 Min):</strong> Telemetry snapshot captured and logged to database.
+                                            </div>
+                                            <div style={{ padding: '10px 14px', borderRadius: '8px', background: isLight ? '#ffffff' : 'rgba(0,0,0,0.2)', border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)' }}>
+                                                <strong style={{ color: '#f59e0b' }}>Tier 2 — HTML Owner Email Dispatch (0-2 Min):</strong> Alert dispatched to Primary & Secondary resource owners with 5-min deduplication buffer.
+                                            </div>
+                                            <div style={{ padding: '10px 14px', borderRadius: '8px', background: isLight ? '#ffffff' : 'rgba(0,0,0,0.2)', border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)' }}>
+                                                <strong style={{ color: '#8b5cf6' }}>Tier 3 — Escalation Pipeline (+15 Min Unacknowledged P1):</strong> Escalates to team administrator if a P1 outage remains unacknowledged after 15 minutes.
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-
-                            {/* Section 3: Deduplication & Email Pipeline */}
-                            <div style={{
-                                padding: '16px',
-                                borderRadius: '12px',
-                                background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
-                                border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)'
-                            }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', marginBottom: '12px' }}>
-                                    <Mail size={16} style={{ color: '#ec4899' }} />
-                                    <span>Alert Routing & Deduplication</span>
-                                </div>
-                                <div style={{ fontSize: '0.78rem', color: isLight ? '#475569' : 'var(--text-secondary)', lineHeight: 1.5 }}>
-                                    Active incident deduplication checks prevent email notification spamming for existing active breaches. HTML alert emails are dispatched to assigned Primary & Secondary resource owners.
-                                </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* Drawer Footer */}
@@ -1255,14 +1516,18 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                             padding: '16px 24px',
                             borderTop: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
                             display: 'flex',
-                            justifyContent: 'flex-end',
-                            marginTop: 'auto'
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.15)'
                         }}>
+                            <div style={{ fontSize: '0.76rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
+                                💡 <strong>Note:</strong> All 10 rules evaluate continuously in 60-second background scan cycles.
+                            </div>
                             <button
                                 type="button"
                                 onClick={() => setShowInfoDrawer(false)}
                                 className="btn-secondary"
-                                style={{ padding: '8px 20px', fontSize: '0.82rem' }}
+                                style={{ padding: '8px 22px', fontSize: '0.82rem', fontWeight: 600 }}
                             >
                                 Close Info
                             </button>
