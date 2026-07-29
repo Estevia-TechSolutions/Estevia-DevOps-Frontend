@@ -930,25 +930,41 @@ const Step1Content: React.FC<Step1ContentProps> = ({
             </div>
           )}
 
-          {/* ── Duplicate deployment warning ── */}
+          {/* ── Repository deployment warning ── */}
           {(() => {
-            const matchingApp = selectedRepo ? apps.find(a => a.repositoryUrl && a.repositoryUrl.toLowerCase().includes(selectedRepo.toLowerCase())) : null;
+            if (!selectedRepo) return null;
+            const normalize = (str?: string) => (str || '').toLowerCase().replace(/\.git$/, '').split('/').filter(Boolean).pop() || '';
+            const repoSlug = normalize(selectedRepo);
+
+            const matchingApp = apps.find(a => {
+              const url1 = normalize(a.repositoryUrl);
+              const url2 = normalize((a as any).repo_url);
+              const url3 = normalize((a as any).gitUrl);
+              const url4 = normalize(a.azureResourceDetails?.repoUrl || a.azureResourceDetails?.repo_url);
+              return repoSlug && (url1 === repoSlug || url2 === repoSlug || url3 === repoSlug || url4 === repoSlug);
+            });
+
             if (!matchingApp) return null;
-            
-            const resId = matchingApp.resourceId || '';
+
+            const resId = matchingApp.resourceId || matchingApp.azureResourceDetails?.resourceId || '';
             const subIdMatch = resId.match(/\/subscriptions\/([^\/]+)/i);
             const rgMatch = resId.match(/\/resourceGroups\/([^\/]+)/i);
-            const subId = subIdMatch ? subIdMatch[1] : '';
-            const rgName = rgMatch ? rgMatch[1] : 'Unknown Resource Group';
-            
+            const subId = subIdMatch ? subIdMatch[1] : (matchingApp.subscriptionId || matchingApp.azureResourceDetails?.subscriptionId || '');
+            const rgName = rgMatch ? rgMatch[1] : (matchingApp.resourceGroup || matchingApp.azureResourceDetails?.resourceGroup || 'Target Resource Group');
+
             const matchingSub = subscriptionsList.find(s => s.id.toLowerCase() === subId.toLowerCase());
-            const subName = matchingSub ? matchingSub.displayName : (subId || 'Unknown Subscription');
+            const subName = matchingSub ? matchingSub.displayName : (subId || 'Selected Subscription');
+
+            const isSameScope = selectedProvisionSubscriptionId && subId && selectedProvisionSubscriptionId.toLowerCase() === subId.toLowerCase();
 
             return (
-              <div className="glass-panel" style={{ padding: '14px 16px', borderColor: 'var(--warning)', backgroundColor: 'var(--warning-bg)', marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                <AlertTriangle size={16} style={{ color: 'var(--warning)', flexShrink: 0, marginTop: '2px' }} />
-                <div style={{ fontSize: '0.87rem', lineHeight: 1.5 }}>
-                  <strong style={{ color: 'var(--warning)' }}>Already Deployed:</strong> This repo is already deployed in subscription <strong>{subName}</strong>, resource group <strong>{rgName}</strong> (application: <strong>{matchingApp.name}</strong>). Deploying again creates a duplicate.
+              <div className="glass-panel" style={{ padding: '14px 16px', borderColor: isSameScope ? 'var(--warning)' : '#3b82f6', backgroundColor: isSameScope ? 'var(--warning-bg)' : 'rgba(59, 130, 246, 0.08)', marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                <AlertTriangle size={16} style={{ color: isSameScope ? 'var(--warning)' : '#60a5fa', flexShrink: 0, marginTop: '2px' }} />
+                <div style={{ fontSize: '0.87rem', lineHeight: 1.5, color: 'var(--text-primary)' }}>
+                  <strong style={{ color: isSameScope ? 'var(--warning)' : '#60a5fa' }}>
+                    {isSameScope ? 'Already Deployed in Selected Target Scope:' : 'Already Deployed in Another Scope / Environment:'}
+                  </strong>{' '}
+                  This repository is currently deployed in subscription <strong>{subName}</strong>, resource group <strong>{rgName}</strong> (application: <strong>{matchingApp.name}</strong>). {isSameScope ? 'Deploying again in the same scope creates a duplicate.' : 'Provisioning here will create a separate target environment instance.'}
                 </div>
               </div>
             );

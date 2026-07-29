@@ -7578,6 +7578,7 @@ function App() {
                         setUpgradePackageModal('DevOps');
                       } else {
                         setActiveTab('scan');
+                        setScanSubTab('discovery');
                       }
                     }} 
                     disabled={requiresCredentialSetup || isOrgDisabled}
