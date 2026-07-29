@@ -80,62 +80,58 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
         return { subId: sub, subName, subShort: subName, resourceGroup: rg };
     };
 
-    const getResourceInfo = (appKey?: string) => {
-        const keyLow = (appKey || '').toLowerCase().trim();
-        
-        let displayName = appKey || 'Unknown Resource';
-        let serviceType = 'Microservice Engine';
-        
-        if (keyLow.includes('cloud-service')) {
-            displayName = 'Estevia Cloud Microservices Engine';
-            serviceType = 'Container App (ACA)';
-        } else if (keyLow.includes('estevia-backend')) {
-            displayName = 'Estevia DevOps Core Backend API';
-            serviceType = 'REST API Backend';
-        } else if (keyLow.includes('estevia-frontend')) {
-            displayName = 'Estevia DevOps Control Portal';
-            serviceType = 'Web Portal (SWA)';
-        } else if (keyLow.includes('peoplecraft-backend') || keyLow.includes('peoplecraft_backend')) {
-            displayName = 'PeopleCraft Enterprise HR Core Backend';
-            serviceType = 'Node.js Microservice';
-        } else if (keyLow.includes('peoplecraft-frontend') || keyLow.includes('peoplecraft_frontend')) {
-            displayName = 'PeopleCraft Enterprise HR Web Portal';
-            serviceType = 'React Web Portal';
-        } else if (keyLow.includes('peoplecraft')) {
-            displayName = 'PeopleCraft Enterprise HR Application';
-            serviceType = 'HR Enterprise Suite';
-        } else if (keyLow.includes('connecthub')) {
-            displayName = 'ConnectHub Integration Platform';
-            serviceType = 'Integration Gateway';
-        } else if (keyLow.includes('evaops')) {
-            displayName = 'EvaOps AI Control Center';
-            serviceType = 'AI Operations Platform';
-        } else if (keyLow.includes('marketing')) {
-            displayName = 'Estevia Corporate Marketing Portal';
-            serviceType = 'Static Web App (SWA)';
-        } else if (keyLow.includes('docai')) {
-            displayName = 'DocAI Document Intelligence Engine';
-            serviceType = 'Document AI Processing';
-        } else if (keyLow.includes('evapay')) {
-            displayName = 'EvaPay Financial Payment Gateway';
-            serviceType = 'Payment Processing Hub';
-        } else if (keyLow.includes('protrack')) {
-            displayName = 'ProTrack Project Management Suite';
-            serviceType = 'Task & Milestone Suite';
-        } else if (keyLow.includes('talenthq')) {
-            displayName = 'TalentHQ Recruitment Portal';
-            serviceType = 'Talent Acquisition Platform';
-        } else if (keyLow.includes('evafusion')) {
-            displayName = 'EvaFusion Neural Intelligence Suite';
-            serviceType = 'AI Analytics Engine';
-        } else if (appKey) {
-            displayName = appKey
-                .split(/[-_]/)
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                .join(' ');
+    const getResourceInfo = (appKey?: string, customName?: string) => {
+        if (customName && customName.trim() !== '') {
+            return { displayName: customName, serviceType: 'Cloud Resource', rawKey: appKey || '' };
         }
 
-        return { displayName, serviceType, rawKey: appKey || '' };
+        const keyLow = (appKey || '').toLowerCase().trim();
+        if (!keyLow) return { displayName: 'Unknown Resource', serviceType: 'Microservice Engine', rawKey: '' };
+
+        // Dictionary of known platform application aliases
+        const aliasMap: Record<string, { name: string; type: string }> = {
+            'cloud-service': { name: 'Estevia Cloud Microservices Engine', type: 'Container App (ACA)' },
+            'estevia-backend': { name: 'Estevia DevOps Core Backend API', type: 'REST API Backend' },
+            'estevia-frontend': { name: 'Estevia DevOps Control Portal', type: 'Web Portal (SWA)' },
+            'peoplecraft-backend': { name: 'PeopleCraft Enterprise HR Core Backend', type: 'Node.js Microservice' },
+            'peoplecraft_backend': { name: 'PeopleCraft Enterprise HR Core Backend', type: 'Node.js Microservice' },
+            'peoplecraft-frontend': { name: 'PeopleCraft Enterprise HR Web Portal', type: 'React Web Portal' },
+            'peoplecraft_frontend': { name: 'PeopleCraft Enterprise HR Web Portal', type: 'React Web Portal' },
+            'peoplecraft': { name: 'PeopleCraft Enterprise HR Application', type: 'HR Enterprise Suite' },
+            'connecthub': { name: 'ConnectHub Integration Platform', type: 'Integration Gateway' },
+            'evaops': { name: 'EvaOps AI Control Center', type: 'AI Operations Platform' },
+            'marketing': { name: 'Estevia Corporate Marketing Portal', type: 'Static Web App (SWA)' },
+            'docai': { name: 'DocAI Document Intelligence Engine', type: 'Document AI Processing' },
+            'evapay': { name: 'EvaPay Financial Payment Gateway', type: 'Payment Processing Hub' },
+            'protrack': { name: 'ProTrack Project Management Suite', type: 'Task & Milestone Suite' },
+            'talenthq': { name: 'TalentHQ Recruitment Portal', type: 'Talent Acquisition Platform' },
+            'evafusion': { name: 'EvaFusion Neural Intelligence Suite', type: 'AI Analytics Engine' },
+        };
+
+        // 1. Direct or substring match in alias map
+        for (const [k, alias] of Object.entries(aliasMap)) {
+            if (keyLow.includes(k)) {
+                return { displayName: alias.name, serviceType: alias.type, rawKey: appKey || '' };
+            }
+        }
+
+        // 2. Dynamic converter for any arbitrary cloud resource or backend service name
+        const dynamicName = keyLow
+            .split(/[-_]/)
+            .filter(Boolean)
+            .map(word => {
+                if (['api', 'db', 'vm', 'aca', 'swa', 'cpu', 'ram', 'ssl', 'hr', 'ai', 'ci', 'cd', 'ui', 'id'].includes(word)) {
+                    return word.toUpperCase();
+                }
+                return word.charAt(0).toUpperCase() + word.slice(1);
+            })
+            .join(' ');
+
+        return {
+            displayName: dynamicName || appKey || 'Cloud Resource',
+            serviceType: 'Cloud Resource',
+            rawKey: appKey || ''
+        };
     };
 
     const [configApp, setConfigApp] = useState<string>('connecthub');
@@ -355,26 +351,24 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
     }
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* Header Control Toolbar with Integrated Single-Line Filter Controls */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Row 1: Header Title & Subtitle (Left) + Action Buttons (Right-Aligned) */}
             <div className="glass-panel" style={{
-                padding: '14px 20px',
+                padding: '16px 20px',
                 borderRadius: '14px',
                 background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.02)',
                 border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                flexWrap: 'nowrap',
-                whiteSpace: 'nowrap',
-                overflowX: 'auto',
-                gap: '16px'
+                gap: '16px',
+                flexWrap: 'wrap'
             }}>
                 {/* Title Section */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{
-                        width: '38px',
-                        height: '38px',
+                        width: '40px',
+                        height: '40px',
                         borderRadius: '10px',
                         background: 'linear-gradient(135deg, #ef4444, #f59e0b)',
                         display: 'flex',
@@ -383,135 +377,25 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                         color: '#fff',
                         flexShrink: 0
                     }}>
-                        <ShieldAlert size={20} />
+                        <ShieldAlert size={22} />
                     </div>
                     <div>
-                        <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                        <h3 style={{ margin: 0, fontSize: '1.08rem', fontWeight: 800, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
                             Incident Management & Telemetry Alerts
                         </h3>
-                        <div style={{ fontSize: '0.78rem', color: isLight ? '#64748b' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontSize: '0.78rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
                             Multi-category lifecycle tracking, telemetry root-cause snapshots & email notifications
                         </div>
                     </div>
                 </div>
 
-                {/* Inline Filters & Actions Block (Strict Single Line Flex) */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap', flexShrink: 0 }}>
-                    {/* Search Input */}
-                    <div style={{ position: 'relative', width: '200px' }}>
-                        <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: isLight ? '#94a3b8' : 'var(--text-secondary)' }} />
-                        <input
-                            type="text"
-                            placeholder="Filter incidents..."
-                            value={searchQuery}
-                            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                            style={{
-                                width: '100%',
-                                padding: '6px 10px 6px 30px',
-                                borderRadius: '8px',
-                                fontSize: '0.8rem',
-                                border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
-                                background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.2)',
-                                color: isLight ? '#0f172a' : '#fff',
-                                outline: 'none'
-                            }}
-                        />
-                    </div>
-
-                    {/* Severity Filter */}
-                    <select
-                        value={selectedSeverityFilter}
-                        onChange={(e) => { setSelectedSeverityFilter(e.target.value); setCurrentPage(1); }}
-                        style={{
-                            padding: '6px 10px',
-                            borderRadius: '8px',
-                            fontSize: '0.8rem',
-                            border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
-                            background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.2)',
-                            color: isLight ? '#0f172a' : '#fff',
-                            outline: 'none',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        <option value="ALL">All Severities</option>
-                        <option value="P1_CRITICAL">Critical (P1)</option>
-                        <option value="P2_HIGH">High (P2)</option>
-                        <option value="P3_MEDIUM">Medium (P3)</option>
-                        <option value="P4_LOW">Low (P4)</option>
-                    </select>
-
-                    {/* Status Filter */}
-                    <select
-                        value={selectedStatusFilter}
-                        onChange={(e) => { setSelectedStatusFilter(e.target.value); setCurrentPage(1); }}
-                        style={{
-                            padding: '6px 10px',
-                            borderRadius: '8px',
-                            fontSize: '0.8rem',
-                            border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
-                            background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.2)',
-                            color: isLight ? '#0f172a' : '#fff',
-                            outline: 'none',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        <option value="ALL">All Statuses</option>
-                        <option value="triggered">Triggered</option>
-                        <option value="acknowledged">Acknowledged</option>
-                        <option value="resolved">Resolved</option>
-                    </select>
-
-                    {/* Environment Filter */}
-                    <select
-                        value={selectedEnvFilter}
-                        onChange={(e) => { setSelectedEnvFilter(e.target.value); setCurrentPage(1); }}
-                        style={{
-                            padding: '6px 10px',
-                            borderRadius: '8px',
-                            fontSize: '0.8rem',
-                            border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
-                            background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.2)',
-                            color: isLight ? '#0f172a' : '#fff',
-                            outline: 'none',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        <option value="ALL">All Envs</option>
-                        <option value="dev">DEV</option>
-                        <option value="qa">QA</option>
-                        <option value="prod">PROD</option>
-                    </select>
-
-                    {(searchQuery || selectedSeverityFilter !== 'ALL' || selectedStatusFilter !== 'ALL' || selectedEnvFilter !== 'ALL') && (
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setSearchQuery('');
-                                setSelectedSeverityFilter('ALL');
-                                setSelectedStatusFilter('ALL');
-                                setSelectedEnvFilter('ALL');
-                                setCurrentPage(1);
-                            }}
-                            style={{
-                                padding: '6px 10px',
-                                borderRadius: '8px',
-                                fontSize: '0.78rem',
-                                fontWeight: 600,
-                                background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.15)',
-                                color: '#ef4444',
-                                border: 'none',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            Reset
-                        </button>
-                    )}
-
+                {/* Right-Aligned Action Buttons (Same Line as Title) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
                     <button
                         type="button"
                         onClick={() => setShowInfoDrawer(true)}
                         style={{
-                            padding: '7px 14px',
+                            padding: '8px 16px',
                             borderRadius: '8px',
                             fontSize: '0.82rem',
                             fontWeight: 600,
@@ -521,21 +405,22 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '6px'
+                            gap: '6px',
+                            whiteSpace: 'nowrap'
                         }}
                     >
-                        <Info size={15} style={{ color: '#3b82f6' }} />
-                        <span>Info</span>
+                        <Info size={16} style={{ color: '#3b82f6' }} />
+                        <span>Incident Automation Rules</span>
                     </button>
 
                     <button
                         type="button"
                         onClick={() => setShowConfigModal(true)}
                         style={{
-                            padding: '7px 14px',
+                            padding: '8px 16px',
                             borderRadius: '8px',
                             fontSize: '0.82rem',
-                            fontWeight: 600,
+                            fontWeight: 700,
                             background: 'linear-gradient(135deg, #8b5cf6, #d946ef)',
                             color: '#fff',
                             border: 'none',
@@ -543,13 +428,138 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                             display: 'flex',
                             alignItems: 'center',
                             gap: '6px',
-                            boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)'
+                            boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
+                            whiteSpace: 'nowrap'
                         }}
                     >
-                        <Bell size={15} />
-                        <span>Recipients</span>
+                        <Bell size={16} />
+                        <span>Alert Recipients</span>
                     </button>
                 </div>
+            </div>
+
+            {/* Row 2: Dedicated Filter Toolbar (On a Separate Line) */}
+            <div className="glass-panel" style={{
+                padding: '12px 20px',
+                borderRadius: '12px',
+                background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.2)',
+                border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                flexWrap: 'wrap'
+            }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: isLight ? '#64748b' : 'var(--text-secondary)' }}>Filters:</span>
+
+                {/* Search Input */}
+                <div style={{ position: 'relative', width: '220px' }}>
+                    <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: isLight ? '#94a3b8' : 'var(--text-secondary)' }} />
+                    <input
+                        type="text"
+                        placeholder="Filter incidents..."
+                        value={searchQuery}
+                        onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                        style={{
+                            width: '100%',
+                            padding: '6px 10px 6px 30px',
+                            borderRadius: '8px',
+                            fontSize: '0.8rem',
+                            border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
+                            background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.2)',
+                            color: isLight ? '#0f172a' : '#fff',
+                            outline: 'none'
+                        }}
+                    />
+                </div>
+
+                {/* Severity Filter */}
+                <select
+                    value={selectedSeverityFilter}
+                    onChange={(e) => { setSelectedSeverityFilter(e.target.value); setCurrentPage(1); }}
+                    style={{
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
+                        background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.2)',
+                        color: isLight ? '#0f172a' : '#fff',
+                        outline: 'none',
+                        cursor: 'pointer'
+                    }}
+                >
+                    <option value="ALL">All Severities</option>
+                    <option value="P1_CRITICAL">Critical (P1)</option>
+                    <option value="P2_HIGH">High (P2)</option>
+                    <option value="P3_MEDIUM">Medium (P3)</option>
+                    <option value="P4_LOW">Low (P4)</option>
+                </select>
+
+                {/* Status Filter */}
+                <select
+                    value={selectedStatusFilter}
+                    onChange={(e) => { setSelectedStatusFilter(e.target.value); setCurrentPage(1); }}
+                    style={{
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
+                        background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.2)',
+                        color: isLight ? '#0f172a' : '#fff',
+                        outline: 'none',
+                        cursor: 'pointer'
+                    }}
+                >
+                    <option value="ALL">All Statuses</option>
+                    <option value="triggered">Triggered</option>
+                    <option value="acknowledged">Acknowledged</option>
+                    <option value="resolved">Resolved</option>
+                </select>
+
+                {/* Environment Filter */}
+                <select
+                    value={selectedEnvFilter}
+                    onChange={(e) => { setSelectedEnvFilter(e.target.value); setCurrentPage(1); }}
+                    style={{
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        fontSize: '0.8rem',
+                        border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
+                        background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.2)',
+                        color: isLight ? '#0f172a' : '#fff',
+                        outline: 'none',
+                        cursor: 'pointer'
+                    }}
+                >
+                    <option value="ALL">All Envs</option>
+                    <option value="dev">DEV</option>
+                    <option value="qa">QA</option>
+                    <option value="prod">PROD</option>
+                </select>
+
+                {(searchQuery || selectedSeverityFilter !== 'ALL' || selectedStatusFilter !== 'ALL' || selectedEnvFilter !== 'ALL') && (
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setSearchQuery('');
+                            setSelectedSeverityFilter('ALL');
+                            setSelectedStatusFilter('ALL');
+                            setSelectedEnvFilter('ALL');
+                            setCurrentPage(1);
+                        }}
+                        style={{
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            fontSize: '0.78rem',
+                            fontWeight: 600,
+                            background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.15)',
+                            color: '#ef4444',
+                            border: 'none',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Reset Filters
+                    </button>
+                )}
             </div>
 
             {/* Incidents Data Table */}

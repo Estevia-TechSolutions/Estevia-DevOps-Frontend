@@ -952,21 +952,14 @@ const Step1Content: React.FC<Step1ContentProps> = ({
             </div>
           )}
 
-          {/* ── Repository deployment warning ── */}
+          {/* ── Repository deployment warning (Separate message per checked Target Branch) ── */}
           {(() => {
-            if (!selectedRepo) return null;
+            if (!selectedRepo || !selectedBranches || selectedBranches.length === 0) return null;
 
-            // 1. If no target branches are checked in selectedBranches, hide warning message immediately
-            // 1. If no target branches are checked in selectedBranches, hide warning message immediately
-            if (!selectedBranches || selectedBranches.length === 0) {
-              return null;
-            }
-
-            // 100% Dynamic Token Extraction & Overlap Algorithm (Zero Hardcoding)
+            // Dynamic Token Extraction & Overlap Algorithm (Zero Hardcoding)
             const extractTokens = (str?: string) => {
               if (!str) return [];
               const raw = (str || '').toLowerCase().replace(/\.git$/, '').split('/').filter(Boolean).pop() || '';
-              // Exclude standard environment designations
               const envTokens = new Set(['dev', 'qa', 'prod', 'production', 'staging', 'test', 'swa', 'aca', 'azure', 'refs', 'heads']);
               return raw
                 .split(/[^a-z0-9]+/)
@@ -975,42 +968,39 @@ const Step1Content: React.FC<Step1ContentProps> = ({
 
             const repoTokens = extractTokens(selectedRepo);
 
-            // 2. Dynamic matching against applications and Azure resources
-            const matchingApp = apps.find(a => {
-              // Direct URL comparison if available
-              const repoUrls = [
-                a.repositoryUrl,
-                (a as any).repo_url,
-                (a as any).gitUrl,
-                a.azureResourceDetails?.repoUrl,
-                a.azureResourceDetails?.repo_url
-              ].filter(Boolean).map(u => (u || '').toLowerCase().replace(/\.git$/, '').split('/').filter(Boolean).pop() || '');
+            // Find deployed matches for EACH selected target branch distinctly
+            const branchMatches = selectedBranches.map(selBranch => {
+              const cleanSel = selBranch.replace('refs/heads/', '').toLowerCase();
+              const isMain = ['main', 'master', 'prod', 'production', 'live'].includes(cleanSel);
+              const isDev = ['dev', 'development', 'develop'].includes(cleanSel);
+              const isQA = ['qa', 'staging', 'uat', 'test', 'testing'].includes(cleanSel);
 
-              const repoSlug = (selectedRepo || '').toLowerCase().replace(/\.git$/, '').split('/').filter(Boolean).pop() || '';
-              const directMatch = repoSlug && repoUrls.some(u => u === repoSlug);
+              const matchingApp = apps.find(a => {
+                const repoUrls = [
+                  a.repositoryUrl,
+                  (a as any).repo_url,
+                  (a as any).gitUrl,
+                  a.azureResourceDetails?.repoUrl,
+                  a.azureResourceDetails?.repo_url
+                ].filter(Boolean).map(u => (u || '').toLowerCase().replace(/\.git$/, '').split('/').filter(Boolean).pop() || '');
 
-              if (!directMatch) {
-                // Dynamic Token Overlap Matching
-                const appTokens = extractTokens(a.name);
-                const appRepoTokens = repoUrls.flatMap(u => extractTokens(u));
-                const allAppTokens = Array.from(new Set([...appTokens, ...appRepoTokens]));
+                const repoSlug = (selectedRepo || '').toLowerCase().replace(/\.git$/, '').split('/').filter(Boolean).pop() || '';
+                const directMatch = repoSlug && repoUrls.some(u => u === repoSlug);
 
-                // Check for significant domain token overlap (ignoring generic company org prefix)
-                const commonTokens = repoTokens.filter(t => allAppTokens.includes(t) && t !== 'estevia');
-                if (commonTokens.length === 0) return false;
-              }
+                if (!directMatch) {
+                  const appTokens = extractTokens(a.name);
+                  const appRepoTokens = repoUrls.flatMap(u => extractTokens(u));
+                  const allAppTokens = Array.from(new Set([...appTokens, ...appRepoTokens]));
 
-              const rawBranch = ((a as any).branch || (a as any).gitBranch || a.azureResourceDetails?.branch || a.azureResourceDetails?.targetBranch || '').replace('refs/heads/', '').toLowerCase();
-              const rawEnv = (a.environment || a.azureResourceDetails?.environment || '').toLowerCase();
-              const appNameLow = (a.name || '').toLowerCase();
-              const appRepoUrlLow = (a.repositoryUrl || (a as any).repo_url || (a as any).gitUrl || '').toLowerCase();
-              const combinedText = `${rawBranch} ${rawEnv} ${appNameLow} ${appRepoUrlLow}`;
+                  const commonTokens = repoTokens.filter(t => allAppTokens.includes(t) && t !== 'estevia');
+                  if (commonTokens.length === 0) return false;
+                }
 
-              return selectedBranches.some(selBranch => {
-                const cleanSel = selBranch.replace('refs/heads/', '').toLowerCase();
-                const isMain = ['main', 'master', 'prod', 'production', 'live'].includes(cleanSel);
-                const isDev = ['dev', 'development', 'develop'].includes(cleanSel);
-                const isQA = ['qa', 'staging', 'uat', 'test', 'testing'].includes(cleanSel);
+                const rawBranch = ((a as any).branch || (a as any).gitBranch || a.azureResourceDetails?.branch || a.azureResourceDetails?.targetBranch || '').replace('refs/heads/', '').toLowerCase();
+                const rawEnv = (a.environment || a.azureResourceDetails?.environment || '').toLowerCase();
+                const appNameLow = (a.name || '').toLowerCase();
+                const appRepoUrlLow = (a.repositoryUrl || (a as any).repo_url || (a as any).gitUrl || '').toLowerCase();
+                const combinedText = `${rawBranch} ${rawEnv} ${appNameLow} ${appRepoUrlLow}`;
 
                 if (isMain) {
                   return ['prod', 'production', 'live', 'main', 'master'].some(term => combinedText.includes(term));
@@ -1023,37 +1013,58 @@ const Step1Content: React.FC<Step1ContentProps> = ({
                 }
                 return rawBranch === cleanSel || rawEnv === cleanSel;
               });
-            });
 
-            if (!matchingApp) return null;
+              if (!matchingApp) return null;
 
-            const appBranch = (matchingApp as any).branch || (matchingApp as any).gitBranch || matchingApp.azureResourceDetails?.branch || matchingApp.azureResourceDetails?.targetBranch || 'main';
-            const appBranchClean = appBranch.replace('refs/heads/', '').toLowerCase();
-            const targetBranchDisplay = selectedBranches.find(b => {
-              const c = b.replace('refs/heads/', '').toLowerCase();
-              return c === appBranchClean || ((c === 'main' || c === 'master' || c === 'prod') && (appBranchClean === 'main' || appBranchClean === 'master' || appBranchClean === 'prod'));
-            }) || selectedBranches[0] || 'main';
+              const resId = matchingApp.resourceId || matchingApp.azureResourceDetails?.resourceId || '';
+              const subIdMatch = resId.match(/\/subscriptions\/([^\/]+)/i);
+              const rgMatch = resId.match(/\/resourceGroups\/([^\/]+)/i);
+              const subId = subIdMatch ? subIdMatch[1] : (matchingApp.subscriptionId || matchingApp.azureResourceDetails?.subscriptionId || '');
+              const rgName = rgMatch ? rgMatch[1] : (matchingApp.resourceGroup || matchingApp.azureResourceDetails?.resourceGroup || 'Target Resource Group');
 
-            const resId = matchingApp.resourceId || matchingApp.azureResourceDetails?.resourceId || '';
-            const subIdMatch = resId.match(/\/subscriptions\/([^\/]+)/i);
-            const rgMatch = resId.match(/\/resourceGroups\/([^\/]+)/i);
-            const subId = subIdMatch ? subIdMatch[1] : (matchingApp.subscriptionId || matchingApp.azureResourceDetails?.subscriptionId || '');
-            const rgName = rgMatch ? rgMatch[1] : (matchingApp.resourceGroup || matchingApp.azureResourceDetails?.resourceGroup || 'Target Resource Group');
+              const matchingSub = subscriptionsList.find(s => s.id.toLowerCase() === subId.toLowerCase());
+              const subName = matchingSub ? matchingSub.displayName : (subId || 'Selected Subscription');
 
-            const matchingSub = subscriptionsList.find(s => s.id.toLowerCase() === subId.toLowerCase());
-            const subName = matchingSub ? matchingSub.displayName : (subId || 'Selected Subscription');
+              const isSameScope = selectedProvisionSubscriptionId && subId && selectedProvisionSubscriptionId.toLowerCase() === subId.toLowerCase();
 
-            const isSameScope = selectedProvisionSubscriptionId && subId && selectedProvisionSubscriptionId.toLowerCase() === subId.toLowerCase();
+              return {
+                branchName: selBranch,
+                matchingApp,
+                subName,
+                rgName,
+                isSameScope
+              };
+            }).filter(Boolean) as Array<{
+              branchName: string;
+              matchingApp: any;
+              subName: string;
+              rgName: string;
+              isSameScope: boolean;
+            }>;
+
+            if (branchMatches.length === 0) return null;
 
             return (
-              <div className="glass-panel" style={{ padding: '14px 16px', borderColor: isSameScope ? 'var(--warning)' : '#3b82f6', backgroundColor: isSameScope ? 'var(--warning-bg)' : 'rgba(59, 130, 246, 0.08)', marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                <AlertTriangle size={16} style={{ color: isSameScope ? 'var(--warning)' : '#60a5fa', flexShrink: 0, marginTop: '2px' }} />
-                <div style={{ fontSize: '0.87rem', lineHeight: 1.5, color: 'var(--text-primary)' }}>
-                  <strong style={{ color: isSameScope ? 'var(--warning)' : '#60a5fa' }}>
-                    {isSameScope ? `Already Deployed (branch: ${targetBranchDisplay}) in Selected Scope:` : `Already Deployed (branch: ${targetBranchDisplay}) in Another Scope:`}
-                  </strong>{' '}
-                  Branch <code style={{ background: 'var(--divider)', padding: '1px 5px', borderRadius: '4px', fontSize: '0.82rem' }}>{targetBranchDisplay}</code> of repository <strong>{selectedRepo}</strong> is currently deployed in subscription <strong>{subName}</strong>, resource group <strong>{rgName}</strong> (application: <strong>{matchingApp.name}</strong>). {isSameScope ? 'Deploying again in the same scope creates a duplicate.' : 'Provisioning here will create a separate target environment instance.'}
-                </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+                {branchMatches.map(m => (
+                  <div key={m.branchName} className="glass-panel" style={{
+                    padding: '14px 16px',
+                    borderColor: m.isSameScope ? 'var(--warning)' : '#3b82f6',
+                    backgroundColor: m.isSameScope ? 'var(--warning-bg)' : 'rgba(59, 130, 246, 0.08)',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    borderRadius: '8px'
+                  }}>
+                    <AlertTriangle size={16} style={{ color: m.isSameScope ? 'var(--warning)' : '#60a5fa', flexShrink: 0, marginTop: '2px' }} />
+                    <div style={{ fontSize: '0.87rem', lineHeight: 1.5, color: 'var(--text-primary)' }}>
+                      <strong style={{ color: m.isSameScope ? 'var(--warning)' : '#60a5fa' }}>
+                        {m.isSameScope ? `Already Deployed (branch: ${m.branchName}) in Selected Scope:` : `Already Deployed (branch: ${m.branchName}) in Another Scope:`}
+                      </strong>{' '}
+                      Target branch <code style={{ background: 'var(--divider)', padding: '1px 5px', borderRadius: '4px', fontSize: '0.82rem' }}>{m.branchName}</code> of repository <strong>{selectedRepo}</strong> is currently active in subscription <strong>{m.subName}</strong>, resource group <strong>{m.rgName}</strong> (application: <strong>{m.matchingApp.name}</strong>). {m.isSameScope ? 'Deploying this branch again in the same scope creates a duplicate target.' : 'Provisioning here will create a separate target environment instance.'}
+                    </div>
+                  </div>
+                ))}
               </div>
             );
           })()}
