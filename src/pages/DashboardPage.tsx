@@ -3464,7 +3464,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                 )}
                                               </div>
                                               {item.dnsDetails?.fqdn && (() => {
-                                                const fqdns = item.dnsDetails.fqdns || [item.dnsDetails.fqdn];
+                                                const fqdns = Array.isArray(item.dnsDetails.fqdns)
+                                                  ? item.dnsDetails.fqdns
+                                                  : (typeof item.dnsDetails.fqdns === 'string' && item.dnsDetails.fqdns
+                                                    ? [item.dnsDetails.fqdns]
+                                                    : [item.dnsDetails.fqdn]);
                                                 return (
                                                   <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
                                                     <Globe size={12} style={{ opacity: 0.7, color: 'var(--accent-purple)', flexShrink: 0 }} />
@@ -7412,7 +7416,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid var(--glass-border)' }}>
                     <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Current Domain Mapping:</span>
                     <strong style={{ fontSize: '0.84rem', color: 'var(--accent-purple)' }}>
-                      {bgDrawerApp.dnsDetails?.fqdns && bgDrawerApp.dnsDetails.fqdns.length > 0 ? bgDrawerApp.dnsDetails.fqdns.join(', ') : (bgDrawerApp.dnsDetails?.fqdn || 'No custom domain bound yet')}
+                      {(Array.isArray(bgDrawerApp.dnsDetails?.fqdns) && bgDrawerApp.dnsDetails.fqdns.length > 0) ? bgDrawerApp.dnsDetails.fqdns.join(', ') : (typeof bgDrawerApp.dnsDetails?.fqdns === 'string' ? bgDrawerApp.dnsDetails.fqdns : (bgDrawerApp.dnsDetails?.fqdn || 'No custom domain bound yet'))}
                     </strong>
                   </div>
 
@@ -7447,7 +7451,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                           <option value="">-- Choose target app --</option>
                           {targets.map(t => (
                             <option key={t.name} value={t.name}>
-                              {t.name} ({t.dnsDetails?.fqdns && t.dnsDetails.fqdns.length > 0 ? t.dnsDetails.fqdns.join(', ') : t.dnsDetails?.fqdn})
+                              {t.name} ({(Array.isArray(t.dnsDetails?.fqdns) && t.dnsDetails.fqdns.length > 0) ? t.dnsDetails.fqdns.join(', ') : (typeof t.dnsDetails?.fqdns === 'string' ? t.dnsDetails.fqdns : t.dnsDetails?.fqdn)})
                             </option>
                           ))}
                         </select>
@@ -7617,7 +7621,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                       gap: '8px',
                       margin: 0
                     }}>
-                      {viewScrapedConfig.searchedFiles && viewScrapedConfig.searchedFiles.length > 0 ? (
+                      {Array.isArray(viewScrapedConfig.searchedFiles) && viewScrapedConfig.searchedFiles.length > 0 ? (
                         viewScrapedConfig.searchedFiles.map((file, idx) => (
                           <div key={idx} style={{
                             display: 'flex',
