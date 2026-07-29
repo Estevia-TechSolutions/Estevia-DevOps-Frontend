@@ -393,7 +393,7 @@ export const CostPage: React.FC<CostPageProps> = ({
   // Fetch Azure Infrastructure Cloud Bills
   React.useEffect(() => {
     const fetchAzureBills = async () => {
-      const url = `${API_BASE}/apps/cost/azure-bills?organizationId=${organizationId}`;
+      const url = `${API_BASE}/apps/cost/azure-bills?organizationId=${organizationId}&subscriptionId=${selectedSubscriptionId}`;
       console.log(`[BillingFetch] Starting Azure Cloud Bills fetch request. URL: ${url}`);
       setLoadingAzureBills(true);
       try {
@@ -433,7 +433,7 @@ export const CostPage: React.FC<CostPageProps> = ({
       }
     };
     fetchAzureBills();
-  }, [API_BASE, organizationId]);
+  }, [API_BASE, organizationId, selectedSubscriptionId]);
 
   // Compute Forecast strictly from Azure Cloud Bills baseline
   React.useEffect(() => {

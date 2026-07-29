@@ -7093,188 +7093,230 @@ function App() {
 
                   {/* Subscription & Resource Group Selector */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
-                    {subscriptionsList && subscriptionsList.length > 0 && (
-                      <div ref={scopeDropdownRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '10px', whiteSpace: 'nowrap' }}>
-                        <style>{`
-                          .scope-dropdown-item {
-                            display: flex;
-                            align-items: center;
-                            justify-content: space-between;
-                            padding: 9px 18px 9px 24px;
-                            color: var(--text-secondary);
-                            font-size: 0.8rem;
-                            font-weight: 500;
-                            cursor: pointer;
-                            transition: all 0.15s ease;
-                          }
-                          .scope-dropdown-item:hover {
-                            background-color: rgba(255, 255, 255, 0.04);
-                            color: var(--text-primary);
-                            padding-left: 28px;
-                          }
-                          .scope-dropdown-item.selected {
-                            background-color: rgba(139, 92, 246, 0.08);
-                            color: #a78bfa;
-                            font-weight: 700;
-                          }
-                          .scope-dropdown-scrollbar::-webkit-scrollbar {
-                            width: 6px;
-                          }
-                          .scope-dropdown-scrollbar::-webkit-scrollbar-track {
-                            background: transparent;
-                          }
-                          .scope-dropdown-scrollbar::-webkit-scrollbar-thumb {
-                            background: rgba(255, 255, 255, 0.1);
-                            border-radius: 3px;
-                          }
-                          .scope-dropdown-scrollbar::-webkit-scrollbar-thumb:hover {
-                            background: rgba(255, 255, 255, 0.2);
-                          }
-                        `}</style>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>Target Scope:</span>
-                        
-                        {/* Selector Trigger Button */}
-                        <div
-                          onClick={() => setIsScopeDropdownOpen(!isScopeDropdownOpen)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '6px 14px',
-                            fontSize: '0.8rem',
-                            fontWeight: 650,
-                            borderRadius: '8px',
-                            border: '1px solid rgba(255, 255, 255, 0.08)',
-                            backgroundColor: isScopeDropdownOpen ? 'rgba(15, 23, 42, 0.65)' : 'rgba(15, 23, 42, 0.4)',
-                            color: 'var(--text-primary)',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            userSelect: 'none',
-                            maxWidth: '360px',
-                            justifyContent: 'space-between',
-                            boxShadow: isScopeDropdownOpen ? '0 0 12px rgba(139, 92, 246, 0.15)' : 'none'
-                          }}
-                        >
-                          <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', marginRight: '4px' }}>
-                            {currentSub ? currentSub.displayName : selectedSubscriptionId} / {selectedControlResourceGroup}
-                          </span>
-                          <ChevronDown 
-                            size={14} 
-                            style={{ 
-                              color: 'var(--text-secondary)', 
-                              transition: 'transform 0.2s ease', 
-                              transform: isScopeDropdownOpen ? 'rotate(180deg)' : 'rotate(0)' 
-                            }} 
-                          />
-                        </div>
-
-                        {/* Custom Dropdown Panel */}
-                        {isScopeDropdownOpen && (
-                          <div 
-                            className="scope-dropdown-scrollbar"
+                    {subscriptionsList && subscriptionsList.length > 0 && (() => {
+                      const isLight = theme === 'light';
+                      const triggerBg = isLight 
+                        ? (isScopeDropdownOpen ? 'rgba(0, 0, 0, 0.06)' : 'rgba(0, 0, 0, 0.03)') 
+                        : (isScopeDropdownOpen ? 'rgba(15, 23, 42, 0.65)' : 'rgba(15, 23, 42, 0.4)');
+                      const triggerBorder = isLight 
+                        ? '1px solid rgba(0, 0, 0, 0.08)' 
+                        : '1px solid rgba(255, 255, 255, 0.08)';
+                      const triggerShadow = isLight && isScopeDropdownOpen 
+                        ? '0 0 12px rgba(124, 58, 237, 0.15)' 
+                        : (!isLight && isScopeDropdownOpen) 
+                          ? '0 0 12px rgba(139, 92, 246, 0.15)' 
+                          : 'none';
+                      const panelBg = isLight ? 'rgba(255, 255, 255, 0.96)' : 'rgba(15, 23, 42, 0.95)';
+                      const panelBorder = isLight ? '1px solid rgba(0, 0, 0, 0.08)' : '1px solid rgba(255, 255, 255, 0.08)';
+                      const panelShadow = isLight
+                        ? '0 20px 25px -5px rgba(0,0,0,0.06), 0 10px 10px -5px rgba(0,0,0,0.03)'
+                        : '0 20px 25px -5px rgba(0,0,0,0.5), 0 10px 10px -5px rgba(0,0,0,0.5)';
+                      const subHeaderBg = isLight ? 'rgba(0, 0, 0, 0.02)' : 'rgba(255, 255, 255, 0.01)';
+                      const subHeaderBorder = isLight ? '1px solid rgba(0, 0, 0, 0.04)' : '1px solid rgba(255, 255, 255, 0.03)';
+                      
+                      return (
+                        <div ref={scopeDropdownRef} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px', whiteSpace: 'nowrap' }}>
+                          <style>{`
+                            .scope-dropdown-item {
+                              display: flex;
+                              align-items: center;
+                              justify-content: space-between;
+                              padding: 9px 18px 9px 24px;
+                              color: var(--text-secondary);
+                              font-size: 0.8rem;
+                              font-weight: 500;
+                              cursor: pointer;
+                              transition: all 0.15s ease;
+                            }
+                            .scope-dropdown-item:hover {
+                              background-color: ${isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.04)'};
+                              color: var(--text-primary);
+                              padding-left: 28px;
+                            }
+                            .scope-dropdown-item.selected {
+                              background-color: ${isLight ? 'rgba(124, 58, 237, 0.08)' : 'rgba(139, 92, 246, 0.08)'};
+                              color: ${isLight ? '#7c3aed' : '#a78bfa'};
+                              font-weight: 700;
+                            }
+                            .scope-dropdown-scrollbar::-webkit-scrollbar {
+                              width: 6px;
+                            }
+                            .scope-dropdown-scrollbar::-webkit-scrollbar-track {
+                              background: transparent;
+                            }
+                            .scope-dropdown-scrollbar::-webkit-scrollbar-thumb {
+                              background: ${isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)'};
+                              border-radius: 3px;
+                            }
+                            .scope-dropdown-scrollbar::-webkit-scrollbar-thumb:hover {
+                              background: ${isLight ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.2)'};
+                            }
+                          `}</style>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Target Scope</span>
+                          
+                          {/* Selector Trigger Button */}
+                          <div
+                            onClick={() => setIsScopeDropdownOpen(!isScopeDropdownOpen)}
                             style={{
-                              position: 'absolute',
-                              top: 'calc(100% + 8px)',
-                              right: 0,
-                              width: '380px',
-                              maxHeight: '350px',
-                              overflowY: 'auto',
-                              zIndex: 1000,
-                              borderRadius: '12px',
-                              border: '1px solid rgba(255, 255, 255, 0.08)',
-                              backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                              backdropFilter: 'blur(20px)',
-                              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5), 0 10px 10px -5px rgba(0,0,0,0.5)',
-                              padding: '10px 0',
-                              animation: 'fade-in-anim 0.15s ease-out'
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '12px',
+                              padding: '8px 16px',
+                              borderRadius: '10px',
+                              border: triggerBorder,
+                              backgroundColor: triggerBg,
+                              color: 'var(--text-primary)',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                              userSelect: 'none',
+                              width: '320px',
+                              justifyContent: 'space-between',
+                              boxShadow: triggerShadow
                             }}
                           >
-                            {subscriptionsList.map((sub) => {
-                              const isActive = sub.status === 'active';
-                              const isWarned = sub.status === 'warned';
-                              const statusColor = isActive ? '#22c55e' : isWarned ? '#f59e0b' : '#64748b';
-                              return (
-                                <div key={sub.id} style={{ display: 'flex', flexDirection: 'column' }}>
-                                  {/* Subscription Header */}
-                                  <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    padding: '8px 16px',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.01)',
-                                    borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
-                                    marginTop: '4px'
-                                  }}>
-                                    <span style={{
-                                      fontSize: '0.72rem',
-                                      fontWeight: 700,
-                                      color: '#94a3b8',
-                                      textTransform: 'uppercase',
-                                      letterSpacing: '0.04em',
-                                      textOverflow: 'ellipsis',
-                                      overflow: 'hidden',
-                                      whiteSpace: 'nowrap',
-                                      maxWidth: '260px'
-                                    }}>
-                                      {sub.displayName}
-                                    </span>
-                                    
-                                    {/* Status Badge */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                      <span style={{
-                                        width: '6px',
-                                        height: '6px',
-                                        borderRadius: '50%',
-                                        backgroundColor: statusColor,
-                                        boxShadow: `0 0 6px ${statusColor}`
-                                      }} />
-                                      <span style={{ fontSize: '0.68rem', color: '#64748b', textTransform: 'capitalize', fontWeight: 600 }}>
-                                        {sub.status}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  {/* Resource Groups */}
-                                  {(sub.resourceGroups || []).map((rg: string) => {
-                                    const isSelected = selectedSubscriptionId === sub.id && selectedControlResourceGroup === rg;
-                                    return (
-                                      <div
-                                        key={`${sub.id}/${rg}`}
-                                        className={`scope-dropdown-item ${isSelected ? 'selected' : ''}`}
-                                        onClick={() => {
-                                          setSelectedSubscriptionId(sub.id);
-                                          localStorage.setItem('selectedControlSubscriptionId', sub.id);
-                                          
-                                          const matchedSub = subscriptionsList.find(s => s.id === sub.id);
-                                          const rgs = matchedSub ? matchedSub.resourceGroups || [] : [];
-                                          setControlResourceGroups(rgs);
-                                          
-                                          setSelectedControlResourceGroup(rg);
-                                          localStorage.setItem('selectedControlResourceGroup', rg);
-                                          
-                                          setIsScopeDropdownOpen(false);
-                                          handleScan(rg, false, false, sub.id);
-                                        }}
-                                      >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                          <Database size={13} style={{ opacity: isSelected ? 1 : 0.4, color: isSelected ? '#a78bfa' : 'inherit' }} />
-                                          <span>{rg}</span>
-                                        </div>
-                                        {rg === primaryResourceGroup && (
-                                          <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', color: '#64748b', fontWeight: 600 }}>
-                                            Primary
-                                          </span>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              );
-                            })}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', textAlign: 'left', overflow: 'hidden' }}>
+                              <div style={{
+                                fontSize: '0.66rem',
+                                fontWeight: 700,
+                                color: isLight ? 'rgba(0, 0, 0, 0.45)' : '#94a3b8',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.04em',
+                                textOverflow: 'ellipsis',
+                                overflow: 'hidden',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {currentSub ? currentSub.displayName : selectedSubscriptionId}
+                              </div>
+                              <div style={{
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                                color: 'var(--text-primary)',
+                                textOverflow: 'ellipsis',
+                                overflow: 'hidden',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {selectedControlResourceGroup}
+                              </div>
+                            </div>
+                            <ChevronDown 
+                              size={14} 
+                              style={{ 
+                                color: 'var(--text-secondary)', 
+                                transition: 'transform 0.2s ease', 
+                                transform: isScopeDropdownOpen ? 'rotate(180deg)' : 'rotate(0)',
+                                flexShrink: 0
+                              }} 
+                            />
                           </div>
-                        )}
-                      </div>
-                    )}
+
+                          {/* Custom Dropdown Panel */}
+                          {isScopeDropdownOpen && (
+                            <div 
+                              className="scope-dropdown-scrollbar"
+                              style={{
+                                position: 'absolute',
+                                top: 'calc(100% + 8px)',
+                                right: 0,
+                                width: '380px',
+                                maxHeight: '350px',
+                                overflowY: 'auto',
+                                zIndex: 1000,
+                                borderRadius: '12px',
+                                border: panelBorder,
+                                backgroundColor: panelBg,
+                                backdropFilter: 'blur(20px)',
+                                boxShadow: panelShadow,
+                                padding: '10px 0',
+                                animation: 'fade-in-anim 0.15s ease-out'
+                              }}
+                            >
+                              {subscriptionsList.map((sub) => {
+                                const isActive = sub.status === 'active';
+                                const isRestricted = sub.status === 'restricted';
+                                const statusColor = isActive ? '#22c55e' : isRestricted ? '#f59e0b' : '#64748b';
+                                return (
+                                  <div key={sub.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                                    {/* Subscription Header */}
+                                    <div style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      padding: '8px 16px',
+                                      backgroundColor: subHeaderBg,
+                                      borderBottom: subHeaderBorder,
+                                      marginTop: '4px'
+                                    }}>
+                                      <span style={{
+                                        fontSize: '0.72rem',
+                                        fontWeight: 700,
+                                        color: isLight ? 'rgba(0, 0, 0, 0.55)' : '#94a3b8',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.04em',
+                                        textOverflow: 'ellipsis',
+                                        overflow: 'hidden',
+                                        whiteSpace: 'nowrap',
+                                        maxWidth: '260px'
+                                      }}>
+                                        {sub.displayName}
+                                      </span>
+                                      
+                                      {/* Status Badge */}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                        <span style={{
+                                          width: '6px',
+                                          height: '6px',
+                                          borderRadius: '50%',
+                                          backgroundColor: statusColor,
+                                          boxShadow: `0 0 6px ${statusColor}`
+                                        }} />
+                                        <span style={{ fontSize: '0.68rem', color: isLight ? 'rgba(0, 0, 0, 0.45)' : '#64748b', textTransform: 'capitalize', fontWeight: 600 }}>
+                                          {sub.status}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* Resource Groups */}
+                                    {(sub.resourceGroups || []).map((rg: string) => {
+                                      const isSelected = selectedSubscriptionId === sub.id && selectedControlResourceGroup === rg;
+                                      return (
+                                        <div
+                                          key={`${sub.id}/${rg}`}
+                                          className={`scope-dropdown-item ${isSelected ? 'selected' : ''}`}
+                                          onClick={() => {
+                                            setSelectedSubscriptionId(sub.id);
+                                            localStorage.setItem('selectedControlSubscriptionId', sub.id);
+                                            
+                                            const matchedSub = subscriptionsList.find(s => s.id === sub.id);
+                                            const rgs = matchedSub ? matchedSub.resourceGroups || [] : [];
+                                            setControlResourceGroups(rgs);
+                                            
+                                            setSelectedControlResourceGroup(rg);
+                                            localStorage.setItem('selectedControlResourceGroup', rg);
+                                            
+                                            setIsScopeDropdownOpen(false);
+                                            handleScan(rg, false, false, sub.id);
+                                          }}
+                                        >
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Database size={13} style={{ opacity: isSelected ? 1 : 0.4, color: isSelected ? (isLight ? '#7c3aed' : '#a78bfa') : 'inherit' }} />
+                                            <span>{rg}</span>
+                                          </div>
+                                          {rg === primaryResourceGroup && (
+                                            <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)', color: isLight ? 'rgba(0,0,0,0.45)' : '#64748b', fontWeight: 600 }}>
+                                              Primary
+                                            </span>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {!scanning && scanProgress === 0 && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '12px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.12)', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
@@ -8302,6 +8344,7 @@ function App() {
               leftColHeight={leftColHeight}
               currentUser={user}
               theme={theme}
+              isSubscriptionInactive={isCurrentSubscriptionInactive}
             />
           </div>
         )}

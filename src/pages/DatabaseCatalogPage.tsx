@@ -73,6 +73,7 @@ interface DatabaseCatalogPageProps {
   API_BASE: string;
   currentUser?: { role: string; name?: string; email?: string } | null;
   theme: 'dark' | 'light';
+  isSubscriptionInactive?: boolean;
 
   // Handlers
   handleDeployDb: (e: React.FormEvent) => void;
@@ -150,7 +151,8 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
   leftColRef,
   leftColHeight,
   currentUser,
-  theme
+  theme,
+  isSubscriptionInactive = false
 }) => {
 
   const isViewer = currentUser?.role === 'viewer';
@@ -487,6 +489,20 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
             {/* Quick Create Schema */}
             <div style={{ borderTop: '1px solid var(--divider)', paddingTop: '16px', marginTop: '16px' }}>
               <h4 style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px' }}>Create New Schema</h4>
+              {isSubscriptionInactive && (
+                <div style={{
+                  fontSize: '0.75rem',
+                  color: '#fbbf24',
+                  background: 'rgba(245, 158, 11, 0.1)',
+                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                  borderRadius: '6px',
+                  padding: '8px 10px',
+                  marginBottom: '10px',
+                  lineHeight: '1.4'
+                }}>
+                  ⚠️ Schema provisioning is disabled because the subscription is inactive.
+                </div>
+              )}
               {deployDbSuccess && <div style={{ fontSize: '0.75rem', color: 'var(--success)', marginBottom: '8px' }}>{deployDbSuccess}</div>}
               {deployDbError && <div style={{ fontSize: '0.75rem', color: 'var(--error)', marginBottom: '8px' }}>{deployDbError}</div>}
               <form onSubmit={handleDeployDb} style={{ display: 'flex', gap: '8px' }}>
@@ -502,12 +518,12 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                     height: '32px'
                   }}
                   required
-                  disabled={isViewer}
+                  disabled={isViewer || isSubscriptionInactive}
                 />
                 <button
                   type="submit"
                   className="btn-primary"
-                  disabled={isViewer || deployingDb || !newDbName}
+                  disabled={isViewer || isSubscriptionInactive || deployingDb || !newDbName}
                   style={{ padding: '0 12px', fontSize: '0.8rem', height: '32px', display: 'flex', alignItems: 'center', gap: '4px' }}
                 >
                   {deployingDb ? <RefreshCw size={12} className="spin-anim" /> : <PlusCircle size={12} />}
@@ -753,11 +769,11 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    cursor: isViewer ? 'not-allowed' : 'pointer',
-                                    opacity: isViewer ? 0.4 : 1
+                                    cursor: (isViewer || isSubscriptionInactive) ? 'not-allowed' : 'pointer',
+                                    opacity: (isViewer || isSubscriptionInactive) ? 0.4 : 1
                                   }}
-                                  disabled={isViewer}
-                                  title={isViewer ? "Drop Table (Viewer is read-only)" : "Drop Table"}
+                                  disabled={isViewer || isSubscriptionInactive}
+                                  title={isViewer ? "Drop Table (Viewer is read-only)" : isSubscriptionInactive ? "Drop Table (Subscription is inactive)" : "Drop Table"}
                                 >
                                   <Trash2 size={12} />
                                 </button>
@@ -775,7 +791,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                     value={alterNewColName}
                                     onChange={(e) => setAlterNewColName(e.target.value)}
                                     style={{ fontSize: '0.78rem', height: '28px', padding: '4px 8px' }}
-                                    disabled={isViewer}
+                                    disabled={isViewer || isSubscriptionInactive}
                                   />
                                 </div>
                                 <div style={{ width: '150px' }}>
@@ -784,7 +800,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                     value={alterNewColType}
                                     onChange={(e) => setAlterNewColType(e.target.value)}
                                     style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: '0.78rem', height: '28px', outline: 'none' }}
-                                    disabled={isViewer}
+                                    disabled={isViewer || isSubscriptionInactive}
                                   >
                                     <option value="INT" style={{ background: 'var(--bg-secondary)', color: '#fff' }}>INT (Number)</option>
                                     <option value="VARCHAR(255)" style={{ background: 'var(--bg-secondary)', color: '#fff' }}>VARCHAR(255) (Text)</option>
@@ -801,15 +817,15 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                     checked={alterNewColNullable}
                                     onChange={(e) => setAlterNewColNullable(e.target.checked)}
                                     style={{ width: '14px', height: '14px', margin: 0 }}
-                                    disabled={isViewer}
+                                    disabled={isViewer || isSubscriptionInactive}
                                   />
-                                  <label htmlFor={`nullable-${tbl.table}`} style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', cursor: isViewer ? 'not-allowed' : 'pointer' }}>Nullable</label>
+                                  <label htmlFor={`nullable-${tbl.table}`} style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', cursor: (isViewer || isSubscriptionInactive) ? 'not-allowed' : 'pointer' }}>Nullable</label>
                                 </div>
                                 <button
                                   onClick={() => handleAddColumn(tbl.table)}
                                   className="btn-primary"
                                   style={{ padding: '0 12px', fontSize: '0.74rem', height: '28px' }}
-                                  disabled={isViewer || !alterNewColName.trim()}
+                                  disabled={isViewer || isSubscriptionInactive || !alterNewColName.trim()}
                                 >
                                   Add Attribute
                                 </button>
@@ -858,10 +874,10 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                                   borderColor: 'rgba(239, 68, 68, 0.2)',
                                                   color: 'var(--error)',
                                                   backgroundColor: 'rgba(239, 68, 68, 0.02)',
-                                                  cursor: isViewer ? 'not-allowed' : 'pointer',
-                                                  opacity: isViewer ? 0.4 : 1
+                                                  cursor: (isViewer || isSubscriptionInactive) ? 'not-allowed' : 'pointer',
+                                                  opacity: (isViewer || isSubscriptionInactive) ? 0.4 : 1
                                                 }}
-                                                disabled={isViewer}
+                                                disabled={isViewer || isSubscriptionInactive}
                                                 title={isViewer ? "Drop Column (Viewer is read-only)" : "Drop Column"}
                                               >
                                                 Drop
@@ -885,6 +901,20 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
 
               {dbDetailTab === 'query' && (
                 <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '16px', maxWidth: '100%', minWidth: 0 }}>
+                  {isSubscriptionInactive && (
+                    <div style={{
+                      backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                      border: '1px solid rgba(245, 158, 11, 0.2)',
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                      color: '#fbbf24',
+                      fontSize: '0.82rem',
+                      fontWeight: 500,
+                      lineHeight: '1.4'
+                    }}>
+                      ⚠️ Query execution is disabled because the subscription is inactive.
+                    </div>
+                  )}
                   {/* Console SQL editor */}
                   <div style={{ border: '1px solid var(--glass-border)', borderRadius: '8px', overflow: 'hidden', backgroundColor: 'var(--bg-secondary)' }}>
                     {/* Row 1: Title */}
@@ -900,9 +930,9 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                     {/* Row 2: Action buttons — always visible, left-aligned */}
                     <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--divider)', display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.005)' }}>
                       <button
-                        onClick={() => handleExecuteQuery(querySql)}
+                        onClick={() => !isSubscriptionInactive && handleExecuteQuery(querySql)}
                         className="btn-primary"
-                        disabled={queryExecuting || !querySql.trim()}
+                        disabled={isSubscriptionInactive || queryExecuting || !querySql.trim()}
                         style={{ padding: '4px 14px', fontSize: '0.78rem', height: '30px', display: 'flex', alignItems: 'center', gap: '5px' }}
                       >
                         {queryExecuting ? <RefreshCw size={13} className="spin-anim" /> : <Play size={13} />}
@@ -913,6 +943,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                         onClick={() => setQuerySql('')}
                         className="btn-secondary"
                         style={{ padding: '4px 12px', fontSize: '0.78rem', height: '30px' }}
+                        disabled={isSubscriptionInactive}
                       >
                         Clear
                       </button>
@@ -924,25 +955,29 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                       onChange={(e) => setQuerySql(e.target.value)}
                       placeholder="SELECT * FROM `users` WHERE `active` = 1 ORDER BY `id` DESC LIMIT 100;"
                       wrap="off"
+                      disabled={isSubscriptionInactive}
                       style={{
                         width: '100%',
                         height: '120px',
                         padding: '16px',
                         border: 'none',
                         background: 'transparent',
-                        color: 'var(--text-primary)',
+                        color: isSubscriptionInactive ? 'var(--text-secondary)' : 'var(--text-primary)',
                         fontFamily: 'Consolas, Monaco, "Andale Mono", monospace',
                         fontSize: '0.85rem',
                         lineHeight: '1.5',
                         resize: 'vertical',
                         outline: 'none',
                         overflowX: 'auto',
-                        whiteSpace: 'pre'
+                        whiteSpace: 'pre',
+                        cursor: isSubscriptionInactive ? 'not-allowed' : 'text'
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                           e.preventDefault();
-                          handleExecuteQuery(querySql);
+                          if (!isSubscriptionInactive) {
+                            handleExecuteQuery(querySql);
+                          }
                         }
                       }}
                     />
@@ -1253,6 +1288,21 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                       ⚠️ You do not have permission to create tables. Viewer role is restricted to read-only schema inspection and querying.
                     </div>
                   )}
+                  {isSubscriptionInactive && (
+                    <div style={{
+                      backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                      border: '1px solid rgba(245, 158, 11, 0.2)',
+                      borderRadius: '8px',
+                      padding: '16px',
+                      color: '#fbbf24',
+                      fontSize: '0.85rem',
+                      fontWeight: 500,
+                      marginBottom: '20px',
+                      lineHeight: '1.5'
+                    }}>
+                      ⚠️ Table creation is disabled because the subscription is inactive.
+                    </div>
+                  )}
                   {createTableError && <div style={{ color: 'var(--error)', background: 'rgba(239, 68, 68, 0.08)', padding: '12px', borderRadius: '6px', fontSize: '0.8rem', marginBottom: '12px' }}>❌ {createTableError}</div>}
                   
                   <form onSubmit={handleCreateTable}>
@@ -1266,7 +1316,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                           onChange={(e) => setNewTableName(e.target.value)}
                           required
                           style={{ height: '34px' }}
-                          disabled={isViewer}
+                          disabled={isViewer || isSubscriptionInactive}
                         />
                       </div>
 
@@ -1286,7 +1336,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                 }}
                                 required
                                 style={{ flex: 1, height: '30px', fontSize: '0.78rem', padding: '4px 8px' }}
-                                disabled={isViewer || col.isPrimary}
+                                disabled={isViewer || isSubscriptionInactive || col.isPrimary}
                               />
                               <select
                                 value={col.type}
@@ -1296,7 +1346,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                   setTableColumns(updated);
                                 }}
                                 style={{ width: '130px', height: '30px', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: '0.78rem', outline: 'none' }}
-                                disabled={isViewer || col.isPrimary}
+                                disabled={isViewer || isSubscriptionInactive || col.isPrimary}
                               >
                                 <option value="INT" style={{ background: 'var(--bg-secondary)', color: '#fff' }}>INT</option>
                                 <option value="VARCHAR(255)" style={{ background: 'var(--bg-secondary)', color: '#fff' }}>VARCHAR(255)</option>
@@ -1316,9 +1366,9 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                     setTableColumns(updated);
                                   }}
                                   style={{ width: '14px', height: '14px', margin: 0 }}
-                                  disabled={isViewer || col.isPrimary}
+                                  disabled={isViewer || isSubscriptionInactive || col.isPrimary}
                                 />
-                                <label htmlFor={`nullable-col-${idx}`} style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', cursor: (isViewer || col.isPrimary) ? 'not-allowed' : 'pointer' }}>Null</label>
+                                <label htmlFor={`nullable-col-${idx}`} style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', cursor: (isViewer || isSubscriptionInactive || col.isPrimary) ? 'not-allowed' : 'pointer' }}>Null</label>
                               </div>
 
                               <button
@@ -1336,10 +1386,10 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  cursor: (isViewer || col.isPrimary) ? 'not-allowed' : 'pointer',
-                                  opacity: (isViewer || col.isPrimary) ? 0.4 : 1
+                                  cursor: (isViewer || isSubscriptionInactive || col.isPrimary) ? 'not-allowed' : 'pointer',
+                                  opacity: (isViewer || isSubscriptionInactive || col.isPrimary) ? 0.4 : 1
                                 }}
-                                disabled={isViewer || col.isPrimary}
+                                disabled={isViewer || isSubscriptionInactive || col.isPrimary}
                               >
                                 <Minus size={12} />
                               </button>
@@ -1354,7 +1404,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                           }}
                           className="btn-secondary"
                           style={{ marginTop: '10px', height: '28px', fontSize: '0.74rem', padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                          disabled={isViewer}
+                          disabled={isViewer || isSubscriptionInactive}
                         >
                           <Plus size={12} /> Add Attribute
                         </button>
@@ -1363,7 +1413,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                       <button
                         type="submit"
                         className="btn-primary"
-                        disabled={isViewer || creatingTable || !newTableName.trim()}
+                        disabled={isViewer || isSubscriptionInactive || creatingTable || !newTableName.trim()}
                         style={{ height: '36px', marginTop: '8px' }}
                       >
                         {creatingTable ? 'Creating visual table schema...' : 'Create Table'}
