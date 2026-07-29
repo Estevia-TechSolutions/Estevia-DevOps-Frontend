@@ -49,20 +49,30 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
     const [currentPage, setCurrentPage] = useState<number>(1);
     const itemsPerPage = 10;
 
+    // Grid Search & Filter State
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [selectedSeverityFilter, setSelectedSeverityFilter] = useState<string>('ALL');
+    const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('ALL');
+    const [selectedEnvFilter, setSelectedEnvFilter] = useState<string>('ALL');
+
     const getScopeInfoForApp = (appKey?: string) => {
         const keyLow = (appKey || '').toLowerCase();
         let sub = '4a551976-35a8-4305-b128-fe592805be41';
+        let subName = 'Estevia Primary Subscription';
         let rg = 'Estevia-Platform-RG';
 
         if (keyLow.includes('peoplecraft')) {
             rg = 'Estevia-Client-Projects-RG';
+            subName = 'Estevia Client Apps Subscription';
         } else if (keyLow.includes('marketing')) {
             rg = 'Estevia-Prod-RG';
+            subName = 'Estevia Production Subscription';
         } else if (keyLow.includes('evaops') || keyLow.includes('connecthub') || keyLow.includes('estevia')) {
             rg = 'Estevia-Platform-RG';
+            subName = 'Estevia Platform Subscription';
         }
 
-        return { subId: sub, subShort: `Sub: ${sub.slice(0, 8)}...`, resourceGroup: rg };
+        return { subId: sub, subName, subShort: subName, resourceGroup: rg };
     };
 
     const [configApp, setConfigApp] = useState<string>('connecthub');
@@ -364,6 +374,132 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                 </div>
             </div>
 
+            {/* Inline Search & Filter Toolbar */}
+            <div className="glass-panel" style={{
+                padding: '12px 18px',
+                borderRadius: '12px',
+                background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.02)',
+                border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px'
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '240px' }}>
+                    <div style={{ position: 'relative', width: '100%', maxWidth: '320px' }}>
+                        <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: isLight ? '#94a3b8' : 'var(--text-secondary)' }} />
+                        <input
+                            type="text"
+                            placeholder="Filter incidents by keyword, app, RG..."
+                            value={searchQuery}
+                            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                            style={{
+                                width: '100%',
+                                padding: '8px 12px 8px 34px',
+                                borderRadius: '8px',
+                                fontSize: '0.82rem',
+                                border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
+                                background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.2)',
+                                color: isLight ? '#0f172a' : '#fff',
+                                outline: 'none'
+                            }}
+                        />
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    {/* Severity Filter */}
+                    <select
+                        value={selectedSeverityFilter}
+                        onChange={(e) => { setSelectedSeverityFilter(e.target.value); setCurrentPage(1); }}
+                        style={{
+                            padding: '7px 12px',
+                            borderRadius: '8px',
+                            fontSize: '0.8rem',
+                            border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
+                            background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.2)',
+                            color: isLight ? '#0f172a' : '#fff',
+                            outline: 'none',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        <option value="ALL">All Severities</option>
+                        <option value="P1_CRITICAL">Critical (P1)</option>
+                        <option value="P2_HIGH">High (P2)</option>
+                        <option value="P3_MEDIUM">Medium (P3)</option>
+                        <option value="P4_LOW">Low (P4)</option>
+                    </select>
+
+                    {/* Status Filter */}
+                    <select
+                        value={selectedStatusFilter}
+                        onChange={(e) => { setSelectedStatusFilter(e.target.value); setCurrentPage(1); }}
+                        style={{
+                            padding: '7px 12px',
+                            borderRadius: '8px',
+                            fontSize: '0.8rem',
+                            border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
+                            background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.2)',
+                            color: isLight ? '#0f172a' : '#fff',
+                            outline: 'none',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        <option value="ALL">All Statuses</option>
+                        <option value="triggered">Triggered</option>
+                        <option value="acknowledged">Acknowledged</option>
+                        <option value="resolved">Resolved</option>
+                    </select>
+
+                    {/* Environment Filter */}
+                    <select
+                        value={selectedEnvFilter}
+                        onChange={(e) => { setSelectedEnvFilter(e.target.value); setCurrentPage(1); }}
+                        style={{
+                            padding: '7px 12px',
+                            borderRadius: '8px',
+                            fontSize: '0.8rem',
+                            border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
+                            background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.2)',
+                            color: isLight ? '#0f172a' : '#fff',
+                            outline: 'none',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        <option value="ALL">All Environments</option>
+                        <option value="dev">DEV</option>
+                        <option value="qa">QA</option>
+                        <option value="prod">PROD</option>
+                    </select>
+
+                    {(searchQuery || selectedSeverityFilter !== 'ALL' || selectedStatusFilter !== 'ALL' || selectedEnvFilter !== 'ALL') && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSearchQuery('');
+                                setSelectedSeverityFilter('ALL');
+                                setSelectedStatusFilter('ALL');
+                                setSelectedEnvFilter('ALL');
+                                setCurrentPage(1);
+                            }}
+                            style={{
+                                padding: '7px 12px',
+                                borderRadius: '8px',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                background: isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.15)',
+                                color: '#ef4444',
+                                border: 'none',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Reset Filters
+                        </button>
+                    )}
+                </div>
+            </div>
+
             {/* Incidents Data Table */}
             <div className="glass-panel" style={{
                 borderRadius: '16px',
@@ -384,15 +520,36 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                             </tr>
                         </thead>
                         <tbody>
-                            {incidents.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
-                                        <CheckCircle size={32} style={{ color: '#10b981', marginBottom: '8px' }} />
-                                        <div>All systems operational! No active incidents recorded.</div>
-                                    </td>
-                                </tr>
-                            ) : (
-                                incidents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(inc => {
+                            {(() => {
+                                const filteredIncidents = incidents.filter(inc => {
+                                    if (searchQuery.trim() !== '') {
+                                        const q = searchQuery.toLowerCase();
+                                        const scope = getScopeInfoForApp(inc.app_key);
+                                        const matchTitle = (inc.title || '').toLowerCase().includes(q);
+                                        const matchDesc = (inc.description || '').toLowerCase().includes(q);
+                                        const matchApp = (inc.app_key || '').toLowerCase().includes(q);
+                                        const matchRg = scope.resourceGroup.toLowerCase().includes(q);
+                                        const matchSub = scope.subName.toLowerCase().includes(q);
+                                        if (!matchTitle && !matchDesc && !matchApp && !matchRg && !matchSub) return false;
+                                    }
+                                    if (selectedSeverityFilter !== 'ALL' && inc.severity !== selectedSeverityFilter) return false;
+                                    if (selectedStatusFilter !== 'ALL' && inc.status !== selectedStatusFilter) return false;
+                                    if (selectedEnvFilter !== 'ALL' && inc.environment !== selectedEnvFilter) return false;
+                                    return true;
+                                });
+
+                                if (filteredIncidents.length === 0) {
+                                    return (
+                                        <tr>
+                                            <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
+                                                <CheckCircle size={32} style={{ color: '#10b981', marginBottom: '8px' }} />
+                                                <div>No telemetry incidents match your active filters.</div>
+                                            </td>
+                                        </tr>
+                                    );
+                                }
+
+                                return filteredIncidents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(inc => {
                                     const sev = getSeverityBadge(inc.severity);
                                     const scopeInfo = getScopeInfoForApp(inc.app_key);
                                     return (
@@ -423,8 +580,8 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                                         {scopeInfo.resourceGroup}
                                                     </span>
                                                 </div>
-                                                <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', marginTop: '2px' }}>
-                                                    {inc.resource_type || 'aca'} • {inc.environment} • <span style={{ textTransform: 'none', opacity: 0.85 }}>{scopeInfo.subShort}</span>
+                                                <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', marginTop: '4px' }}>
+                                                    {scopeInfo.subName} • <span style={{ textTransform: 'uppercase' }}>{inc.resource_type || 'aca'}</span> • <span style={{ textTransform: 'uppercase' }}>{inc.environment}</span>
                                                 </div>
                                             </td>
                                             <td style={{ padding: '14px 18px' }}>
@@ -518,8 +675,8 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                             </td>
                                         </tr>
                                     );
-                                })
-                            )}
+                                });
+                            })()}
                         </tbody>
                     </table>
                 </div>
