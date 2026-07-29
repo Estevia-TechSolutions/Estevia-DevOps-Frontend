@@ -46,7 +46,25 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
     const [teamUsers, setTeamUsers] = useState<any[]>([]);
     const [appsCatalog, setAppsCatalog] = useState<any[]>([]);
 
-    // Grouped Alert Config State per Resource Type
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const itemsPerPage = 10;
+
+    const getScopeInfoForApp = (appKey?: string) => {
+        const keyLow = (appKey || '').toLowerCase();
+        let sub = '4a551976-35a8-4305-b128-fe592805be41';
+        let rg = 'Estevia-Platform-RG';
+
+        if (keyLow.includes('peoplecraft')) {
+            rg = 'Estevia-Client-Projects-RG';
+        } else if (keyLow.includes('marketing')) {
+            rg = 'Estevia-Prod-RG';
+        } else if (keyLow.includes('evaops') || keyLow.includes('connecthub') || keyLow.includes('estevia')) {
+            rg = 'Estevia-Platform-RG';
+        }
+
+        return { subId: sub, subShort: `Sub: ${sub.slice(0, 8)}...`, resourceGroup: rg };
+    };
+
     const [configApp, setConfigApp] = useState<string>('connecthub');
     const [configResourceType, setConfigResourceType] = useState<'swa' | 'aca' | 'vm'>('aca');
     const [configEnv, setConfigEnv] = useState<'dev' | 'qa' | 'prod'>('dev');
@@ -108,12 +126,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
         setLoading(true);
         try {
             const token = getToken();
-            const params = new URLSearchParams();
-            if (selectedSubscriptionId) params.append('subscriptionId', selectedSubscriptionId);
-            if (selectedControlResourceGroup) params.append('resourceGroup', selectedControlResourceGroup);
-            const querySuffix = params.toString() ? `?${params.toString()}` : '';
-
-            let res = await fetch(`${API_BASE}/apps/observability/incidents${querySuffix}`, {
+            let res = await fetch(`${API_BASE}/apps/observability/incidents`, {
                 headers: { Authorization: `Bearer ${token}` }
             }).catch(() => null);
 
@@ -363,7 +376,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                         <thead>
                             <tr style={{ background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)' }}>
                                 <th style={{ padding: '14px 18px', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>Severity & Category</th>
-                                <th style={{ padding: '14px 18px', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>Resource & Env</th>
+                                <th style={{ padding: '14px 18px', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>Resource, Scope & Env</th>
                                 <th style={{ padding: '14px 18px', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>Title & Description</th>
                                 <th style={{ padding: '14px 18px', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>Status</th>
                                 <th style={{ padding: '14px 18px', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>Created At</th>
@@ -379,8 +392,9 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                     </td>
                                 </tr>
                             ) : (
-                                incidents.map(inc => {
+                                incidents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(inc => {
                                     const sev = getSeverityBadge(inc.severity);
+                                    const scopeInfo = getScopeInfoForApp(inc.app_key);
                                     return (
                                         <tr key={inc.id} style={{ borderBottom: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.04)' }}>
                                             <td style={{ padding: '14px 18px' }}>
@@ -396,9 +410,21 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                                 </span>
                                             </td>
                                             <td style={{ padding: '14px 18px', fontWeight: 600, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
-                                                <div>{inc.app_key}</div>
-                                                <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase' }}>
-                                                    {inc.resource_type || 'aca'} • {inc.environment}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                                    <span>{inc.app_key}</span>
+                                                    <span style={{
+                                                        fontSize: '0.68rem',
+                                                        padding: '1px 6px',
+                                                        borderRadius: '4px',
+                                                        background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.12)',
+                                                        color: isLight ? '#0369a1' : '#38bdf8',
+                                                        fontWeight: 600
+                                                    }}>
+                                                        {scopeInfo.resourceGroup}
+                                                    </span>
+                                                </div>
+                                                <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', marginTop: '2px' }}>
+                                                    {inc.resource_type || 'aca'} • {inc.environment} • <span style={{ textTransform: 'none', opacity: 0.85 }}>{scopeInfo.subShort}</span>
                                                 </div>
                                             </td>
                                             <td style={{ padding: '14px 18px' }}>
@@ -497,6 +523,67 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination Controls */}
+                {incidents.length > 0 && (
+                    <div style={{
+                        padding: '12px 18px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        borderTop: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                        background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.02)',
+                        fontSize: '0.8rem',
+                        color: isLight ? '#64748b' : 'var(--text-secondary)',
+                        flexWrap: 'wrap',
+                        gap: '10px'
+                    }}>
+                        <div>
+                            Showing <strong>{(currentPage - 1) * itemsPerPage + 1}</strong> to <strong>{Math.min(currentPage * itemsPerPage, incidents.length)}</strong> of <strong>{incidents.length}</strong> telemetry incidents
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button
+                                type="button"
+                                disabled={currentPage === 1}
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                style={{
+                                    padding: '6px 14px',
+                                    borderRadius: '8px',
+                                    fontSize: '0.78rem',
+                                    fontWeight: 600,
+                                    background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.05)',
+                                    color: isLight ? '#0f172a' : '#ffffff',
+                                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)',
+                                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                                    opacity: currentPage === 1 ? 0.4 : 1
+                                }}
+                            >
+                                Previous
+                            </button>
+                            <span style={{ fontWeight: 700, padding: '0 6px', color: isLight ? '#0f172a' : '#ffffff' }}>
+                                Page {currentPage} of {Math.ceil(incidents.length / itemsPerPage) || 1}
+                            </span>
+                            <button
+                                type="button"
+                                disabled={currentPage >= Math.ceil(incidents.length / itemsPerPage)}
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(incidents.length / itemsPerPage)))}
+                                style={{
+                                    padding: '6px 14px',
+                                    borderRadius: '8px',
+                                    fontSize: '0.78rem',
+                                    fontWeight: 600,
+                                    background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.05)',
+                                    color: isLight ? '#0f172a' : '#ffffff',
+                                    border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255, 255, 255, 0.1)',
+                                    cursor: currentPage >= Math.ceil(incidents.length / itemsPerPage) ? 'not-allowed' : 'pointer',
+                                    opacity: currentPage >= Math.ceil(incidents.length / itemsPerPage) ? 0.4 : 1
+                                }}
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Modal: Incident Detail & Telemetry Snapshot View */}
