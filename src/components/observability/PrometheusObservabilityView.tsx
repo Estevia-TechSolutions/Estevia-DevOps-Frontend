@@ -25,13 +25,17 @@ interface PrometheusObservabilityViewProps {
     API_BASE?: string;
     isPackageActive?: boolean;
     onNavigateSettings?: () => void;
+    selectedSubscriptionId?: string;
+    selectedControlResourceGroup?: string;
 }
 
 export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewProps> = ({ 
     theme = 'dark', 
     API_BASE = 'http://localhost:5005/api',
     isPackageActive = true,
-    onNavigateSettings
+    onNavigateSettings,
+    selectedSubscriptionId,
+    selectedControlResourceGroup
 }) => {
     const isLight = theme === 'light';
     const [timeWindow, setTimeWindow] = useState<'15m' | '1h' | '6h' | '24h' | '7d'>('24h');
@@ -57,7 +61,7 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
 
     useEffect(() => {
         fetchCatalog();
-    }, []);
+    }, [selectedSubscriptionId, selectedControlResourceGroup]);
 
     useEffect(() => {
         const filteredApps = appsCatalog.filter(app => {
@@ -74,7 +78,7 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
         if (!packageLocked) {
             fetchMetrics();
         }
-    }, [timeWindow, selectedEnv, selectedApp, resourceType, packageLocked]);
+    }, [timeWindow, selectedEnv, selectedApp, resourceType, packageLocked, selectedSubscriptionId, selectedControlResourceGroup]);
 
     const getToken = () => localStorage.getItem('evaops_token') || localStorage.getItem('token') || '';
 
@@ -93,13 +97,18 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
     const fetchCatalog = async () => {
         try {
             const token = getToken();
-            let res = await fetch(`${API_BASE}/apps/observability/resource-catalog`).catch(() => null);
+            const params = new URLSearchParams();
+            if (selectedSubscriptionId) params.append('subscriptionId', selectedSubscriptionId);
+            if (selectedControlResourceGroup) params.append('resourceGroup', selectedControlResourceGroup);
+            const querySuffix = params.toString() ? `?${params.toString()}` : '';
+
+            let res = await fetch(`${API_BASE}/apps/observability/resource-catalog${querySuffix}`).catch(() => null);
 
             if (!res || !res.ok) {
-                res = await fetch(`${API_BASE}/auth/resource-catalog`).catch(() => null);
+                res = await fetch(`${API_BASE}/auth/resource-catalog${querySuffix}`).catch(() => null);
             }
             if ((!res || !res.ok) && token) {
-                res = await fetch(`${API_BASE}/apps/observability/resource-catalog`, {
+                res = await fetch(`${API_BASE}/apps/observability/resource-catalog${querySuffix}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 }).catch(() => null);
             }
@@ -181,7 +190,15 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
         setLoading(true);
         try {
             const token = getToken();
-            const queryStr = `app_key=${selectedApp}&environment=${selectedEnv}&time_window=${timeWindow}&resource_type=${resourceType}`;
+            const params = new URLSearchParams();
+            params.append('app_key', selectedApp);
+            params.append('environment', selectedEnv);
+            params.append('time_window', timeWindow);
+            params.append('resource_type', resourceType);
+            if (selectedSubscriptionId) params.append('subscriptionId', selectedSubscriptionId);
+            if (selectedControlResourceGroup) params.append('resourceGroup', selectedControlResourceGroup);
+            const queryStr = params.toString();
+            
             const headers: Record<string, string> = {};
             if (token) {
                 headers['Authorization'] = `Bearer ${token}`;

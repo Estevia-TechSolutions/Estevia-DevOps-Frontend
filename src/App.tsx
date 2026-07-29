@@ -3741,7 +3741,7 @@ function App() {
           if (data.servers.length > 0) {
             // Find existing selection or default to first
             setSelectedDbServer(data.servers[0]);
-            fetchDatabases(data.servers[0].name);
+            fetchDatabases(data.servers[0].name, data.servers[0].host);
           }
         }
       }
@@ -3752,20 +3752,26 @@ function App() {
     }
   };
 
-  const fetchDatabases = async (serverName: string) => {
+  const fetchDatabases = async (serverName: string, host?: string) => {
     setLoadingDatabases(true);
     setDatabases([]);
     setSelectedDatabase(null);
     setDatabaseSchema([]);
     try {
-      const res = await fetch(`${API_BASE}/apps/databases?organizationId=${organizationId}&serverName=${serverName}`);
+      const activeSub = selectedSubscriptionId;
+      const activeRg = selectedControlResourceGroup;
+      let url = `${API_BASE}/apps/databases?organizationId=${organizationId}&serverName=${serverName}&subscriptionId=${activeSub}&resourceGroup=${activeRg}`;
+      if (host) {
+        url += `&host=${encodeURIComponent(host)}`;
+      }
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
           setDatabases(data.databases);
           if (data.databases.length > 0) {
             setSelectedDatabase(data.databases[0]);
-            fetchDatabaseSchema(serverName, data.databases[0].name);
+            fetchDatabaseSchema(serverName, data.databases[0].name, host);
           }
         }
       }
@@ -3776,12 +3782,18 @@ function App() {
     }
   };
 
-  const fetchDatabaseSchema = async (serverName: string, dbName: string) => {
+  const fetchDatabaseSchema = async (serverName: string, dbName: string, host?: string) => {
     setLoadingSchema(true);
     setDatabaseSchema([]);
     setSchemaError(null);
     try {
-      const res = await fetch(`${API_BASE}/apps/database-schema?organizationId=${organizationId}&serverName=${serverName}&dbName=${dbName}`);
+      const activeSub = selectedSubscriptionId;
+      const activeRg = selectedControlResourceGroup;
+      let url = `${API_BASE}/apps/database-schema?organizationId=${organizationId}&serverName=${serverName}&dbName=${dbName}&subscriptionId=${activeSub}&resourceGroup=${activeRg}`;
+      if (host) {
+        url += `&host=${encodeURIComponent(host)}`;
+      }
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
@@ -3829,14 +3841,17 @@ function App() {
             body: JSON.stringify({
               organizationId,
               serverName: selectedDbServer.name,
-              dbName: dbName
+              dbName: dbName,
+              host: selectedDbServer.host,
+              subscriptionId: selectedSubscriptionId,
+              resourceGroup: selectedControlResourceGroup
             })
           });
           const data = await res.json();
           if (data.success) {
             setDeployDbSuccess(data.message || `Database '${dbName}' deployed successfully.`);
             setNewDbName('');
-            fetchDatabases(selectedDbServer.name);
+            fetchDatabases(selectedDbServer.name, selectedDbServer.host);
           } else {
             setDeployDbError(data.message || 'Failed to deploy database.');
           }
@@ -3879,7 +3894,8 @@ function App() {
         body: JSON.stringify({
           serverName: selectedDbServer.name,
           dbName: selectedDatabase.name,
-          query: customSql.trim()
+          query: customSql.trim(),
+          host: selectedDbServer.host
         })
       });
       const data = await res.json();
@@ -3888,7 +3904,7 @@ function App() {
       if (res.ok && data.success) {
         setQueryResult({ ...data, execTimeMs });
         if (reloadSchemaAfter) {
-          fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name);
+          fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name, selectedDbServer.host);
         }
       } else {
         setQueryError(data.message || 'Query execution failed.');
@@ -3924,7 +3940,8 @@ function App() {
         body: JSON.stringify({
           serverName: selectedDbServer.name,
           dbName: selectedDatabase.name,
-          query: sql
+          query: sql,
+          host: selectedDbServer.host
         })
       });
       const data = await res.json();
@@ -3935,7 +3952,7 @@ function App() {
           { name: 'name', type: 'VARCHAR(255)', nullable: false, isPrimary: false, extra: '' }
         ]);
         setDbDetailTab('schema');
-        fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name);
+        fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name, selectedDbServer.host);
       } else {
         setCreateTableError(data.message || 'Failed to create table.');
       }
@@ -3966,13 +3983,14 @@ function App() {
             body: JSON.stringify({
               serverName: selectedDbServer.name,
               dbName: selectedDatabase.name,
-              query: sql
+              query: sql,
+              host: selectedDbServer.host
             })
           });
           const data = await res.json();
           if (res.ok && data.success) {
             setQueryResult(null);
-            fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name);
+            fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name, selectedDbServer.host);
           } else {
             alert(`Failed to drop table: ${data.message || 'Unknown error'}`);
           }
@@ -4008,14 +4026,15 @@ function App() {
             body: JSON.stringify({
               serverName: selectedDbServer.name,
               dbName: selectedDatabase.name,
-              query: sql
+              query: sql,
+              host: selectedDbServer.host
             })
           });
           const data = await res.json();
           if (res.ok && data.success) {
             setAlteringTable(null);
             setAlterNewColName('');
-            fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name);
+            fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name, selectedDbServer.host);
           } else {
             alert(`Failed to add column: ${data.message || 'Unknown error'}`);
           }
@@ -4046,12 +4065,13 @@ function App() {
             body: JSON.stringify({
               serverName: selectedDbServer.name,
               dbName: selectedDatabase.name,
-              query: sql
+              query: sql,
+              host: selectedDbServer.host
             })
           });
           const data = await res.json();
           if (res.ok && data.success) {
-            fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name);
+            fetchDatabaseSchema(selectedDbServer.name, selectedDatabase.name, selectedDbServer.host);
           } else {
             alert(`Failed to drop column: ${data.message || 'Unknown error'}`);
           }
@@ -7089,6 +7109,9 @@ function App() {
                     }}>
                       DevOps Control Centre
                     </h1>
+                    <p style={{ margin: '6px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)', maxWidth: '480px', whiteSpace: 'normal', lineHeight: '1.4' }}>
+                      Manage multi-tenant cloud infrastructure, dynamic database catalogs, environment deployments, and cost optimization scopes dynamically linked to Azure.
+                    </p>
                   </div>
 
                   {/* Subscription & Resource Group Selector */}
@@ -7152,7 +7175,15 @@ function App() {
                               background: ${isLight ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.2)'};
                             }
                           `}</style>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Target Scope</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '320px' }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Target Scope:</span>
+                            {!scanning && scanProgress === 0 && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '2px 8px', borderRadius: '10px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.12)', fontSize: '0.68rem', whiteSpace: 'nowrap' }}>
+                                <span style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: 'var(--success)' }} />
+                                <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Connected</span>
+                              </div>
+                            )}
+                          </div>
                           
                           {/* Selector Trigger Button */}
                           <div
@@ -7318,12 +7349,6 @@ function App() {
                       );
                     })()}
 
-                    {!scanning && scanProgress === 0 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '12px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.12)', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
-                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--success)' }} />
-                        <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Connected</span>
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -7949,6 +7974,8 @@ function App() {
                   addEvent(title, message, 'build', type === 'success' ? 'success' : type === 'error' ? 'failed' : 'info');
                   addNotification(title, message, type === 'success' ? 'success' : type === 'error' ? 'error' : 'info');
                 }}
+                selectedSubscriptionId={selectedSubscriptionId}
+                selectedControlResourceGroup={selectedControlResourceGroup}
               />
             )}
 
@@ -7990,15 +8017,31 @@ function App() {
                   addEvent(title, message, 'build', type === 'success' ? 'success' : type === 'error' ? 'failed' : 'info');
                   addNotification(title, message, type === 'success' ? 'success' : type === 'error' ? 'error' : 'info');
                 }}
+                selectedSubscriptionId={selectedSubscriptionId}
+                selectedControlResourceGroup={selectedControlResourceGroup}
               />
             )}
 
             {scanSubTab === 'observability' && (
-              <PrometheusObservabilityView API_BASE={API_BASE} theme={theme} isPackageActive={subPackageObservability} onNavigateSettings={() => setActiveTab('settings')} />
+              <PrometheusObservabilityView 
+                API_BASE={API_BASE} 
+                theme={theme} 
+                isPackageActive={subPackageObservability} 
+                onNavigateSettings={() => setActiveTab('settings')} 
+                selectedSubscriptionId={selectedSubscriptionId}
+                selectedControlResourceGroup={selectedControlResourceGroup}
+              />
             )}
 
             {scanSubTab === 'incidents' && (
-              <IncidentsAlertsView API_BASE={API_BASE} theme={theme} isPackageActive={subPackageObservability} onNavigateSettings={() => setActiveTab('settings')} />
+              <IncidentsAlertsView 
+                API_BASE={API_BASE} 
+                theme={theme} 
+                isPackageActive={subPackageObservability} 
+                onNavigateSettings={() => setActiveTab('settings')} 
+                selectedSubscriptionId={selectedSubscriptionId}
+                selectedControlResourceGroup={selectedControlResourceGroup}
+              />
             )}
           </div>
         )}

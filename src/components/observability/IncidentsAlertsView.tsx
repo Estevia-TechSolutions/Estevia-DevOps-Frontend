@@ -21,13 +21,17 @@ interface IncidentsAlertsViewProps {
     API_BASE?: string;
     isPackageActive?: boolean;
     onNavigateSettings?: () => void;
+    selectedSubscriptionId?: string;
+    selectedControlResourceGroup?: string;
 }
 
 export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ 
     theme = 'dark', 
     API_BASE = 'http://localhost:5005/api',
     isPackageActive = true,
-    onNavigateSettings
+    onNavigateSettings,
+    selectedSubscriptionId,
+    selectedControlResourceGroup
 }) => {
     const isLight = theme === 'light';
     const [incidents, setIncidents] = useState<Incident[]>([]);
@@ -63,7 +67,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
         } else {
             setLoading(false);
         }
-    }, [packageLocked]);
+    }, [packageLocked, selectedSubscriptionId, selectedControlResourceGroup]);
 
     const getToken = () => {
         return localStorage.getItem('evaops_token') || localStorage.getItem('token') || '';
@@ -80,7 +84,12 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                 setTeamUsers(uData.users || uData || []);
             }
 
-            const catRes = await fetch(`${API_BASE}/apps/observability/resource-catalog`, {
+            const params = new URLSearchParams();
+            if (selectedSubscriptionId) params.append('subscriptionId', selectedSubscriptionId);
+            if (selectedControlResourceGroup) params.append('resourceGroup', selectedControlResourceGroup);
+            const querySuffix = params.toString() ? `?${params.toString()}` : '';
+
+            const catRes = await fetch(`${API_BASE}/apps/observability/resource-catalog${querySuffix}`, {
                 headers: { Authorization: `Bearer ${token}` }
             }).catch(() => null);
             if (catRes && catRes.ok) {
@@ -99,7 +108,12 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
         setLoading(true);
         try {
             const token = getToken();
-            let res = await fetch(`${API_BASE}/apps/observability/incidents`, {
+            const params = new URLSearchParams();
+            if (selectedSubscriptionId) params.append('subscriptionId', selectedSubscriptionId);
+            if (selectedControlResourceGroup) params.append('resourceGroup', selectedControlResourceGroup);
+            const querySuffix = params.toString() ? `?${params.toString()}` : '';
+
+            let res = await fetch(`${API_BASE}/apps/observability/incidents${querySuffix}`, {
                 headers: { Authorization: `Bearer ${token}` }
             }).catch(() => null);
 

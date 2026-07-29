@@ -168,6 +168,8 @@ interface DashboardPageProps {
   setLivePipelineRuns: React.Dispatch<React.SetStateAction<Record<number | string, any>>>;
   licenseTier?: string;
   activeSubTab?: 'resources' | 'compliance';
+  selectedSubscriptionId?: string;
+  selectedControlResourceGroup?: string;
 }
 
 const isBuildActive = (run: any) => {
@@ -248,6 +250,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   setLivePipelineRuns,
   licenseTier = 'growth',
   activeSubTab: propActiveSubTab = 'resources',
+  selectedSubscriptionId,
+  selectedControlResourceGroup
 }) => {
   const isViewer = currentUser?.role === 'viewer';
   const organizationId = currentUser?.organization_id || 'estevia';
@@ -527,7 +531,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     setLoadingCompliance(true);
     try {
       const token = localStorage.getItem('devops_token');
-      const res = await fetch(`${API_BASE}/apps/compliance?organizationId=${organizationId}`, {
+      const params = new URLSearchParams();
+      params.append('organizationId', organizationId);
+      if (selectedSubscriptionId) params.append('subscriptionId', selectedSubscriptionId);
+      if (selectedControlResourceGroup) params.append('resourceGroup', selectedControlResourceGroup);
+      
+      const res = await fetch(`${API_BASE}/apps/compliance?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -545,7 +554,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     if (activeSubTab === 'compliance' && organizationId) {
       fetchCompliance();
     }
-  }, [activeSubTab, disabledRules, ruleSeverities, organizationId]);
+  }, [activeSubTab, disabledRules, ruleSeverities, organizationId, selectedSubscriptionId, selectedControlResourceGroup]);
 
   const handleRemediate = async (violation: any) => {
     setRemediatingId(violation.suggestionId);

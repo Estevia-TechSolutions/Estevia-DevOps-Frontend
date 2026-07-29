@@ -82,8 +82,8 @@ interface DatabaseCatalogPageProps {
   handleExecuteQuery: (customSql: string, reloadSchemaAfter?: boolean) => void;
   handleCreateTable: (e: React.FormEvent) => void;
   handleAddColumn: (tableName: string) => void;
-  fetchDatabases: (serverName: string) => void;
-  fetchDatabaseSchema: (serverName: string, dbName: string) => void;
+  fetchDatabases: (serverName: string, host?: string) => void;
+  fetchDatabaseSchema: (serverName: string, dbName: string, host?: string) => void;
   setConfirmDialog: (dialog: any) => void;
   leftColRef: React.RefObject<HTMLDivElement | null>;
   leftColHeight: number;
@@ -356,7 +356,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                   const s = dbServers.find(srv => srv.name === e.target.value);
                   if (s) {
                     setSelectedDbServer(s);
-                    fetchDatabases(s.name);
+                    fetchDatabases(s.name, s.host);
                   }
                 }}
                 style={{
@@ -457,7 +457,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                       key={dbName.name}
                       onClick={() => {
                         setSelectedDatabase(dbName);
-                        fetchDatabaseSchema(selectedDbServer.name, dbName.name);
+                        fetchDatabaseSchema(selectedDbServer.name, dbName.name, selectedDbServer.host);
                       }}
                       style={{
                         textAlign: 'left',
