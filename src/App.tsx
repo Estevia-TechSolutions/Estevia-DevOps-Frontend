@@ -7887,8 +7887,8 @@ function App() {
       {/* Tab Contents */}
       <main style={{ paddingBottom: '80px', position: 'relative' }}>
 
-        {/* Full-Page Translucent Glassmorphism Overlay when Target Scope is Restricted */}
-        {(isOrgDisabled || isCurrentSubscriptionInactive) && (
+        {/* Full-Page Translucent Glassmorphism Overlay when Target Scope is Restricted (Operational Tabs Only) */}
+        {(isOrgDisabled || isCurrentSubscriptionInactive) && !['settings', 'credentials', 'licensing', 'guide'].includes(activeTab) && (
           <div style={{
             position: 'absolute',
             top: 0,
