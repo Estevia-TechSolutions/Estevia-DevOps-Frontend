@@ -80,6 +80,64 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
         return { subId: sub, subName, subShort: subName, resourceGroup: rg };
     };
 
+    const getResourceInfo = (appKey?: string) => {
+        const keyLow = (appKey || '').toLowerCase().trim();
+        
+        let displayName = appKey || 'Unknown Resource';
+        let serviceType = 'Microservice Engine';
+        
+        if (keyLow.includes('cloud-service')) {
+            displayName = 'Estevia Cloud Microservices Engine';
+            serviceType = 'Container App (ACA)';
+        } else if (keyLow.includes('estevia-backend')) {
+            displayName = 'Estevia DevOps Core Backend API';
+            serviceType = 'REST API Backend';
+        } else if (keyLow.includes('estevia-frontend')) {
+            displayName = 'Estevia DevOps Control Portal';
+            serviceType = 'Web Portal (SWA)';
+        } else if (keyLow.includes('peoplecraft-backend') || keyLow.includes('peoplecraft_backend')) {
+            displayName = 'PeopleCraft Enterprise HR Core Backend';
+            serviceType = 'Node.js Microservice';
+        } else if (keyLow.includes('peoplecraft-frontend') || keyLow.includes('peoplecraft_frontend')) {
+            displayName = 'PeopleCraft Enterprise HR Web Portal';
+            serviceType = 'React Web Portal';
+        } else if (keyLow.includes('peoplecraft')) {
+            displayName = 'PeopleCraft Enterprise HR Application';
+            serviceType = 'HR Enterprise Suite';
+        } else if (keyLow.includes('connecthub')) {
+            displayName = 'ConnectHub Integration Platform';
+            serviceType = 'Integration Gateway';
+        } else if (keyLow.includes('evaops')) {
+            displayName = 'EvaOps AI Control Center';
+            serviceType = 'AI Operations Platform';
+        } else if (keyLow.includes('marketing')) {
+            displayName = 'Estevia Corporate Marketing Portal';
+            serviceType = 'Static Web App (SWA)';
+        } else if (keyLow.includes('docai')) {
+            displayName = 'DocAI Document Intelligence Engine';
+            serviceType = 'Document AI Processing';
+        } else if (keyLow.includes('evapay')) {
+            displayName = 'EvaPay Financial Payment Gateway';
+            serviceType = 'Payment Processing Hub';
+        } else if (keyLow.includes('protrack')) {
+            displayName = 'ProTrack Project Management Suite';
+            serviceType = 'Task & Milestone Suite';
+        } else if (keyLow.includes('talenthq')) {
+            displayName = 'TalentHQ Recruitment Portal';
+            serviceType = 'Talent Acquisition Platform';
+        } else if (keyLow.includes('evafusion')) {
+            displayName = 'EvaFusion Neural Intelligence Suite';
+            serviceType = 'AI Analytics Engine';
+        } else if (appKey) {
+            displayName = appKey
+                .split(/[-_]/)
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        }
+
+        return { displayName, serviceType, rawKey: appKey || '' };
+    };
+
     const [configApp, setConfigApp] = useState<string>('connecthub');
     const [configResourceType, setConfigResourceType] = useState<'swa' | 'aca' | 'vm'>('aca');
     const [configEnv, setConfigEnv] = useState<'dev' | 'qa' | 'prod'>('dev');
@@ -519,9 +577,10 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                     if (searchQuery.trim() !== '') {
                                         const q = searchQuery.toLowerCase();
                                         const scope = getScopeInfoForApp(inc.app_key);
+                                        const resInfo = getResourceInfo(inc.app_key);
                                         const matchTitle = (inc.title || '').toLowerCase().includes(q);
                                         const matchDesc = (inc.description || '').toLowerCase().includes(q);
-                                        const matchApp = (inc.app_key || '').toLowerCase().includes(q);
+                                        const matchApp = (inc.app_key || '').toLowerCase().includes(q) || resInfo.displayName.toLowerCase().includes(q);
                                         const matchRg = scope.resourceGroup.toLowerCase().includes(q);
                                         const matchSub = scope.subName.toLowerCase().includes(q);
                                         if (!matchTitle && !matchDesc && !matchApp && !matchRg && !matchSub) return false;
@@ -546,6 +605,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                 return filteredIncidents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(inc => {
                                     const sev = getSeverityBadge(inc.severity);
                                     const scopeInfo = getScopeInfoForApp(inc.app_key);
+                                    const resInfo = getResourceInfo(inc.app_key);
                                     return (
                                         <tr key={inc.id} style={{ borderBottom: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.04)' }}>
                                             <td style={{ padding: '14px 18px' }}>
@@ -562,7 +622,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                             </td>
                                             <td style={{ padding: '14px 18px', fontWeight: 600, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                                    <span>{inc.app_key}</span>
+                                                    <span style={{ fontWeight: 700, fontSize: '0.88rem' }}>{resInfo.displayName}</span>
                                                     <span style={{
                                                         fontSize: '0.68rem',
                                                         padding: '1px 6px',
@@ -575,7 +635,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                                     </span>
                                                 </div>
                                                 <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', marginTop: '4px' }}>
-                                                    {scopeInfo.subName} • <span style={{ textTransform: 'uppercase' }}>{inc.resource_type || 'aca'}</span> • <span style={{ textTransform: 'uppercase' }}>{inc.environment}</span>
+                                                    <code style={{ fontSize: '0.7rem', opacity: 0.85, padding: '1px 4px', borderRadius: '4px', background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.06)' }}>{inc.app_key}</code> • {scopeInfo.subName} • <span style={{ textTransform: 'uppercase' }}>{inc.resource_type || 'aca'}</span> • <span style={{ textTransform: 'uppercase' }}>{inc.environment}</span>
                                                 </div>
                                             </td>
                                             <td style={{ padding: '14px 18px' }}>
@@ -799,8 +859,10 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                     display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px'
                                 }}>
                                     <div>
-                                        <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Application</div>
-                                        <div style={{ fontSize: '0.92rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>{selectedIncident.app_key}</div>
+                                        <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Application / Resource</div>
+                                        <div style={{ fontSize: '0.92rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+                                            {getResourceInfo(selectedIncident.app_key).displayName} <span style={{ fontSize: '0.74rem', opacity: 0.75, fontWeight: 500 }}>({selectedIncident.app_key})</span>
+                                        </div>
                                     </div>
                                     <div>
                                         <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Environment / Type</div>
@@ -1613,8 +1675,8 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                     <strong style={{ color: isLight ? '#0f172a' : '#fff' }}>#{resolvingIncident.id}</strong>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ color: isLight ? '#64748b' : 'var(--text-secondary)' }}>App & Environment:</span>
-                                    <strong style={{ color: '#8b5cf6' }}>{resolvingIncident.app_key} ({resolvingIncident.environment.toUpperCase()})</strong>
+                                    <span style={{ color: isLight ? '#64748b' : 'var(--text-secondary)' }}>Resource / App:</span>
+                                    <strong style={{ color: '#8b5cf6' }}>{getResourceInfo(resolvingIncident.app_key).displayName} ({resolvingIncident.environment.toUpperCase()})</strong>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span style={{ color: isLight ? '#64748b' : 'var(--text-secondary)' }}>Title:</span>

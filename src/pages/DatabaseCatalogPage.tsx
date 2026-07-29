@@ -546,7 +546,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
             </p>
           </div>
         ) : (
-          <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(244, 63, 94, 0.1)' }}>
+          <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(244, 63, 94, 0.1)' }}>
             {/* Header / Tabs stacked vertically */}
             <div style={{ 
               borderBottom: '1px solid rgba(239, 68, 68, 0.35)', 
@@ -834,8 +834,8 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
 
                             {/* Table Schema Columns Grid */}
                             {isExpanded && (
-                              <div style={{ padding: '8px 0' }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', color: 'var(--text-primary)' }}>
+                              <div style={{ padding: '8px 0', overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
+                                <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left', color: 'var(--text-primary)' }}>
                                   <thead>
                                     <tr style={{ borderBottom: '1px solid var(--divider)', fontSize: '0.8rem', fontWeight: 600 }}>
                                       <th style={{ padding: '10px 20px', color: 'var(--text-primary)' }}>Column Name</th>
