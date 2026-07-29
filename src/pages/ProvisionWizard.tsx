@@ -1944,17 +1944,72 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                   <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Azure Subscription</label>
                   <select
                     value={selectedProvisionSubscriptionId}
-                    onChange={(e) => setSelectedProvisionSubscriptionId(e.target.value)}
+                    onChange={(e) => {
+                      const targetSub = subscriptionsList.find(s => s.id === e.target.value);
+                      const isRestricted = targetSub && (
+                        (targetSub.status || targetSub.state || '').toLowerCase() === 'restricted' ||
+                        (targetSub.status || targetSub.state || '').toLowerCase() === 'inactive' ||
+                        (targetSub.status || targetSub.state || '').toLowerCase() === 'disabled' ||
+                        (targetSub.status || targetSub.state || '').toLowerCase() === 'read-only' ||
+                        targetSub.isRestricted === true ||
+                        targetSub.is_restricted === true ||
+                        targetSub.restricted === true
+                      );
+                      if (isRestricted) return;
+                      setSelectedProvisionSubscriptionId(e.target.value);
+                    }}
                     disabled={provisioning}
                     required
                   >
                     <option value="">-- Select Subscription --</option>
-                    {subscriptionsList.map(sub => (
-                      <option key={sub.id} value={sub.id} style={{ background: 'var(--bg-secondary)', color: '#fff' }}>
-                        {sub.displayName} ({sub.status})
-                      </option>
-                    ))}
+                    {subscriptionsList.map(sub => {
+                      const statusLow = (sub.status || sub.state || '').toLowerCase();
+                      const isRestricted = statusLow === 'restricted' || statusLow === 'inactive' || statusLow === 'disabled' || statusLow === 'read-only' || sub.isRestricted === true || sub.is_restricted === true || sub.restricted === true;
+                      return (
+                        <option
+                          key={sub.id}
+                          value={sub.id}
+                          disabled={isRestricted}
+                          style={{
+                            background: 'var(--bg-secondary)',
+                            color: isRestricted ? 'rgba(255, 255, 255, 0.4)' : '#fff'
+                          }}
+                        >
+                          {sub.displayName} {isRestricted ? `⛔ (${sub.status || 'Restricted'} — Selection Disallowed)` : `(${sub.status || 'Active'})`}
+                        </option>
+                      );
+                    })}
                   </select>
+
+                  {/* Warning banner if a restricted subscription is somehow selected */}
+                  {(() => {
+                    const activeSub = subscriptionsList.find(s => s.id === selectedProvisionSubscriptionId);
+                    if (!activeSub) return null;
+                    const statusLow = (activeSub.status || activeSub.state || '').toLowerCase();
+                    const isRestricted = statusLow === 'restricted' || statusLow === 'inactive' || statusLow === 'disabled' || statusLow === 'read-only' || activeSub.isRestricted === true || activeSub.is_restricted === true || activeSub.restricted === true;
+                    if (isRestricted) {
+                      return (
+                        <div style={{
+                          marginTop: '8px',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          background: 'rgba(239, 68, 68, 0.12)',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          color: '#ef4444',
+                          fontSize: '0.82rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}>
+                          <AlertOctagon size={16} style={{ flexShrink: 0 }} />
+                          <div>
+                            <strong>Subscription Restricted:</strong> <code>{activeSub.displayName}</code> is currently restricted. Provisioning Azure resources in restricted subscriptions is not allowed. Please select an active subscription.
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
 
                 {/* Dynamic Resource Group Selection */}
@@ -2250,22 +2305,37 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                   <ArrowLeft size={16} /> Back
                 </button>
                 
-                <button 
-                  type="submit" 
-                  className="btn-primary" 
-                  disabled={isViewer || provisioning || !newName}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: (isViewer || provisioning || !newName) ? 'not-allowed' : 'pointer' }}
-                >
-                  {provisioning ? (
-                    <>
-                      <RefreshCw size={14} className="spin-anim" /> Allocating {appType === 'backend' ? 'Container App' : appType === 'cluster' ? 'AKS Cluster' : appType === 'database' ? 'MySQL Database' : 'SWA'} (10-20s)...
-                    </>
-                  ) : (
-                    <>
-                      Deploy {appType === 'backend' ? 'Container App' : appType === 'cluster' ? 'AKS Cluster' : appType === 'database' ? 'MySQL Database' : 'SWA'} Resource <ArrowRight size={16} />
-                    </>
-                  )}
-                </button>
+                {(() => {
+                  const activeSub = subscriptionsList.find(s => s.id === selectedProvisionSubscriptionId);
+                  const isCurrentSubRestricted = !!activeSub && (
+                    (activeSub.status || activeSub.state || '').toLowerCase() === 'restricted' ||
+                    (activeSub.status || activeSub.state || '').toLowerCase() === 'inactive' ||
+                    (activeSub.status || activeSub.state || '').toLowerCase() === 'disabled' ||
+                    (activeSub.status || activeSub.state || '').toLowerCase() === 'read-only' ||
+                    activeSub.isRestricted === true ||
+                    activeSub.is_restricted === true ||
+                    activeSub.restricted === true
+                  );
+                  const isDisabled = isViewer || provisioning || !newName || isCurrentSubRestricted;
+                  return (
+                    <button 
+                      type="submit" 
+                      className="btn-primary" 
+                      disabled={isDisabled}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.5 : 1 }}
+                    >
+                      {provisioning ? (
+                        <>
+                          <RefreshCw size={14} className="spin-anim" /> Allocating {appType === 'backend' ? 'Container App' : appType === 'cluster' ? 'AKS Cluster' : appType === 'database' ? 'MySQL Database' : 'SWA'} (10-20s)...
+                        </>
+                      ) : (
+                        <>
+                          Deploy {appType === 'backend' ? 'Container App' : appType === 'cluster' ? 'AKS Cluster' : appType === 'database' ? 'MySQL Database' : 'SWA'} Resource <ArrowRight size={16} />
+                        </>
+                      )}
+                    </button>
+                  );
+                })()}
               </div>
             </form>
           </div>
