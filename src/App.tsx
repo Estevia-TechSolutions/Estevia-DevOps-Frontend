@@ -2037,9 +2037,9 @@ function App() {
     }
   }, []);
 
-  // ── Force settings tab when org is disabled ────────────────────────────────
+  // ── Force settings tab when org is disabled (Allow admin tabs) ─────────────
   useEffect(() => {
-    if (isOrgDisabled && activeTab !== 'settings') {
+    if (isOrgDisabled && !['settings', 'users', 'credentials', 'licensing', 'guide'].includes(activeTab)) {
       setActiveTab('settings');
     }
   }, [isOrgDisabled, activeTab]);
@@ -7749,7 +7749,7 @@ function App() {
                     </div>
                   </button>
                   {(user?.role === 'owner' || user?.role === 'admin') && (
-                    <button className={`premium-tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')} disabled={requiresCredentialSetup || isOrgDisabled}>
+                    <button className={`premium-tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')} disabled={requiresCredentialSetup}>
                       <Users size={16} />
                       <span>Team Settings</span>
                       {tabLoadingMap.users && (
@@ -7818,7 +7818,7 @@ function App() {
                       <div className="menu-hover-card-desc">Real-time stream of build triggers, power actions, scans, and credential changes across the platform.</div>
                     </div>
                   </button>
-                  <button className={`premium-tab-btn ${activeTab === 'guide' ? 'active' : ''}`} onClick={() => setActiveTab('guide')} disabled={requiresCredentialSetup || isOrgDisabled}>
+                  <button className={`premium-tab-btn ${activeTab === 'guide' ? 'active' : ''}`} onClick={() => setActiveTab('guide')} disabled={requiresCredentialSetup}>
                     <Info size={16} />
                     <span>User Guide</span>
                     <div className="menu-hover-card menu-hover-card-right">
@@ -7888,7 +7888,7 @@ function App() {
       <main style={{ paddingBottom: '80px', position: 'relative' }}>
 
         {/* Full-Page Translucent Glassmorphism Overlay when Target Scope is Restricted (Operational Tabs Only) */}
-        {(isOrgDisabled || isCurrentSubscriptionInactive) && !['settings', 'credentials', 'licensing', 'guide'].includes(activeTab) && (
+        {(isOrgDisabled || isCurrentSubscriptionInactive) && !['settings', 'users', 'credentials', 'licensing', 'guide'].includes(activeTab) && (
           <div style={{
             position: 'absolute',
             top: 0,
