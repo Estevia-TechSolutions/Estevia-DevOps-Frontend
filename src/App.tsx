@@ -4088,8 +4088,22 @@ function App() {
     try {
       const res = await fetch(`${API_BASE}/apps/resource-groups?organizationId=${organizationId}`);
       const data = await res.json();
-      if (data.success && Array.isArray(data.resourceGroups)) {
-        setControlResourceGroups(data.resourceGroups);
+      if (data.success) {
+        if (Array.isArray(data.resourceGroups)) {
+          setControlResourceGroups(data.resourceGroups);
+        } else if (Array.isArray(data.subscriptions)) {
+          const allRGs: string[] = [];
+          data.subscriptions.forEach((sub: any) => {
+            if (Array.isArray(sub.resourceGroups)) {
+              sub.resourceGroups.forEach((rg: string) => {
+                if (!allRGs.includes(rg)) {
+                  allRGs.push(rg);
+                }
+              });
+            }
+          });
+          setControlResourceGroups(allRGs);
+        }
       }
     } catch (e) {
       console.error('Failed to load resource groups:', e);
