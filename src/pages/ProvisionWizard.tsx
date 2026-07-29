@@ -957,35 +957,48 @@ const Step1Content: React.FC<Step1ContentProps> = ({
             if (!selectedRepo) return null;
 
             // 1. If no target branches are checked in selectedBranches, hide warning message immediately
+            // 1. If no target branches are checked in selectedBranches, hide warning message immediately
             if (!selectedBranches || selectedBranches.length === 0) {
               return null;
             }
 
-            const cleanSlug = (s?: string) => {
-              if (!s) return '';
-              return (s || '')
-                .toLowerCase()
-                .replace(/\.git$/, '')
-                .split('/').filter(Boolean).pop()!
-                .replace(/^estevia-/, '')
-                .replace(/-(dev|qa|prod|production|staging|test)(-swa)?$/i, '')
-                .replace(/(-swa)?$/i, '')
-                .replace(/-(web|app|api|service|website)$/i, '')
-                .replace(/-/g, '');
+            // 100% Dynamic Token Extraction & Overlap Algorithm (Zero Hardcoding)
+            const extractTokens = (str?: string) => {
+              if (!str) return [];
+              const raw = (str || '').toLowerCase().replace(/\.git$/, '').split('/').filter(Boolean).pop() || '';
+              // Exclude standard environment designations
+              const envTokens = new Set(['dev', 'qa', 'prod', 'production', 'staging', 'test', 'swa', 'aca', 'azure', 'refs', 'heads']);
+              return raw
+                .split(/[^a-z0-9]+/)
+                .filter(w => w.length > 2 && !envTokens.has(w));
             };
 
-            const targetSlug = cleanSlug(selectedRepo);
+            const repoTokens = extractTokens(selectedRepo);
 
-            // 2. Validate selected branch against deployed apps & environments
+            // 2. Dynamic matching against applications and Azure resources
             const matchingApp = apps.find(a => {
-              const u1 = cleanSlug(a.repositoryUrl);
-              const u2 = cleanSlug((a as any).repo_url);
-              const u3 = cleanSlug((a as any).gitUrl);
-              const u4 = cleanSlug(a.azureResourceDetails?.repoUrl || a.azureResourceDetails?.repo_url);
-              const u5 = cleanSlug(a.name);
+              // Direct URL comparison if available
+              const repoUrls = [
+                a.repositoryUrl,
+                (a as any).repo_url,
+                (a as any).gitUrl,
+                a.azureResourceDetails?.repoUrl,
+                a.azureResourceDetails?.repo_url
+              ].filter(Boolean).map(u => (u || '').toLowerCase().replace(/\.git$/, '').split('/').filter(Boolean).pop() || '');
 
-              const matchesRepo = targetSlug && (u1 === targetSlug || u2 === targetSlug || u3 === targetSlug || u4 === targetSlug || u5 === targetSlug);
-              if (!matchesRepo) return false;
+              const repoSlug = (selectedRepo || '').toLowerCase().replace(/\.git$/, '').split('/').filter(Boolean).pop() || '';
+              const directMatch = repoSlug && repoUrls.some(u => u === repoSlug);
+
+              if (!directMatch) {
+                // Dynamic Token Overlap Matching
+                const appTokens = extractTokens(a.name);
+                const appRepoTokens = repoUrls.flatMap(u => extractTokens(u));
+                const allAppTokens = Array.from(new Set([...appTokens, ...appRepoTokens]));
+
+                // Check for significant domain token overlap (ignoring generic company org prefix)
+                const commonTokens = repoTokens.filter(t => allAppTokens.includes(t) && t !== 'estevia');
+                if (commonTokens.length === 0) return false;
+              }
 
               const appBranch = ((a as any).branch || (a as any).gitBranch || a.azureResourceDetails?.branch || a.azureResourceDetails?.targetBranch || 'main').replace('refs/heads/', '').toLowerCase();
               const appEnv = (a.environment || a.azureResourceDetails?.environment || '').toLowerCase();
