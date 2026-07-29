@@ -4189,7 +4189,7 @@ function App() {
         // Auto-update cost management metrics as part of the scan flow (only for full scans)
         if (!buildsOnly) {
           console.log('[DevOps Scan] Triggering cost metrics refresh...');
-          fetchCostData();
+          fetchCostData(activeSub, activeRg);
         }
       } else {
         console.error('[DevOps Scan] [API ERROR] Backend reported failure:', data.message || data.error);

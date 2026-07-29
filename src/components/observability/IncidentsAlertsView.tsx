@@ -125,43 +125,14 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
 
             if (res && res.ok) {
                 const data = await res.json();
-                if (data.success && data.incidents && data.incidents.length > 0) {
-                    setIncidents(data.incidents.map((i: any) => ({ ...i, status: i.status || 'triggered' })));
+                if (data.success) {
+                    setIncidents((data.incidents || []).map((i: any) => ({ ...i, status: i.status || 'triggered' })));
                     setPackageLocked(false);
                     setLoading(false);
                     return;
                 }
             }
-
-            // Fallback dynamic incidents
-            setIncidents([
-                {
-                    id: 101,
-                    app_key: 'estevia-backend',
-                    environment: 'dev',
-                    resource_type: 'aca',
-                    category: 'HIGH_RESOURCE_PRESSURE',
-                    severity: 'P2_HIGH',
-                    status: 'triggered',
-                    title: 'High CPU Pressure Warning',
-                    description: 'Container CPU utilization exceeded 85% threshold during background scan',
-                    telemetry_snapshot: { cpu_percent: 87.4, memory_mb: 410 },
-                    created_at: new Date(Date.now() - 25 * 60 * 1000).toISOString()
-                },
-                {
-                    id: 102,
-                    app_key: 'estevia-api',
-                    environment: 'prod',
-                    resource_type: 'aca',
-                    category: 'LATENCY_DEGRADATION',
-                    severity: 'P1_CRITICAL',
-                    status: 'triggered',
-                    title: 'Elevated P95 Latency Spike',
-                    description: 'Elevated P95 Latency spikes detected on database query pool',
-                    telemetry_snapshot: { p95_latency_ms: 412, active_connections: 92 },
-                    created_at: new Date(Date.now() - 110 * 60 * 1000).toISOString()
-                }
-            ]);
+            setIncidents([]);
         } catch (err) {
             console.error('Failed to load incidents:', err);
         } finally {
