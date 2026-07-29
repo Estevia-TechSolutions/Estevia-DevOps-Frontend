@@ -293,9 +293,9 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* Header Control Toolbar */}
+            {/* Header Control Toolbar with Integrated Single-Line Filter Controls */}
             <div className="glass-panel" style={{
-                padding: '16px 20px',
+                padding: '14px 20px',
                 borderRadius: '14px',
                 background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.02)',
                 border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
@@ -303,8 +303,9 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
-                gap: '12px'
+                gap: '14px'
             }}>
+                {/* Title Section */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{
                         width: '38px',
@@ -314,7 +315,8 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: '#fff'
+                        color: '#fff',
+                        flexShrink: 0
                     }}>
                         <ShieldAlert size={20} />
                     </div>
@@ -328,77 +330,21 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'nowrap', whiteSpace: 'nowrap', overflowX: 'auto' }}>
-                    <button
-                        type="button"
-                        onClick={() => setShowInfoDrawer(true)}
-                        style={{
-                            padding: '8px 16px',
-                            borderRadius: '8px',
-                            fontSize: '0.82rem',
-                            fontWeight: 600,
-                            background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.06)',
-                            color: isLight ? '#0f172a' : 'var(--text-primary)',
-                            border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px'
-                        }}
-                    >
-                        <Info size={16} style={{ color: '#3b82f6' }} />
-                        <span>Incident Rules & Info</span>
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={() => setShowConfigModal(true)}
-                        style={{
-                            padding: '8px 16px',
-                            borderRadius: '8px',
-                            fontSize: '0.82rem',
-                            fontWeight: 600,
-                            background: 'linear-gradient(135deg, #8b5cf6, #d946ef)',
-                            color: '#fff',
-                            border: 'none',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)'
-                        }}
-                    >
-                        <Bell size={16} />
-                        <span>Configure Alert Recipients</span>
-                    </button>
-                </div>
-            </div>
-
-            {/* Inline Search & Filter Toolbar */}
-            <div className="glass-panel" style={{
-                padding: '12px 18px',
-                borderRadius: '12px',
-                background: isLight ? '#ffffff' : 'rgba(255, 255, 255, 0.02)',
-                border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '12px'
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '240px' }}>
-                    <div style={{ position: 'relative', width: '100%', maxWidth: '320px' }}>
-                        <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: isLight ? '#94a3b8' : 'var(--text-secondary)' }} />
+                {/* Inline Filters & Actions Block (Single Line Flex) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    {/* Search Input */}
+                    <div style={{ position: 'relative', width: '200px' }}>
+                        <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: isLight ? '#94a3b8' : 'var(--text-secondary)' }} />
                         <input
                             type="text"
-                            placeholder="Filter incidents by keyword, app, RG..."
+                            placeholder="Filter incidents..."
                             value={searchQuery}
                             onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                             style={{
                                 width: '100%',
-                                padding: '8px 12px 8px 34px',
+                                padding: '6px 10px 6px 30px',
                                 borderRadius: '8px',
-                                fontSize: '0.82rem',
+                                fontSize: '0.8rem',
                                 border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
                                 background: isLight ? '#f8fafc' : 'rgba(0, 0, 0, 0.2)',
                                 color: isLight ? '#0f172a' : '#fff',
@@ -406,15 +352,13 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                             }}
                         />
                     </div>
-                </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                     {/* Severity Filter */}
                     <select
                         value={selectedSeverityFilter}
                         onChange={(e) => { setSelectedSeverityFilter(e.target.value); setCurrentPage(1); }}
                         style={{
-                            padding: '7px 12px',
+                            padding: '6px 10px',
                             borderRadius: '8px',
                             fontSize: '0.8rem',
                             border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
@@ -436,7 +380,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                         value={selectedStatusFilter}
                         onChange={(e) => { setSelectedStatusFilter(e.target.value); setCurrentPage(1); }}
                         style={{
-                            padding: '7px 12px',
+                            padding: '6px 10px',
                             borderRadius: '8px',
                             fontSize: '0.8rem',
                             border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
@@ -457,7 +401,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                         value={selectedEnvFilter}
                         onChange={(e) => { setSelectedEnvFilter(e.target.value); setCurrentPage(1); }}
                         style={{
-                            padding: '7px 12px',
+                            padding: '6px 10px',
                             borderRadius: '8px',
                             fontSize: '0.8rem',
                             border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
@@ -467,7 +411,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                             cursor: 'pointer'
                         }}
                     >
-                        <option value="ALL">All Environments</option>
+                        <option value="ALL">All Envs</option>
                         <option value="dev">DEV</option>
                         <option value="qa">QA</option>
                         <option value="prod">PROD</option>
@@ -484,7 +428,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                 setCurrentPage(1);
                             }}
                             style={{
-                                padding: '7px 12px',
+                                padding: '6px 10px',
                                 borderRadius: '8px',
                                 fontSize: '0.78rem',
                                 fontWeight: 600,
@@ -494,9 +438,52 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                 cursor: 'pointer'
                             }}
                         >
-                            Reset Filters
+                            Reset
                         </button>
                     )}
+
+                    <button
+                        type="button"
+                        onClick={() => setShowInfoDrawer(true)}
+                        style={{
+                            padding: '7px 14px',
+                            borderRadius: '8px',
+                            fontSize: '0.82rem',
+                            fontWeight: 600,
+                            background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.06)',
+                            color: isLight ? '#0f172a' : 'var(--text-primary)',
+                            border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                        }}
+                    >
+                        <Info size={15} style={{ color: '#3b82f6' }} />
+                        <span>Info</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => setShowConfigModal(true)}
+                        style={{
+                            padding: '7px 14px',
+                            borderRadius: '8px',
+                            fontSize: '0.82rem',
+                            fontWeight: 600,
+                            background: 'linear-gradient(135deg, #8b5cf6, #d946ef)',
+                            color: '#fff',
+                            border: 'none',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)'
+                        }}
+                    >
+                        <Bell size={15} />
+                        <span>Recipients</span>
+                    </button>
                 </div>
             </div>
 
