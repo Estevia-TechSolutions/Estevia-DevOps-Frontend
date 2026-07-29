@@ -7138,7 +7138,7 @@ function App() {
                       const subHeaderBorder = isLight ? '1px solid rgba(0, 0, 0, 0.04)' : '1px solid rgba(255, 255, 255, 0.03)';
                       
                       return (
-                        <div ref={scopeDropdownRef} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px', whiteSpace: 'nowrap' }}>
+                        <div ref={scopeDropdownRef} style={{ position: 'relative', zIndex: isScopeDropdownOpen ? 99999 : 100, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px', whiteSpace: 'nowrap' }}>
                           <style>{`
                             .scope-dropdown-item {
                               display: flex;
@@ -7251,7 +7251,7 @@ function App() {
                                 width: '380px',
                                 maxHeight: '350px',
                                 overflowY: 'auto',
-                                zIndex: 1000,
+                                zIndex: 999999,
                                 borderRadius: '12px',
                                 border: panelBorder,
                                 backgroundColor: panelBg,
