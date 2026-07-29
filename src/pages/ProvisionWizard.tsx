@@ -205,6 +205,8 @@ interface AppResource {
     scrapedSourceFile?: string;
     scrapedSourceContent?: string;
     managedEnvironmentId?: string;
+    branch?: string;
+    targetBranch?: string;
   };
   dnsDetails?: {
     subdomain?: string;
@@ -962,6 +964,23 @@ const Step1Content: React.FC<Step1ContentProps> = ({
 
             if (!matchingApp) return null;
 
+            // Check if selected branch matches the app's deployed branch
+            const appBranch = (matchingApp as any).branch || (matchingApp as any).gitBranch || matchingApp.azureResourceDetails?.branch || matchingApp.azureResourceDetails?.targetBranch || 'main';
+            const appBranchClean = appBranch.replace('refs/heads/', '').toLowerCase();
+
+            const activeSelectedBranches = selectedBranches && selectedBranches.length > 0 
+              ? selectedBranches 
+              : (selectedBranch ? [selectedBranch] : []);
+
+            const matchingBranch = activeSelectedBranches.find(b => b.replace('refs/heads/', '').toLowerCase() === appBranchClean);
+            
+            // If branch is selected and does NOT match deployed branch, skip warning
+            if (activeSelectedBranches.length > 0 && !matchingBranch) {
+              return null;
+            }
+
+            const targetBranchDisplay = matchingBranch || appBranchClean || 'main';
+
             const resId = matchingApp.resourceId || matchingApp.azureResourceDetails?.resourceId || '';
             const subIdMatch = resId.match(/\/subscriptions\/([^\/]+)/i);
             const rgMatch = resId.match(/\/resourceGroups\/([^\/]+)/i);
@@ -978,9 +997,9 @@ const Step1Content: React.FC<Step1ContentProps> = ({
                 <AlertTriangle size={16} style={{ color: isSameScope ? 'var(--warning)' : '#60a5fa', flexShrink: 0, marginTop: '2px' }} />
                 <div style={{ fontSize: '0.87rem', lineHeight: 1.5, color: 'var(--text-primary)' }}>
                   <strong style={{ color: isSameScope ? 'var(--warning)' : '#60a5fa' }}>
-                    {isSameScope ? 'Already Deployed in Selected Target Scope:' : 'Already Deployed in Another Scope / Environment:'}
+                    {isSameScope ? `Already Deployed (branch: ${targetBranchDisplay}) in Selected Scope:` : `Already Deployed (branch: ${targetBranchDisplay}) in Another Scope:`}
                   </strong>{' '}
-                  This repository is currently deployed in subscription <strong>{subName}</strong>, resource group <strong>{rgName}</strong> (application: <strong>{matchingApp.name}</strong>). {isSameScope ? 'Deploying again in the same scope creates a duplicate.' : 'Provisioning here will create a separate target environment instance.'}
+                  Branch <code style={{ background: 'var(--divider)', padding: '1px 5px', borderRadius: '4px', fontSize: '0.82rem' }}>{targetBranchDisplay}</code> of repository <strong>{selectedRepo}</strong> is currently deployed in subscription <strong>{subName}</strong>, resource group <strong>{rgName}</strong> (application: <strong>{matchingApp.name}</strong>). {isSameScope ? 'Deploying again in the same scope creates a duplicate.' : 'Provisioning here will create a separate target environment instance.'}
                 </div>
               </div>
             );

@@ -7885,7 +7885,134 @@ function App() {
             </div>
 
       {/* Tab Contents */}
-      <main style={{ paddingBottom: '80px' }}>
+      <main style={{ paddingBottom: '80px', position: 'relative' }}>
+
+        {/* Full-Page Translucent Glassmorphism Overlay when Target Scope is Restricted */}
+        {(isOrgDisabled || isCurrentSubscriptionInactive) && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            minHeight: '600px',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            paddingTop: '60px',
+            paddingLeft: '20px',
+            paddingRight: '20px',
+            background: theme === 'light' 
+              ? 'rgba(255, 255, 255, 0.88)' 
+              : 'rgba(15, 23, 42, 0.88)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            borderRadius: '16px',
+            border: theme === 'light'
+              ? '1px solid rgba(239, 68, 68, 0.2)'
+              : '1px solid rgba(239, 68, 68, 0.3)',
+            boxShadow: theme === 'light'
+              ? '0 20px 50px rgba(0, 0, 0, 0.08)'
+              : '0 25px 60px rgba(0, 0, 0, 0.6)',
+            animation: 'fade-in-anim 0.25s ease-out'
+          }}>
+            <div style={{
+              maxWidth: '540px',
+              width: '100%',
+              textAlign: 'center',
+              padding: '40px 32px',
+              borderRadius: '20px',
+              background: theme === 'light'
+                ? 'rgba(255, 255, 255, 0.96)'
+                : 'rgba(30, 41, 59, 0.92)',
+              border: theme === 'light'
+                ? '1px solid rgba(0, 0, 0, 0.08)'
+                : '1px solid rgba(255, 255, 255, 0.1)',
+              boxShadow: theme === 'light'
+                ? '0 20px 40px rgba(0, 0, 0, 0.1)'
+                : '0 25px 50px rgba(0, 0, 0, 0.6)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '20px'
+            }}>
+              <div style={{
+                width: '68px',
+                height: '68px',
+                borderRadius: '50%',
+                background: theme === 'light'
+                  ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(245, 158, 11, 0.15) 100%)'
+                  : 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(245, 158, 11, 0.25) 100%)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                boxShadow: theme === 'light'
+                  ? '0 8px 24px rgba(239, 68, 68, 0.15)'
+                  : '0 0 30px rgba(239, 68, 68, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Lock size={32} style={{ color: '#ef4444' }} />
+              </div>
+
+              <div>
+                <h2 style={{
+                  margin: '0 0 10px 0',
+                  fontSize: '1.5rem',
+                  fontWeight: 800,
+                  letterSpacing: '-0.02em',
+                  color: theme === 'light' ? '#0f172a' : '#ffffff'
+                }}>
+                  Target Scope Restricted
+                </h2>
+                <p style={{
+                  margin: 0,
+                  fontSize: '0.92rem',
+                  lineHeight: 1.6,
+                  color: theme === 'light' ? '#475569' : '#94a3b8'
+                }}>
+                  Subscription <strong>{currentSub?.displayName || selectedSubscriptionId}</strong> ({selectedControlResourceGroup || 'Selected RG'}) is in <strong>{currentSub?.status || 'restricted'}</strong> status. Cloud resource scanning, database catalogs, provisioning, and cost operations are locked for this scope.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => setIsScopeDropdownOpen(true)}
+                  style={{
+                    padding: '11px 22px',
+                    borderRadius: '10px',
+                    fontSize: '0.88rem',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Server size={16} /> Switch Target Scope
+                </button>
+                {(user?.role === 'owner' || user?.role === 'admin') && (
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setActiveTab('settings')}
+                    style={{
+                      padding: '11px 22px',
+                      borderRadius: '10px',
+                      fontSize: '0.88rem',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    View Licensing & Status
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* TAB 1: CLOUD RESOURCE SCANNING */}
         {activeTab === 'scan' && (
