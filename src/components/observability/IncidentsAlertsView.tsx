@@ -306,24 +306,6 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'nowrap', whiteSpace: 'nowrap', overflowX: 'auto' }}>
-                    {/* Target Scope Filter Indicator Badge */}
-                    <div style={{
-                        padding: '6px 14px',
-                        borderRadius: '8px',
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                        background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.12)',
-                        color: isLight ? '#0369a1' : '#38bdf8',
-                        border: isLight ? '1px solid #bae6fd' : '1px solid rgba(56, 189, 248, 0.3)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                    }}>
-                        <Globe size={14} />
-                        <span>
-                            Target Scope: {selectedControlResourceGroup ? selectedControlResourceGroup : (selectedSubscriptionId ? `Sub: ${selectedSubscriptionId.slice(0, 8)}...` : 'All Target Scopes')}
-                        </span>
-                    </div>
                     <button
                         type="button"
                         onClick={() => setShowInfoDrawer(true)}
