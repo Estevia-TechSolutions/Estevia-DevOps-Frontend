@@ -7138,7 +7138,7 @@ function App() {
                       const subHeaderBorder = isLight ? '1px solid rgba(0, 0, 0, 0.04)' : '1px solid rgba(255, 255, 255, 0.03)';
                       
                       return (
-                        <div ref={scopeDropdownRef} style={{ position: 'relative', zIndex: isScopeDropdownOpen ? 99999 : 100, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px', whiteSpace: 'nowrap' }}>
+                        <div ref={scopeDropdownRef} style={{ position: 'relative', zIndex: isScopeDropdownOpen ? 99999 : 100, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px', whiteSpace: 'nowrap', width: '100%', minWidth: '280px', maxWidth: '440px' }}>
                           <style>{`
                             .scope-dropdown-item {
                               display: flex;
@@ -7150,32 +7150,32 @@ function App() {
                               font-weight: 500;
                               cursor: pointer;
                               transition: all 0.15s ease;
+                              background: transparent;
                             }
                             .scope-dropdown-item:hover {
-                              background-color: ${isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.04)'};
+                              background: ${isLight ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.04)'};
                               color: var(--text-primary);
-                              padding-left: 28px;
                             }
                             .scope-dropdown-item.selected {
-                              background-color: ${isLight ? 'rgba(124, 58, 237, 0.08)' : 'rgba(139, 92, 246, 0.08)'};
-                              color: ${isLight ? '#7c3aed' : '#a78bfa'};
-                              font-weight: 700;
+                              background: ${isLight ? 'rgba(124, 58, 237, 0.08)' : 'rgba(139, 92, 246, 0.12)'};
+                              color: var(--primary);
+                              font-weight: 600;
                             }
                             .scope-dropdown-scrollbar::-webkit-scrollbar {
-                              width: 6px;
+                              width: 5px;
                             }
                             .scope-dropdown-scrollbar::-webkit-scrollbar-track {
                               background: transparent;
                             }
                             .scope-dropdown-scrollbar::-webkit-scrollbar-thumb {
-                              background: ${isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)'};
-                              border-radius: 3px;
+                              background: ${isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.15)'};
+                              border-radius: 4px;
                             }
                             .scope-dropdown-scrollbar::-webkit-scrollbar-thumb:hover {
-                              background: ${isLight ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.2)'};
+                              background: ${isLight ? 'rgba(0, 0, 0, 0.25)' : 'rgba(255, 255, 255, 0.25)'};
                             }
                           `}</style>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '320px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                             <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Target Scope:</span>
                             {!scanning && scanProgress === 0 && (
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '2px 8px', borderRadius: '10px', background: 'rgba(34, 197, 94, 0.05)', border: '1px solid rgba(34, 197, 94, 0.12)', fontSize: '0.68rem', whiteSpace: 'nowrap' }}>
@@ -7200,7 +7200,7 @@ function App() {
                               cursor: 'pointer',
                               transition: 'all 0.2s ease',
                               userSelect: 'none',
-                              width: '320px',
+                              width: '100%',
                               justifyContent: 'space-between',
                               boxShadow: triggerShadow
                             }}
@@ -7248,7 +7248,9 @@ function App() {
                                 position: 'absolute',
                                 top: 'calc(100% + 8px)',
                                 right: 0,
-                                width: '380px',
+                                minWidth: '340px',
+                                width: 'max-content',
+                                maxWidth: '480px',
                                 maxHeight: '350px',
                                 overflowY: 'auto',
                                 zIndex: 999999,
