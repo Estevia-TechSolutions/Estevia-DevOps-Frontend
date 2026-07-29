@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Activity, Cpu, Server, Zap, RefreshCw, AlertTriangle, Layers, Clock, Filter, ShieldAlert, Maximize2, X, Lock, Database, HardDrive, Network } from 'lucide-react';
 
 interface MetricItem {
@@ -42,7 +42,7 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
     const [selectedEnv, setSelectedEnv] = useState<'dev' | 'qa' | 'prod'>('dev');
     const [selectedApp, setSelectedApp] = useState<string>('connecthub');
     const [resourceType, setResourceType] = useState<'all' | 'aca' | 'swa' | 'vm'>('all');
-    const [appsCatalog, setAppsCatalog] = useState<Array<{ key: string; label: string; icon: string; resourceTypes?: string[] }>>([]);
+    const [appsCatalog, setAppsCatalog] = useState<Array<{ key: string; label: string; icon: string; resourceTypes?: string[]; environments?: string[] }>>([]);
     const [metrics, setMetrics] = useState<MetricItem[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [packageLocked, setPackageLocked] = useState<boolean>(!isPackageActive);
@@ -54,6 +54,28 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
         metric: MetricItem;
         chartTitle: string;
     } | null>(null);
+
+    const availableEnvs = useMemo(() => {
+        if (selectedApp === 'all') {
+            const set = new Set<'dev' | 'qa' | 'prod'>();
+            appsCatalog.forEach(a => {
+                const envs = (a.environments || ['dev', 'qa', 'prod']) as Array<'dev' | 'qa' | 'prod'>;
+                envs.forEach(e => set.add(e));
+            });
+            return set.size > 0 ? Array.from(set) : (['dev', 'qa', 'prod'] as const);
+        }
+        const appObj = appsCatalog.find(a => a.key === selectedApp);
+        if (appObj && appObj.environments && appObj.environments.length > 0) {
+            return appObj.environments as Array<'dev' | 'qa' | 'prod'>;
+        }
+        return ['dev', 'qa', 'prod'] as const;
+    }, [selectedApp, appsCatalog]);
+
+    useEffect(() => {
+        if (availableEnvs.length > 0 && !availableEnvs.includes(selectedEnv)) {
+            setSelectedEnv(availableEnvs[0]);
+        }
+    }, [availableEnvs, selectedEnv]);
 
     useEffect(() => {
         setPackageLocked(!isPackageActive);
@@ -454,7 +476,7 @@ export const PrometheusObservabilityView: React.FC<PrometheusObservabilityViewPr
 
                     {/* Environment Toggle */}
                     <div style={{ display: 'inline-flex', borderRadius: '8px', overflow: 'hidden', border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)', flexShrink: 0 }}>
-                        {(['dev', 'qa', 'prod'] as const).map(env => (
+                        {availableEnvs.map((env: 'dev' | 'qa' | 'prod') => (
                             <button
                                 key={env}
                                 type="button"
