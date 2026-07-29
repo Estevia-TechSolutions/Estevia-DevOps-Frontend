@@ -973,6 +973,58 @@ function App() {
     return localStorage.getItem('selectedControlSubscriptionId') || '';
   });
 
+  const currentSub = useMemo(() => {
+    return subscriptionsList.find(sub => sub.id === selectedSubscriptionId);
+  }, [subscriptionsList, selectedSubscriptionId]);
+
+  const isCurrentSubscriptionInactive = useMemo(() => {
+    return currentSub && currentSub.status !== 'active';
+  }, [currentSub]);
+
+  const renderInactiveSubscriptionWarning = () => {
+    if (!isCurrentSubscriptionInactive) return null;
+    const subName = currentSub?.displayName || selectedSubscriptionId;
+    const status = currentSub?.status || 'inactive';
+    
+    return (
+      <div className="glass-panel" style={{
+        margin: '0 0 20px 0',
+        padding: '16px 20px',
+        borderRadius: '12px',
+        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.05) 100%)',
+        border: '1px solid rgba(245, 158, 11, 0.3)',
+        boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px'
+      }}>
+        <div style={{
+          width: '36px',
+          height: '36px',
+          borderRadius: '50%',
+          backgroundColor: 'rgba(245, 158, 11, 0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#fbbf24',
+          flexShrink: 0
+        }}>
+          <AlertTriangle size={20} />
+        </div>
+        <div style={{ flexGrow: 1 }}>
+          <h4 style={{ margin: '0 0 4px 0', color: '#fbbf24', fontSize: '0.88rem', fontWeight: 700 }}>
+            Subscription Status Warning
+          </h4>
+          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.78rem', lineHeight: '1.4' }}>
+            The subscription <strong>{subName}</strong> is currently <strong>{status.toUpperCase()}</strong>. Cloud Scan, Cost Management, and Database resources are read-only or using cached data.
+          </p>
+        </div>
+      </div>
+    );
+  };
+
   useEffect(() => {
     let interval: any = null;
     if (scanning) {
@@ -1339,10 +1391,15 @@ function App() {
   const [committingDockerfile, setCommittingDockerfile] = useState(false);
   const [dockerfileCheckError, setDockerfileCheckError] = useState<string | null>(null);
 
-  const fetchProvisioningMetadata = async () => {
+  const [selectedProvisionSubscriptionId, setSelectedProvisionSubscriptionId] = useState(() => {
+    return localStorage.getItem('selectedProvisionSubscriptionId') || '';
+  });
+
+  const fetchProvisioningMetadata = async (subId?: string) => {
     setLoadingMetadata(true);
     try {
-      const res = await fetch(`${API_BASE}/apps/provisioning-metadata?organizationId=${organizationId}`);
+      const activeSubId = subId || selectedProvisionSubscriptionId || selectedSubscriptionId;
+      const res = await fetch(`${API_BASE}/apps/provisioning-metadata?organizationId=${organizationId}&subscriptionId=${activeSubId}`);
       const data = await res.json();
       if (data.success) {
         setLocations(data.locations || []);
@@ -3577,8 +3634,31 @@ function App() {
     }
   };
 
+  const filteredApps = useMemo(() => {
+    return apps.filter(app => {
+      // Filter by resourceGroup matching selectedControlResourceGroup (case insensitive)
+      if (selectedControlResourceGroup) {
+        const resId = app.resourceId || '';
+        const rgMatch = resId.match(/\/resourceGroups\/([^\/]+)/i);
+        const rg = rgMatch ? rgMatch[1] : '';
+        if (rg.toLowerCase() !== selectedControlResourceGroup.toLowerCase()) {
+          return false;
+        }
+      }
+      // Filter by subscriptionId matching selectedSubscriptionId (case-insensitive extract from resourceId)
+      if (selectedSubscriptionId) {
+        const resId = app.resourceId || '';
+        const subIdMatch = resId.match(/\/subscriptions\/([^\/]+)/i);
+        if (!subIdMatch || subIdMatch[1].toLowerCase() !== selectedSubscriptionId.toLowerCase()) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [apps, selectedControlResourceGroup, selectedSubscriptionId]);
+
   // Compute grouped apps (by shared repo / base name) whenever apps change
-  const appGroups = useMemo(() => groupApps(apps), [apps]);
+  const appGroups = useMemo(() => groupApps(filteredApps), [filteredApps]);
 
   const refreshHealthForRepo = useCallback((repo: string) => {
     if (!repo) return;
@@ -4552,6 +4632,7 @@ function App() {
           type: appType,
           location: newLocation,
           githubRepo: selectedRepo,
+          subscriptionId: selectedProvisionSubscriptionId || selectedSubscriptionId,
           targetPort: appType === 'backend' ? parseInt(targetPort, 10) : undefined,
           resourceGroup: selectedResourceGroup,
           managedEnvironment: selectedManagedEnvironment,
@@ -6985,10 +7066,28 @@ function App() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
                     {subscriptionsList && subscriptionsList.length > 0 && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>Subscription:</span>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>Target Scope:</span>
                         <select
-                          value={selectedSubscriptionId}
-                          onChange={(e) => handleSubscriptionChange(e.target.value)}
+                          value={`${selectedSubscriptionId}/${selectedControlResourceGroup}`}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const slashIndex = val.indexOf('/');
+                            if (slashIndex !== -1) {
+                              const subId = val.substring(0, slashIndex);
+                              const rg = val.substring(slashIndex + 1);
+                              setSelectedSubscriptionId(subId);
+                              localStorage.setItem('selectedControlSubscriptionId', subId);
+                              
+                              const matchedSub = subscriptionsList.find(sub => sub.id === subId);
+                              const rgs = matchedSub ? matchedSub.resourceGroups || [] : [];
+                              setControlResourceGroups(rgs);
+                              
+                              setSelectedControlResourceGroup(rg);
+                              localStorage.setItem('selectedControlResourceGroup', rg);
+                              
+                              handleScan(rg, false, false, subId);
+                            }
+                          }}
                           style={{
                             padding: '6px 12px',
                             fontSize: '0.8rem',
@@ -7000,46 +7099,27 @@ function App() {
                             outline: 'none',
                             cursor: 'pointer',
                             whiteSpace: 'nowrap',
-                            maxWidth: '240px',
+                            maxWidth: '350px',
                             textOverflow: 'ellipsis'
                           }}
                         >
                           {subscriptionsList.map((sub) => (
-                            <option key={sub.id} value={sub.id} style={{ backgroundColor: '#0f172a', color: '#fff' }}>
-                              {sub.displayName} ({sub.status})
-                            </option>
+                            <optgroup 
+                              key={sub.id} 
+                              label={`${sub.displayName} (${sub.status})`}
+                              style={{ backgroundColor: '#0f172a', color: 'var(--text-secondary)' }}
+                            >
+                              {(sub.resourceGroups || []).map((rg: string) => (
+                                <option 
+                                  key={`${sub.id}/${rg}`} 
+                                  value={`${sub.id}/${rg}`}
+                                  style={{ backgroundColor: '#0f172a', color: '#fff' }}
+                                >
+                                  {rg} {rg === primaryResourceGroup ? ' (Primary)' : ''}
+                                </option>
+                              ))}
+                            </optgroup>
                           ))}
-                        </select>
-                      </div>
-                    )}
-
-                    {controlResourceGroups && controlResourceGroups.length > 0 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>Resource Group:</span>
-                        <select
-                          value={selectedControlResourceGroup}
-                          onChange={(e) => handleResourceGroupChange(e.target.value)}
-                          style={{
-                            padding: '6px 12px',
-                            fontSize: '0.8rem',
-                            fontWeight: 650,
-                            borderRadius: '8px',
-                            border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
-                            backgroundColor: 'rgba(15, 23, 42, 0.4)',
-                            color: 'var(--text-primary)',
-                            outline: 'none',
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          {controlResourceGroups.map((rg) => {
-                            const isPrimary = rg === primaryResourceGroup;
-                            return (
-                              <option key={rg} value={rg} style={{ backgroundColor: '#0f172a', color: '#fff' }}>
-                                {rg} {isPrimary ? ' (Primary)' : ''}
-                              </option>
-                            );
-                          })}
                         </select>
                       </div>
                     )}
@@ -7588,6 +7668,7 @@ function App() {
         {/* TAB 1: CLOUD RESOURCE SCANNING */}
         {activeTab === 'scan' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {renderInactiveSubscriptionWarning()}
             {/* Cloud Scanning Sub-Menu Tab Bar (Pill Container) */}
             <div style={{
               display: 'inline-flex',
@@ -7773,6 +7854,13 @@ function App() {
             setBranches={setBranches}
             loadingBranches={loadingBranches}
             apps={apps as any}
+            selectedProvisionSubscriptionId={selectedProvisionSubscriptionId}
+            setSelectedProvisionSubscriptionId={(subId: string) => {
+              setSelectedProvisionSubscriptionId(subId);
+              localStorage.setItem('selectedProvisionSubscriptionId', subId);
+              fetchProvisioningMetadata(subId);
+            }}
+            subscriptionsList={subscriptionsList}
             ymlLoading={ymlLoading}
             ymlError={ymlError}
             setYmlError={setYmlError}
@@ -7961,101 +8049,107 @@ function App() {
 
         {/* TAB 4: COST MANAGEMENT & OPTIMIZATION */}
         {activeTab === 'cost' && (
-          <CostPage
-            costSummary={costSummary}
-            detailedCosts={detailedCosts}
-            costSuggestions={costSuggestions}
-            appliedSuggestions={appliedSuggestions}
-            invoices={invoices}
-            loadingCosts={loadingCosts}
-            costError={costError}
-            remediating={remediating}
-            costTab={costTab}
-            setCostTab={setCostTab}
-            costSearch={costSearch}
-            setCostSearch={setCostSearch}
-            envFilter={envFilter}
-            setEnvFilter={setEnvFilter}
-            handleApplyRemediation={handleApplyRemediation}
-            theme={theme}
-            deletingAppName={deletingAppName}
-            handleDeleteApp={handleDeleteApp}
-            currentUser={user}
-            API_BASE={API_BASE}
-            organizationId={organizationId}
-            onResourceControl={handleResourceControl}
-            controllingResource={controllingResource}
-            fetchCostData={fetchCostData}
-            mode={(costTab === 'breakdown' || costTab === 'billing') ? 'cost' : 'optimization'}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {renderInactiveSubscriptionWarning()}
+            <CostPage
+              costSummary={costSummary}
+              detailedCosts={detailedCosts}
+              costSuggestions={costSuggestions}
+              appliedSuggestions={appliedSuggestions}
+              invoices={invoices}
+              loadingCosts={loadingCosts}
+              costError={costError}
+              remediating={remediating}
+              costTab={costTab}
+              setCostTab={setCostTab}
+              costSearch={costSearch}
+              setCostSearch={setCostSearch}
+              envFilter={envFilter}
+              setEnvFilter={setEnvFilter}
+              handleApplyRemediation={handleApplyRemediation}
+              theme={theme}
+              deletingAppName={deletingAppName}
+              handleDeleteApp={handleDeleteApp}
+              currentUser={user}
+              API_BASE={API_BASE}
+              organizationId={organizationId}
+              onResourceControl={handleResourceControl}
+              controllingResource={controllingResource}
+              fetchCostData={fetchCostData}
+              mode={(costTab === 'breakdown' || costTab === 'billing') ? 'cost' : 'optimization'}
+            />
+          </div>
         )}
 
         {/* TAB 5: DATABASE CATALOG */}
         {activeTab === 'databases' && (
-          <DatabaseCatalogPage
-            apps={apps}
-            virtualNetworks={virtualNetworks}
-            dbServers={dbServers}
-            selectedDbServer={selectedDbServer}
-            setSelectedDbServer={setSelectedDbServer}
-            databases={databases}
-            selectedDatabase={selectedDatabase}
-            setSelectedDatabase={setSelectedDatabase}
-            databaseSchema={databaseSchema}
-            loadingDbServers={loadingDbServers}
-            loadingDatabases={loadingDatabases}
-            loadingSchema={loadingSchema}
-            schemaError={schemaError}
-            newDbName={newDbName}
-            setNewDbName={setNewDbName}
-            deployingDb={deployingDb}
-            deployDbSuccess={deployDbSuccess}
-            deployDbError={deployDbError}
-            expandedTables={expandedTables}
-            setExpandedTables={setExpandedTables}
-            copiedText={copiedText}
-            setCopiedText={setCopiedText}
-            dbDetailTab={dbDetailTab}
-            setDbDetailTab={setDbDetailTab}
-            connectCodeTab={connectCodeTab}
-            setConnectCodeTab={setConnectCodeTab}
-            querySql={querySql}
-            setQuerySql={setQuerySql}
-            queryExecuting={queryExecuting}
-            queryResult={queryResult}
-            queryError={queryError}
-            dbSearchQuery={dbSearchQuery}
-            setDbSearchQuery={setDbSearchQuery}
-            newTableName={newTableName}
-            setNewTableName={setNewTableName}
-            tableColumns={tableColumns}
-            setTableColumns={setTableColumns}
-            creatingTable={creatingTable}
-            createTableError={createTableError}
-            alteringTable={alteringTable}
-            setAlteringTable={setAlteringTable}
-            alterNewColName={alterNewColName}
-            setAlterNewColName={setAlterNewColName}
-            alterNewColType={alterNewColType}
-            setAlterNewColType={setAlterNewColType}
-            alterNewColNullable={alterNewColNullable}
-            setAlterNewColNullable={setAlterNewColNullable}
-            token={token}
-            API_BASE={API_BASE}
-            handleDeployDb={handleProvisionDatabase}
-            handleDropTable={handleDropTable}
-            handleDropColumn={handleDropColumn}
-            handleExecuteQuery={handleExecuteQuery}
-            handleCreateTable={handleCreateTable}
-            handleAddColumn={handleAddColumn}
-            fetchDatabases={fetchDatabases}
-            fetchDatabaseSchema={fetchDatabaseSchema}
-            setConfirmDialog={setConfirmDialog}
-            leftColRef={leftColRef}
-            leftColHeight={leftColHeight}
-            currentUser={user}
-            theme={theme}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {renderInactiveSubscriptionWarning()}
+            <DatabaseCatalogPage
+              apps={filteredApps}
+              virtualNetworks={virtualNetworks}
+              dbServers={dbServers}
+              selectedDbServer={selectedDbServer}
+              setSelectedDbServer={setSelectedDbServer}
+              databases={databases}
+              selectedDatabase={selectedDatabase}
+              setSelectedDatabase={setSelectedDatabase}
+              databaseSchema={databaseSchema}
+              loadingDbServers={loadingDbServers}
+              loadingDatabases={loadingDatabases}
+              loadingSchema={loadingSchema}
+              schemaError={schemaError}
+              newDbName={newDbName}
+              setNewDbName={setNewDbName}
+              deployingDb={deployingDb}
+              deployDbSuccess={deployDbSuccess}
+              deployDbError={deployDbError}
+              expandedTables={expandedTables}
+              setExpandedTables={setExpandedTables}
+              copiedText={copiedText}
+              setCopiedText={setCopiedText}
+              dbDetailTab={dbDetailTab}
+              setDbDetailTab={setDbDetailTab}
+              connectCodeTab={connectCodeTab}
+              setConnectCodeTab={setConnectCodeTab}
+              querySql={querySql}
+              setQuerySql={setQuerySql}
+              queryExecuting={queryExecuting}
+              queryResult={queryResult}
+              queryError={queryError}
+              dbSearchQuery={dbSearchQuery}
+              setDbSearchQuery={setDbSearchQuery}
+              newTableName={newTableName}
+              setNewTableName={setNewTableName}
+              tableColumns={tableColumns}
+              setTableColumns={setTableColumns}
+              creatingTable={creatingTable}
+              createTableError={createTableError}
+              alteringTable={alteringTable}
+              setAlteringTable={setAlteringTable}
+              alterNewColName={alterNewColName}
+              setAlterNewColName={setAlterNewColName}
+              alterNewColType={alterNewColType}
+              setAlterNewColType={setAlterNewColType}
+              alterNewColNullable={alterNewColNullable}
+              setAlterNewColNullable={setAlterNewColNullable}
+              token={token}
+              API_BASE={API_BASE}
+              handleDeployDb={handleProvisionDatabase}
+              handleDropTable={handleDropTable}
+              handleDropColumn={handleDropColumn}
+              handleExecuteQuery={handleExecuteQuery}
+              handleCreateTable={handleCreateTable}
+              handleAddColumn={handleAddColumn}
+              fetchDatabases={fetchDatabases}
+              fetchDatabaseSchema={fetchDatabaseSchema}
+              setConfirmDialog={setConfirmDialog}
+              leftColRef={leftColRef}
+              leftColHeight={leftColHeight}
+              currentUser={user}
+              theme={theme}
+            />
+          </div>
         )}
 
 
@@ -8078,7 +8172,7 @@ function App() {
               handleResetMfa={handleResetMfa}
               handleResetOrgMfa={handleResetOrgMfa}
               token={token}
-              apps={apps}
+              apps={filteredApps}
               appGroups={appGroups}
             />
           </div>

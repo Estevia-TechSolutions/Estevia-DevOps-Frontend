@@ -332,6 +332,9 @@ interface ProvisionWizardProps {
   repoIntegrityLoading: boolean;
   provisionYmlValidation?: any;
   provisionYmlValidating?: boolean;
+  selectedProvisionSubscriptionId: string;
+  setSelectedProvisionSubscriptionId: (val: string) => void;
+  subscriptionsList: any[];
 }
 
 /* ── Dockerfile Editor Step Sub-Component ── */
@@ -633,6 +636,7 @@ interface Step1ContentProps {
   repoIntegrityLoading: boolean;
   handleMoveToStep2: () => void;
   isViewer: boolean;
+  subscriptionsList: any[];
 }
 
 const CONFIDENCE_LABEL: Record<string, string> = { high: 'High', medium: 'Medium', low: 'Low' };
@@ -656,7 +660,7 @@ const Step1Content: React.FC<Step1ContentProps> = ({
   appType, handleAppTypeChange, selectedRepo, handleRepoChange, getCategorizedRepos,
   selectedBranches, setSelectedBranches, selectedBranch, setSelectedBranch,
   branches, setBranches, loadingBranches, fetchBranches, apps,
-  repoIntegrity, repoIntegrityLoading, handleMoveToStep2, isViewer,
+  repoIntegrity, repoIntegrityLoading, handleMoveToStep2, isViewer, subscriptionsList
 }) => {
   const [activeTab, setActiveTab] = React.useState<'configure' | 'integrity'>('configure');
   const [mixedOverride, setMixedOverride] = React.useState(false);
@@ -930,11 +934,21 @@ const Step1Content: React.FC<Step1ContentProps> = ({
           {(() => {
             const matchingApp = selectedRepo ? apps.find(a => a.repositoryUrl && a.repositoryUrl.toLowerCase().includes(selectedRepo.toLowerCase())) : null;
             if (!matchingApp) return null;
+            
+            const resId = matchingApp.resourceId || '';
+            const subIdMatch = resId.match(/\/subscriptions\/([^\/]+)/i);
+            const rgMatch = resId.match(/\/resourceGroups\/([^\/]+)/i);
+            const subId = subIdMatch ? subIdMatch[1] : '';
+            const rgName = rgMatch ? rgMatch[1] : 'Unknown Resource Group';
+            
+            const matchingSub = subscriptionsList.find(s => s.id.toLowerCase() === subId.toLowerCase());
+            const subName = matchingSub ? matchingSub.displayName : (subId || 'Unknown Subscription');
+
             return (
               <div className="glass-panel" style={{ padding: '14px 16px', borderColor: 'var(--warning)', backgroundColor: 'var(--warning-bg)', marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                 <AlertTriangle size={16} style={{ color: 'var(--warning)', flexShrink: 0, marginTop: '2px' }} />
                 <div style={{ fontSize: '0.87rem', lineHeight: 1.5 }}>
-                  <strong style={{ color: 'var(--warning)' }}>Already Deployed:</strong> This repo is linked to <strong>{matchingApp.name}</strong>. Deploying again creates a duplicate.
+                  <strong style={{ color: 'var(--warning)' }}>Already Deployed:</strong> This repo is already deployed in subscription <strong>{subName}</strong>, resource group <strong>{rgName}</strong> (application: <strong>{matchingApp.name}</strong>). Deploying again creates a duplicate.
                 </div>
               </div>
             );
@@ -1201,10 +1215,14 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
   repoIntegrity,
   repoIntegrityLoading,
   provisionYmlValidation,
-  provisionYmlValidating
+  provisionYmlValidating,
+  selectedProvisionSubscriptionId,
+  setSelectedProvisionSubscriptionId,
+  subscriptionsList
 }) => {
   const isViewer = currentUser?.role === 'viewer';
   const [ymlViewMode, setYmlViewMode] = useState<'editor' | 'diff'>('editor');
+  const [isNewRg, setIsNewRg] = useState(false);
 
   const handleCommitDefaultDockerfileClick = async () => {
     setCommittingDockerfile(true);
@@ -1445,6 +1463,7 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
             repoIntegrityLoading={repoIntegrityLoading}
             handleMoveToStep2={handleMoveToStep2}
             isViewer={isViewer}
+            subscriptionsList={subscriptionsList}
           />
         )}
 
@@ -1804,10 +1823,52 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                   </div>
                 )}
                 
+                {/* Subscription Selection */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Azure Subscription</label>
+                  <select
+                    value={selectedProvisionSubscriptionId}
+                    onChange={(e) => setSelectedProvisionSubscriptionId(e.target.value)}
+                    disabled={provisioning}
+                    required
+                  >
+                    <option value="">-- Select Subscription --</option>
+                    {subscriptionsList.map(sub => (
+                      <option key={sub.id} value={sub.id} style={{ background: 'var(--bg-secondary)', color: '#fff' }}>
+                        {sub.displayName} ({sub.status})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Dynamic Resource Group Selection */}
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Azure Target Resource Group</label>
-                  {loadingMetadata ? (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>Azure Target Resource Group</label>
+                    <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={isNewRg}
+                        onChange={(e) => {
+                          setIsNewRg(e.target.checked);
+                          setSelectedResourceGroup('');
+                        }}
+                        style={{ width: '13px', height: '13px', margin: 0, cursor: 'pointer' }}
+                      />
+                      Create new Resource Group
+                    </label>
+                  </div>
+                  
+                  {isNewRg ? (
+                    <input
+                      type="text"
+                      value={selectedResourceGroup}
+                      onChange={(e) => setSelectedResourceGroup(e.target.value)}
+                      placeholder="Enter new Resource Group name"
+                      required
+                      disabled={provisioning}
+                    />
+                  ) : loadingMetadata ? (
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Loading Resource Groups...</div>
                   ) : resourceGroups.length === 0 ? (
                     <input
