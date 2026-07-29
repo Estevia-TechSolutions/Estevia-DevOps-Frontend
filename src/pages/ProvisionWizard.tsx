@@ -982,16 +982,20 @@ const Step1Content: React.FC<Step1ContentProps> = ({
 
               return activeSelectedBranches.some(selBranch => {
                 const cleanSel = selBranch.replace('refs/heads/', '').toLowerCase();
-                if (cleanSel === 'main' || cleanSel === 'master' || cleanSel === 'prod') {
-                  return appBranch === 'main' || appBranch === 'master' || appBranch === 'prod' || appEnv === 'prod' || appEnv === 'production';
+                const isMain = ['main', 'master', 'prod', 'production', 'live'].includes(cleanSel);
+                const isDev = ['dev', 'development', 'develop'].includes(cleanSel);
+                const isQA = ['qa', 'staging', 'uat', 'test', 'testing'].includes(cleanSel);
+
+                if (isMain) {
+                  return ['main', 'master', 'prod', 'production', 'live'].includes(appBranch) || ['prod', 'production', 'live'].includes(appEnv);
                 }
-                if (cleanSel === 'dev' || cleanSel === 'development') {
-                  return appBranch === 'dev' || appBranch === 'development' || appEnv === 'dev' || appEnv === 'development';
+                if (isDev) {
+                  return ['dev', 'development', 'develop'].includes(appBranch) || ['dev', 'development', 'develop'].includes(appEnv);
                 }
-                if (cleanSel === 'qa') {
-                  return appBranch === 'qa' || appEnv === 'qa';
+                if (isQA) {
+                  return ['qa', 'staging', 'uat', 'test', 'testing'].includes(appBranch) || ['qa', 'staging', 'uat', 'test', 'testing'].includes(appEnv);
                 }
-                return appBranch === cleanSel;
+                return appBranch === cleanSel || appEnv === cleanSel;
               });
             });
 
