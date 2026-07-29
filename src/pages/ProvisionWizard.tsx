@@ -1000,8 +1000,11 @@ const Step1Content: React.FC<Step1ContentProps> = ({
                 if (commonTokens.length === 0) return false;
               }
 
-              const appBranch = ((a as any).branch || (a as any).gitBranch || a.azureResourceDetails?.branch || a.azureResourceDetails?.targetBranch || 'main').replace('refs/heads/', '').toLowerCase();
-              const appEnv = (a.environment || a.azureResourceDetails?.environment || '').toLowerCase();
+              const rawBranch = ((a as any).branch || (a as any).gitBranch || a.azureResourceDetails?.branch || a.azureResourceDetails?.targetBranch || '').replace('refs/heads/', '').toLowerCase();
+              const rawEnv = (a.environment || a.azureResourceDetails?.environment || '').toLowerCase();
+              const appNameLow = (a.name || '').toLowerCase();
+              const appRepoUrlLow = (a.repositoryUrl || (a as any).repo_url || (a as any).gitUrl || '').toLowerCase();
+              const combinedText = `${rawBranch} ${rawEnv} ${appNameLow} ${appRepoUrlLow}`;
 
               return selectedBranches.some(selBranch => {
                 const cleanSel = selBranch.replace('refs/heads/', '').toLowerCase();
@@ -1010,15 +1013,15 @@ const Step1Content: React.FC<Step1ContentProps> = ({
                 const isQA = ['qa', 'staging', 'uat', 'test', 'testing'].includes(cleanSel);
 
                 if (isMain) {
-                  return ['main', 'master', 'prod', 'production', 'live'].includes(appBranch) || ['prod', 'production', 'live'].includes(appEnv);
+                  return ['prod', 'production', 'live', 'main', 'master'].some(term => combinedText.includes(term));
                 }
                 if (isDev) {
-                  return ['dev', 'development', 'develop'].includes(appBranch) || ['dev', 'development', 'develop'].includes(appEnv);
+                  return ['dev', 'development', 'develop'].some(term => combinedText.includes(term));
                 }
                 if (isQA) {
-                  return ['qa', 'staging', 'uat', 'test', 'testing'].includes(appBranch) || ['qa', 'staging', 'uat', 'test', 'testing'].includes(appEnv);
+                  return ['qa', 'staging', 'uat', 'test', 'testing'].some(term => combinedText.includes(term));
                 }
-                return appBranch === cleanSel || appEnv === cleanSel;
+                return rawBranch === cleanSel || rawEnv === cleanSel;
               });
             });
 
