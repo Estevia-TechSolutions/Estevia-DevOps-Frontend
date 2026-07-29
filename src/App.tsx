@@ -7079,7 +7079,7 @@ function App() {
         ) : (
           <>
             {/* Unified DevOps Control Centre & Navigation Panel */}
-            <div className="glass-panel" style={{ padding: '24px', marginBottom: '30px', position: 'relative', overflow: 'visible', border: '1px solid var(--glass-border)' }}>
+            <div className="glass-panel" style={{ padding: '24px', marginBottom: '30px', position: 'relative', zIndex: isScopeDropdownOpen ? 999990 : 'auto', overflow: 'visible', border: '1px solid var(--glass-border)' }}>
               {/* Background gradient */}
               <div style={{
                 position: 'absolute',
@@ -7092,9 +7092,9 @@ function App() {
                 transition: 'background 0.3s ease'
               }} />
 
-              <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ position: 'relative', zIndex: isScopeDropdownOpen ? 999995 : 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 {/* Top Row: Title & Resource Group Dropdown & Status */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '24px', position: 'relative', zIndex: isScopeDropdownOpen ? 999998 : 'auto' }}>
                   <div>
                     <h1 style={{ 
                       margin: 0,
@@ -7115,7 +7115,7 @@ function App() {
                   </div>
 
                   {/* Subscription & Resource Group Selector */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'nowrap', whiteSpace: 'nowrap', position: 'relative', zIndex: isScopeDropdownOpen ? 999999 : 'auto' }}>
                     {subscriptionsList && subscriptionsList.length > 0 && (() => {
                       const isLight = theme === 'light';
                       const triggerBg = isLight 
@@ -7138,7 +7138,7 @@ function App() {
                       const subHeaderBorder = isLight ? '1px solid rgba(0, 0, 0, 0.04)' : '1px solid rgba(255, 255, 255, 0.03)';
                       
                       return (
-                        <div ref={scopeDropdownRef} style={{ position: 'relative', zIndex: isScopeDropdownOpen ? 99999 : 100, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px', whiteSpace: 'nowrap', width: '100%', minWidth: '280px', maxWidth: '440px' }}>
+                        <div ref={scopeDropdownRef} style={{ position: 'relative', zIndex: isScopeDropdownOpen ? 1000000 : 100, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px', whiteSpace: 'nowrap', width: '100%', minWidth: '280px', maxWidth: '440px' }}>
                           <style>{`
                             .scope-dropdown-item {
                               display: flex;

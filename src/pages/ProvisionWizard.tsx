@@ -192,6 +192,20 @@ interface AppResource {
   resourceId: string;
   status: string;
   repositoryUrl: string;
+  repo_url?: string;
+  gitUrl?: string;
+  subscriptionId?: string;
+  resourceGroup?: string;
+  azureResourceDetails?: {
+    resourceId?: string;
+    subscriptionId?: string;
+    resourceGroup?: string;
+    repoUrl?: string;
+    repo_url?: string;
+    scrapedSourceFile?: string;
+    scrapedSourceContent?: string;
+    managedEnvironmentId?: string;
+  };
   dnsDetails?: {
     subdomain?: string;
     domain?: string;
@@ -637,6 +651,7 @@ interface Step1ContentProps {
   handleMoveToStep2: () => void;
   isViewer: boolean;
   subscriptionsList: any[];
+  selectedProvisionSubscriptionId?: string;
 }
 
 const CONFIDENCE_LABEL: Record<string, string> = { high: 'High', medium: 'Medium', low: 'Low' };
@@ -660,7 +675,8 @@ const Step1Content: React.FC<Step1ContentProps> = ({
   appType, handleAppTypeChange, selectedRepo, handleRepoChange, getCategorizedRepos,
   selectedBranches, setSelectedBranches, selectedBranch, setSelectedBranch,
   branches, setBranches, loadingBranches, fetchBranches, apps,
-  repoIntegrity, repoIntegrityLoading, handleMoveToStep2, isViewer, subscriptionsList
+  repoIntegrity, repoIntegrityLoading, handleMoveToStep2, isViewer, subscriptionsList,
+  selectedProvisionSubscriptionId
 }) => {
   const [activeTab, setActiveTab] = React.useState<'configure' | 'integrity'>('configure');
   const [mixedOverride, setMixedOverride] = React.useState(false);
@@ -1480,6 +1496,7 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
             handleMoveToStep2={handleMoveToStep2}
             isViewer={isViewer}
             subscriptionsList={subscriptionsList}
+            selectedProvisionSubscriptionId={selectedProvisionSubscriptionId}
           />
         )}
 
