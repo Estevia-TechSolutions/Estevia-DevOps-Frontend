@@ -7198,15 +7198,15 @@ function App() {
                               gap: '12px',
                               padding: '8px 16px',
                               borderRadius: '10px',
-                              border: triggerBorder,
-                              backgroundColor: triggerBg,
+                              border: isCurrentSubscriptionInactive ? '1px solid rgba(239, 68, 68, 0.4)' : triggerBorder,
+                              backgroundColor: isCurrentSubscriptionInactive ? (isLight ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.14)') : triggerBg,
                               color: 'var(--text-primary)',
                               cursor: 'pointer',
                               transition: 'all 0.2s ease',
                               userSelect: 'none',
                               width: '100%',
                               justifyContent: 'space-between',
-                              boxShadow: triggerShadow
+                              boxShadow: isCurrentSubscriptionInactive ? '0 0 12px rgba(239, 68, 68, 0.15)' : triggerShadow
                             }}
                           >
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', textAlign: 'left', overflow: 'hidden' }}>
@@ -7219,7 +7219,7 @@ function App() {
                                     <span style={{
                                       fontSize: '0.66rem',
                                       fontWeight: 700,
-                                      color: isRawId ? '#f59e0b' : (isLight ? 'rgba(0, 0, 0, 0.45)' : '#94a3b8'),
+                                      color: isCurrentSubscriptionInactive ? '#ef4444' : (isRawId ? '#f59e0b' : (isLight ? 'rgba(0, 0, 0, 0.45)' : '#94a3b8')),
                                       fontFamily: isRawId ? 'monospace' : 'inherit',
                                       textTransform: isRawId ? 'none' : 'uppercase',
                                       letterSpacing: '0.04em',
@@ -7243,6 +7243,20 @@ function App() {
                                         ID ONLY
                                       </span>
                                     )}
+                                    {isCurrentSubscriptionInactive && (
+                                      <span style={{
+                                        fontSize: '0.6rem',
+                                        fontWeight: 700,
+                                        padding: '1px 4px',
+                                        borderRadius: '4px',
+                                        background: 'rgba(239, 68, 68, 0.15)',
+                                        border: '1px solid rgba(239, 68, 68, 0.4)',
+                                        color: '#ef4444',
+                                        flexShrink: 0
+                                      }}>
+                                        RESTRICTED
+                                      </span>
+                                    )}
                                   </div>
                                 );
                               })()}
@@ -7260,7 +7274,7 @@ function App() {
                             <ChevronDown 
                               size={14} 
                               style={{ 
-                                color: 'var(--text-secondary)', 
+                                color: isCurrentSubscriptionInactive ? '#ef4444' : 'var(--text-secondary)', 
                                 transition: 'transform 0.2s ease', 
                                 transform: isScopeDropdownOpen ? 'rotate(180deg)' : 'rotate(0)',
                                 flexShrink: 0
@@ -7303,23 +7317,38 @@ function App() {
                                 const isActive = !isRestricted && (statusLow === 'active' || statusLow === 'enabled' || statusLow === 'ready' || statusLow === '');
                                 const statusColor = isActive ? '#22c55e' : isRestricted ? '#ef4444' : '#64748b';
                                 const statusText = isRestricted ? (sub.status || sub.state || 'restricted') : (sub.status || sub.state || 'active');
+                                const restrictedHeaderBg = isLight ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.14)';
+                                const restrictedHeaderBorder = isLight ? '1px solid rgba(239, 68, 68, 0.22)' : '1px solid rgba(239, 68, 68, 0.28)';
+
                                 return (
-                                  <div key={sub.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                                  <div 
+                                    key={sub.id} 
+                                    style={{ 
+                                      display: 'flex', 
+                                      flexDirection: 'column',
+                                      background: isRestricted ? (isLight ? 'rgba(239, 68, 68, 0.04)' : 'rgba(239, 68, 68, 0.08)') : 'transparent',
+                                      borderLeft: isRestricted ? '3px solid #ef4444' : '3px solid transparent',
+                                      margin: isRestricted ? '4px 6px' : '0',
+                                      borderRadius: isRestricted ? '8px' : '0',
+                                      overflow: 'hidden',
+                                      transition: 'all 0.15s ease'
+                                    }}
+                                  >
                                     {/* Subscription Header */}
                                     <div style={{
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'space-between',
                                       padding: '8px 16px',
-                                      backgroundColor: subHeaderBg,
-                                      borderBottom: subHeaderBorder,
-                                      marginTop: '4px'
+                                      backgroundColor: isRestricted ? restrictedHeaderBg : subHeaderBg,
+                                      borderBottom: isRestricted ? restrictedHeaderBorder : subHeaderBorder,
+                                      marginTop: isRestricted ? '0' : '4px'
                                     }}>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', maxWidth: '260px', overflow: 'hidden' }}>
                                         <span style={{
                                           fontSize: '0.72rem',
                                           fontWeight: 700,
-                                          color: isRawId ? '#f59e0b' : (isLight ? 'rgba(0, 0, 0, 0.55)' : '#94a3b8'),
+                                          color: isRestricted ? '#ef4444' : (isRawId ? '#f59e0b' : (isLight ? 'rgba(0, 0, 0, 0.55)' : '#94a3b8')),
                                           fontFamily: isRawId ? 'monospace' : 'inherit',
                                           textTransform: isRawId ? 'none' : 'uppercase',
                                           letterSpacing: '0.04em',
@@ -7354,8 +7383,13 @@ function App() {
                                           backgroundColor: statusColor,
                                           boxShadow: `0 0 6px ${statusColor}`
                                         }} />
-                                        <span style={{ fontSize: '0.68rem', color: isLight ? 'rgba(0, 0, 0, 0.45)' : '#64748b', textTransform: 'capitalize', fontWeight: 600 }}>
-                                          {statusText}
+                                        <span style={{ 
+                                          fontSize: '0.68rem', 
+                                          color: isRestricted ? '#ef4444' : (isLight ? 'rgba(0, 0, 0, 0.45)' : '#64748b'), 
+                                          textTransform: 'capitalize', 
+                                          fontWeight: isRestricted ? 700 : 600 
+                                        }}>
+                                          {isRestricted ? '⛔ restricted' : statusText}
                                         </span>
                                       </div>
                                     </div>
