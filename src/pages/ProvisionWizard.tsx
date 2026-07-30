@@ -22,7 +22,9 @@ import {
   Cpu,
   Database,
   Server,
-  Layers
+  Layers,
+  CreditCard,
+  Network
 } from 'lucide-react';
 import { isFixable, applyAutoFix } from '../utils/autoFixEngine';
 import { DiffViewer } from '../components/DiffViewer';
@@ -1955,10 +1957,10 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                 {/* Subscription Selection */}
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Azure Subscription</label>
-                  <select
+                  <RichSelect
                     value={selectedProvisionSubscriptionId}
-                    onChange={(e) => {
-                      const targetSub = subscriptionsList.find(s => s.id === e.target.value);
+                    onChange={(val) => {
+                      const targetSub = subscriptionsList.find(s => s.id === val);
                       const isRestricted = targetSub && (
                         (targetSub.status || targetSub.state || '').toLowerCase() === 'restricted' ||
                         (targetSub.status || targetSub.state || '').toLowerCase() === 'inactive' ||
@@ -1969,30 +1971,23 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                         targetSub.restricted === true
                       );
                       if (isRestricted) return;
-                      setSelectedProvisionSubscriptionId(e.target.value);
+                      setSelectedProvisionSubscriptionId(val);
                     }}
                     disabled={provisioning}
-                    required
-                  >
-                    <option value="">-- Select Subscription --</option>
-                    {subscriptionsList.map(sub => {
+                    placeholder="-- Select Subscription --"
+                    options={subscriptionsList.map(sub => {
                       const statusLow = (sub.status || sub.state || '').toLowerCase();
                       const isRestricted = statusLow === 'restricted' || statusLow === 'inactive' || statusLow === 'disabled' || statusLow === 'read-only' || sub.isRestricted === true || sub.is_restricted === true || sub.restricted === true;
-                      return (
-                        <option
-                          key={sub.id}
-                          value={sub.id}
-                          disabled={isRestricted}
-                          style={{
-                            background: 'var(--bg-secondary)',
-                            color: isRestricted ? 'rgba(255, 255, 255, 0.4)' : '#fff'
-                          }}
-                        >
-                          {sub.displayName} {isRestricted ? `⛔ (${sub.status || 'Restricted'} — Selection Disallowed)` : `(${sub.status || 'Active'})`}
-                        </option>
-                      );
+                      return {
+                        value: sub.id,
+                        label: sub.displayName,
+                        description: `ID: ${sub.id}`,
+                        badge: isRestricted ? `⛔ ${sub.status || 'Restricted'}` : 'Active',
+                        disabled: isRestricted,
+                        icon: <CreditCard size={14} style={{ color: isRestricted ? 'var(--error)' : 'var(--accent-teal)' }} />
+                      };
                     })}
-                  </select>
+                  />
 
                   {/* Warning banner if a restricted subscription is somehow selected */}
                   {(() => {
@@ -2246,18 +2241,21 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
 
                     <div>
                       <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Virtual Network Subnet Injection</label>
-                      <select value={subnetId} onChange={e => setSubnetId(e.target.value)} disabled={provisioning}>
-                        <option value="" style={{ background: 'var(--bg-secondary)' }}>-- None (Deploy on Public Managed VNet) --</option>
-                        {virtualNetworks.map(vn => (
-                          <optgroup key={vn.id} label={`${vn.name} (${vn.location})`} style={{ background: 'var(--bg-secondary)' }}>
-                            {vn.subnets.map((sub: any) => (
-                              <option key={sub.id} value={sub.id} style={{ background: 'var(--bg-secondary)' }}>
-                                {sub.name} ({sub.addressPrefix})
-                              </option>
-                            ))}
-                          </optgroup>
-                        ))}
-                      </select>
+                      <RichSelect
+                        value={subnetId}
+                        onChange={(val) => setSubnetId(val)}
+                        disabled={provisioning}
+                        placeholder="-- None (Deploy on Public Managed VNet) --"
+                        options={[
+                          { value: '', label: '-- None (Deploy on Public Managed VNet) --', icon: <Network size={14} style={{ color: 'var(--text-secondary)' }} /> },
+                          ...virtualNetworks.flatMap(vn => vn.subnets.map((sub: any) => ({
+                            value: sub.id,
+                            label: `${sub.name} (${sub.addressPrefix})`,
+                            description: `VNet: ${vn.name} (${vn.location})`,
+                            icon: <Network size={14} style={{ color: 'var(--accent-teal)' }} />
+                          })))
+                        ]}
+                      />
                     </div>
                   </>
                 )}
@@ -2312,21 +2310,25 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
 
                     <div>
                       <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Private Subnet Delegation (VNet Integration)</label>
-                      <select value={subnetId} onChange={e => setSubnetId(e.target.value)} disabled={provisioning}>
-                        <option value="" style={{ background: 'var(--bg-secondary)' }}>-- None (Public Endpoint Access) --</option>
-                        {virtualNetworks.map(vn => (
-                          <optgroup key={vn.id} label={`${vn.name} (${vn.location})`} style={{ background: 'var(--bg-secondary)' }}>
-                            {vn.subnets.map((sub: any) => {
-                              const isDelegated = sub.delegations?.some((d: any) => d.serviceName === 'Microsoft.DBforMySQL/flexibleServers' || d.properties?.serviceName === 'Microsoft.DBforMySQL/flexibleServers');
-                              return (
-                                <option key={sub.id} value={sub.id} style={{ background: 'var(--bg-secondary)' }}>
-                                  {sub.name} ({sub.addressPrefix}) {isDelegated ? '✓ Delegated' : '(Will Auto-Delegate)'}
-                                </option>
-                              );
-                            })}
-                          </optgroup>
-                        ))}
-                      </select>
+                      <RichSelect
+                        value={subnetId}
+                        onChange={(val) => setSubnetId(val)}
+                        disabled={provisioning}
+                        placeholder="-- None (Public Endpoint Access) --"
+                        options={[
+                          { value: '', label: '-- None (Public Endpoint Access) --', icon: <Network size={14} style={{ color: 'var(--text-secondary)' }} /> },
+                          ...virtualNetworks.flatMap(vn => vn.subnets.map((sub: any) => {
+                            const isDelegated = sub.delegations?.some((d: any) => d.serviceName === 'Microsoft.DBforMySQL/flexibleServers' || d.properties?.serviceName === 'Microsoft.DBforMySQL/flexibleServers');
+                            return {
+                              value: sub.id,
+                              label: `${sub.name} (${sub.addressPrefix})`,
+                              description: `VNet: ${vn.name} (${vn.location})`,
+                              badge: isDelegated ? '✓ Delegated' : 'Auto-Delegate',
+                              icon: <Network size={14} style={{ color: 'var(--accent-purple)' }} />
+                            };
+                          }))
+                        ]}
+                      />
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
