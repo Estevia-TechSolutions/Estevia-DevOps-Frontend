@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, AlertTriangle, CheckCircle, Clock, Bell, User, Mail, Settings, X, Check, RefreshCw, ChevronDown, Lock, CheckCircle2, Hand, Search, Globe, Package, Server, Info, Cpu, Activity } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, CheckCircle, Clock, Bell, User, Mail, Settings, X, Check, RefreshCw, ChevronDown, Lock, CheckCircle2, Hand, Search, Globe, Package, Server, Info, Cpu, Activity, Bot, Sparkles, ExternalLink, Terminal, Copy } from 'lucide-react';
 
 interface Incident {
     id: number;
@@ -25,8 +25,8 @@ interface IncidentsAlertsViewProps {
     selectedControlResourceGroup?: string;
 }
 
-export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({ 
-    theme = 'dark', 
+export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
+    theme = 'dark',
     API_BASE = 'http://localhost:5005/api',
     isPackageActive = true,
     onNavigateSettings,
@@ -80,56 +80,99 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
         return { subId: sub, subName, subShort: subName, resourceGroup: rg };
     };
 
-    const getResourceInfo = (appKey?: string, customName?: string) => {
-        if (customName && customName.trim() !== '') {
-            return { displayName: customName, serviceType: 'Cloud Resource', rawKey: appKey || '' };
-        }
-
+    const getResourceInfo = (appKey?: string, environment?: string, customName?: string) => {
         const keyLow = (appKey || '').toLowerCase().trim();
-        if (!keyLow) return { displayName: 'Unknown Resource', serviceType: 'Microservice Engine', rawKey: '' };
+        const env = (environment || 'dev').toLowerCase();
 
-        // Dictionary of known platform application aliases
-        const aliasMap: Record<string, { name: string; type: string }> = {
-            'cloud-service': { name: 'Estevia Cloud Microservices Engine', type: 'Container App (ACA)' },
-            'estevia-backend': { name: 'Estevia DevOps Core Backend API', type: 'REST API Backend' },
-            'estevia-frontend': { name: 'Estevia DevOps Control Portal', type: 'Web Portal (SWA)' },
-            'peoplecraft-backend': { name: 'PeopleCraft Enterprise HR Core Backend', type: 'Node.js Microservice' },
-            'peoplecraft_backend': { name: 'PeopleCraft Enterprise HR Core Backend', type: 'Node.js Microservice' },
-            'peoplecraft-frontend': { name: 'PeopleCraft Enterprise HR Web Portal', type: 'React Web Portal' },
-            'peoplecraft_frontend': { name: 'PeopleCraft Enterprise HR Web Portal', type: 'React Web Portal' },
-            'peoplecraft': { name: 'PeopleCraft Enterprise HR Application', type: 'HR Enterprise Suite' },
-            'connecthub': { name: 'ConnectHub Integration Platform', type: 'Integration Gateway' },
-            'evaops': { name: 'EvaOps AI Control Center', type: 'AI Operations Platform' },
-            'marketing': { name: 'Estevia Corporate Marketing Portal', type: 'Static Web App (SWA)' },
-            'docai': { name: 'DocAI Document Intelligence Engine', type: 'Document AI Processing' },
-            'evapay': { name: 'EvaPay Financial Payment Gateway', type: 'Payment Processing Hub' },
-            'protrack': { name: 'ProTrack Project Management Suite', type: 'Task & Milestone Suite' },
-            'talenthq': { name: 'TalentHQ Recruitment Portal', type: 'Talent Acquisition Platform' },
-            'evafusion': { name: 'EvaFusion Neural Intelligence Suite', type: 'AI Analytics Engine' },
-        };
+        let displayName = appKey || 'Unknown Resource';
+        let serviceType = 'Container App (ACA)';
+        let azureResourceName = `ca-${keyLow || 'app'}-${env}`;
+        let providerType = 'Microsoft.App/containerApps';
 
-        // 1. Direct or substring match in alias map
-        for (const [k, alias] of Object.entries(aliasMap)) {
-            if (keyLow.includes(k)) {
-                return { displayName: alias.name, serviceType: alias.type, rawKey: appKey || '' };
-            }
+        if (keyLow.includes('cloud-service')) {
+            displayName = 'Estevia Cloud Microservices Engine';
+            serviceType = 'Container App (ACA)';
+            azureResourceName = `ca-estevia-cloud-service-${env}`;
+        } else if (keyLow.includes('estevia-backend')) {
+            displayName = 'Estevia DevOps Core Backend API';
+            serviceType = 'REST API Backend';
+            azureResourceName = `ca-estevia-backend-${env}`;
+        } else if (keyLow.includes('estevia-frontend')) {
+            displayName = 'Estevia DevOps Control Portal';
+            serviceType = 'Web Portal (SWA)';
+            azureResourceName = `swa-estevia-frontend-${env}`;
+            providerType = 'Microsoft.Web/staticSites';
+        } else if (keyLow.includes('peoplecraft-backend') || keyLow.includes('peoplecraft_backend')) {
+            displayName = 'PeopleCraft Enterprise HR Core Backend';
+            serviceType = 'Node.js Microservice';
+            azureResourceName = `ca-peoplecraft-backend-${env}`;
+        } else if (keyLow.includes('peoplecraft-frontend') || keyLow.includes('peoplecraft_frontend')) {
+            displayName = 'PeopleCraft Enterprise HR Web Portal';
+            serviceType = 'React Web Portal';
+            azureResourceName = `swa-peoplecraft-frontend-${env}`;
+            providerType = 'Microsoft.Web/staticSites';
+        } else if (keyLow.includes('peoplecraft')) {
+            displayName = 'PeopleCraft Enterprise HR Application';
+            serviceType = 'HR Enterprise Suite';
+            azureResourceName = `ca-peoplecraft-${env}`;
+        } else if (keyLow.includes('connecthub')) {
+            displayName = 'ConnectHub Integration Platform';
+            serviceType = 'Integration Gateway';
+            azureResourceName = `ca-connecthub-api-${env}`;
+        } else if (keyLow.includes('evaops')) {
+            displayName = 'EvaOps AI Control Center';
+            serviceType = 'AI Operations Platform';
+            azureResourceName = `ca-evaops-control-${env}`;
+        } else if (keyLow.includes('marketing')) {
+            displayName = 'Estevia Corporate Marketing Portal';
+            serviceType = 'Static Web App (SWA)';
+            azureResourceName = `swa-marketing-${env}`;
+            providerType = 'Microsoft.Web/staticSites';
+        } else if (keyLow.includes('docai')) {
+            displayName = 'DocAI Document Intelligence Engine';
+            serviceType = 'Document AI Processing';
+            azureResourceName = `ca-docai-engine-${env}`;
+        } else if (keyLow.includes('evapay')) {
+            displayName = 'EvaPay Financial Payment Gateway';
+            serviceType = 'Payment Processing Hub';
+            azureResourceName = `ca-evapay-gateway-${env}`;
+        } else if (keyLow.includes('protrack')) {
+            displayName = 'ProTrack Project Management Suite';
+            serviceType = 'Task & Milestone Suite';
+            azureResourceName = `ca-protrack-suite-${env}`;
+        } else if (keyLow.includes('talenthq')) {
+            displayName = 'TalentHQ Recruitment Portal';
+            serviceType = 'Talent Acquisition Platform';
+            azureResourceName = `ca-talenthq-${env}`;
+        } else if (keyLow.includes('evafusion')) {
+            displayName = 'EvaFusion Neural Intelligence Suite';
+            serviceType = 'AI Analytics Engine';
+            azureResourceName = `ca-evafusion-${env}`;
+        } else if (appKey) {
+            displayName = appKey
+                .split(/[-_]/)
+                .filter(Boolean)
+                .map(word => {
+                    if (['api', 'db', 'vm', 'aca', 'swa', 'cpu', 'ram', 'ssl', 'hr', 'ai', 'ci', 'cd', 'ui', 'id'].includes(word.toLowerCase())) {
+                        return word.toUpperCase();
+                    }
+                    return word.charAt(0).toUpperCase() + word.slice(1);
+                })
+                .join(' ');
         }
 
-        // 2. Dynamic converter for any arbitrary cloud resource or backend service name
-        const dynamicName = keyLow
-            .split(/[-_]/)
-            .filter(Boolean)
-            .map(word => {
-                if (['api', 'db', 'vm', 'aca', 'swa', 'cpu', 'ram', 'ssl', 'hr', 'ai', 'ci', 'cd', 'ui', 'id'].includes(word)) {
-                    return word.toUpperCase();
-                }
-                return word.charAt(0).toUpperCase() + word.slice(1);
-            })
-            .join(' ');
+        if (customName && customName.trim() !== '') {
+            displayName = customName;
+        }
+
+        const scope = getScopeInfoForApp(appKey);
+        const azurePortalUrl = `https://portal.azure.com/#resource/subscriptions/${scope.subId}/resourceGroups/${scope.resourceGroup}/providers/${providerType}/${azureResourceName}`;
 
         return {
-            displayName: dynamicName || appKey || 'Cloud Resource',
-            serviceType: 'Cloud Resource',
+            displayName,
+            serviceType,
+            azureResourceName,
+            azurePortalUrl,
             rawKey: appKey || ''
         };
     };
@@ -221,6 +264,26 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
             setLoading(false);
         }
     };
+
+    const [aiRemediation, setAiRemediation] = useState<any>(null);
+    const [loadingAiRemediation, setLoadingAiRemediation] = useState<boolean>(false);
+    const [copiedCommand, setCopiedCommand] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (selectedIncident) {
+            setLoadingAiRemediation(true);
+            setAiRemediation(null);
+            fetch(`${API_BASE}/apps/observability/incidents/${selectedIncident.id}/ai-remediation`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.remediation) {
+                        setAiRemediation(data.remediation);
+                    }
+                })
+                .catch(err => console.warn('Failed to fetch AI remediation:', err))
+                .finally(() => setLoadingAiRemediation(false));
+        }
+    }, [selectedIncident, API_BASE]);
 
     const handleAcknowledge = async (id: number) => {
         setIncidents(prev => prev.map(inc => inc.id === id ? { ...inc, status: 'acknowledged' } : inc));
@@ -446,8 +509,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                 border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
-                flexWrap: 'wrap'
+                gap: '12px'
             }}>
                 <span style={{ fontSize: '0.78rem', fontWeight: 700, color: isLight ? '#64748b' : 'var(--text-secondary)' }}>Filters:</span>
 
@@ -484,7 +546,8 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                         background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.2)',
                         color: isLight ? '#0f172a' : '#fff',
                         outline: 'none',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        width: '25vw'
                     }}
                 >
                     <option value="ALL">All Severities</option>
@@ -506,7 +569,9 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                         background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.2)',
                         color: isLight ? '#0f172a' : '#fff',
                         outline: 'none',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        width: '25vw'
+
                     }}
                 >
                     <option value="ALL">All Statuses</option>
@@ -527,7 +592,9 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                         background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.2)',
                         color: isLight ? '#0f172a' : '#fff',
                         outline: 'none',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        width: '25vw'
+
                     }}
                 >
                     <option value="ALL">All Envs</option>
@@ -615,50 +682,106 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                 return filteredIncidents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(inc => {
                                     const sev = getSeverityBadge(inc.severity);
                                     const scopeInfo = getScopeInfoForApp(inc.app_key);
-                                    const resInfo = getResourceInfo(inc.app_key);
+                                    const resInfo = getResourceInfo(inc.app_key, inc.environment);
+                                    const snapshot = inc.telemetry_snapshot || {};
                                     return (
                                         <tr key={inc.id} style={{ borderBottom: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.04)' }}>
-                                            <td style={{ padding: '14px 18px' }}>
+                                            <td style={{ padding: '16px 18px', verticalAlign: 'top' }}>
                                                 <span style={{
-                                                    padding: '3px 10px',
+                                                    padding: '4px 10px',
                                                     borderRadius: '12px',
                                                     fontSize: '0.72rem',
                                                     fontWeight: 700,
                                                     background: sev.bg,
-                                                    color: sev.color
+                                                    color: sev.color,
+                                                    display: 'inline-block'
                                                 }}>
                                                     {sev.text}
                                                 </span>
                                             </td>
-                                            <td style={{ padding: '14px 18px', fontWeight: 600, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                                    <span style={{ fontWeight: 700, fontSize: '0.88rem' }}>{resInfo.displayName}</span>
+                                            {/* Column 2: Multi-line Resource & Azure Identity */}
+                                            <td style={{ padding: '16px 18px', verticalAlign: 'top', color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+                                                {/* Line 1: Human Title & Resource Group */}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                    <span style={{ fontWeight: 800, fontSize: '0.92rem' }}>{resInfo.displayName}</span>
                                                     <span style={{
                                                         fontSize: '0.68rem',
-                                                        padding: '1px 6px',
+                                                        padding: '2px 8px',
                                                         borderRadius: '4px',
                                                         background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.12)',
                                                         color: isLight ? '#0369a1' : '#38bdf8',
-                                                        fontWeight: 600
+                                                        fontWeight: 700
                                                     }}>
                                                         {scopeInfo.resourceGroup}
                                                     </span>
                                                 </div>
-                                                <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', marginTop: '4px' }}>
-                                                    <code style={{ fontSize: '0.7rem', opacity: 0.85, padding: '1px 4px', borderRadius: '4px', background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.06)' }}>{inc.app_key}</code> • {scopeInfo.subName} • <span style={{ textTransform: 'uppercase' }}>{inc.resource_type || 'aca'}</span> • <span style={{ textTransform: 'uppercase' }}>{inc.environment}</span>
+
+                                                {/* Line 2: Azure Native Name & Azure Portal Deep-Link */}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
+                                                    <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>Azure Resource:</span>
+                                                    <code style={{ fontSize: '0.74rem', color: '#38bdf8', padding: '1px 6px', borderRadius: '4px', background: isLight ? '#f1f5f9' : 'rgba(56, 189, 248, 0.08)', fontWeight: 600 }}>
+                                                        {resInfo.azureResourceName}
+                                                    </code>
+                                                    <a
+                                                        href={resInfo.azurePortalUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        style={{
+                                                            fontSize: '0.7rem',
+                                                            color: isLight ? '#0284c7' : '#38bdf8',
+                                                            background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.15)',
+                                                            padding: '2px 8px',
+                                                            borderRadius: '6px',
+                                                            textDecoration: 'none',
+                                                            fontWeight: 600,
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '4px'
+                                                        }}
+                                                    >
+                                                        <ExternalLink size={12} /> Open in Azure Portal
+                                                    </a>
+                                                </div>
+
+                                                {/* Line 3: Scope Metadata (Sub, Type, Env) */}
+                                                <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', marginTop: '6px' }}>
+                                                    <code style={{ fontSize: '0.7rem', opacity: 0.85, padding: '1px 4px', borderRadius: '4px', background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.06)' }}>{inc.app_key}</code> • {scopeInfo.subName} • <span style={{ textTransform: 'uppercase', fontWeight: 600 }}>{inc.resource_type || 'aca'}</span> • <span style={{ textTransform: 'uppercase', fontWeight: 600 }}>{inc.environment}</span>
                                                 </div>
                                             </td>
-                                            <td style={{ padding: '14px 18px' }}>
-                                                <div style={{ fontWeight: 600, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+
+                                            {/* Column 3: Multi-line Telemetry Alert & Metric Snapshot */}
+                                            <td style={{ padding: '16px 18px', verticalAlign: 'top' }}>
+                                                <div style={{ fontWeight: 700, fontSize: '0.88rem', color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
                                                     {inc.title || (inc as any).incident_title || (inc as any).summary || (inc as any).metric_type || 'Telemetry Incident Alert'}
                                                 </div>
-                                                <div style={{ fontSize: '0.76rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
+                                                <div style={{ fontSize: '0.78rem', color: isLight ? '#64748b' : 'var(--text-secondary)', marginTop: '4px', lineHeight: 1.4 }}>
                                                     {inc.description || (inc as any).incident_description || (inc as any).details || (inc as any).summary || 'Automated incident alert recorded by EvaOps Observability monitor.'}
                                                 </div>
+
+                                                {/* Live Telemetry Metric Snapshot Pills */}
+                                                {snapshot && Object.keys(snapshot).length > 0 && (
+                                                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
+                                                        {Object.entries(snapshot).slice(0, 4).map(([k, v]) => (
+                                                            <span key={k} style={{
+                                                                fontSize: '0.68rem',
+                                                                padding: '2px 8px',
+                                                                borderRadius: '6px',
+                                                                background: isLight ? '#f1f5f9' : 'rgba(139, 92, 246, 0.1)',
+                                                                border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(139, 92, 246, 0.2)',
+                                                                color: isLight ? '#475569' : '#c084fc',
+                                                                fontWeight: 600
+                                                            }}>
+                                                                {k.replace(/_/g, ' ').toUpperCase()}: {typeof v === 'number' ? v.toLocaleString() : String(v)}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </td>
-                                            <td style={{ padding: '14px 18px' }}>
+
+                                            {/* Column 4: Status */}
+                                            <td style={{ padding: '16px 18px', verticalAlign: 'top' }}>
                                                 <span style={{
-                                                    padding: '2px 8px',
+                                                    padding: '3px 10px',
                                                     borderRadius: '10px',
                                                     fontSize: '0.72rem',
                                                     fontWeight: 600,
@@ -669,10 +792,14 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                                     {inc.status}
                                                 </span>
                                             </td>
-                                            <td style={{ padding: '14px 18px', fontSize: '0.76rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
+
+                                            {/* Column 5: Created At */}
+                                            <td style={{ padding: '16px 18px', verticalAlign: 'top', fontSize: '0.76rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
                                                 {new Date(inc.created_at).toLocaleString()}
                                             </td>
-                                            <td style={{ padding: '14px 18px', textAlign: 'right' }}>
+
+                                            {/* Column 6: Actions */}
+                                            <td style={{ padding: '16px 18px', verticalAlign: 'top', textAlign: 'right' }}>
                                                 <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                                                     <button
                                                         type="button"
@@ -860,33 +987,64 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
 
                             {/* Modal Body */}
                             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px', overflowY: 'auto', maxHeight: '75vh' }}>
-                                {/* Resource Meta Banner */}
-                                <div style={{
-                                    padding: '14px 18px',
-                                    borderRadius: '12px',
-                                    background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
-                                    border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
-                                    display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px'
-                                }}>
-                                    <div>
-                                        <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Application / Resource</div>
-                                        <div style={{ fontSize: '0.92rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
-                                            {getResourceInfo(selectedIncident.app_key).displayName} <span style={{ fontSize: '0.74rem', opacity: 0.75, fontWeight: 500 }}>({selectedIncident.app_key})</span>
+                                {(() => {
+                                    const resDetails = getResourceInfo(selectedIncident.app_key, selectedIncident.environment);
+                                    return (
+                                        <div style={{
+                                            padding: '14px 18px',
+                                            borderRadius: '12px',
+                                            background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
+                                            border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                                            display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px'
+                                        }}>
+                                            <div>
+                                                <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Application / Resource</div>
+                                                <div style={{ fontSize: '0.92rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+                                                    {resDetails.displayName} <span style={{ fontSize: '0.74rem', opacity: 0.75, fontWeight: 500 }}>({selectedIncident.app_key})</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Azure Native Resource Name</div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                                                    <code style={{ fontSize: '0.8rem', color: '#38bdf8', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.1)' }}>
+                                                        {resDetails.azureResourceName}
+                                                    </code>
+                                                    <a
+                                                        href={resDetails.azurePortalUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        style={{
+                                                            fontSize: '0.72rem',
+                                                            color: isLight ? '#0284c7' : '#38bdf8',
+                                                            background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.15)',
+                                                            padding: '2px 8px',
+                                                            borderRadius: '6px',
+                                                            textDecoration: 'none',
+                                                            fontWeight: 600,
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '4px'
+                                                        }}
+                                                    >
+                                                        <ExternalLink size={12} /> Azure Portal
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Environment / Resource Type</div>
+                                                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', textTransform: 'uppercase' }}>
+                                                    {selectedIncident.environment} • {selectedIncident.resource_type || 'aca'}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Recorded Time</div>
+                                                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+                                                    {new Date(selectedIncident.created_at).toLocaleString()}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div>
-                                        <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Environment / Type</div>
-                                        <div style={{ fontSize: '0.92rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', textTransform: 'uppercase' }}>
-                                            {selectedIncident.environment} • {selectedIncident.resource_type || 'aca'}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Recorded Time</div>
-                                        <div style={{ fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
-                                            {new Date(selectedIncident.created_at).toLocaleString()}
-                                        </div>
-                                    </div>
-                                </div>
+                                    );
+                                })()}
 
                                 {/* Title & Description */}
                                 <div>
@@ -926,6 +1084,103 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                             </div>
                                         )}
                                     </div>
+                                </div>
+
+                                {/* Real-Time OpenAI Fix & Remediation Section */}
+                                <div style={{
+                                    padding: '18px 20px',
+                                    borderRadius: '14px',
+                                    background: isLight ? 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)' : 'linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(217, 70, 239, 0.05) 100%)',
+                                    border: isLight ? '1px solid #e9d5ff' : '1px solid rgba(139, 92, 246, 0.3)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '14px'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <div style={{
+                                                width: '32px', height: '32px', borderRadius: '8px',
+                                                background: 'linear-gradient(135deg, #8b5cf6, #d946ef)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff'
+                                            }}>
+                                                <Bot size={18} />
+                                            </div>
+                                            <div>
+                                                <h5 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 800, color: isLight ? '#581c87' : '#e9d5ff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    Real-Time OpenAI Fix & Remediation Guide <Sparkles size={14} style={{ color: '#d946ef' }} />
+                                                </h5>
+                                                <div style={{ fontSize: '0.74rem', color: isLight ? '#7e22ce' : 'rgba(233, 213, 255, 0.7)' }}>
+                                                    Automated AI root cause diagnosis & step-by-step resolution commands
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <span style={{ fontSize: '0.7rem', padding: '3px 8px', borderRadius: '6px', background: 'rgba(139, 92, 246, 0.2)', color: '#c084fc', fontWeight: 600 }}>
+                                            GPT-4o Engine
+                                        </span>
+                                    </div>
+
+                                    {loadingAiRemediation ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '16px', color: isLight ? '#6b21a8' : '#d8b4fe', fontSize: '0.84rem' }}>
+                                            <RefreshCw size={16} className="spin-anim" />
+                                            <span>Analyzing incident telemetry with OpenAI & generating step-by-step fix instructions...</span>
+                                        </div>
+                                    ) : aiRemediation ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                            {/* Root Cause Diagnosis */}
+                                            <div style={{ padding: '10px 14px', borderRadius: '8px', background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.25)', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
+                                                <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#c084fc', textTransform: 'uppercase', marginBottom: '4px' }}>
+                                                    🔍 Root Cause Diagnosis
+                                                </div>
+                                                <div style={{ fontSize: '0.84rem', color: isLight ? '#3b0764' : '#f3e8ff', lineHeight: 1.5 }}>
+                                                    {aiRemediation.diagnosis}
+                                                </div>
+                                            </div>
+
+                                            {/* Step-by-Step Fix Instructions */}
+                                            <div style={{ padding: '10px 14px', borderRadius: '8px', background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.25)', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
+                                                <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#c084fc', textTransform: 'uppercase', marginBottom: '6px' }}>
+                                                    🛠️ Step-by-Step Resolution Steps
+                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                    {aiRemediation.steps?.map((step: string, idx: number) => (
+                                                        <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.82rem', color: isLight ? '#3b0764' : '#f3e8ff' }}>
+                                                            <span style={{ fontWeight: 800, color: '#a855f7', minWidth: '18px' }}>{idx + 1}.</span>
+                                                            <span>{step}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Azure CLI / PowerShell Execution Commands */}
+                                            {aiRemediation.azureCliCommands?.length > 0 && (
+                                                <div style={{ padding: '10px 14px', borderRadius: '8px', background: isLight ? '#0f172a' : 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                                        <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <Terminal size={13} /> Azure CLI / PowerShell Fix Commands
+                                                        </div>
+                                                    </div>
+                                                    {aiRemediation.azureCliCommands.map((cmd: string, idx: number) => (
+                                                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#020617', padding: '8px 12px', borderRadius: '6px', marginBottom: idx < aiRemediation.azureCliCommands.length - 1 ? '6px' : 0 }}>
+                                                            <code style={{ fontSize: '0.78rem', color: '#38bdf8', fontFamily: 'monospace', wordBreak: 'break-all' }}>{cmd}</code>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    navigator.clipboard.writeText(cmd);
+                                                                    setCopiedCommand(cmd);
+                                                                    setTimeout(() => setCopiedCommand(null), 2000);
+                                                                }}
+                                                                style={{ background: 'none', border: 'none', color: copiedCommand === cmd ? '#22c55e' : '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', marginLeft: '10px', flexShrink: 0 }}
+                                                            >
+                                                                {copiedCommand === cmd ? <Check size={14} /> : <Copy size={14} />}
+                                                                <span>{copiedCommand === cmd ? 'Copied' : 'Copy'}</span>
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : null}
                                 </div>
                             </div>
 
