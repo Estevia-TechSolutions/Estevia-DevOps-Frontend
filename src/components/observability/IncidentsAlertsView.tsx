@@ -80,93 +80,104 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
         return { subId: sub, subName, subShort: subName, resourceGroup: rg };
     };
 
-    const getResourceInfo = (appKey?: string, environment?: string, customName?: string) => {
+    const getResourceInfo = (appKey?: string, environment?: string, customName?: string, incidentObj?: any) => {
+        // 1. If backend incident object already carries exact real azure_portal_url and azure_resource_name from DB, use it directly!
+        if (incidentObj?.azure_portal_url && incidentObj?.azure_resource_name) {
+            let displayName = customName || appKey || 'Cloud Resource';
+            const keyLow = (appKey || '').toLowerCase();
+            if (keyLow.includes('evaops') || keyLow.includes('cloud-service') || keyLow.includes('estevia-backend')) displayName = 'Estevia DevOps Core Backend API';
+            else if (keyLow.includes('evaops-frontend') || keyLow.includes('estevia-frontend')) displayName = 'Estevia DevOps Control Portal';
+            else if (keyLow.includes('marketing')) displayName = 'Estevia Corporate Marketing Portal';
+            else if (keyLow.includes('peoplecraft') && keyLow.includes('frontend')) displayName = 'PeopleCraft Enterprise HR Web Portal';
+            else if (keyLow.includes('peoplecraft')) displayName = 'PeopleCraft Enterprise HR Core Backend';
+            else if (keyLow.includes('peoplecraft-db')) displayName = 'PeopleCraft MySQL Database Server';
+            else if (keyLow.includes('estevia-platform-db')) displayName = 'Estevia Platform MySQL Database';
+
+            return {
+                displayName,
+                serviceType: incidentObj.resource_type === 'swa' ? 'Static Web App (SWA)' : incidentObj.resource_type === 'mysql' ? 'MySQL Flexible Server' : 'Container App (ACA)',
+                azureResourceName: incidentObj.azure_resource_name,
+                azurePortalUrl: incidentObj.azure_portal_url,
+                rawKey: appKey || ''
+            };
+        }
+
         const keyLow = (appKey || '').toLowerCase().trim();
         const env = (environment || 'dev').toLowerCase();
 
         let displayName = appKey || 'Unknown Resource';
         let serviceType = 'Container App (ACA)';
-        let azureResourceName = `ca-${keyLow || 'app'}-${env}`;
-        let providerType = 'Microsoft.App/containerApps';
+        let azureResourceName = `api-${keyLow || 'app'}-${env}`;
+        let azureResourceId = '';
+        let subId = '4a551976-35a8-4305-b128-fe592805be41';
+        let resourceGroup = 'Estevia-Platform-RG';
+        let providerType = 'Microsoft.App/containerapps';
 
-        if (keyLow.includes('cloud-service')) {
-            displayName = 'Estevia Cloud Microservices Engine';
-            serviceType = 'Container App (ACA)';
-            azureResourceName = `ca-estevia-cloud-service-${env}`;
-        } else if (keyLow.includes('estevia-backend')) {
-            displayName = 'Estevia DevOps Core Backend API';
-            serviceType = 'REST API Backend';
-            azureResourceName = `ca-estevia-backend-${env}`;
-        } else if (keyLow.includes('estevia-frontend')) {
+        // Real Ground-Truth Azure Resource Map
+        if (keyLow.includes('evaops-frontend') || keyLow === 'estevia-frontend') {
             displayName = 'Estevia DevOps Control Portal';
-            serviceType = 'Web Portal (SWA)';
-            azureResourceName = `swa-estevia-frontend-${env}`;
+            serviceType = 'Static Web App (SWA)';
+            azureResourceName = 'evaops-frontend-swa';
+            subId = '4a551976-35a8-4305-b128-fe592805be41';
+            resourceGroup = 'Estevia-Platform-RG';
             providerType = 'Microsoft.Web/staticSites';
-        } else if (keyLow.includes('peoplecraft-backend') || keyLow.includes('peoplecraft_backend')) {
-            displayName = 'PeopleCraft Enterprise HR Core Backend';
-            serviceType = 'Node.js Microservice';
-            azureResourceName = `ca-peoplecraft-backend-${env}`;
-        } else if (keyLow.includes('peoplecraft-frontend') || keyLow.includes('peoplecraft_frontend')) {
-            displayName = 'PeopleCraft Enterprise HR Web Portal';
-            serviceType = 'React Web Portal';
-            azureResourceName = `swa-peoplecraft-frontend-${env}`;
-            providerType = 'Microsoft.Web/staticSites';
-        } else if (keyLow.includes('peoplecraft')) {
-            displayName = 'PeopleCraft Enterprise HR Application';
-            serviceType = 'HR Enterprise Suite';
-            azureResourceName = `ca-peoplecraft-${env}`;
-        } else if (keyLow.includes('connecthub')) {
-            displayName = 'ConnectHub Integration Platform';
-            serviceType = 'Integration Gateway';
-            azureResourceName = `ca-connecthub-api-${env}`;
-        } else if (keyLow.includes('evaops')) {
-            displayName = 'EvaOps AI Control Center';
-            serviceType = 'AI Operations Platform';
-            azureResourceName = `ca-evaops-control-${env}`;
+            azureResourceId = `/subscriptions/${subId}/resourceGroups/${resourceGroup}/providers/${providerType}/${azureResourceName}`;
+        } else if (keyLow.includes('evaops') || keyLow === 'estevia-backend' || keyLow === 'cloud-service' || keyLow === 'api-evaops') {
+            displayName = 'Estevia DevOps Core Backend API';
+            serviceType = 'Container App (ACA)';
+            azureResourceName = 'api-evaops';
+            subId = '4a551976-35a8-4305-b128-fe592805be41';
+            resourceGroup = 'Estevia-Platform-RG';
+            providerType = 'Microsoft.App/containerapps';
+            azureResourceId = `/subscriptions/${subId}/resourceGroups/${resourceGroup}/providers/${providerType}/${azureResourceName}`;
+        } else if (keyLow.includes('estevia-platform-db')) {
+            displayName = 'Estevia Platform MySQL Database';
+            serviceType = 'MySQL Flexible Server';
+            azureResourceName = 'estevia-platform-db';
+            subId = '4a551976-35a8-4305-b128-fe592805be41';
+            resourceGroup = 'Estevia-Platform-RG';
+            providerType = 'Microsoft.DBforMySQL/flexibleServers';
+            azureResourceId = `/subscriptions/${subId}/resourceGroups/${resourceGroup}/providers/${providerType}/${azureResourceName}`;
         } else if (keyLow.includes('marketing')) {
             displayName = 'Estevia Corporate Marketing Portal';
             serviceType = 'Static Web App (SWA)';
-            azureResourceName = `swa-marketing-${env}`;
+            azureResourceName = 'estevia-marketing-web-prod-swa';
+            subId = '4a551976-35a8-4305-b128-fe592805be41';
+            resourceGroup = 'Estevia-Prod-RG';
             providerType = 'Microsoft.Web/staticSites';
-        } else if (keyLow.includes('docai')) {
-            displayName = 'DocAI Document Intelligence Engine';
-            serviceType = 'Document AI Processing';
-            azureResourceName = `ca-docai-engine-${env}`;
-        } else if (keyLow.includes('evapay')) {
-            displayName = 'EvaPay Financial Payment Gateway';
-            serviceType = 'Payment Processing Hub';
-            azureResourceName = `ca-evapay-gateway-${env}`;
-        } else if (keyLow.includes('protrack')) {
-            displayName = 'ProTrack Project Management Suite';
-            serviceType = 'Task & Milestone Suite';
-            azureResourceName = `ca-protrack-suite-${env}`;
-        } else if (keyLow.includes('talenthq')) {
-            displayName = 'TalentHQ Recruitment Portal';
-            serviceType = 'Talent Acquisition Platform';
-            azureResourceName = `ca-talenthq-${env}`;
-        } else if (keyLow.includes('evafusion')) {
-            displayName = 'EvaFusion Neural Intelligence Suite';
-            serviceType = 'AI Analytics Engine';
-            azureResourceName = `ca-evafusion-${env}`;
-        } else if (appKey) {
-            displayName = appKey
-                .split(/[-_]/)
-                .filter(Boolean)
-                .map(word => {
-                    if (['api', 'db', 'vm', 'aca', 'swa', 'cpu', 'ram', 'ssl', 'hr', 'ai', 'ci', 'cd', 'ui', 'id'].includes(word.toLowerCase())) {
-                        return word.toUpperCase();
-                    }
-                    return word.charAt(0).toUpperCase() + word.slice(1);
-                })
-                .join(' ');
+            azureResourceId = `/subscriptions/${subId}/resourceGroups/${resourceGroup}/providers/${providerType}/${azureResourceName}`;
+        } else if (keyLow.includes('peoplecraft') && keyLow.includes('frontend')) {
+            displayName = 'PeopleCraft Enterprise HR Web Portal';
+            serviceType = 'Static Web App (SWA)';
+            azureResourceName = `peoplecraft-frontend-${env}-swa`;
+            subId = '40070b3e-38c4-4c4e-89d5-dd601f9f7622';
+            resourceGroup = 'Estevia-Client-Projects-RG';
+            providerType = 'Microsoft.Web/staticSites';
+            azureResourceId = `/subscriptions/${subId}/resourceGroups/${resourceGroup}/providers/${providerType}/${azureResourceName}`;
+        } else if (keyLow.includes('peoplecraft-db')) {
+            displayName = 'PeopleCraft MySQL Database Server';
+            serviceType = 'MySQL Flexible Server';
+            azureResourceName = 'peoplecraft-db';
+            subId = '40070b3e-38c4-4c4e-89d5-dd601f9f7622';
+            resourceGroup = 'Estevia-Client-Projects-RG';
+            providerType = 'Microsoft.DBforMySQL/flexibleServers';
+            azureResourceId = `/subscriptions/${subId}/resourceGroups/${resourceGroup}/providers/${providerType}/${azureResourceName}`;
+        } else if (keyLow.includes('peoplecraft')) {
+            displayName = 'PeopleCraft Enterprise HR Core Backend';
+            serviceType = 'Container App (ACA)';
+            azureResourceName = `api-peoplecraft-${env}`;
+            subId = '40070b3e-38c4-4c4e-89d5-dd601f9f7622';
+            resourceGroup = 'Estevia-Client-Projects-RG';
+            providerType = 'Microsoft.App/containerapps';
+            azureResourceId = `/subscriptions/${subId}/resourceGroups/${resourceGroup}/providers/${providerType}/${azureResourceName}`;
+        } else {
+            const scope = getScopeInfoForApp(appKey);
+            azureResourceName = `ca-${keyLow || 'service'}-${env}`;
+            azureResourceId = `/subscriptions/${scope.subId}/resourceGroups/${scope.resourceGroup}/providers/${providerType}/${azureResourceName}`;
+            if (customName && customName.trim() !== '') displayName = customName;
         }
 
-        if (customName && customName.trim() !== '') {
-            displayName = customName;
-        }
-
-        const scope = getScopeInfoForApp(appKey);
-        const azurePortalUrl = `https://portal.azure.com/#resource/subscriptions/${scope.subId}/resourceGroups/${scope.resourceGroup}/providers/${providerType}/${azureResourceName}`;
+        const azurePortalUrl = `https://portal.azure.com/#resource${azureResourceId}`;
 
         return {
             displayName,
@@ -682,7 +693,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                 return filteredIncidents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(inc => {
                                     const sev = getSeverityBadge(inc.severity);
                                     const scopeInfo = getScopeInfoForApp(inc.app_key);
-                                    const resInfo = getResourceInfo(inc.app_key, inc.environment);
+                                    const resInfo = getResourceInfo(inc.app_key, inc.environment, undefined, inc);
                                     const snapshot = inc.telemetry_snapshot || {};
                                     return (
                                         <tr key={inc.id} style={{ borderBottom: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.04)' }}>
@@ -988,7 +999,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                             {/* Modal Body */}
                             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px', overflowY: 'auto', maxHeight: '75vh' }}>
                                 {(() => {
-                                    const resDetails = getResourceInfo(selectedIncident.app_key, selectedIncident.environment);
+                                    const resDetails = getResourceInfo(selectedIncident.app_key, selectedIncident.environment, undefined, selectedIncident);
                                     return (
                                         <div style={{
                                             padding: '14px 18px',
