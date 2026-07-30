@@ -7210,18 +7210,42 @@ function App() {
                             }}
                           >
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', textAlign: 'left', overflow: 'hidden' }}>
-                              <div style={{
-                                fontSize: '0.66rem',
-                                fontWeight: 700,
-                                color: isLight ? 'rgba(0, 0, 0, 0.45)' : '#94a3b8',
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.04em',
-                                textOverflow: 'ellipsis',
-                                overflow: 'hidden',
-                                whiteSpace: 'nowrap'
-                              }}>
-                                {currentSub ? (currentSub.displayName || currentSub.name || currentSub.subscriptionName || currentSub.id) : selectedSubscriptionId}
-                              </div>
+                              {(() => {
+                                const isGuid = (str: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test((str || '').trim());
+                                const rawSubName = currentSub ? (currentSub.displayName || currentSub.name || currentSub.subscriptionName || currentSub.id) : selectedSubscriptionId;
+                                const isRawId = isGuid(rawSubName) || (currentSub && (!currentSub.displayName || currentSub.displayName === currentSub.id));
+                                return (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+                                    <span style={{
+                                      fontSize: '0.66rem',
+                                      fontWeight: 700,
+                                      color: isRawId ? '#f59e0b' : (isLight ? 'rgba(0, 0, 0, 0.45)' : '#94a3b8'),
+                                      fontFamily: isRawId ? 'monospace' : 'inherit',
+                                      textTransform: isRawId ? 'none' : 'uppercase',
+                                      letterSpacing: '0.04em',
+                                      textOverflow: 'ellipsis',
+                                      overflow: 'hidden',
+                                      whiteSpace: 'nowrap'
+                                    }}>
+                                      {rawSubName}
+                                    </span>
+                                    {isRawId && (
+                                      <span style={{
+                                        fontSize: '0.6rem',
+                                        fontWeight: 700,
+                                        padding: '1px 4px',
+                                        borderRadius: '4px',
+                                        background: 'rgba(245, 158, 11, 0.15)',
+                                        border: '1px solid rgba(245, 158, 11, 0.4)',
+                                        color: '#f59e0b',
+                                        flexShrink: 0
+                                      }}>
+                                        ID ONLY
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                               <div style={{
                                 fontSize: '0.8rem',
                                 fontWeight: 700,
@@ -7268,12 +7292,16 @@ function App() {
                               }}
                             >
                               {subscriptionsList.map((sub) => {
-                                const subName = sub.displayName || sub.name || sub.subscriptionName || sub.id;
+                                const isGuid = (str: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test((str || '').trim());
+                                const hasDisplayName = sub.displayName && sub.displayName !== sub.id && !isGuid(sub.displayName);
+                                const hasName = sub.name && sub.name !== sub.id && !isGuid(sub.name);
+                                const subName = hasDisplayName ? sub.displayName : (hasName ? sub.name : (sub.subscriptionName || sub.id));
+                                const isRawId = !hasDisplayName && !hasName;
                                 const statusLow = (sub.status || sub.state || '').toLowerCase();
                                 const isExplicitRestricted = sub.isRestricted === true || sub.is_restricted === true || sub.restricted === true;
                                 const isRestricted = isExplicitRestricted || statusLow === 'restricted' || statusLow === 'disabled' || statusLow === 'inactive' || statusLow === 'read-only' || statusLow === 'warned' || statusLow === 'pastdue';
                                 const isActive = !isRestricted && (statusLow === 'active' || statusLow === 'enabled' || statusLow === 'ready' || statusLow === '');
-                                const statusColor = isActive ? '#22c55e' : isRestricted ? '#f59e0b' : '#64748b';
+                                const statusColor = isActive ? '#22c55e' : isRestricted ? '#ef4444' : '#64748b';
                                 const statusText = isRestricted ? (sub.status || sub.state || 'restricted') : (sub.status || sub.state || 'active');
                                 return (
                                   <div key={sub.id} style={{ display: 'flex', flexDirection: 'column' }}>
@@ -7287,19 +7315,35 @@ function App() {
                                       borderBottom: subHeaderBorder,
                                       marginTop: '4px'
                                     }}>
-                                      <span style={{
-                                        fontSize: '0.72rem',
-                                        fontWeight: 700,
-                                        color: isLight ? 'rgba(0, 0, 0, 0.55)' : '#94a3b8',
-                                        textTransform: 'uppercase',
-                                        letterSpacing: '0.04em',
-                                        textOverflow: 'ellipsis',
-                                        overflow: 'hidden',
-                                        whiteSpace: 'nowrap',
-                                        maxWidth: '260px'
-                                      }}>
-                                        {subName}
-                                      </span>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', maxWidth: '260px', overflow: 'hidden' }}>
+                                        <span style={{
+                                          fontSize: '0.72rem',
+                                          fontWeight: 700,
+                                          color: isRawId ? '#f59e0b' : (isLight ? 'rgba(0, 0, 0, 0.55)' : '#94a3b8'),
+                                          fontFamily: isRawId ? 'monospace' : 'inherit',
+                                          textTransform: isRawId ? 'none' : 'uppercase',
+                                          letterSpacing: '0.04em',
+                                          textOverflow: 'ellipsis',
+                                          overflow: 'hidden',
+                                          whiteSpace: 'nowrap'
+                                        }}>
+                                          {subName}
+                                        </span>
+                                        {isRawId && (
+                                          <span style={{
+                                            fontSize: '0.6rem',
+                                            fontWeight: 700,
+                                            padding: '1px 4px',
+                                            borderRadius: '4px',
+                                            background: 'rgba(245, 158, 11, 0.15)',
+                                            border: '1px solid rgba(245, 158, 11, 0.4)',
+                                            color: '#f59e0b',
+                                            flexShrink: 0
+                                          }}>
+                                            ID ONLY
+                                          </span>
+                                        )}
+                                      </div>
                                       
                                       {/* Status Badge */}
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
