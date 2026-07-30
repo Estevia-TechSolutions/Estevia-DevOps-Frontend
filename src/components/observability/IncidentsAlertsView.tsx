@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, AlertTriangle, CheckCircle, Clock, Bell, User, Mail, Settings, X, Check, RefreshCw, ChevronDown, Lock, CheckCircle2, Hand, Search, Globe, Package, Server, Info, Cpu, Activity, Bot, Sparkles, ExternalLink, Terminal, Copy } from 'lucide-react';
+import { RichSelect } from '../common/RichSelect';
 
 interface Incident {
     id: number;
@@ -549,53 +550,47 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                 </div>
 
                 {/* Severity Filter */}
-                <select
+                <RichSelect
+                    size="sm"
                     value={selectedSeverityFilter}
-                    onChange={(e) => { setSelectedSeverityFilter(e.target.value); setCurrentPage(1); }}
-                    className="eva-select-sm"
-                    style={{
-                        width: '25vw',
-                        cursor: 'pointer'
-                    }}
-                >
-                    <option value="ALL">All Severities</option>
-                    <option value="P1_CRITICAL">Critical (P1)</option>
-                    <option value="P2_HIGH">High (P2)</option>
-                    <option value="P3_MEDIUM">Medium (P3)</option>
-                    <option value="P4_LOW">Low (P4)</option>
-                </select>
+                    onChange={(val) => { setSelectedSeverityFilter(val); setCurrentPage(1); }}
+                    options={[
+                        { value: 'ALL', label: 'All Severities' },
+                        { value: 'P1_CRITICAL', label: 'Critical (P1)', badge: 'P1', icon: <ShieldAlert size={14} style={{ color: 'var(--error)' }} /> },
+                        { value: 'P2_HIGH', label: 'High (P2)', badge: 'P2', icon: <AlertTriangle size={14} style={{ color: 'var(--warning)' }} /> },
+                        { value: 'P3_MEDIUM', label: 'Medium (P3)', badge: 'P3', icon: <Info size={14} style={{ color: 'var(--accent-blue)' }} /> },
+                        { value: 'P4_LOW', label: 'Low (P4)', badge: 'P4', icon: <CheckCircle size={14} style={{ color: 'var(--success)' }} /> }
+                    ]}
+                    style={{ width: '180px' }}
+                />
 
                 {/* Status Filter */}
-                <select
+                <RichSelect
+                    size="sm"
                     value={selectedStatusFilter}
-                    onChange={(e) => { setSelectedStatusFilter(e.target.value); setCurrentPage(1); }}
-                    className="eva-select-sm"
-                    style={{
-                        width: '25vw',
-                        cursor: 'pointer'
-                    }}
-                >
-                    <option value="ALL">All Statuses</option>
-                    <option value="triggered">Triggered</option>
-                    <option value="acknowledged">Acknowledged</option>
-                    <option value="resolved">Resolved</option>
-                </select>
+                    onChange={(val) => { setSelectedStatusFilter(val); setCurrentPage(1); }}
+                    options={[
+                        { value: 'ALL', label: 'All Statuses' },
+                        { value: 'triggered', label: 'Triggered', badge: 'Active', icon: <Bell size={14} style={{ color: 'var(--error)' }} /> },
+                        { value: 'acknowledged', label: 'Acknowledged', badge: 'In Progress', icon: <Clock size={14} style={{ color: 'var(--warning)' }} /> },
+                        { value: 'resolved', label: 'Resolved', badge: 'Fixed', icon: <CheckCircle size={14} style={{ color: 'var(--success)' }} /> }
+                    ]}
+                    style={{ width: '170px' }}
+                />
 
                 {/* Environment Filter */}
-                <select
+                <RichSelect
+                    size="sm"
                     value={selectedEnvFilter}
-                    onChange={(e) => { setSelectedEnvFilter(e.target.value); setCurrentPage(1); }}
-                    className="eva-select-sm"
-                    style={{
-                        width: '25vw',
-                        cursor: 'pointer'
-                    }}
-                >
-                    <option value="ALL">All Envs</option>
-                    <option value="dev">DEV</option>
-                    <option value="qa">QA</option>
-                    <option value="prod">PROD</option>
-                </select>
+                    onChange={(val) => { setSelectedEnvFilter(val); setCurrentPage(1); }}
+                    options={[
+                        { value: 'ALL', label: 'All Environments' },
+                        { value: 'dev', label: 'Development (DEV)', badge: 'DEV', icon: <Terminal size={14} style={{ color: 'var(--accent-teal)' }} /> },
+                        { value: 'qa', label: 'Quality Assurance (QA)', badge: 'QA', icon: <Activity size={14} style={{ color: 'var(--accent-blue)' }} /> },
+                        { value: 'prod', label: 'Production (PROD)', badge: 'PROD', icon: <Server size={14} style={{ color: 'var(--accent-purple)' }} /> }
+                    ]}
+                    style={{ width: '190px' }}
+                />
 
                 {(searchQuery || selectedSeverityFilter !== 'ALL' || selectedStatusFilter !== 'ALL' || selectedEnvFilter !== 'ALL') && (
                     <button
@@ -1295,21 +1290,35 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                     Target Asset Category & Environment:
                                 </label>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                                    <select value={configResourceType} onChange={(e) => setConfigResourceType(e.target.value as any)} className="eva-select-sm">
-                                        <option value="aca">📦 Container App (ACA)</option>
-                                        <option value="swa">🌐 Static Web App (SWA)</option>
-                                        <option value="vm">🖥️ Virtual Machine (VM)</option>
-                                    </select>
-                                    <select value={configApp} onChange={(e) => setConfigApp(e.target.value)} className="eva-select-sm">
-                                        {appsCatalog.map(app => (
-                                            <option key={app.key} value={app.key}>{app.icon || '📦'} {app.label}</option>
-                                        ))}
-                                    </select>
-                                    <select value={configEnv} onChange={(e) => setConfigEnv(e.target.value as any)} className="eva-select-sm">
-                                        <option value="dev">Dev</option>
-                                        <option value="qa">QA</option>
-                                        <option value="prod">Production</option>
-                                    </select>
+                                    <RichSelect
+                                        size="sm"
+                                        value={configResourceType}
+                                        onChange={(val) => setConfigResourceType(val as any)}
+                                        options={[
+                                            { value: 'aca', label: 'Container App (ACA)', icon: <Package size={14} style={{ color: 'var(--accent-purple)' }} /> },
+                                            { value: 'swa', label: 'Static Web App (SWA)', icon: <Globe size={14} style={{ color: 'var(--accent-teal)' }} /> },
+                                            { value: 'vm', label: 'Virtual Machine (VM)', icon: <Server size={14} style={{ color: 'var(--accent-blue)' }} /> }
+                                        ]}
+                                    />
+                                    <RichSelect
+                                        size="sm"
+                                        value={configApp}
+                                        onChange={(val) => setConfigApp(val)}
+                                        options={appsCatalog.map(app => ({
+                                            value: app.key,
+                                            label: app.label
+                                        }))}
+                                    />
+                                    <RichSelect
+                                        size="sm"
+                                        value={configEnv}
+                                        onChange={(val) => setConfigEnv(val as any)}
+                                        options={[
+                                            { value: 'dev', label: 'Development (DEV)' },
+                                            { value: 'qa', label: 'Quality Assurance (QA)' },
+                                            { value: 'prod', label: 'Production (PROD)' }
+                                        ]}
+                                    />
                                 </div>
                             </div>
 
@@ -1319,23 +1328,37 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                     <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: isLight ? '#475569' : 'var(--text-secondary)', marginBottom: '4px' }}>
                                         Primary Responsible Engineer:
                                     </label>
-                                    <select value={primaryOwner} onChange={(e) => setPrimaryOwner(e.target.value)} className="eva-select-sm" style={{ width: '100%' }}>
-                                        <option value="">-- Select Team Member --</option>
-                                        {teamUsers.map(u => (
-                                            <option key={u.id} value={u.name}>{u.name} ({u.email})</option>
-                                        ))}
-                                    </select>
+                                    <RichSelect
+                                        size="sm"
+                                        value={primaryOwner}
+                                        onChange={(val) => setPrimaryOwner(val)}
+                                        options={[
+                                            { value: '', label: '-- Select Team Member --' },
+                                            ...teamUsers.map(u => ({
+                                                value: u.name,
+                                                label: `${u.name} (${u.email})`,
+                                                icon: <User size={14} style={{ color: 'var(--accent-purple)' }} />
+                                            }))
+                                        ]}
+                                    />
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: isLight ? '#475569' : 'var(--text-secondary)', marginBottom: '4px' }}>
                                         Secondary Backup Engineer:
                                     </label>
-                                    <select value={secondaryOwner} onChange={(e) => setSecondaryOwner(e.target.value)} className="eva-select-sm" style={{ width: '100%' }}>
-                                        <option value="">-- Select Team Member --</option>
-                                        {teamUsers.map(u => (
-                                            <option key={u.id} value={u.name}>{u.name} ({u.email})</option>
-                                        ))}
-                                    </select>
+                                    <RichSelect
+                                        size="sm"
+                                        value={secondaryOwner}
+                                        onChange={(val) => setSecondaryOwner(val)}
+                                        options={[
+                                            { value: '', label: '-- Select Team Member --' },
+                                            ...teamUsers.map(u => ({
+                                                value: u.name,
+                                                label: `${u.name} (${u.email})`,
+                                                icon: <User size={14} style={{ color: 'var(--accent-blue)' }} />
+                                            }))
+                                        ]}
+                                    />
                                 </div>
                             </div>
 

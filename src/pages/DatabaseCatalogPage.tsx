@@ -159,8 +159,13 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
 }) => {
   const scopeFilteredDbServers = dbServers.filter(srv => {
     if (!selectedControlResourceGroup) return true;
-    const srvRg = srv.resourceGroup || srv.rg || srv.resource_group || srv.resourceGroupDetails?.name || '';
-    return !srvRg || srvRg.toLowerCase() === selectedControlResourceGroup.toLowerCase();
+    let srvRg = srv.resourceGroup || srv.rg || srv.resource_group || srv.resourceGroupDetails?.name || '';
+    if (!srvRg && srv.id) {
+      const match = srv.id.match(/resourceGroups\/([^\/]+)/i);
+      if (match && match[1]) srvRg = match[1];
+    }
+    if (!srvRg) return false;
+    return srvRg.toLowerCase() === selectedControlResourceGroup.toLowerCase();
   });
 
   const isViewer = currentUser?.role === 'viewer';
@@ -367,8 +372,13 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
           {(() => {
             const scopeFilteredDbServers = dbServers.filter(srv => {
               if (!selectedControlResourceGroup) return true;
-              const srvRg = srv.resourceGroup || srv.rg || srv.resource_group || srv.resourceGroupDetails?.name || '';
-              return !srvRg || srvRg.toLowerCase() === selectedControlResourceGroup.toLowerCase();
+              let srvRg = srv.resourceGroup || srv.rg || srv.resource_group || srv.resourceGroupDetails?.name || '';
+              if (!srvRg && srv.id) {
+                const match = srv.id.match(/resourceGroups\/([^\/]+)/i);
+                if (match && match[1]) srvRg = match[1];
+              }
+              if (!srvRg) return false;
+              return srvRg.toLowerCase() === selectedControlResourceGroup.toLowerCase();
             });
 
             if (loadingDbServers) {
