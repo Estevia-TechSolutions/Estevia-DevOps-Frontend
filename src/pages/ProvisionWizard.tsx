@@ -1354,6 +1354,19 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
   const [ymlViewMode, setYmlViewMode] = useState<'editor' | 'diff'>('editor');
   const [isNewRg, setIsNewRg] = useState(false);
 
+  // Sync default Azure Subscription and Resource Group to active Target Scope on mount
+  useEffect(() => {
+    const targetSubId = localStorage.getItem('selectedControlSubscriptionId') || localStorage.getItem('selectedSubscriptionId');
+    const targetRg = localStorage.getItem('selectedControlResourceGroup');
+    if (targetSubId && (!selectedProvisionSubscriptionId || selectedProvisionSubscriptionId === '')) {
+      setSelectedProvisionSubscriptionId(targetSubId);
+      localStorage.setItem('selectedProvisionSubscriptionId', targetSubId);
+    }
+    if (targetRg && (!selectedResourceGroup || selectedResourceGroup === '')) {
+      setSelectedResourceGroup(targetRg);
+    }
+  }, []);
+
   const handleCommitDefaultDockerfileClick = async () => {
     setCommittingDockerfile(true);
     setDockerfileCheckError(null);
@@ -2043,42 +2056,77 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                     </label>
                   </div>
                   
-                  {isNewRg ? (
-                    <input
-                      type="text"
-                      value={selectedResourceGroup}
-                      onChange={(e) => setSelectedResourceGroup(e.target.value)}
-                      placeholder="Enter new Resource Group name"
-                      required
-                      disabled={provisioning}
-                    />
-                  ) : loadingMetadata ? (
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Loading Resource Groups...</div>
-                  ) : resourceGroups.length === 0 ? (
-                    <input
-                      type="text"
-                      value={selectedResourceGroup}
-                      onChange={(e) => setSelectedResourceGroup(e.target.value)}
-                      placeholder="e.g. Estevia-Prod-RG"
-                      required
-                      disabled={provisioning}
-                    />
-                  ) : (
-                    <RichSelect
-                      value={selectedResourceGroup}
-                      onChange={(val) => setSelectedResourceGroup(val)}
-                      disabled={provisioning}
-                      options={[
-                        { value: '', label: '-- Select Resource Group --' },
-                        ...resourceGroups.map(rg => ({
-                          value: rg,
-                          label: rg,
-                          icon: <Layers size={14} style={{ color: 'var(--accent-purple)' }} />
-                        }))
-                      ]}
-                      placeholder="-- Select Resource Group --"
-                    />
-                  )}
+                  {(() => {
+                    const matchedSub = subscriptionsList.find(s => (s.id || '').toLowerCase() === (selectedProvisionSubscriptionId || '').toLowerCase());
+                    const existingRgsInSub = matchedSub ? (matchedSub.resourceGroups || []) : resourceGroups;
+                    const newRgName = (selectedResourceGroup || '').trim();
+                    const isRgConflict = isNewRg && !!newRgName && existingRgsInSub.some((rg: string) => rg.toLowerCase() === newRgName.toLowerCase());
+
+                    return (
+                      <>
+                        {isNewRg ? (
+                          <input
+                            type="text"
+                            value={selectedResourceGroup}
+                            onChange={(e) => setSelectedResourceGroup(e.target.value)}
+                            placeholder="Enter new Resource Group name"
+                            required
+                            disabled={provisioning}
+                            style={{
+                              borderColor: isRgConflict ? '#ef4444' : undefined,
+                              boxShadow: isRgConflict ? '0 0 8px rgba(239, 68, 68, 0.25)' : undefined
+                            }}
+                          />
+                        ) : loadingMetadata ? (
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Loading Resource Groups...</div>
+                        ) : resourceGroups.length === 0 ? (
+                          <input
+                            type="text"
+                            value={selectedResourceGroup}
+                            onChange={(e) => setSelectedResourceGroup(e.target.value)}
+                            placeholder="e.g. Estevia-Prod-RG"
+                            required
+                            disabled={provisioning}
+                          />
+                        ) : (
+                          <RichSelect
+                            value={selectedResourceGroup}
+                            onChange={(val) => setSelectedResourceGroup(val)}
+                            disabled={provisioning}
+                            options={[
+                              { value: '', label: '-- Select Resource Group --' },
+                              ...resourceGroups.map(rg => ({
+                                value: rg,
+                                label: rg,
+                                icon: <Layers size={14} style={{ color: 'var(--accent-purple)' }} />
+                              }))
+                            ]}
+                            placeholder="-- Select Resource Group --"
+                          />
+                        )}
+
+                        {isNewRg && isRgConflict && (
+                          <div style={{
+                            marginTop: '8px',
+                            padding: '10px 14px',
+                            borderRadius: '8px',
+                            background: 'rgba(239, 68, 68, 0.12)',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            color: '#ef4444',
+                            fontSize: '0.82rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}>
+                            <AlertOctagon size={16} style={{ flexShrink: 0 }} />
+                            <div>
+                              <strong>Resource Group Conflict:</strong> Resource Group <code>"{selectedResourceGroup}"</code> already exists in subscription <strong>{matchedSub?.displayName || selectedProvisionSubscriptionId}</strong>. Uncheck "Create new Resource Group" to select it, or enter a unique name.
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Dynamic Location/Region Selection */}
@@ -2362,34 +2410,52 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                 </button>
                 
                 {(() => {
-                  const activeSub = subscriptionsList.find(s => s.id === selectedProvisionSubscriptionId);
-                  const isCurrentSubRestricted = !!activeSub && (
-                    (activeSub.status || activeSub.state || '').toLowerCase() === 'restricted' ||
-                    (activeSub.status || activeSub.state || '').toLowerCase() === 'inactive' ||
-                    (activeSub.status || activeSub.state || '').toLowerCase() === 'disabled' ||
-                    (activeSub.status || activeSub.state || '').toLowerCase() === 'read-only' ||
-                    activeSub.isRestricted === true ||
-                    activeSub.is_restricted === true ||
-                    activeSub.restricted === true
-                  );
-                  const isDisabled = isViewer || provisioning || !newName || isCurrentSubRestricted;
+                  const activeSub = subscriptionsList.find(s => (s.id || '').toLowerCase() === (selectedProvisionSubscriptionId || '').toLowerCase());
+                  const statusLow = (activeSub?.status || activeSub?.state || '').toLowerCase();
+                  const isExplicitRestricted = activeSub?.isRestricted === true || activeSub?.is_restricted === true || activeSub?.restricted === true;
+                  const isCurrentSubRestricted = isExplicitRestricted || statusLow === 'restricted' || statusLow === 'inactive' || statusLow === 'disabled' || statusLow === 'read-only' || statusLow === 'warned' || statusLow === 'pastdue';
+
+                  const existingRgsInSub = activeSub ? (activeSub.resourceGroups || []) : resourceGroups;
+                  const newRgName = (selectedResourceGroup || '').trim();
+                  const isRgConflict = isNewRg && !!newRgName && existingRgsInSub.some((rg: string) => rg.toLowerCase() === newRgName.toLowerCase());
+                  const isRgMissing = !selectedResourceGroup || !selectedResourceGroup.trim();
+                  const isSubMissing = !selectedProvisionSubscriptionId;
+                  const isNameMissing = !newName || !newName.trim();
+
+                  const isDisabled = isViewer || provisioning || isNameMissing || isSubMissing || isCurrentSubRestricted || isRgMissing || isRgConflict;
+
+                  let disableReason = '';
+                  if (isSubMissing) disableReason = 'Please select a valid Azure Subscription.';
+                  else if (isCurrentSubRestricted) disableReason = 'Selected Azure Subscription is restricted.';
+                  else if (isRgMissing) disableReason = 'Please select or enter a target Resource Group.';
+                  else if (isRgConflict) disableReason = 'Resource Group name conflicts with an existing group in this subscription.';
+                  else if (isNameMissing) disableReason = 'Please enter a valid resource name.';
+
                   return (
-                    <button 
-                      type="submit" 
-                      className="btn-primary" 
-                      disabled={isDisabled}
-                      style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.5 : 1 }}
-                    >
-                      {provisioning ? (
-                        <>
-                          <RefreshCw size={14} className="spin-anim" /> Allocating {appType === 'backend' ? 'Container App' : appType === 'cluster' ? 'AKS Cluster' : appType === 'database' ? 'MySQL Database' : 'SWA'} (10-20s)...
-                        </>
-                      ) : (
-                        <>
-                          Deploy {appType === 'backend' ? 'Container App' : appType === 'cluster' ? 'AKS Cluster' : appType === 'database' ? 'MySQL Database' : 'SWA'} Resource <ArrowRight size={16} />
-                        </>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                      {isDisabled && !provisioning && disableReason && (
+                        <div style={{ fontSize: '0.78rem', color: '#ef4444', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <AlertOctagon size={14} /> {disableReason}
+                        </div>
                       )}
-                    </button>
+                      <button 
+                        type="submit" 
+                        className="btn-primary" 
+                        disabled={isDisabled}
+                        title={isDisabled ? disableReason : ''}
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.5 : 1 }}
+                      >
+                        {provisioning ? (
+                          <>
+                            <RefreshCw size={14} className="spin-anim" /> Allocating {appType === 'backend' ? 'Container App' : appType === 'cluster' ? 'AKS Cluster' : appType === 'database' ? 'MySQL Database' : 'SWA'} (10-20s)...
+                          </>
+                        ) : (
+                          <>
+                            Deploy {appType === 'backend' ? 'Container App' : appType === 'cluster' ? 'AKS Cluster' : appType === 'database' ? 'MySQL Database' : 'SWA'} Resource <ArrowRight size={16} />
+                          </>
+                        )}
+                      </button>
+                    </div>
                   );
                 })()}
               </div>

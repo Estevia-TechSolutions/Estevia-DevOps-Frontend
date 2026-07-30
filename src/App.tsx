@@ -1398,8 +1398,22 @@ function App() {
   const [dockerfileCheckError, setDockerfileCheckError] = useState<string | null>(null);
 
   const [selectedProvisionSubscriptionId, setSelectedProvisionSubscriptionId] = useState(() => {
-    return localStorage.getItem('selectedProvisionSubscriptionId') || '';
+    return localStorage.getItem('selectedProvisionSubscriptionId') || localStorage.getItem('selectedControlSubscriptionId') || '';
   });
+
+  useEffect(() => {
+    if (selectedSubscriptionId) {
+      setSelectedProvisionSubscriptionId(selectedSubscriptionId);
+      localStorage.setItem('selectedProvisionSubscriptionId', selectedSubscriptionId);
+      fetchProvisioningMetadata(selectedSubscriptionId);
+    }
+  }, [selectedSubscriptionId]);
+
+  useEffect(() => {
+    if (selectedControlResourceGroup) {
+      setSelectedResourceGroup(selectedControlResourceGroup);
+    }
+  }, [selectedControlResourceGroup]);
 
   const fetchProvisioningMetadata = async (subId?: string) => {
     setLoadingMetadata(true);
@@ -7317,8 +7331,24 @@ function App() {
                                   const isActive = !isRestricted && (statusLow === 'active' || statusLow === 'enabled' || statusLow === 'ready' || statusLow === '');
                                   const statusColor = isActive ? '#10b981' : isRestricted ? '#ef4444' : '#64748b';
                                   const statusText = isRestricted ? (sub.status || sub.state || 'restricted') : (sub.status || sub.state || 'active');
-                                  const restrictedHeaderBg = isLight ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.12)';
-                                  const restrictedHeaderBorder = isLight ? '1px solid rgba(239, 68, 68, 0.18)' : '1px solid rgba(239, 68, 68, 0.22)';
+                                  
+                                  const headerTopBorder = isRestricted 
+                                    ? '1px solid rgba(239, 68, 68, 0.35)' 
+                                    : isActive 
+                                    ? '1px solid rgba(16, 185, 129, 0.35)' 
+                                    : subHeaderBorder;
+                                  
+                                  const headerBottomBorder = isRestricted 
+                                    ? '1px solid rgba(239, 68, 68, 0.35)' 
+                                    : isActive 
+                                    ? '1px solid rgba(16, 185, 129, 0.35)' 
+                                    : subHeaderBorder;
+
+                                  const headerBgColor = isRestricted 
+                                    ? (isLight ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.14)')
+                                    : isActive
+                                    ? (isLight ? 'rgba(16, 185, 129, 0.06)' : 'rgba(16, 185, 129, 0.1)')
+                                    : subHeaderBg;
 
                                   return (
                                     <div key={sub.id} style={{ display: 'flex', flexDirection: 'column' }}>
@@ -7328,9 +7358,10 @@ function App() {
                                         alignItems: 'center',
                                         justifyContent: 'space-between',
                                         padding: '8px 16px',
-                                        backgroundColor: isRestricted ? restrictedHeaderBg : subHeaderBg,
-                                        borderBottom: isRestricted ? restrictedHeaderBorder : subHeaderBorder,
-                                        marginTop: '4px'
+                                        backgroundColor: headerBgColor,
+                                        borderTop: headerTopBorder,
+                                        borderBottom: headerBottomBorder,
+                                        marginTop: '6px'
                                       }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', maxWidth: '260px', overflow: 'hidden' }}>
                                           <span style={{
