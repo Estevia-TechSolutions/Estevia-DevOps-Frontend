@@ -990,16 +990,16 @@ function App() {
   const renderInactiveSubscriptionWarning = () => {
     if (!isCurrentSubscriptionInactive) return null;
     const subName = currentSub?.displayName || selectedSubscriptionId;
-    const status = currentSub?.status || 'inactive';
+    const status = currentSub?.status || 'restricted';
     
     return (
       <div className="glass-panel" style={{
         margin: '0 0 20px 0',
         padding: '16px 20px',
         borderRadius: '12px',
-        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.05) 100%)',
-        border: '1px solid rgba(245, 158, 11, 0.3)',
-        boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
+        background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(185, 28, 28, 0.06) 100%)',
+        border: '1px solid rgba(239, 68, 68, 0.35)',
+        boxShadow: '0 4px 30px rgba(239, 68, 68, 0.12)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
@@ -1010,21 +1010,21 @@ function App() {
           width: '36px',
           height: '36px',
           borderRadius: '50%',
-          backgroundColor: 'rgba(245, 158, 11, 0.15)',
+          backgroundColor: 'rgba(239, 68, 68, 0.18)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#fbbf24',
+          color: '#ef4444',
           flexShrink: 0
         }}>
           <AlertTriangle size={20} />
         </div>
         <div style={{ flexGrow: 1 }}>
-          <h4 style={{ margin: '0 0 4px 0', color: '#fbbf24', fontSize: '0.88rem', fontWeight: 700 }}>
-            Subscription Status Warning
+          <h4 style={{ margin: '0 0 4px 0', color: '#ef4444', fontSize: '0.88rem', fontWeight: 700 }}>
+            ⛔ Restricted Azure Subscription Selected
           </h4>
-          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.78rem', lineHeight: '1.4' }}>
-            The subscription <strong>{subName}</strong> is currently <strong>{status.toUpperCase()}</strong>. Cloud Scan, Cost Management, and Database resources are read-only or using cached data.
+          <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.82rem', lineHeight: '1.4' }}>
+            The subscription <strong style={{ color: '#ef4444' }}>{subName}</strong> is currently flagged as <strong style={{ color: '#ef4444', textTransform: 'uppercase' }}>{status}</strong>. Cloud Scan, Cost Management, and Resource Provisioning are read-only or restricted.
           </p>
         </div>
       </div>
@@ -7305,94 +7305,82 @@ function App() {
                                 animation: 'fade-in-anim 0.15s ease-out'
                               }}
                             >
-                              {subscriptionsList.map((sub) => {
-                                const isGuid = (str: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test((str || '').trim());
-                                const hasDisplayName = sub.displayName && sub.displayName !== sub.id && !isGuid(sub.displayName);
-                                const hasName = sub.name && sub.name !== sub.id && !isGuid(sub.name);
-                                const subName = hasDisplayName ? sub.displayName : (hasName ? sub.name : (sub.subscriptionName || sub.id));
-                                const isRawId = !hasDisplayName && !hasName;
-                                const statusLow = (sub.status || sub.state || '').toLowerCase();
-                                const isExplicitRestricted = sub.isRestricted === true || sub.is_restricted === true || sub.restricted === true;
-                                const isRestricted = isExplicitRestricted || statusLow === 'restricted' || statusLow === 'disabled' || statusLow === 'inactive' || statusLow === 'read-only' || statusLow === 'warned' || statusLow === 'pastdue';
-                                const isActive = !isRestricted && (statusLow === 'active' || statusLow === 'enabled' || statusLow === 'ready' || statusLow === '');
-                                const statusColor = isActive ? '#22c55e' : isRestricted ? '#ef4444' : '#64748b';
-                                const statusText = isRestricted ? (sub.status || sub.state || 'restricted') : (sub.status || sub.state || 'active');
-                                const restrictedHeaderBg = isLight ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.14)';
-                                const restrictedHeaderBorder = isLight ? '1px solid rgba(239, 68, 68, 0.22)' : '1px solid rgba(239, 68, 68, 0.28)';
+                                {subscriptionsList.map((sub) => {
+                                  const isGuid = (str: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test((str || '').trim());
+                                  const hasDisplayName = sub.displayName && sub.displayName !== sub.id && !isGuid(sub.displayName);
+                                  const hasName = sub.name && sub.name !== sub.id && !isGuid(sub.name);
+                                  const subName = hasDisplayName ? sub.displayName : (hasName ? sub.name : (sub.subscriptionName || sub.id));
+                                  const isRawId = !hasDisplayName && !hasName;
+                                  const statusLow = (sub.status || sub.state || '').toLowerCase();
+                                  const isExplicitRestricted = sub.isRestricted === true || sub.is_restricted === true || sub.restricted === true;
+                                  const isRestricted = isExplicitRestricted || statusLow === 'restricted' || statusLow === 'disabled' || statusLow === 'inactive' || statusLow === 'read-only' || statusLow === 'warned' || statusLow === 'pastdue';
+                                  const isActive = !isRestricted && (statusLow === 'active' || statusLow === 'enabled' || statusLow === 'ready' || statusLow === '');
+                                  const statusColor = isActive ? '#10b981' : isRestricted ? '#ef4444' : '#64748b';
+                                  const statusText = isRestricted ? (sub.status || sub.state || 'restricted') : (sub.status || sub.state || 'active');
+                                  const restrictedHeaderBg = isLight ? 'rgba(239, 68, 68, 0.08)' : 'rgba(239, 68, 68, 0.12)';
+                                  const restrictedHeaderBorder = isLight ? '1px solid rgba(239, 68, 68, 0.18)' : '1px solid rgba(239, 68, 68, 0.22)';
 
-                                return (
-                                  <div 
-                                    key={sub.id} 
-                                    style={{ 
-                                      display: 'flex', 
-                                      flexDirection: 'column',
-                                      background: isRestricted ? (isLight ? 'rgba(239, 68, 68, 0.04)' : 'rgba(239, 68, 68, 0.08)') : 'transparent',
-                                      borderLeft: isRestricted ? '3px solid #ef4444' : '3px solid transparent',
-                                      margin: isRestricted ? '4px 6px' : '0',
-                                      borderRadius: isRestricted ? '8px' : '0',
-                                      overflow: 'hidden',
-                                      transition: 'all 0.15s ease'
-                                    }}
-                                  >
-                                    {/* Subscription Header */}
-                                    <div style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'space-between',
-                                      padding: '8px 16px',
-                                      backgroundColor: isRestricted ? restrictedHeaderBg : subHeaderBg,
-                                      borderBottom: isRestricted ? restrictedHeaderBorder : subHeaderBorder,
-                                      marginTop: isRestricted ? '0' : '4px'
-                                    }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', maxWidth: '260px', overflow: 'hidden' }}>
-                                        <span style={{
-                                          fontSize: '0.72rem',
-                                          fontWeight: 700,
-                                          color: isRestricted ? '#ef4444' : (isRawId ? '#f59e0b' : (isLight ? 'rgba(0, 0, 0, 0.55)' : '#94a3b8')),
-                                          fontFamily: isRawId ? 'monospace' : 'inherit',
-                                          textTransform: isRawId ? 'none' : 'uppercase',
-                                          letterSpacing: '0.04em',
-                                          textOverflow: 'ellipsis',
-                                          overflow: 'hidden',
-                                          whiteSpace: 'nowrap'
-                                        }}>
-                                          {subName}
-                                        </span>
-                                        {isRawId && (
+                                  return (
+                                    <div key={sub.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                                      {/* Subscription Header */}
+                                      <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '8px 16px',
+                                        backgroundColor: isRestricted ? restrictedHeaderBg : subHeaderBg,
+                                        borderBottom: isRestricted ? restrictedHeaderBorder : subHeaderBorder,
+                                        marginTop: '4px'
+                                      }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', maxWidth: '260px', overflow: 'hidden' }}>
                                           <span style={{
-                                            fontSize: '0.6rem',
+                                            fontSize: '0.72rem',
                                             fontWeight: 700,
-                                            padding: '1px 4px',
-                                            borderRadius: '4px',
-                                            background: 'rgba(245, 158, 11, 0.15)',
-                                            border: '1px solid rgba(245, 158, 11, 0.4)',
-                                            color: '#f59e0b',
-                                            flexShrink: 0
+                                            color: isRestricted ? '#ef4444' : (isActive ? '#10b981' : (isRawId ? '#f59e0b' : (isLight ? 'rgba(0, 0, 0, 0.55)' : '#94a3b8'))),
+                                            fontFamily: isRawId ? 'monospace' : 'inherit',
+                                            textTransform: isRawId ? 'none' : 'uppercase',
+                                            letterSpacing: '0.04em',
+                                            textOverflow: 'ellipsis',
+                                            overflow: 'hidden',
+                                            whiteSpace: 'nowrap'
                                           }}>
-                                            ID ONLY
+                                            {subName}
                                           </span>
-                                        )}
+                                          {isRawId && (
+                                            <span style={{
+                                              fontSize: '0.6rem',
+                                              fontWeight: 700,
+                                              padding: '1px 4px',
+                                              borderRadius: '4px',
+                                              background: 'rgba(245, 158, 11, 0.15)',
+                                              border: '1px solid rgba(245, 158, 11, 0.4)',
+                                              color: '#f59e0b',
+                                              flexShrink: 0
+                                            }}>
+                                              ID ONLY
+                                            </span>
+                                          )}
+                                        </div>
+                                        
+                                        {/* Status Badge */}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                          <span style={{
+                                            width: '6px',
+                                            height: '6px',
+                                            borderRadius: '50%',
+                                            backgroundColor: statusColor,
+                                            boxShadow: `0 0 6px ${statusColor}`
+                                          }} />
+                                          <span style={{ 
+                                            fontSize: '0.68rem', 
+                                            color: isRestricted ? '#ef4444' : (isActive ? '#10b981' : (isLight ? 'rgba(0, 0, 0, 0.45)' : '#64748b')), 
+                                            textTransform: 'capitalize', 
+                                            fontWeight: (isRestricted || isActive) ? 700 : 600 
+                                          }}>
+                                            {isRestricted ? '⛔ restricted' : statusText}
+                                          </span>
+                                        </div>
                                       </div>
-                                      
-                                      {/* Status Badge */}
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                        <span style={{
-                                          width: '6px',
-                                          height: '6px',
-                                          borderRadius: '50%',
-                                          backgroundColor: statusColor,
-                                          boxShadow: `0 0 6px ${statusColor}`
-                                        }} />
-                                        <span style={{ 
-                                          fontSize: '0.68rem', 
-                                          color: isRestricted ? '#ef4444' : (isLight ? 'rgba(0, 0, 0, 0.45)' : '#64748b'), 
-                                          textTransform: 'capitalize', 
-                                          fontWeight: isRestricted ? 700 : 600 
-                                        }}>
-                                          {isRestricted ? '⛔ restricted' : statusText}
-                                        </span>
-                                      </div>
-                                    </div>
 
                                     {/* Resource Groups */}
                                     {(sub.resourceGroups || []).map((rg: string) => {
