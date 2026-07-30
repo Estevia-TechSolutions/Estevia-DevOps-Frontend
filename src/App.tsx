@@ -976,11 +976,15 @@ function App() {
   const scopeDropdownRef = useRef<HTMLDivElement>(null);
 
   const currentSub = useMemo(() => {
-    return subscriptionsList.find(sub => sub.id === selectedSubscriptionId);
+    if (!selectedSubscriptionId) return null;
+    return subscriptionsList.find(sub => (sub.id || '').toLowerCase() === selectedSubscriptionId.toLowerCase());
   }, [subscriptionsList, selectedSubscriptionId]);
 
   const isCurrentSubscriptionInactive = useMemo(() => {
-    return currentSub && currentSub.status !== 'active';
+    if (!currentSub) return false;
+    const statusLow = (currentSub.status || currentSub.state || '').toLowerCase();
+    const isExplicitRestricted = currentSub.isRestricted === true || currentSub.is_restricted === true || currentSub.restricted === true;
+    return isExplicitRestricted || statusLow === 'restricted' || statusLow === 'disabled' || statusLow === 'inactive' || statusLow === 'read-only' || statusLow === 'warned' || statusLow === 'pastdue';
   }, [currentSub]);
 
   const renderInactiveSubscriptionWarning = () => {
@@ -7216,7 +7220,7 @@ function App() {
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap'
                               }}>
-                                {currentSub ? currentSub.displayName : selectedSubscriptionId}
+                                {currentSub ? (currentSub.displayName || currentSub.name || currentSub.subscriptionName || currentSub.id) : selectedSubscriptionId}
                               </div>
                               <div style={{
                                 fontSize: '0.8rem',
@@ -7264,9 +7268,13 @@ function App() {
                               }}
                             >
                               {subscriptionsList.map((sub) => {
-                                const isActive = sub.status === 'active';
-                                const isRestricted = sub.status === 'restricted';
+                                const subName = sub.displayName || sub.name || sub.subscriptionName || sub.id;
+                                const statusLow = (sub.status || sub.state || '').toLowerCase();
+                                const isExplicitRestricted = sub.isRestricted === true || sub.is_restricted === true || sub.restricted === true;
+                                const isRestricted = isExplicitRestricted || statusLow === 'restricted' || statusLow === 'disabled' || statusLow === 'inactive' || statusLow === 'read-only' || statusLow === 'warned' || statusLow === 'pastdue';
+                                const isActive = !isRestricted && (statusLow === 'active' || statusLow === 'enabled' || statusLow === 'ready' || statusLow === '');
                                 const statusColor = isActive ? '#22c55e' : isRestricted ? '#f59e0b' : '#64748b';
+                                const statusText = isRestricted ? (sub.status || sub.state || 'restricted') : (sub.status || sub.state || 'active');
                                 return (
                                   <div key={sub.id} style={{ display: 'flex', flexDirection: 'column' }}>
                                     {/* Subscription Header */}
@@ -7290,7 +7298,7 @@ function App() {
                                         whiteSpace: 'nowrap',
                                         maxWidth: '260px'
                                       }}>
-                                        {sub.displayName}
+                                        {subName}
                                       </span>
                                       
                                       {/* Status Badge */}
@@ -7303,7 +7311,7 @@ function App() {
                                           boxShadow: `0 0 6px ${statusColor}`
                                         }} />
                                         <span style={{ fontSize: '0.68rem', color: isLight ? 'rgba(0, 0, 0, 0.45)' : '#64748b', textTransform: 'capitalize', fontWeight: 600 }}>
-                                          {sub.status}
+                                          {statusText}
                                         </span>
                                       </div>
                                     </div>

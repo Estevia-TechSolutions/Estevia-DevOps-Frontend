@@ -42,7 +42,10 @@ export const RichSelect: React.FC<RichSelectProps> = ({
 
   const panelRef = useRef<HTMLDivElement | null>(null);
 
-  const selectedOption = options.find(opt => opt.value === value);
+  const selectedOption = options.find(opt => 
+    opt.value === value || 
+    (typeof opt.value === 'string' && typeof value === 'string' && opt.value.toLowerCase() === value.toLowerCase())
+  );
 
   const updateCoords = () => {
     if (triggerRef.current) {

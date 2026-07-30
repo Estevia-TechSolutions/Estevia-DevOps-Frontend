@@ -1960,29 +1960,26 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                   <RichSelect
                     value={selectedProvisionSubscriptionId}
                     onChange={(val) => {
-                      const targetSub = subscriptionsList.find(s => s.id === val);
-                      const isRestricted = targetSub && (
-                        (targetSub.status || targetSub.state || '').toLowerCase() === 'restricted' ||
-                        (targetSub.status || targetSub.state || '').toLowerCase() === 'inactive' ||
-                        (targetSub.status || targetSub.state || '').toLowerCase() === 'disabled' ||
-                        (targetSub.status || targetSub.state || '').toLowerCase() === 'read-only' ||
-                        targetSub.isRestricted === true ||
-                        targetSub.is_restricted === true ||
-                        targetSub.restricted === true
-                      );
+                      const targetSub = subscriptionsList.find(s => (s.id || '').toLowerCase() === (val || '').toLowerCase());
+                      const statusLow = (targetSub?.status || targetSub?.state || '').toLowerCase();
+                      const isExplicitRestricted = targetSub?.isRestricted === true || targetSub?.is_restricted === true || targetSub?.restricted === true;
+                      const isRestricted = isExplicitRestricted || statusLow === 'restricted' || statusLow === 'inactive' || statusLow === 'disabled' || statusLow === 'read-only' || statusLow === 'warned' || statusLow === 'pastdue';
                       if (isRestricted) return;
                       setSelectedProvisionSubscriptionId(val);
                     }}
                     disabled={provisioning}
-                    placeholder="-- Select Subscription --"
+                    placeholder="-- Select Azure Subscription --"
                     options={subscriptionsList.map(sub => {
+                      const subName = sub.displayName || sub.name || sub.subscriptionName || (sub.id ? `Subscription (${sub.id.slice(0, 8)}...)` : 'Azure Subscription');
                       const statusLow = (sub.status || sub.state || '').toLowerCase();
-                      const isRestricted = statusLow === 'restricted' || statusLow === 'inactive' || statusLow === 'disabled' || statusLow === 'read-only' || sub.isRestricted === true || sub.is_restricted === true || sub.restricted === true;
+                      const isExplicitRestricted = sub.isRestricted === true || sub.is_restricted === true || sub.restricted === true;
+                      const isRestricted = isExplicitRestricted || statusLow === 'restricted' || statusLow === 'inactive' || statusLow === 'disabled' || statusLow === 'read-only' || statusLow === 'warned' || statusLow === 'pastdue';
+                      const displayStatus = isRestricted ? (sub.status || sub.state || 'Restricted') : 'Active';
                       return {
                         value: sub.id,
-                        label: sub.displayName,
-                        description: `ID: ${sub.id}`,
-                        badge: isRestricted ? `⛔ ${sub.status || 'Restricted'}` : 'Active',
+                        label: subName,
+                        description: `Subscription ID: ${sub.id}`,
+                        badge: isRestricted ? `⛔ ${displayStatus.toUpperCase()}` : 'ACTIVE',
                         disabled: isRestricted,
                         icon: <CreditCard size={14} style={{ color: isRestricted ? 'var(--error)' : 'var(--accent-teal)' }} />
                       };
@@ -1991,10 +1988,12 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
 
                   {/* Warning banner if a restricted subscription is somehow selected */}
                   {(() => {
-                    const activeSub = subscriptionsList.find(s => s.id === selectedProvisionSubscriptionId);
+                    const activeSub = subscriptionsList.find(s => (s.id || '').toLowerCase() === (selectedProvisionSubscriptionId || '').toLowerCase());
                     if (!activeSub) return null;
                     const statusLow = (activeSub.status || activeSub.state || '').toLowerCase();
-                    const isRestricted = statusLow === 'restricted' || statusLow === 'inactive' || statusLow === 'disabled' || statusLow === 'read-only' || activeSub.isRestricted === true || activeSub.is_restricted === true || activeSub.restricted === true;
+                    const isExplicitRestricted = activeSub.isRestricted === true || activeSub.is_restricted === true || activeSub.restricted === true;
+                    const isRestricted = isExplicitRestricted || statusLow === 'restricted' || statusLow === 'inactive' || statusLow === 'disabled' || statusLow === 'read-only' || statusLow === 'warned' || statusLow === 'pastdue';
+                    const activeSubName = activeSub.displayName || activeSub.name || activeSub.subscriptionName || activeSub.id;
                     if (isRestricted) {
                       return (
                         <div style={{
@@ -2011,7 +2010,7 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                         }}>
                           <AlertOctagon size={16} style={{ flexShrink: 0 }} />
                           <div>
-                            <strong>Subscription Restricted:</strong> <code>{activeSub.displayName}</code> is currently restricted. Provisioning Azure resources in restricted subscriptions is not allowed. Please select an active subscription.
+                            <strong>Subscription Restricted:</strong> <code>{activeSubName}</code> is currently restricted. Provisioning Azure resources in restricted subscriptions is not allowed. Please select an active subscription.
                           </div>
                         </div>
                       );
