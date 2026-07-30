@@ -63,18 +63,21 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
     const getScopeInfoForApp = (appKey?: string) => {
         const keyLow = (appKey || '').toLowerCase();
         let sub = '4a551976-35a8-4305-b128-fe592805be41';
-        let subName = 'Estevia Primary Subscription';
+        let subName = 'Estevia-Platform-Subscription';
         let rg = 'Estevia-Platform-RG';
 
         if (keyLow.includes('peoplecraft')) {
+            sub = '40070b3e-38c4-4c4e-89d5-dd601f9f7622';
             rg = 'Estevia-Client-Projects-RG';
-            subName = 'Estevia Client Apps Subscription';
+            subName = 'Estevia-Client-Projects-Subscription';
         } else if (keyLow.includes('marketing')) {
+            sub = '4a551976-35a8-4305-b128-fe592805be41';
             rg = 'Estevia-Prod-RG';
-            subName = 'Estevia Production Subscription';
+            subName = 'Estevia-Prod-Subscription';
         } else if (keyLow.includes('evaops') || keyLow.includes('connecthub') || keyLow.includes('estevia')) {
+            sub = '4a551976-35a8-4305-b128-fe592805be41';
             rg = 'Estevia-Platform-RG';
-            subName = 'Estevia Platform Subscription';
+            subName = 'Estevia-Platform-Subscription';
         }
 
         return { subId: sub, subName, subShort: subName, resourceGroup: rg };
