@@ -9,6 +9,8 @@ export interface RichSelectOption {
   badge?: string;
   description?: string;
   disabled?: boolean;
+  isRawId?: boolean;
+  tag?: string;
 }
 
 export interface RichSelectProps {
@@ -150,9 +152,38 @@ export const RichSelect: React.FC<RichSelectProps> = ({
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {selectedOption?.icon && <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>{selectedOption.icon}</span>}
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {selectedOption ? selectedOption.label : placeholder}
-          </span>
+          {(() => {
+            const isRawId = selectedOption?.isRawId || (selectedOption?.label ? /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(selectedOption.label.trim()) : false);
+            const displayLabel = selectedOption ? selectedOption.label : placeholder;
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+                <span style={{ 
+                  overflow: 'hidden', 
+                  textOverflow: 'ellipsis', 
+                  whiteSpace: 'nowrap',
+                  fontFamily: isRawId ? 'monospace' : 'inherit',
+                  color: isRawId ? '#f59e0b' : 'inherit'
+                }}>
+                  {displayLabel}
+                </span>
+                {(isRawId || selectedOption?.tag) && (
+                  <span style={{
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    padding: '1px 5px',
+                    borderRadius: '4px',
+                    background: 'rgba(245, 158, 11, 0.15)',
+                    border: '1px solid rgba(245, 158, 11, 0.4)',
+                    color: '#f59e0b',
+                    flexShrink: 0,
+                    letterSpacing: '0.03em'
+                  }}>
+                    {selectedOption?.tag || 'ID ONLY'}
+                  </span>
+                )}
+              </div>
+            );
+          })()}
           {selectedOption?.badge && (
             <span
               style={{
@@ -239,7 +270,34 @@ export const RichSelect: React.FC<RichSelectProps> = ({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
                   {option.icon && <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>{option.icon}</span>}
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ whiteSpace: 'nowrap' }}>{option.label}</span>
+                    {(() => {
+                      const isRawId = option.isRawId || /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(option.label.trim());
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ 
+                            whiteSpace: 'nowrap',
+                            fontFamily: isRawId ? 'monospace' : 'inherit',
+                            color: isRawId ? '#f59e0b' : 'inherit'
+                          }}>
+                            {option.label}
+                          </span>
+                          {(isRawId || option.tag) && (
+                            <span style={{
+                              fontSize: '0.62rem',
+                              fontWeight: 700,
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                              background: 'rgba(245, 158, 11, 0.15)',
+                              border: '1px solid rgba(245, 158, 11, 0.4)',
+                              color: '#f59e0b',
+                              flexShrink: 0
+                            }}>
+                              {option.tag || 'ID ONLY'}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                     {option.description && (
                       <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '1px' }}>
                         {option.description}

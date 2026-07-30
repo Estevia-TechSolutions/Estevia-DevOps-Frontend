@@ -1970,7 +1970,11 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                     disabled={provisioning}
                     placeholder="-- Select Azure Subscription --"
                     options={subscriptionsList.map(sub => {
-                      const subName = (sub.displayName && sub.displayName !== sub.id) ? sub.displayName : (sub.name || sub.subscriptionName || (sub.id ? `Subscription (${sub.id.slice(0, 8)}...)` : 'Azure Subscription'));
+                      const isGuid = (str: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test((str || '').trim());
+                      const hasDisplayName = sub.displayName && sub.displayName !== sub.id && !isGuid(sub.displayName);
+                      const hasName = sub.name && sub.name !== sub.id && !isGuid(sub.name);
+                      const subName = hasDisplayName ? sub.displayName : (hasName ? sub.name : (sub.subscriptionName || sub.id));
+                      const isRawId = !hasDisplayName && !hasName;
                       const statusLow = (sub.status || sub.state || '').toLowerCase();
                       const isExplicitRestricted = sub.isRestricted === true || sub.is_restricted === true || sub.restricted === true;
                       const isRestricted = isExplicitRestricted || statusLow === 'restricted' || statusLow === 'inactive' || statusLow === 'disabled' || statusLow === 'read-only' || statusLow === 'warned' || statusLow === 'pastdue';
@@ -1978,10 +1982,12 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                       return {
                         value: sub.id,
                         label: subName,
-                        description: `Subscription ID: ${sub.id}`,
+                        isRawId,
+                        tag: isRawId ? 'ID ONLY' : undefined,
+                        description: isRawId ? `Azure Subscription GUID: ${sub.id}` : `Subscription ID: ${sub.id}`,
                         badge: isRestricted ? `⛔ ${displayStatus.toUpperCase()}` : 'ACTIVE',
                         disabled: isRestricted,
-                        icon: <CreditCard size={14} style={{ color: isRestricted ? 'var(--error)' : 'var(--accent-teal)' }} />
+                        icon: <CreditCard size={14} style={{ color: isRestricted ? 'var(--error)' : (isRawId ? '#f59e0b' : 'var(--accent-teal)') }} />
                       };
                     })}
                   />
