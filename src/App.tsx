@@ -5640,7 +5640,7 @@ function App() {
                 {authStep !== 'login' ? (
                   <ShieldCheck size={24} style={{ color: '#a78bfa' }} />
                 ) : (
-                  <img src="/evaops-logo.png" alt="EvaOps Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'invert(1)' }} />
+                  <img src="/evaops-logo.png" alt="EvaOps Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 )}
               </div>
               <div>
