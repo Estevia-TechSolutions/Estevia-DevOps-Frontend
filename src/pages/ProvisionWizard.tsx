@@ -1970,7 +1970,7 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                     disabled={provisioning}
                     placeholder="-- Select Azure Subscription --"
                     options={subscriptionsList.map(sub => {
-                      const subName = sub.displayName || sub.name || sub.subscriptionName || (sub.id ? `Subscription (${sub.id.slice(0, 8)}...)` : 'Azure Subscription');
+                      const subName = (sub.displayName && sub.displayName !== sub.id) ? sub.displayName : (sub.name || sub.subscriptionName || (sub.id ? `Subscription (${sub.id.slice(0, 8)}...)` : 'Azure Subscription'));
                       const statusLow = (sub.status || sub.state || '').toLowerCase();
                       const isExplicitRestricted = sub.isRestricted === true || sub.is_restricted === true || sub.restricted === true;
                       const isRestricted = isExplicitRestricted || statusLow === 'restricted' || statusLow === 'inactive' || statusLow === 'disabled' || statusLow === 'read-only' || statusLow === 'warned' || statusLow === 'pastdue';
