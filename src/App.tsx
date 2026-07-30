@@ -8458,6 +8458,7 @@ function App() {
               apps={filteredApps}
               virtualNetworks={virtualNetworks}
               dbServers={dbServers}
+              selectedControlResourceGroup={selectedControlResourceGroup}
               selectedDbServer={selectedDbServer}
               setSelectedDbServer={setSelectedDbServer}
               databases={databases}

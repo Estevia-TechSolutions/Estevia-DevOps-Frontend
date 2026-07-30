@@ -40,6 +40,8 @@ export const RichSelect: React.FC<RichSelectProps> = ({
   const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
   const selectedOption = options.find(opt => opt.value === value);
 
   const updateCoords = () => {
@@ -65,18 +67,21 @@ export const RichSelect: React.FC<RichSelectProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    const handleScrollOrResize = () => {
+    const handleScrollOrResize = (e: Event) => {
+      if (panelRef.current && e.target && panelRef.current.contains(e.target as Node)) {
+        return; // Allow scrolling inside the panel without closing!
+      }
       setIsOpen(false);
     };
 
     const handleClickOutside = (e: MouseEvent) => {
-      if (triggerRef.current && !triggerRef.current.contains(e.target as Node)) {
-        const panelEl = document.getElementById('eva-rich-select-portal-panel');
-        if (panelEl && panelEl.contains(e.target as Node)) {
-          return;
-        }
-        setIsOpen(false);
+      if (triggerRef.current && triggerRef.current.contains(e.target as Node)) {
+        return;
       }
+      if (panelRef.current && panelRef.current.contains(e.target as Node)) {
+        return;
+      }
+      setIsOpen(false);
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -175,6 +180,7 @@ export const RichSelect: React.FC<RichSelectProps> = ({
 
       {isOpen && coords && createPortal(
         <div
+          ref={panelRef}
           id="eva-rich-select-portal-panel"
           className="eva-rich-select-panel"
           style={{

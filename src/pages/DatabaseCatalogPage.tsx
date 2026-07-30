@@ -20,11 +20,13 @@ import {
 } from 'lucide-react';
 import { ErdVisualizer } from '../components/database/ErdVisualizer';
 import { CompareMigrateWizard } from '../components/database/CompareMigrateWizard';
+import { RichSelect } from '../components/common/RichSelect';
 
 interface DatabaseCatalogPageProps {
   apps: any[];
   virtualNetworks: any[];
   dbServers: any[];
+  selectedControlResourceGroup?: string;
   selectedDbServer: any | null;
   setSelectedDbServer: (val: any | null) => void;
   databases: any[];
@@ -93,6 +95,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
   apps,
   virtualNetworks,
   dbServers,
+  selectedControlResourceGroup,
   selectedDbServer,
   setSelectedDbServer,
   databases,
@@ -154,6 +157,11 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
   theme,
   isSubscriptionInactive = false
 }) => {
+  const scopeFilteredDbServers = dbServers.filter(srv => {
+    if (!selectedControlResourceGroup) return true;
+    const srvRg = srv.resourceGroup || srv.rg || srv.resource_group || srv.resourceGroupDetails?.name || '';
+    return !srvRg || srvRg.toLowerCase() === selectedControlResourceGroup.toLowerCase();
+  });
 
   const isViewer = currentUser?.role === 'viewer';
   const isLight = theme === 'light';
@@ -356,41 +364,53 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
             Database Server
           </h3>
           
-          {loadingDbServers ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 0', color: 'var(--text-secondary)' }}>
-              <RefreshCw size={16} className="spin-anim" />
-              <span style={{ fontSize: '0.85rem' }}>Listing database servers...</span>
-            </div>
-          ) : dbServers.length === 0 ? (
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', padding: '12px 0' }}>
-              No MySQL Flexible Servers found in resource group.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <select
-                value={selectedDbServer?.name || ''}
-                onChange={(e) => {
-                  const s = dbServers.find(srv => srv.name === e.target.value);
-                  if (s) {
-                    setSelectedDbServer(s);
-                    fetchDatabases(s.name, s.host);
-                  }
-                }}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--glass-border)',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.88rem',
-                  outline: 'none'
-                }}
-              >
-                {dbServers.map(srv => (
-                  <option key={srv.name} value={srv.name} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{srv.name}</option>
-                ))}
-              </select>
+          {(() => {
+            const scopeFilteredDbServers = dbServers.filter(srv => {
+              if (!selectedControlResourceGroup) return true;
+              const srvRg = srv.resourceGroup || srv.rg || srv.resource_group || srv.resourceGroupDetails?.name || '';
+              return !srvRg || srvRg.toLowerCase() === selectedControlResourceGroup.toLowerCase();
+            });
+
+            if (loadingDbServers) {
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 0', color: 'var(--text-secondary)' }}>
+                  <RefreshCw size={16} className="spin-anim" />
+                  <span style={{ fontSize: '0.85rem' }}>Listing database servers...</span>
+                </div>
+              );
+            }
+
+            if (scopeFilteredDbServers.length === 0) {
+              return (
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', padding: '12px 0' }}>
+                  No MySQL Flexible Servers found in target scope ({selectedControlResourceGroup || 'selected group'}).
+                </div>
+              );
+            }
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <RichSelect
+                  value={selectedDbServer?.name || ''}
+                  onChange={(val) => {
+                    const s = scopeFilteredDbServers.find(srv => srv.name === val);
+                    if (s) {
+                      setSelectedDbServer(s);
+                      fetchDatabases(s.name, s.host);
+                    }
+                  }}
+                  options={scopeFilteredDbServers.map(srv => ({
+                    value: srv.name,
+                    label: srv.name,
+                    description: srv.host ? `Host: ${srv.host}` : undefined,
+                    badge: selectedControlResourceGroup ? selectedControlResourceGroup : 'Active Scope',
+                    icon: <Server size={14} style={{ color: '#fb7185' }} />
+                  }))}
+                  placeholder="-- Select Database Server --"
+                />
+              </div>
+            );
+          })()}
 
               {selectedDbServer && (
                 <div style={{ 
@@ -444,8 +464,6 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                   )}
                 </div>
               )}
-            </div>
-          )}
         </div>
 
         {/* Database List Card */}
@@ -1678,7 +1696,7 @@ mysqli_real_connect($conn, '${selectedDbServer.host}', 'estevia_db_user', $passw
                   selectedDbServer={selectedDbServer}
                   selectedDatabase={selectedDatabase}
                   databases={databases}
-                  dbServers={dbServers}
+                  dbServers={scopeFilteredDbServers}
                 />
               )}
             </div>
