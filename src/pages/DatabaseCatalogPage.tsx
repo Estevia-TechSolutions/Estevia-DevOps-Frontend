@@ -546,7 +546,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
             </p>
           </div>
         ) : (
-          <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(244, 63, 94, 0.1)' }}>
+          <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowX: 'auto', overflowY: 'hidden', minWidth: 0, background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(244, 63, 94, 0.1)' }}>
             {/* Header / Tabs stacked vertically */}
             <div style={{ 
               borderBottom: '1px solid rgba(239, 68, 68, 0.35)', 
@@ -706,7 +706,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                               borderRadius: '8px', 
                               backgroundColor: isExpanded ? 'var(--bg-secondary)' : 'var(--glass-bg)',
                               boxShadow: isExpanded ? '0 4px 20px rgba(244, 63, 94, 0.08)' : 'none',
-                              overflow: 'hidden',
+                              overflowX: 'auto',
                               transition: 'all 0.2s ease',
                             }}
                           >
