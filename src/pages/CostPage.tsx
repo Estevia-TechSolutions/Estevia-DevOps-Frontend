@@ -204,25 +204,62 @@ export const CostPage: React.FC<CostPageProps> = ({
   };
 
   const getConfiguredBackendUrl = (app: any): string | null => {
+    // 1. Direct configuration or environment variable inspection
     let url = 
       app?.azureResourceDetails?.configuredBackendUrl ||
       app?.azure_resource_details?.configuredBackendUrl ||
       app?.configuredBackendUrl ||
       app?.azureResourceDetails?.backendUrl ||
       app?.env_vars?.VITE_API_URL ||
-      app?.envVars?.VITE_API_URL;
+      app?.envVars?.VITE_API_URL ||
+      app?.env_vars?.REACT_APP_API_URL ||
+      app?.envVars?.REACT_APP_API_URL;
 
-    if (!url && app?.name?.toLowerCase().includes('peoplecraft')) {
-      const nameLower = app.name.toLowerCase();
-      if (nameLower.includes('dev')) {
-        url = 'https://api-peoplecraft-dev.gentleocean-10206aa4.eastus2.azurecontainerapps.io';
-      } else if (nameLower.includes('qa') || nameLower.includes('test') || nameLower.includes('staging')) {
-        url = 'https://api-peoplecraft-qa.gentleocean-10206aa4.eastus2.azurecontainerapps.io';
-      } else {
-        url = 'https://api-peoplecraft-prod.gentleocean-10206aa4.eastus2.azurecontainerapps.io';
+    if (url) return url;
+
+    // 2. Dynamic Token & Environment Peer Ingress Resolution (Zero Hardcoding)
+    if (!app || !app.name) return null;
+    const appTokens = app.name.toLowerCase()
+      .replace(/^(ca|swa|api|app|func|rg|frontend|backend)-/i, '')
+      .replace(/-(dev|qa|prod|production|staging|test|swa|frontend|backend)$/g, '')
+      .split(/[-_\s]+/)
+      .filter((t: string) => t.length > 1);
+
+    if (appTokens.length === 0) return null;
+
+    const getAppEnv = (item: any) => {
+      const n = (item?.name || '').toLowerCase();
+      if (n.includes('dev')) return 'dev';
+      if (n.includes('qa') || n.includes('test') || n.includes('staging')) return 'qa';
+      return 'prod';
+    };
+
+    const appEnv = getAppEnv(app);
+
+    const matchingBackend = detailedCosts.find((b: any) => {
+      if (b.type !== 'backend') return false;
+      const bName = (b.name || '').toLowerCase();
+      const bEnv = getAppEnv(b);
+
+      const envMatches = (
+        appEnv === bEnv ||
+        (appEnv.includes('dev') && bEnv.includes('dev')) ||
+        (appEnv.includes('qa') && bEnv.includes('qa')) ||
+        (appEnv.includes('prod') && bEnv.includes('prod'))
+      );
+      if (!envMatches) return false;
+
+      return appTokens.some((token: string) => bName.includes(token));
+    });
+
+    if (matchingBackend) {
+      const host = matchingBackend.hostname || matchingBackend.azureResourceDetails?.hostname || matchingBackend.fqdn || '';
+      if (host) {
+        return host.startsWith('http') ? host : `https://${host}`;
       }
     }
-    return url || null;
+
+    return null;
   };
 
   const getVnetName = (item: any): string | null => {
