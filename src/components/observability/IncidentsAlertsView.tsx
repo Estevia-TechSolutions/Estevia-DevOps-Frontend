@@ -84,104 +84,85 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
         return { subId: sub, subName, subShort: subName, resourceGroup: rg };
     };
 
+    const formatHumanTitle = (appKey?: string, environment?: string, resType?: string): string => {
+        if (!appKey || appKey === 'unknown') return 'Azure Cloud Resource';
+        const cleanKey = appKey.toLowerCase()
+            .replace(/-(dev|qa|prod|production|staging|test)(-swa)?$/i, '')
+            .replace(/(-swa)?$/i, '')
+            .replace(/^estevia-/, '');
+
+        const envStr = environment ? ` (${environment.toUpperCase()})` : '';
+
+        const knownMap: Record<string, string> = {
+            'evaops-frontend': 'EvaOps Control Portal',
+            'evaops': 'EvaOps Core Backend API',
+            'api-evaops': 'EvaOps Core Backend API',
+            'cloud-service': 'EvaOps Cloud Engine',
+            'marketing': 'Estevia Corporate Marketing Web',
+            'protrack': 'ProTrack Enterprise PM Suite',
+            'protrack-frontend': 'ProTrack PM Web Portal',
+            'protrack-backend': 'ProTrack Core Engine API',
+            'docai': 'DocuAI Intelligent Document Processor',
+            'connecthub': 'ConnectHub Integration Platform',
+            'peoplecraft-frontend': 'PeopleCraft HR Web Portal',
+            'peoplecraft-backend': 'PeopleCraft HR Core Backend API',
+            'peoplecraft': 'PeopleCraft HR Platform',
+            'talent-hq': 'TalentHQ Recruitment Platform',
+            'talenthq': 'TalentHQ Recruitment Platform',
+            'evafusion': 'EvaFusion Neural Gateway',
+            'evafusion-devhub': 'EvaFusion Developer Hub',
+            'evanet': 'EvaNet Network Controller',
+            'evapay': 'EvaPay Payment Gateway',
+            'estevia-platform-db': 'Estevia Platform MySQL Database',
+            'peoplecraft-db': 'PeopleCraft Database Server'
+        };
+
+        if (knownMap[cleanKey]) return `${knownMap[cleanKey]}${envStr}`;
+        if (knownMap[appKey.toLowerCase()]) return `${knownMap[appKey.toLowerCase()]}${envStr}`;
+
+        const words = cleanKey.split(/[-_]/).filter(Boolean).map(w => w.charAt(0).toUpperCase() + w.slice(1));
+        const suffix = (resType || '').toLowerCase() === 'swa' ? 'Web Portal' : (resType || '').toLowerCase() === 'mysql' ? 'Database Server' : 'Backend Service';
+        return `${words.join(' ')} ${suffix}${envStr}`;
+    };
+
     const getResourceInfo = (appKey?: string, environment?: string, customName?: string, incidentObj?: any) => {
-        // 1. If backend incident object already carries exact real azure_portal_url and azure_resource_name from DB, use it directly!
-        if (incidentObj?.azure_portal_url && incidentObj?.azure_resource_name) {
-            let displayName = customName || appKey || 'Cloud Resource';
-            const keyLow = (appKey || '').toLowerCase();
-            if (keyLow.includes('evaops') || keyLow.includes('cloud-service') || keyLow.includes('estevia-backend')) displayName = 'Estevia DevOps Core Backend API';
-            else if (keyLow.includes('evaops-frontend') || keyLow.includes('estevia-frontend')) displayName = 'Estevia DevOps Control Portal';
-            else if (keyLow.includes('marketing')) displayName = 'Estevia Corporate Marketing Portal';
-            else if (keyLow.includes('peoplecraft') && keyLow.includes('frontend')) displayName = 'PeopleCraft Enterprise HR Web Portal';
-            else if (keyLow.includes('peoplecraft')) displayName = 'PeopleCraft Enterprise HR Core Backend';
-            else if (keyLow.includes('peoplecraft-db')) displayName = 'PeopleCraft MySQL Database Server';
-            else if (keyLow.includes('estevia-platform-db')) displayName = 'Estevia Platform MySQL Database';
+        const env = (environment || incidentObj?.environment || 'dev').toLowerCase();
+        const keyLow = (appKey || incidentObj?.app_key || '').toLowerCase().trim();
+        const resType = (incidentObj?.resource_type || '').toLowerCase();
 
-            return {
-                displayName,
-                serviceType: incidentObj.resource_type === 'swa' ? 'Static Web App (SWA)' : incidentObj.resource_type === 'mysql' ? 'MySQL Flexible Server' : 'Container App (ACA)',
-                azureResourceName: incidentObj.azure_resource_name,
-                azurePortalUrl: incidentObj.azure_portal_url,
-                rawKey: appKey || ''
-            };
+        let displayName = customName || formatHumanTitle(appKey, env, resType);
+        let serviceType = resType === 'swa' ? 'Static Web App (SWA)' : resType === 'mysql' ? 'MySQL Flexible Server' : resType === 'vm' ? 'Virtual Machine (VM)' : 'Container App (ACA)';
+        let azureResourceName = incidentObj?.azure_resource_name || '';
+        let azurePortalUrl = incidentObj?.azure_portal_url || '';
+
+        if (!azureResourceName) {
+            const cleanKey = keyLow.replace(/^estevia-/, '');
+            if (keyLow.includes('evaops-frontend') || keyLow === 'estevia-frontend') {
+                azureResourceName = 'evaops-frontend-swa';
+            } else if (keyLow.includes('evaops') || keyLow === 'estevia-backend' || keyLow === 'cloud-service' || keyLow === 'api-evaops') {
+                azureResourceName = 'api-evaops';
+            } else if (keyLow.includes('marketing')) {
+                azureResourceName = 'estevia-marketing-web-prod-swa';
+            } else if (keyLow.includes('peoplecraft') && keyLow.includes('frontend')) {
+                azureResourceName = `peoplecraft-frontend-${env}-swa`;
+            } else if (keyLow.includes('peoplecraft-db')) {
+                azureResourceName = 'peoplecraft-db';
+            } else if (keyLow.includes('peoplecraft')) {
+                azureResourceName = `api-peoplecraft-${env}`;
+            } else if (resType === 'swa') {
+                azureResourceName = `${cleanKey}-${env}-swa`;
+            } else if (resType === 'mysql') {
+                azureResourceName = `${cleanKey}-db`;
+            } else {
+                azureResourceName = `api-${cleanKey}-${env}`;
+            }
         }
 
-        const keyLow = (appKey || '').toLowerCase().trim();
-        const env = (environment || 'dev').toLowerCase();
-
-        let displayName = appKey || 'Unknown Resource';
-        let serviceType = 'Container App (ACA)';
-        let azureResourceName = `api-${keyLow || 'app'}-${env}`;
-        let azureResourceId = '';
-        let subId = '4a551976-35a8-4305-b128-fe592805be41';
-        let resourceGroup = 'Estevia-Platform-RG';
-        let providerType = 'Microsoft.App/containerapps';
-
-        // Real Ground-Truth Azure Resource Map
-        if (keyLow.includes('evaops-frontend') || keyLow === 'estevia-frontend') {
-            displayName = 'Estevia DevOps Control Portal';
-            serviceType = 'Static Web App (SWA)';
-            azureResourceName = 'evaops-frontend-swa';
-            subId = '4a551976-35a8-4305-b128-fe592805be41';
-            resourceGroup = 'Estevia-Platform-RG';
-            providerType = 'Microsoft.Web/staticSites';
-            azureResourceId = `/subscriptions/${subId}/resourceGroups/${resourceGroup}/providers/${providerType}/${azureResourceName}`;
-        } else if (keyLow.includes('evaops') || keyLow === 'estevia-backend' || keyLow === 'cloud-service' || keyLow === 'api-evaops') {
-            displayName = 'Estevia DevOps Core Backend API';
-            serviceType = 'Container App (ACA)';
-            azureResourceName = 'api-evaops';
-            subId = '4a551976-35a8-4305-b128-fe592805be41';
-            resourceGroup = 'Estevia-Platform-RG';
-            providerType = 'Microsoft.App/containerapps';
-            azureResourceId = `/subscriptions/${subId}/resourceGroups/${resourceGroup}/providers/${providerType}/${azureResourceName}`;
-        } else if (keyLow.includes('estevia-platform-db')) {
-            displayName = 'Estevia Platform MySQL Database';
-            serviceType = 'MySQL Flexible Server';
-            azureResourceName = 'estevia-platform-db';
-            subId = '4a551976-35a8-4305-b128-fe592805be41';
-            resourceGroup = 'Estevia-Platform-RG';
-            providerType = 'Microsoft.DBforMySQL/flexibleServers';
-            azureResourceId = `/subscriptions/${subId}/resourceGroups/${resourceGroup}/providers/${providerType}/${azureResourceName}`;
-        } else if (keyLow.includes('marketing')) {
-            displayName = 'Estevia Corporate Marketing Portal';
-            serviceType = 'Static Web App (SWA)';
-            azureResourceName = 'estevia-marketing-web-prod-swa';
-            subId = '4a551976-35a8-4305-b128-fe592805be41';
-            resourceGroup = 'Estevia-Prod-RG';
-            providerType = 'Microsoft.Web/staticSites';
-            azureResourceId = `/subscriptions/${subId}/resourceGroups/${resourceGroup}/providers/${providerType}/${azureResourceName}`;
-        } else if (keyLow.includes('peoplecraft') && keyLow.includes('frontend')) {
-            displayName = 'PeopleCraft Enterprise HR Web Portal';
-            serviceType = 'Static Web App (SWA)';
-            azureResourceName = `peoplecraft-frontend-${env}-swa`;
-            subId = '40070b3e-38c4-4c4e-89d5-dd601f9f7622';
-            resourceGroup = 'Estevia-Client-Projects-RG';
-            providerType = 'Microsoft.Web/staticSites';
-            azureResourceId = `/subscriptions/${subId}/resourceGroups/${resourceGroup}/providers/${providerType}/${azureResourceName}`;
-        } else if (keyLow.includes('peoplecraft-db')) {
-            displayName = 'PeopleCraft MySQL Database Server';
-            serviceType = 'MySQL Flexible Server';
-            azureResourceName = 'peoplecraft-db';
-            subId = '40070b3e-38c4-4c4e-89d5-dd601f9f7622';
-            resourceGroup = 'Estevia-Client-Projects-RG';
-            providerType = 'Microsoft.DBforMySQL/flexibleServers';
-            azureResourceId = `/subscriptions/${subId}/resourceGroups/${resourceGroup}/providers/${providerType}/${azureResourceName}`;
-        } else if (keyLow.includes('peoplecraft')) {
-            displayName = 'PeopleCraft Enterprise HR Core Backend';
-            serviceType = 'Container App (ACA)';
-            azureResourceName = `api-peoplecraft-${env}`;
-            subId = '40070b3e-38c4-4c4e-89d5-dd601f9f7622';
-            resourceGroup = 'Estevia-Client-Projects-RG';
-            providerType = 'Microsoft.App/containerapps';
-            azureResourceId = `/subscriptions/${subId}/resourceGroups/${resourceGroup}/providers/${providerType}/${azureResourceName}`;
-        } else {
-            const scope = getScopeInfoForApp(appKey);
-            azureResourceName = `ca-${keyLow || 'service'}-${env}`;
-            azureResourceId = `/subscriptions/${scope.subId}/resourceGroups/${scope.resourceGroup}/providers/${providerType}/${azureResourceName}`;
-            if (customName && customName.trim() !== '') displayName = customName;
+        const scope = getScopeInfoForApp(appKey || 'default');
+        if (!azurePortalUrl) {
+            const providerType = resType === 'swa' ? 'Microsoft.Web/staticSites' : resType === 'mysql' ? 'Microsoft.DBforMySQL/flexibleServers' : 'Microsoft.App/containerapps';
+            azurePortalUrl = `https://portal.azure.com/#resource/subscriptions/${scope.subId}/resourceGroups/${scope.resourceGroup}/providers/${providerType}/${azureResourceName}`;
         }
-
-        const azurePortalUrl = `https://portal.azure.com/#resource${azureResourceId}`;
 
         return {
             displayName,
@@ -959,23 +940,20 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
             {/* Modal: Incident Detail & Telemetry Snapshot View */}
             {selectedIncident && (() => {
                 const sev = getSeverityBadge(selectedIncident.severity);
-                const titleText = selectedIncident.title || (selectedIncident as any).incident_title || (selectedIncident as any).summary || (selectedIncident as any).metric_type || 'Telemetry Incident Alert';
-                const descText = selectedIncident.description || (selectedIncident as any).incident_description || (selectedIncident as any).details || (selectedIncident as any).summary || 'Automated incident alert recorded by EvaOps Observability monitor.';
                 const snapshot = selectedIncident.telemetry_snapshot || {};
+                const resInfo = getResourceInfo(selectedIncident.app_key, selectedIncident.environment, undefined, selectedIncident);
+                const scopeInfo = getScopeInfoForApp(selectedIncident.app_key);
 
                 return (
                     <div style={{
-                        position: 'fixed',
-                        top: 0, left: 0, right: 0, bottom: 0,
-                        backgroundColor: isLight ? 'rgba(15, 23, 42, 0.5)' : 'rgba(2, 6, 23, 0.82)',
-                        backdropFilter: 'blur(16px)',
-                        zIndex: 99999,
+                        position: 'fixed', inset: 0, zIndex: 9999,
+                        background: 'rgba(0, 0, 0, 0.75)',
+                        backdropFilter: 'blur(8px)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        padding: '24px'
+                        padding: '20px'
                     }}>
-                        <div className="glass-panel" style={{
-                            width: '680px',
-                            maxWidth: '100%',
+                        <div style={{
+                            width: '100%', maxWidth: '780px',
                             borderRadius: '20px',
                             background: isLight ? '#ffffff' : '#0f172a',
                             border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(139, 92, 246, 0.3)',
@@ -1009,82 +987,71 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
 
                             {/* Modal Body */}
                             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px', overflowY: 'auto', maxHeight: '75vh' }}>
-                                {(() => {
-                                    const resDetails = getResourceInfo(selectedIncident.app_key, selectedIncident.environment, undefined, selectedIncident);
-                                    return (
-                                        <div style={{
-                                            padding: '14px 18px',
-                                            borderRadius: '12px',
-                                            background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
-                                            border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
-                                            display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px'
-                                        }}>
-                                            <div>
-                                                <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Application / Resource</div>
-                                                <div style={{ fontSize: '0.92rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
-                                                    {resDetails.displayName} <span style={{ fontSize: '0.74rem', opacity: 0.75, fontWeight: 500 }}>({selectedIncident.app_key})</span>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Azure Native Resource Name</div>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-                                                    <code style={{ fontSize: '0.8rem', color: '#38bdf8', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.1)' }}>
-                                                        {resDetails.azureResourceName}
-                                                    </code>
-                                                    <a
-                                                        href={resDetails.azurePortalUrl}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        style={{
-                                                            fontSize: '0.72rem',
-                                                            color: isLight ? '#0284c7' : '#38bdf8',
-                                                            background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.15)',
-                                                            padding: '2px 8px',
-                                                            borderRadius: '6px',
-                                                            textDecoration: 'none',
-                                                            fontWeight: 600,
-                                                            display: 'inline-flex',
-                                                            alignItems: 'center',
-                                                            gap: '4px'
-                                                        }}
-                                                    >
-                                                        <ExternalLink size={12} /> Azure Portal
-                                                    </a>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Environment / Resource Type</div>
-                                                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', textTransform: 'uppercase' }}>
-                                                    {selectedIncident.environment} • {selectedIncident.resource_type || 'aca'}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Recorded Time</div>
-                                                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
-                                                    {new Date(selectedIncident.created_at).toLocaleString()}
-                                                </div>
-                                            </div>
+                                <div style={{
+                                    padding: '14px 18px',
+                                    borderRadius: '12px',
+                                    background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
+                                    border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                                    display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px'
+                                }}>
+                                    <div>
+                                        <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Application / Resource</div>
+                                        <div style={{ fontSize: '0.92rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+                                            {resInfo.displayName} <span style={{ fontSize: '0.74rem', opacity: 0.75, fontWeight: 500 }}>({selectedIncident.app_key})</span>
                                         </div>
-                                    );
-                                })()}
-
-                                {/* Title & Description */}
-                                <div>
-                                    <h4 style={{ margin: '0 0 6px 0', fontSize: '1.02rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
-                                        {titleText}
-                                    </h4>
-                                    <p style={{ margin: 0, fontSize: '0.86rem', color: isLight ? '#475569' : 'var(--text-secondary)', lineHeight: 1.6 }}>
-                                        {descText}
-                                    </p>
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Azure Native Resource Name</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                                            <code style={{ fontSize: '0.8rem', color: '#38bdf8', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.1)' }}>
+                                                {resInfo.azureResourceName}
+                                            </code>
+                                            <a
+                                                href={resInfo.azurePortalUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{
+                                                    fontSize: '0.72rem',
+                                                    color: isLight ? '#0284c7' : '#38bdf8',
+                                                    background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.15)',
+                                                    padding: '2px 8px',
+                                                    borderRadius: '6px',
+                                                    textDecoration: 'none',
+                                                    fontWeight: 600,
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px'
+                                                }}
+                                            >
+                                                <ExternalLink size={12} /> Azure Portal
+                                            </a>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                {/* Telemetry Snapshot */}
+                                {/* Incident Description & Category */}
+                                <div style={{
+                                    padding: '16px',
+                                    borderRadius: '12px',
+                                    background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.02)',
+                                    border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)'
+                                }}>
+                                    <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Category & Anomaly Summary</div>
+                                    <div style={{ fontSize: '0.98rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', marginBottom: '6px' }}>
+                                        {selectedIncident.title}
+                                    </div>
+                                    <div style={{ fontSize: '0.84rem', color: isLight ? '#475569' : 'var(--text-secondary)', lineHeight: 1.5 }}>
+                                        {selectedIncident.description}
+                                    </div>
+                                </div>
+
+                                {/* Captured Telemetry Snapshot Grid */}
                                 <div>
-                                    <h5 style={{ margin: '0 0 10px 0', fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', color: isLight ? '#64748b' : 'var(--text-secondary)', letterSpacing: '0.04em' }}>
-                                        ⚡ Telemetry Snapshot at Incident Time
-                                    </h5>
+                                    <div style={{ fontSize: '0.76rem', fontWeight: 700, color: isLight ? '#475569' : 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                                        Captured Telemetry Metric Snapshot
+                                    </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                                        {Object.entries(snapshot).length > 0 ? (
+                                        {snapshot && Object.keys(snapshot).length > 0 ? (
                                             Object.entries(snapshot).map(([key, val]) => (
                                                 <div key={key} style={{
                                                     padding: '10px 14px',
@@ -1148,60 +1115,110 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                             <span>Analyzing incident telemetry with OpenAI & generating step-by-step fix instructions...</span>
                                         </div>
                                     ) : aiRemediation ? (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                            {/* Root Cause Diagnosis */}
-                                            <div style={{ padding: '10px 14px', borderRadius: '8px', background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.25)', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
-                                                <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#c084fc', textTransform: 'uppercase', marginBottom: '4px' }}>
-                                                    🔍 Root Cause Diagnosis
-                                                </div>
-                                                <div style={{ fontSize: '0.84rem', color: isLight ? '#3b0764' : '#f3e8ff', lineHeight: 1.5 }}>
-                                                    {aiRemediation.diagnosis}
-                                                </div>
-                                            </div>
+                                        (() => {
+                                            const targetName = resInfo.azureResourceName || 'azure-resource';
+                                            const targetRg = scopeInfo.resourceGroup || 'Estevia-Prod-RG';
 
-                                            {/* Step-by-Step Fix Instructions */}
-                                            <div style={{ padding: '10px 14px', borderRadius: '8px', background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.25)', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
-                                                <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#c084fc', textTransform: 'uppercase', marginBottom: '6px' }}>
-                                                    🛠️ Step-by-Step Resolution Steps
-                                                </div>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                                    {aiRemediation.steps?.map((step: string, idx: number) => (
-                                                        <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.82rem', color: isLight ? '#3b0764' : '#f3e8ff' }}>
-                                                            <span style={{ fontWeight: 800, color: '#a855f7', minWidth: '18px' }}>{idx + 1}.</span>
-                                                            <span>{step}</span>
+                                            const sanitizeText = (txt: string) => {
+                                                if (!txt) return '';
+                                                return txt
+                                                    .replace(/ca-[a-zA-Z0-9_-]+-(dev|qa|prod)/gi, targetName)
+                                                    .replace(/Estevia-Platform-RG/g, targetRg)
+                                                    .replace(/\[RESOURCE_GROUP\]/gi, targetRg)
+                                                    .replace(/\[RESOURCE_NAME\]/gi, targetName)
+                                                    .replace(/\[APP_NAME\]/gi, targetName);
+                                            };
+
+                                            const cleanDiagnosis = sanitizeText(aiRemediation.diagnosis);
+                                            const cleanSteps = (aiRemediation.steps || []).map(sanitizeText);
+                                            const cliCmds = (aiRemediation.azureCliCommands || []).map(sanitizeText);
+                                            const psCmds = (aiRemediation.powerShellCommands || []).map(sanitizeText);
+
+                                            return (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                                    {/* Root Cause Diagnosis */}
+                                                    <div style={{ padding: '12px 16px', borderRadius: '8px', background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.25)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
+                                                        <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#c084fc', textTransform: 'uppercase', marginBottom: '4px', letterSpacing: '0.04em' }}>
+                                                            🔍 Root Cause Diagnosis
                                                         </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            {/* Azure CLI / PowerShell Execution Commands */}
-                                            {aiRemediation.azureCliCommands?.length > 0 && (
-                                                <div style={{ padding: '10px 14px', borderRadius: '8px', background: isLight ? '#0f172a' : 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(139, 92, 246, 0.3)' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                                                        <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                            <Terminal size={13} /> Azure CLI / PowerShell Fix Commands
+                                                        <div style={{ fontSize: '0.84rem', color: isLight ? '#3b0764' : '#f3e8ff', lineHeight: 1.5 }}>
+                                                            {cleanDiagnosis}
                                                         </div>
                                                     </div>
-                                                    {aiRemediation.azureCliCommands.map((cmd: string, idx: number) => (
-                                                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#020617', padding: '8px 12px', borderRadius: '6px', marginBottom: idx < aiRemediation.azureCliCommands.length - 1 ? '6px' : 0 }}>
-                                                            <code style={{ fontSize: '0.78rem', color: '#38bdf8', fontFamily: 'monospace', wordBreak: 'break-all' }}>{cmd}</code>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    navigator.clipboard.writeText(cmd);
-                                                                    setCopiedCommand(cmd);
-                                                                    setTimeout(() => setCopiedCommand(null), 2000);
-                                                                }}
-                                                                style={{ background: 'none', border: 'none', color: copiedCommand === cmd ? '#22c55e' : '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', marginLeft: '10px', flexShrink: 0 }}
-                                                            >
-                                                                {copiedCommand === cmd ? <Check size={14} /> : <Copy size={14} />}
-                                                                <span>{copiedCommand === cmd ? 'Copied' : 'Copy'}</span>
-                                                            </button>
+
+                                                    {/* Step-by-Step Fix Instructions */}
+                                                    <div style={{ padding: '12px 16px', borderRadius: '8px', background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.25)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
+                                                        <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#c084fc', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.04em' }}>
+                                                            🛠️ Step-by-Step Resolution Steps
                                                         </div>
-                                                    ))}
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                            {cleanSteps.map((step: string, idx: number) => (
+                                                                <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.82rem', color: isLight ? '#3b0764' : '#f3e8ff' }}>
+                                                                    <span style={{ fontWeight: 800, color: '#a855f7', minWidth: '18px' }}>{idx + 1}.</span>
+                                                                    <span>{step}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Azure CLI Execution Commands */}
+                                                    {cliCmds.length > 0 && (
+                                                        <div style={{ padding: '12px 16px', borderRadius: '8px', background: isLight ? '#0f172a' : 'rgba(15, 23, 42, 0.85)', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
+                                                            <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                                                                <Terminal size={14} /> Azure CLI Fix Commands
+                                                            </div>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                                {cliCmds.map((cmd: string, idx: number) => (
+                                                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#020617', padding: '8px 12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                                                        <code style={{ fontSize: '0.78rem', color: '#38bdf8', fontFamily: 'monospace', wordBreak: 'break-all' }}>{cmd}</code>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                navigator.clipboard.writeText(cmd);
+                                                                                setCopiedCommand(cmd);
+                                                                                setTimeout(() => setCopiedCommand(null), 2000);
+                                                                            }}
+                                                                            style={{ background: 'none', border: 'none', color: copiedCommand === cmd ? '#22c55e' : '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', marginLeft: '10px', flexShrink: 0 }}
+                                                                        >
+                                                                            {copiedCommand === cmd ? <Check size={14} /> : <Copy size={14} />}
+                                                                            <span>{copiedCommand === cmd ? 'Copied' : 'Copy'}</span>
+                                                                        </button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Azure PowerShell Execution Commands */}
+                                                    {psCmds.length > 0 && (
+                                                        <div style={{ padding: '12px 16px', borderRadius: '8px', background: isLight ? '#0f172a' : 'rgba(15, 23, 42, 0.85)', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+                                                            <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#c084fc', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                                                                <Terminal size={14} /> Azure PowerShell Fix Commands
+                                                            </div>
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                                {psCmds.map((cmd: string, idx: number) => (
+                                                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#020617', padding: '8px 12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                                                        <code style={{ fontSize: '0.78rem', color: '#c084fc', fontFamily: 'monospace', wordBreak: 'break-all' }}>{cmd}</code>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                navigator.clipboard.writeText(cmd);
+                                                                                setCopiedCommand(cmd);
+                                                                                setTimeout(() => setCopiedCommand(null), 2000);
+                                                                            }}
+                                                                            style={{ background: 'none', border: 'none', color: copiedCommand === cmd ? '#22c55e' : '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', marginLeft: '10px', flexShrink: 0 }}
+                                                                        >
+                                                                            {copiedCommand === cmd ? <Check size={14} /> : <Copy size={14} />}
+                                                                            <span>{copiedCommand === cmd ? 'Copied' : 'Copy'}</span>
+                                                                        </button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
-                                        </div>
+                                            );
+                                        })()
                                     ) : null}
                                 </div>
                             </div>
