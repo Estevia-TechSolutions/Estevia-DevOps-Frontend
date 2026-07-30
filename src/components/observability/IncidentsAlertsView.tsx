@@ -723,7 +723,6 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
 
                                                     {/* Line 2: Subscription */}
                                                     <div style={{ fontSize: '0.74rem', color: isLight ? '#475569' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                        <span style={{ fontWeight: 600, color: isLight ? '#64748b' : '#94a3b8' }}>Subscription:</span>
                                                         <span style={{ fontWeight: 700, color: isLight ? '#1e293b' : '#e2e8f0' }}>{scopeInfo.subName}</span>
                                                     </div>
 
