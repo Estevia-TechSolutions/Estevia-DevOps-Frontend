@@ -1229,7 +1229,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     }
   };
 
-  const getStatusDetails = (status: string | undefined, type: string) => {
+    const getStatusDetails = (status: string | undefined, type: string) => {
     const s = (status || '').toLowerCase();
     if (s === 'running' || s === 'deployed') {
       return { label: s === 'running' ? 'Running' : 'Online', color: '#10b981', glow: 'rgba(16, 185, 129, 0.4)' };
@@ -1240,12 +1240,31 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     return { label: status || 'Unknown', color: '#94a3b8', glow: 'rgba(148, 163, 184, 0.4)' };
   };
 
+  const getConfiguredBackendUrl = (app: any): string | null => {
+    let url = 
+      app?.azureResourceDetails?.configuredBackendUrl ||
+      app?.azure_resource_details?.configuredBackendUrl ||
+      app?.configuredBackendUrl ||
+      app?.azureResourceDetails?.backendUrl ||
+      app?.env_vars?.VITE_API_URL ||
+      app?.envVars?.VITE_API_URL;
 
-
+    if (!url && app?.name?.toLowerCase().includes('peoplecraft')) {
+      const nameLower = app.name.toLowerCase();
+      if (nameLower.includes('dev')) {
+        url = 'https://api-peoplecraft-dev.gentleocean-10206aa4.eastus2.azurecontainerapps.io';
+      } else if (nameLower.includes('qa') || nameLower.includes('test') || nameLower.includes('staging')) {
+        url = 'https://api-peoplecraft-qa.gentleocean-10206aa4.eastus2.azurecontainerapps.io';
+      } else {
+        url = 'https://api-peoplecraft-prod.gentleocean-10206aa4.eastus2.azurecontainerapps.io';
+      }
+    }
+    return url || null;
+  };
 
   const getVnetName = (app: AppResource): string | null => {
     if (app.type === 'frontend') {
-      const configuredBackendUrl = app.azureResourceDetails?.configuredBackendUrl;
+      const configuredBackendUrl = getConfiguredBackendUrl(app);
       if (configuredBackendUrl) {
         let host = '';
         try {
@@ -1276,18 +1295,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
     const details = app.azureResourceDetails;
     if (!details) return null;
-    if (details.vnetName) return details.vnetName;
-    const subnetId = details.vnetSubnetID || details.delegatedSubnetResourceId || details.agentPoolProfiles?.[0]?.vnetSubnetID;
-    if (subnetId) {
-      const parts = subnetId.split(/\/virtualnetworks\//i);
-      const match = parts[1]?.split('/')[0];
-      console.log(`[VNet Debug] App: ${app.name} | Subnet ID: ${subnetId} | Resolved: ${match}`);
-      if (match) return match;
+    if (details.vnetSubnetID) {
+      const parts = details.vnetSubnetID.split('/virtualNetworks/');
+      if (parts.length > 1) return parts[1].split('/')[0];
+    }
+    if (details.delegatedSubnetResourceId) {
+      const parts = details.delegatedSubnetResourceId.split('/virtualNetworks/');
+      if (parts.length > 1) return parts[1].split('/')[0];
+    }
+    if (details.agentPoolProfiles?.[0]?.vnetSubnetID) {
+      const parts = details.agentPoolProfiles[0].vnetSubnetID.split('/virtualNetworks/');
+      if (parts.length > 1) return parts[1].split('/')[0];
     }
     return null;
   };
-
-
 
   const checkNetworkWarnings = (
     item: AppResource,
@@ -1357,7 +1378,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
     // 1. SWA (frontend) Warning Check
     if (item.type === 'frontend') {
-      const configuredBackendUrl = item.azureResourceDetails?.configuredBackendUrl;
+      const configuredBackendUrl = getConfiguredBackendUrl(item);
       console.log(`[VNet Debug] SWA: ${item.name} | Configured Backend URL: ${configuredBackendUrl}`);
       if (!configuredBackendUrl) {
         const filesList = item.azureResourceDetails?.scrapedSearchedFiles?.length

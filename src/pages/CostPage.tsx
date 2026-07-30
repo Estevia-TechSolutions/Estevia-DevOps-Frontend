@@ -203,9 +203,31 @@ export const CostPage: React.FC<CostPageProps> = ({
     return null;
   };
 
+  const getConfiguredBackendUrl = (app: any): string | null => {
+    let url = 
+      app?.azureResourceDetails?.configuredBackendUrl ||
+      app?.azure_resource_details?.configuredBackendUrl ||
+      app?.configuredBackendUrl ||
+      app?.azureResourceDetails?.backendUrl ||
+      app?.env_vars?.VITE_API_URL ||
+      app?.envVars?.VITE_API_URL;
+
+    if (!url && app?.name?.toLowerCase().includes('peoplecraft')) {
+      const nameLower = app.name.toLowerCase();
+      if (nameLower.includes('dev')) {
+        url = 'https://api-peoplecraft-dev.gentleocean-10206aa4.eastus2.azurecontainerapps.io';
+      } else if (nameLower.includes('qa') || nameLower.includes('test') || nameLower.includes('staging')) {
+        url = 'https://api-peoplecraft-qa.gentleocean-10206aa4.eastus2.azurecontainerapps.io';
+      } else {
+        url = 'https://api-peoplecraft-prod.gentleocean-10206aa4.eastus2.azurecontainerapps.io';
+      }
+    }
+    return url || null;
+  };
+
   const getVnetName = (item: any): string | null => {
     if (item.type === 'frontend') {
-      const configuredBackendUrl = item.azureResourceDetails?.configuredBackendUrl;
+      const configuredBackendUrl = getConfiguredBackendUrl(item);
       if (configuredBackendUrl) {
         let host = '';
         try {
