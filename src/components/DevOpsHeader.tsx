@@ -39,7 +39,7 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
         {/* Brand */}
         <div className="site-header-brand">
           <div className="site-header-logo">
-            <img src="/evaops-logo.png" alt="EvaOps Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            <img src="/evaops-header-logo.png" alt="EvaOps Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <div>
             <div className="site-header-title">EvaOps</div>
