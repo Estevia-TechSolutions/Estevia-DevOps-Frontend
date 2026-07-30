@@ -136,23 +136,28 @@ export const SiteHeader: React.FC<SiteHeaderProps> = ({
                 <span
                   style={{
                     position: 'absolute',
-                    top: '-2px',
-                    right: '-2px',
+                    top: '-5px',
+                    right: '-6px',
                     backgroundColor: 'var(--error)',
                     color: '#fff',
                     fontSize: '0.62rem',
                     fontWeight: 800,
-                    width: '16px',
-                    height: '16px',
-                    borderRadius: '50%',
-                    display: 'flex',
+                    minWidth: '18px',
+                    height: '18px',
+                    padding: '0 4px',
+                    borderRadius: '999px',
+                    display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    border: '2px solid var(--bg-header)',
+                    border: '2px solid var(--bg-header, #0f172a)',
                     boxShadow: '0 0 8px rgba(239, 68, 68, 0.6)',
+                    lineHeight: 1,
+                    whiteSpace: 'nowrap',
+                    boxSizing: 'border-box',
+                    zIndex: 10
                   }}
                 >
-                  {unreadNotificationsCount}
+                  {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
                 </span>
               )}
             </button>
