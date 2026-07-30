@@ -327,9 +327,26 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
           border-color: rgba(0, 0, 0, 0.15) !important;
           background-color: rgba(0, 0, 0, 0.04) !important;
         }
+
+        /* DB Hub smooth horizontal and vertical scrollbar styling */
+        .db-red ::-webkit-scrollbar {
+          height: 8px;
+          width: 8px;
+        }
+        .db-red ::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.2);
+          border-radius: 4px;
+        }
+        .db-red ::-webkit-scrollbar-thumb {
+          background: rgba(244, 63, 94, 0.4);
+          border-radius: 4px;
+        }
+        .db-red ::-webkit-scrollbar-thumb:hover {
+          background: rgba(244, 63, 94, 0.7);
+        }
       `}</style>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', alignItems: 'stretch' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '320px minmax(0, 1fr)', gap: '24px', alignItems: 'stretch', width: '100%', maxWidth: '100%' }}>
       {/* Left Column: Servers & Databases */}
       <div ref={leftColRef} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         {/* Server Selection Card */}
@@ -536,7 +553,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
       </div>
 
       {/* Right Column: Database Schema Detail or Workspace */}
-      <div style={{ minHeight: '650px', height: `${Math.max(leftColHeight, 650)}px`, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ minHeight: '650px', height: `${Math.max(leftColHeight, 650)}px`, display: 'flex', flexDirection: 'column', minWidth: 0, maxWidth: '100%' }}>
         {!selectedDatabase ? (
           <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px', textAlign: 'center', background: 'rgba(255, 255, 255, 0.02)', borderColor: 'rgba(244, 63, 94, 0.1)' }}>
             <Database size={48} style={{ color: '#fb7185', opacity: 0.3, marginBottom: '16px' }} />
