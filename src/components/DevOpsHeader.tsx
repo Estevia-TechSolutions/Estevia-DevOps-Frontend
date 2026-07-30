@@ -1,5 +1,6 @@
 import React from 'react';
-import { Cpu, Building2, RefreshCw, Sun, Moon, LogOut, Bell, Mail } from 'lucide-react';
+import { Cpu, Building2, RefreshCw, Sun, Moon, LogOut, Bell, Mail, Layers } from 'lucide-react';
+import { RichSelect } from './common/RichSelect';
 
 interface SiteHeaderProps {
   token: string | null;
@@ -253,30 +254,18 @@ export const ControlBanner: React.FC<ControlBannerProps> = ({
           {resourceGroups && resourceGroups.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Resource Group:</span>
-              <select
+              <RichSelect
+                size="sm"
                 value={selectedResourceGroup}
-                onChange={(e) => onResourceGroupChange?.(e.target.value)}
-                style={{
-                  padding: '6px 12px',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  borderRadius: '8px',
-                  border: '1px solid var(--glass-border, rgba(255,255,255,0.08))',
-                  backgroundColor: 'rgba(15, 23, 42, 0.4)',
-                  color: 'var(--text-primary)',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                {resourceGroups.map((rg) => {
-                  const isPrimary = rg === primaryResourceGroup;
-                  return (
-                    <option key={rg} value={rg} style={{ backgroundColor: '#0f172a', color: '#fff' }}>
-                      {rg} {isPrimary ? ' (Primary)' : ''}
-                    </option>
-                  );
-                })}
-              </select>
+                onChange={(val) => onResourceGroupChange?.(val)}
+                options={resourceGroups.map((rg) => ({
+                  value: rg,
+                  label: rg,
+                  badge: rg === primaryResourceGroup ? 'Primary' : undefined,
+                  icon: <Layers size={13} style={{ color: 'var(--accent-purple)' }} />
+                }))}
+                style={{ width: '220px' }}
+              />
             </div>
           )}
         </div>

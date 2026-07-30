@@ -21,10 +21,12 @@ import {
   Rocket,
   Cpu,
   Database,
-  Server
+  Server,
+  Layers
 } from 'lucide-react';
 import { isFixable, applyAutoFix } from '../utils/autoFixEngine';
 import { DiffViewer } from '../components/DiffViewer';
+import { RichSelect } from '../components/common/RichSelect';
 
 const renderValidationPanel = (
   result: any,
@@ -832,25 +834,31 @@ const Step1Content: React.FC<Step1ContentProps> = ({
               {/* Repository Selector */}
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>GitHub Repository</label>
-                <select value={selectedRepo} onChange={e => handleRepoChange(e.target.value)}
-                  style={{ background: 'var(--input-bg)', color: 'var(--text-primary)' }}>
-                  <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>-- Choose Repository --</option>
-                  {(() => {
-                    const { recommended, other } = getCategorizedRepos(appType);
-                    return (<>
-                      {recommended.length > 0 && (
-                        <optgroup label="Recommended Repositories" style={{ background: 'var(--bg-secondary)' }}>
-                          {recommended.map(r => <option key={r.id} value={r.fullName} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{r.fullName}</option>)}
-                        </optgroup>
-                      )}
-                      {other.length > 0 && (
-                        <optgroup label="Other Repositories" style={{ background: 'var(--bg-secondary)' }}>
-                          {other.map(r => <option key={r.id} value={r.fullName} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{r.fullName}</option>)}
-                        </optgroup>
-                      )}
-                    </>);
-                  })()}
-                </select>
+                {(() => {
+                  const { recommended, other } = getCategorizedRepos(appType);
+                  const repoOptions = [
+                    { value: '', label: '-- Choose Repository --' },
+                    ...recommended.map(r => ({
+                      value: r.fullName,
+                      label: r.fullName,
+                      badge: 'Recommended',
+                      icon: <Globe size={14} style={{ color: 'var(--accent-purple)' }} />
+                    })),
+                    ...other.map(r => ({
+                      value: r.fullName,
+                      label: r.fullName,
+                      icon: <Globe size={14} style={{ color: 'var(--text-secondary)' }} />
+                    }))
+                  ];
+                  return (
+                    <RichSelect
+                      value={selectedRepo}
+                      onChange={(val) => handleRepoChange(val)}
+                      options={repoOptions}
+                      placeholder="-- Choose Repository --"
+                    />
+                  );
+                })()}
               </div>
 
           {/* Branches */}
@@ -891,10 +899,15 @@ const Step1Content: React.FC<Step1ContentProps> = ({
               {selectedBranches.length > 0 && (
                 <div style={{ marginTop: '16px' }}>
                   <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Primary Deploy Branch</label>
-                  <select value={selectedBranch} onChange={e => setSelectedBranch(e.target.value)}
-                    style={{ background: 'var(--input-bg)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)' }}>
-                    {selectedBranches.map(bn => <option key={bn} value={bn} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{bn}</option>)}
-                  </select>
+                  <RichSelect
+                    value={selectedBranch}
+                    onChange={(val) => setSelectedBranch(val)}
+                    options={selectedBranches.map(bn => ({
+                      value: bn,
+                      label: bn,
+                      icon: <GitBranch size={14} style={{ color: 'var(--accent-purple)' }} />
+                    }))}
+                  />
                 </div>
               )}
             </div>
@@ -2051,17 +2064,20 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                       disabled={provisioning}
                     />
                   ) : (
-                    <select
+                    <RichSelect
                       value={selectedResourceGroup}
-                      onChange={(e) => setSelectedResourceGroup(e.target.value)}
+                      onChange={(val) => setSelectedResourceGroup(val)}
                       disabled={provisioning}
-                      required
-                    >
-                      <option value="">-- Select Resource Group --</option>
-                      {resourceGroups.map(rg => (
-                        <option key={rg} value={rg} style={{ background: 'var(--bg-secondary)', color: '#fff' }}>{rg}</option>
-                      ))}
-                    </select>
+                      options={[
+                        { value: '', label: '-- Select Resource Group --' },
+                        ...resourceGroups.map(rg => ({
+                          value: rg,
+                          label: rg,
+                          icon: <Layers size={14} style={{ color: 'var(--accent-purple)' }} />
+                        }))
+                      ]}
+                      placeholder="-- Select Resource Group --"
+                    />
                   )}
                 </div>
 
@@ -2071,17 +2087,27 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                   {loadingMetadata ? (
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Loading locations...</div>
                   ) : locations.length === 0 ? (
-                    <select value={newLocation} onChange={(e) => setNewLocation(e.target.value)} disabled={provisioning}>
-                      <option value="eastus2">East US 2 (Recommended)</option>
-                      <option value="centralus">Central US</option>
-                      <option value="westus2">West US 2</option>
-                    </select>
+                    <RichSelect
+                      value={newLocation}
+                      onChange={(val) => setNewLocation(val)}
+                      disabled={provisioning}
+                      options={[
+                        { value: 'eastus2', label: 'East US 2 (Recommended)', badge: 'Recommended', icon: <Globe size={14} style={{ color: 'var(--accent-purple)' }} /> },
+                        { value: 'centralus', label: 'Central US', icon: <Globe size={14} style={{ color: 'var(--text-secondary)' }} /> },
+                        { value: 'westus2', label: 'West US 2', icon: <Globe size={14} style={{ color: 'var(--text-secondary)' }} /> }
+                      ]}
+                    />
                   ) : (
-                    <select value={newLocation} onChange={(e) => setNewLocation(e.target.value)} disabled={provisioning}>
-                      {locations.map(loc => (
-                        <option key={loc.name} value={loc.name} style={{ background: 'var(--bg-secondary)', color: '#fff' }}>{loc.displayName}</option>
-                      ))}
-                    </select>
+                    <RichSelect
+                      value={newLocation}
+                      onChange={(val) => setNewLocation(val)}
+                      disabled={provisioning}
+                      options={locations.map(loc => ({
+                        value: loc.name,
+                        label: loc.displayName,
+                        icon: <Globe size={14} style={{ color: 'var(--accent-blue)' }} />
+                      }))}
+                    />
                   )}
                 </div>
 
@@ -2105,18 +2131,20 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                           ℹ No existing environments found in <strong>{newLocation}</strong>. A new VPC managed environment will be provisioned automatically.
                         </div>
                       ) : (
-                        <select
+                        <RichSelect
                           value={selectedManagedEnvironment}
-                          onChange={(e) => setSelectedManagedEnvironment(e.target.value)}
+                          onChange={(val) => setSelectedManagedEnvironment(val)}
                           disabled={provisioning}
-                        >
-                          <option value="">-- Create New (or choose matching env) --</option>
-                          {filteredManagedEnvironments.map(env => (
-                            <option key={env.id} value={env.id} style={{ background: 'var(--bg-secondary)', color: '#fff' }}>
-                              {env.name} ({env.vnetName || 'Isolated subnet'})
-                            </option>
-                          ))}
-                        </select>
+                          options={[
+                            { value: '', label: '-- Create New (or choose matching env) --' },
+                            ...filteredManagedEnvironments.map(env => ({
+                              value: env.id,
+                              label: `${env.name} (${env.vnetName || 'Isolated subnet'})`,
+                              icon: <Server size={14} style={{ color: 'var(--accent-teal)' }} />
+                            }))
+                          ]}
+                          placeholder="-- Create New (or choose matching env) --"
+                        />
                       )}
                     </div>
 
@@ -2124,29 +2152,31 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                       <div>
                         <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Compute Core Allocations (CPU)</label>
-                        <select
+                        <RichSelect
                           value={selectedCpu}
-                          onChange={(e) => setSelectedCpu(e.target.value)}
+                          onChange={(val) => setSelectedCpu(val)}
                           disabled={provisioning}
-                        >
-                          <option value="0.25" style={{ background: 'var(--bg-secondary)' }}>0.25 Cores (Default)</option>
-                          <option value="0.5" style={{ background: 'var(--bg-secondary)' }}>0.5 Cores</option>
-                          <option value="1.0" style={{ background: 'var(--bg-secondary)' }}>1.0 Cores</option>
-                          <option value="2.0" style={{ background: 'var(--bg-secondary)' }}>2.0 Cores</option>
-                        </select>
+                          options={[
+                            { value: '0.25', label: '0.25 Cores (Default)', badge: 'Default', icon: <Cpu size={14} style={{ color: 'var(--accent-purple)' }} /> },
+                            { value: '0.5', label: '0.5 Cores', icon: <Cpu size={14} style={{ color: 'var(--text-secondary)' }} /> },
+                            { value: '1.0', label: '1.0 Cores', icon: <Cpu size={14} style={{ color: 'var(--accent-blue)' }} /> },
+                            { value: '2.0', label: '2.0 Cores', icon: <Cpu size={14} style={{ color: 'var(--accent-teal)' }} /> }
+                          ]}
+                        />
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Memory Allocations</label>
-                        <select
+                        <RichSelect
                           value={selectedMemory}
-                          onChange={(e) => setSelectedMemory(e.target.value)}
+                          onChange={(val) => setSelectedMemory(val)}
                           disabled={provisioning}
-                        >
-                          <option value="0.5Gi" style={{ background: 'var(--bg-secondary)' }}>0.5 Gi (Default)</option>
-                          <option value="1.0Gi" style={{ background: 'var(--bg-secondary)' }}>1.0 Gi</option>
-                          <option value="2.0Gi" style={{ background: 'var(--bg-secondary)' }}>2.0 Gi</option>
-                          <option value="4.0Gi" style={{ background: 'var(--bg-secondary)' }}>4.0 Gi</option>
-                        </select>
+                          options={[
+                            { value: '0.5Gi', label: '0.5 Gi (Default)', badge: 'Default', icon: <Database size={14} style={{ color: 'var(--accent-purple)' }} /> },
+                            { value: '1.0Gi', label: '1.0 Gi', icon: <Database size={14} style={{ color: 'var(--text-secondary)' }} /> },
+                            { value: '2.0Gi', label: '2.0 Gi', icon: <Database size={14} style={{ color: 'var(--accent-blue)' }} /> },
+                            { value: '4.0Gi', label: '4.0 Gi', icon: <Database size={14} style={{ color: 'var(--accent-teal)' }} /> }
+                          ]}
+                        />
                       </div>
                     </div>
 
@@ -2183,11 +2213,16 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                       <div>
                         <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Kubernetes Version</label>
-                        <select value={kubernetesVersion} onChange={e => setKubernetesVersion(e.target.value)} disabled={provisioning}>
-                          <option value="1.28.3" style={{ background: 'var(--bg-secondary)' }}>1.28.3 (Default)</option>
-                          <option value="1.27.3" style={{ background: 'var(--bg-secondary)' }}>1.27.3</option>
-                          <option value="1.29.2" style={{ background: 'var(--bg-secondary)' }}>1.29.2</option>
-                        </select>
+                        <RichSelect
+                          value={kubernetesVersion}
+                          onChange={(val) => setKubernetesVersion(val)}
+                          disabled={provisioning}
+                          options={[
+                            { value: '1.28.3', label: '1.28.3 (Default)', badge: 'Stable', icon: <Server size={14} style={{ color: 'var(--accent-purple)' }} /> },
+                            { value: '1.27.3', label: '1.27.3', icon: <Server size={14} style={{ color: 'var(--text-secondary)' }} /> },
+                            { value: '1.29.2', label: '1.29.2', badge: 'Latest', icon: <Server size={14} style={{ color: 'var(--accent-teal)' }} /> }
+                          ]}
+                        />
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>System Node Count</label>
@@ -2197,11 +2232,16 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
 
                     <div>
                       <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>VM Size Tiers</label>
-                      <select value={vmSize} onChange={e => setVmSize(e.target.value)} disabled={provisioning}>
-                        <option value="Standard_D2s_v5" style={{ background: 'var(--bg-secondary)' }}>Standard_D2s_v5 (2 vCPU, 8 GB RAM - Default)</option>
-                        <option value="Standard_B2s" style={{ background: 'var(--bg-secondary)' }}>Standard_B2s (2 vCPU, 4 GB RAM - Burstable Dev/QA)</option>
-                        <option value="Standard_D4s_v5" style={{ background: 'var(--bg-secondary)' }}>Standard_D4s_v5 (4 vCPU, 16 GB RAM - Production Scale)</option>
-                      </select>
+                      <RichSelect
+                        value={vmSize}
+                        onChange={(val) => setVmSize(val)}
+                        disabled={provisioning}
+                        options={[
+                          { value: 'Standard_D2s_v5', label: 'Standard_D2s_v5 (2 vCPU, 8 GB RAM - Default)', badge: 'Default', icon: <Cpu size={14} style={{ color: 'var(--accent-purple)' }} /> },
+                          { value: 'Standard_B2s', label: 'Standard_B2s (2 vCPU, 4 GB RAM - Burstable Dev/QA)', badge: 'Dev/QA', icon: <Cpu size={14} style={{ color: 'var(--accent-teal)' }} /> },
+                          { value: 'Standard_D4s_v5', label: 'Standard_D4s_v5 (4 vCPU, 16 GB RAM - Production Scale)', badge: 'Production', icon: <Cpu size={14} style={{ color: 'var(--accent-blue)' }} /> }
+                        ]}
+                      />
                     </div>
 
                     <div>
@@ -2227,38 +2267,47 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                       <div>
                         <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>MySQL Engine Version</label>
-                        <select value={dbVersion} onChange={e => setDbVersion(e.target.value)} disabled={provisioning}>
-                          <option value="8.0.21" style={{ background: 'var(--bg-secondary)' }}>8.0.21 (Default)</option>
-                          <option value="5.7" style={{ background: 'var(--bg-secondary)' }}>5.7 (Legacy)</option>
-                        </select>
+                        <RichSelect
+                          value={dbVersion}
+                          onChange={(val) => setDbVersion(val)}
+                          disabled={provisioning}
+                          options={[
+                            { value: '8.0.21', label: '8.0.21 (Default)', badge: 'Default', icon: <Database size={14} style={{ color: 'var(--accent-purple)' }} /> },
+                            { value: '5.7', label: '5.7 (Legacy)', badge: 'Legacy', icon: <Database size={14} style={{ color: 'var(--text-secondary)' }} /> }
+                          ]}
+                        />
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>SKU Tier</label>
-                        <select value={dbSkuTier} onChange={e => {
-                          setDbSkuTier(e.target.value);
-                          setDbSkuName(e.target.value === 'Burstable' ? 'Standard_B1ms' : 'Standard_D2ads_v5');
-                        }} disabled={provisioning}>
-                          <option value="Burstable" style={{ background: 'var(--bg-secondary)' }}>Burstable (Cheapest - Dev/QA)</option>
-                          <option value="GeneralPurpose" style={{ background: 'var(--bg-secondary)' }}>General Purpose (Production Scale)</option>
-                        </select>
+                        <RichSelect
+                          value={dbSkuTier}
+                          onChange={(val) => {
+                            setDbSkuTier(val);
+                            setDbSkuName(val === 'Burstable' ? 'Standard_B1ms' : 'Standard_D2ads_v5');
+                          }}
+                          disabled={provisioning}
+                          options={[
+                            { value: 'Burstable', label: 'Burstable (Cheapest - Dev/QA)', badge: 'Dev/QA', icon: <Database size={14} style={{ color: 'var(--accent-teal)' }} /> },
+                            { value: 'GeneralPurpose', label: 'General Purpose (Production Scale)', badge: 'Production', icon: <Database size={14} style={{ color: 'var(--accent-purple)' }} /> }
+                          ]}
+                        />
                       </div>
                     </div>
 
                     <div>
                       <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Pricing SKU Size</label>
-                      <select value={dbSkuName} onChange={e => setDbSkuName(e.target.value)} disabled={provisioning}>
-                        {dbSkuTier === 'Burstable' ? (
-                          <>
-                            <option value="Standard_B1ms" style={{ background: 'var(--bg-secondary)' }}>Standard_B1ms (1 vCPU, 2 GB RAM - $15/mo)</option>
-                            <option value="Standard_B2s" style={{ background: 'var(--bg-secondary)' }}>Standard_B2s (2 vCPU, 4 GB RAM - $30/mo)</option>
-                          </>
-                        ) : (
-                          <>
-                            <option value="Standard_D2ads_v5" style={{ background: 'var(--bg-secondary)' }}>Standard_D2ads_v5 (2 vCPU, 8 GB RAM - $118/mo)</option>
-                            <option value="Standard_D4ads_v5" style={{ background: 'var(--bg-secondary)' }}>Standard_D4ads_v5 (4 vCPU, 16 GB RAM - $236/mo)</option>
-                          </>
-                        )}
-                      </select>
+                      <RichSelect
+                        value={dbSkuName}
+                        onChange={(val) => setDbSkuName(val)}
+                        disabled={provisioning}
+                        options={dbSkuTier === 'Burstable' ? [
+                          { value: 'Standard_B1ms', label: 'Standard_B1ms (1 vCPU, 2 GB RAM - $15/mo)', badge: '$15/mo', icon: <Database size={14} style={{ color: 'var(--accent-teal)' }} /> },
+                          { value: 'Standard_B2s', label: 'Standard_B2s (2 vCPU, 4 GB RAM - $30/mo)', badge: '$30/mo', icon: <Database size={14} style={{ color: 'var(--accent-teal)' }} /> }
+                        ] : [
+                          { value: 'Standard_D2ads_v5', label: 'Standard_D2ads_v5 (2 vCPU, 8 GB RAM - $118/mo)', badge: '$118/mo', icon: <Database size={14} style={{ color: 'var(--accent-purple)' }} /> },
+                          { value: 'Standard_D4ads_v5', label: 'Standard_D4ads_v5 (4 vCPU, 16 GB RAM - $236/mo)', badge: '$236/mo', icon: <Database size={14} style={{ color: 'var(--accent-purple)' }} /> }
+                        ]}
+                      />
                     </div>
 
                     <div>

@@ -1340,4 +1340,41 @@ select optgroup {
   border-color: rgba(239, 68, 68, 0.5) !important;
 }
 
+/* ─── RichSelect Floating Dropdown Panel Styles ─── */
+@keyframes richDropdownSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.eva-rich-select-trigger:hover:not(:disabled) {
+  border-color: var(--accent-purple-glow) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme="light"] .eva-rich-select-trigger:hover:not(:disabled) {
+  border-color: rgba(124, 58, 237, 0.35) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+}
+
+.eva-rich-select-trigger:focus:not(:disabled) {
+  border-color: var(--accent-purple) !important;
+  box-shadow: 0 0 0 3px var(--accent-purple-glow), 0 4px 20px rgba(0, 0, 0, 0.2) !important;
+}
+
+.eva-rich-select-item:hover:not(.disabled) {
+  background: var(--badge-bg) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="light"] .eva-rich-select-item:hover:not(.disabled) {
+  background: rgba(124, 58, 237, 0.08) !important;
+}
+
+
 
