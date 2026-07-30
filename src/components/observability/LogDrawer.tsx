@@ -373,7 +373,8 @@ export const LogDrawer: React.FC<LogDrawerProps> = ({ appName, onClose, API_BASE
             id="log-time-range"
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value as TimeRange)}
-            style={{ ...selectStyle, minWidth: '130px' }}
+            className="eva-select-sm"
+            style={{ minWidth: '130px', cursor: 'pointer' }}
           >
             {(Object.keys(TIME_RANGE_LABELS) as TimeRange[]).map(r => (
               <option key={r} value={r}>{TIME_RANGE_LABELS[r]}</option>
@@ -385,7 +386,8 @@ export const LogDrawer: React.FC<LogDrawerProps> = ({ appName, onClose, API_BASE
         <select
           value={replica}
           onChange={(e) => setReplica(e.target.value)}
-          style={selectStyle}
+          className="eva-select-sm"
+          style={{ cursor: 'pointer' }}
         >
           <option value="replica-84ba283-x1">replica-84ba283-x1 (Active)</option>
           <option value="replica-84ba283-x2">replica-84ba283-x2 (Idle)</option>

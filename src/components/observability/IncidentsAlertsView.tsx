@@ -552,16 +552,10 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                 <select
                     value={selectedSeverityFilter}
                     onChange={(e) => { setSelectedSeverityFilter(e.target.value); setCurrentPage(1); }}
+                    className="eva-select-sm"
                     style={{
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        fontSize: '0.8rem',
-                        border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
-                        background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.2)',
-                        color: isLight ? '#0f172a' : '#fff',
-                        outline: 'none',
-                        cursor: 'pointer',
-                        width: '25vw'
+                        width: '25vw',
+                        cursor: 'pointer'
                     }}
                 >
                     <option value="ALL">All Severities</option>
@@ -575,17 +569,10 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                 <select
                     value={selectedStatusFilter}
                     onChange={(e) => { setSelectedStatusFilter(e.target.value); setCurrentPage(1); }}
+                    className="eva-select-sm"
                     style={{
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        fontSize: '0.8rem',
-                        border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
-                        background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.2)',
-                        color: isLight ? '#0f172a' : '#fff',
-                        outline: 'none',
-                        cursor: 'pointer',
-                        width: '25vw'
-
+                        width: '25vw',
+                        cursor: 'pointer'
                     }}
                 >
                     <option value="ALL">All Statuses</option>
@@ -598,17 +585,10 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                 <select
                     value={selectedEnvFilter}
                     onChange={(e) => { setSelectedEnvFilter(e.target.value); setCurrentPage(1); }}
+                    className="eva-select-sm"
                     style={{
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        fontSize: '0.8rem',
-                        border: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)',
-                        background: isLight ? '#ffffff' : 'rgba(0, 0, 0, 0.2)',
-                        color: isLight ? '#0f172a' : '#fff',
-                        outline: 'none',
-                        cursor: 'pointer',
-                        width: '25vw'
-
+                        width: '25vw',
+                        cursor: 'pointer'
                     }}
                 >
                     <option value="ALL">All Envs</option>
@@ -1315,17 +1295,17 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                     Target Asset Category & Environment:
                                 </label>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                                    <select value={configResourceType} onChange={(e) => setConfigResourceType(e.target.value as any)} style={{ padding: '8px', borderRadius: '8px', fontSize: '0.8rem' }}>
+                                    <select value={configResourceType} onChange={(e) => setConfigResourceType(e.target.value as any)} className="eva-select-sm">
                                         <option value="aca">📦 Container App (ACA)</option>
                                         <option value="swa">🌐 Static Web App (SWA)</option>
                                         <option value="vm">🖥️ Virtual Machine (VM)</option>
                                     </select>
-                                    <select value={configApp} onChange={(e) => setConfigApp(e.target.value)} style={{ padding: '8px', borderRadius: '8px', fontSize: '0.8rem' }}>
+                                    <select value={configApp} onChange={(e) => setConfigApp(e.target.value)} className="eva-select-sm">
                                         {appsCatalog.map(app => (
                                             <option key={app.key} value={app.key}>{app.icon || '📦'} {app.label}</option>
                                         ))}
                                     </select>
-                                    <select value={configEnv} onChange={(e) => setConfigEnv(e.target.value as any)} style={{ padding: '8px', borderRadius: '8px', fontSize: '0.8rem' }}>
+                                    <select value={configEnv} onChange={(e) => setConfigEnv(e.target.value as any)} className="eva-select-sm">
                                         <option value="dev">Dev</option>
                                         <option value="qa">QA</option>
                                         <option value="prod">Production</option>
@@ -1339,7 +1319,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                     <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: isLight ? '#475569' : 'var(--text-secondary)', marginBottom: '4px' }}>
                                         Primary Responsible Engineer:
                                     </label>
-                                    <select value={primaryOwner} onChange={(e) => setPrimaryOwner(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', fontSize: '0.8rem' }}>
+                                    <select value={primaryOwner} onChange={(e) => setPrimaryOwner(e.target.value)} className="eva-select-sm" style={{ width: '100%' }}>
                                         <option value="">-- Select Team Member --</option>
                                         {teamUsers.map(u => (
                                             <option key={u.id} value={u.name}>{u.name} ({u.email})</option>
@@ -1350,7 +1330,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                     <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, color: isLight ? '#475569' : 'var(--text-secondary)', marginBottom: '4px' }}>
                                         Secondary Backup Engineer:
                                     </label>
-                                    <select value={secondaryOwner} onChange={(e) => setSecondaryOwner(e.target.value)} style={{ width: '100%', padding: '8px', borderRadius: '8px', fontSize: '0.8rem' }}>
+                                    <select value={secondaryOwner} onChange={(e) => setSecondaryOwner(e.target.value)} className="eva-select-sm" style={{ width: '100%' }}>
                                         <option value="">-- Select Team Member --</option>
                                         {teamUsers.map(u => (
                                             <option key={u.id} value={u.name}>{u.name} ({u.email})</option>

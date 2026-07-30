@@ -482,16 +482,10 @@ export const AuditLogsTable: React.FC<AuditLogsTableProps> = ({ API_BASE, theme 
               <select 
                 value={itemsPerPage} 
                 onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                className="eva-select-sm"
                 style={{
-                  background: 'rgba(255,255,255,0.02)',
-                  border: '1px solid var(--glass-border)',
-                  borderRadius: '6px',
-                  color: 'var(--text-primary)',
-                  padding: '2px 8px',
-                  fontSize: '0.8rem',
-                  cursor: 'pointer',
                   width: 'auto',
-                  outline: 'none'
+                  cursor: 'pointer'
                 }}
               >
                 <option value={10}>10</option>
