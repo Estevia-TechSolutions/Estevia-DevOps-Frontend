@@ -713,53 +713,87 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                                     {sev.text}
                                                 </span>
                                             </td>
-                                            {/* Column 2: Multi-line Resource & Azure Identity */}
+                                            {/* Column 2: 5-Line Stacked Resource, Scope & Azure Identity */}
                                             <td style={{ padding: '16px 18px', verticalAlign: 'top', color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
-                                                {/* Line 1: Human Title & Resource Group */}
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                                    <span style={{ fontWeight: 800, fontSize: '0.92rem' }}>{resInfo.displayName}</span>
-                                                    <span style={{
-                                                        fontSize: '0.68rem',
-                                                        padding: '2px 8px',
-                                                        borderRadius: '4px',
-                                                        background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.12)',
-                                                        color: isLight ? '#0369a1' : '#38bdf8',
-                                                        fontWeight: 700
-                                                    }}>
-                                                        {scopeInfo.resourceGroup}
-                                                    </span>
-                                                </div>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                                    {/* Line 1: Human Title */}
+                                                    <div style={{ fontWeight: 800, fontSize: '0.92rem', color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+                                                        {resInfo.displayName}
+                                                    </div>
 
-                                                {/* Line 2: Azure Native Name & Azure Portal Deep-Link */}
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
-                                                    <span style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>Azure Resource:</span>
-                                                    <code style={{ fontSize: '0.74rem', color: '#38bdf8', padding: '1px 6px', borderRadius: '4px', background: isLight ? '#f1f5f9' : 'rgba(56, 189, 248, 0.08)', fontWeight: 600 }}>
-                                                        {resInfo.azureResourceName}
-                                                    </code>
-                                                    <a
-                                                        href={resInfo.azurePortalUrl}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        style={{
+                                                    {/* Line 2: Subscription */}
+                                                    <div style={{ fontSize: '0.74rem', color: isLight ? '#475569' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <span style={{ fontWeight: 600, color: isLight ? '#64748b' : '#94a3b8' }}>Subscription:</span>
+                                                        <span style={{ fontWeight: 700, color: isLight ? '#1e293b' : '#e2e8f0' }}>{scopeInfo.subName}</span>
+                                                    </div>
+
+                                                    {/* Line 3: Resource Group Badge */}
+                                                    <div>
+                                                        <span style={{
                                                             fontSize: '0.7rem',
-                                                            color: isLight ? '#0284c7' : '#38bdf8',
-                                                            background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.15)',
                                                             padding: '2px 8px',
-                                                            borderRadius: '6px',
-                                                            textDecoration: 'none',
-                                                            fontWeight: 600,
-                                                            display: 'inline-flex',
-                                                            alignItems: 'center',
-                                                            gap: '4px'
-                                                        }}
-                                                    >
-                                                        <ExternalLink size={12} /> Open in Azure Portal
-                                                    </a>
-                                                </div>
+                                                            borderRadius: '4px',
+                                                            background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.12)',
+                                                            color: isLight ? '#0369a1' : '#38bdf8',
+                                                            border: isLight ? '1px solid #bae6fd' : '1px solid rgba(56, 189, 248, 0.3)',
+                                                            fontWeight: 700,
+                                                            display: 'inline-block'
+                                                        }}>
+                                                            {scopeInfo.resourceGroup}
+                                                        </span>
+                                                    </div>
 
-                                                {/* Line 3: Scope Metadata (Sub, Type, Env) */}
-                                                <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', marginTop: '6px' }}>
-                                                    <code style={{ fontSize: '0.7rem', opacity: 0.85, padding: '1px 4px', borderRadius: '4px', background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.06)' }}>{inc.app_key}</code> • {scopeInfo.subName} • <span style={{ textTransform: 'uppercase', fontWeight: 600 }}>{inc.resource_type || 'aca'}</span> • <span style={{ textTransform: 'uppercase', fontWeight: 600 }}>{inc.environment}</span>
+                                                    {/* Line 4: Azure Native Name + Link */}
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '2px' }}>
+                                                        <code style={{ fontSize: '0.74rem', color: '#38bdf8', padding: '1px 6px', borderRadius: '4px', background: isLight ? '#f1f5f9' : 'rgba(56, 189, 248, 0.08)', fontWeight: 700 }}>
+                                                            {resInfo.azureResourceName}
+                                                        </code>
+                                                        <a
+                                                            href={resInfo.azurePortalUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            style={{
+                                                                fontSize: '0.7rem',
+                                                                color: isLight ? '#0284c7' : '#38bdf8',
+                                                                background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.15)',
+                                                                padding: '2px 8px',
+                                                                borderRadius: '6px',
+                                                                textDecoration: 'none',
+                                                                fontWeight: 600,
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '4px'
+                                                            }}
+                                                        >
+                                                            <ExternalLink size={12} /> Open in Azure Portal
+                                                        </a>
+                                                    </div>
+
+                                                    {/* Line 5: Resource Type + Environment */}
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+                                                        <span style={{
+                                                            fontSize: '0.68rem',
+                                                            padding: '2px 8px',
+                                                            borderRadius: '4px',
+                                                            background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.06)',
+                                                            color: isLight ? '#475569' : 'var(--text-secondary)',
+                                                            fontWeight: 700,
+                                                            textTransform: 'uppercase'
+                                                        }}>
+                                                            {resInfo.serviceType}
+                                                        </span>
+                                                        <span style={{
+                                                            fontSize: '0.68rem',
+                                                            padding: '2px 8px',
+                                                            borderRadius: '4px',
+                                                            background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.15)',
+                                                            color: isLight ? '#b45309' : '#fbbf24',
+                                                            fontWeight: 700,
+                                                            textTransform: 'uppercase'
+                                                        }}>
+                                                            ENV: {inc.environment}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </td>
 
