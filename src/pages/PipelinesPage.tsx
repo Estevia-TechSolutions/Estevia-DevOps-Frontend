@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Play, RefreshCw, CheckCircle2, XCircle, Clock, Plus, Zap, Cpu, Server, ExternalLink, ArrowRight, Shield, Terminal, Filter, Search } from 'lucide-react';
+import { Play, RefreshCw, CheckCircle2, XCircle, Clock, Plus, Zap, Cpu, Server, ExternalLink, ArrowRight, Shield, Terminal, Filter, Search, Layers, GitBranch } from 'lucide-react';
 
 interface PipelineRun {
   id: string;
+  pipeline_id?: string;
   pipeline_name: string;
   project_name: string;
   run_number: number;
@@ -268,12 +269,12 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
             <thead>
               <tr style={{ borderBottom: '1px solid var(--divider)', color: 'var(--text-secondary)', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 <th style={{ padding: '12px 14px', fontWeight: 700 }}>Run / Pipeline</th>
+                <th style={{ padding: '12px 14px', fontWeight: 700 }}>CI/CD Provider</th>
                 <th style={{ padding: '12px 14px', fontWeight: 700 }}>Branch & Commit</th>
                 <th style={{ padding: '12px 14px', fontWeight: 700 }}>Triggered By</th>
                 <th style={{ padding: '12px 14px', fontWeight: 700 }}>Status</th>
                 <th style={{ padding: '12px 14px', fontWeight: 700 }}>Duration</th>
-                <th style={{ padding: '12px 14px', fontWeight: 700 }}>Recorded At</th>
-                <th style={{ padding: '12px 14px', fontWeight: 700, width: '130px' }}>Actions</th>
+                <th style={{ padding: '12px 14px', fontWeight: 700, width: '220px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -284,62 +285,99 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                   </td>
                 </tr>
               ) : (
-                filteredRuns.map((r) => (
-                  <tr key={r.id} style={{ borderBottom: '1px solid var(--divider)', fontSize: '0.84rem' }}>
-                    {/* Pipeline Name */}
-                    <td style={{ padding: '14px' }}>
-                      <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{r.pipeline_name}</div>
-                      <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>#{r.run_number} • {r.project_name}</div>
-                    </td>
+                filteredRuns.map((r) => {
+                  const prov = (r.provider || 'evaops_native').toLowerCase();
+                  const isExternal = prov.includes('azure') || prov.includes('github');
+                  return (
+                    <tr key={r.id} style={{ borderBottom: '1px solid var(--divider)', fontSize: '0.84rem' }}>
+                      {/* Pipeline Name */}
+                      <td style={{ padding: '14px' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{r.pipeline_name}</div>
+                        <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>#{r.run_number} • {r.project_name}</div>
+                      </td>
 
-                    {/* Branch & Commit */}
-                    <td style={{ padding: '14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--glass-border)', fontSize: '0.74rem', fontFamily: 'monospace', fontWeight: 600 }}>
-                          {r.branch}
-                        </span>
-                        <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-                          {r.commit_sha}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '4px', maxWidth: '240px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {r.commit_message}
-                      </div>
-                    </td>
+                      {/* Provider Badge */}
+                      <td style={{ padding: '14px' }}>
+                        {prov.includes('azure') ? (
+                          <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(59, 130, 246, 0.14)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.3)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <Layers size={12} /> Azure DevOps
+                          </span>
+                        ) : prov.includes('github') ? (
+                          <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <GitBranch size={12} /> GitHub Actions
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(139, 92, 246, 0.16)', color: 'var(--accent-purple)', border: '1px solid rgba(139, 92, 246, 0.35)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <Zap size={12} /> EvaOps Native
+                          </span>
+                        )}
+                      </td>
 
-                    {/* Triggered By */}
-                    <td style={{ padding: '14px', color: 'var(--text-secondary)' }}>
-                      {r.triggered_by}
-                    </td>
+                      {/* Branch & Commit */}
+                      <td style={{ padding: '14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--glass-border)', fontSize: '0.74rem', fontFamily: 'monospace', fontWeight: 600 }}>
+                            {r.branch}
+                          </span>
+                          <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                            {r.commit_sha}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '4px', maxWidth: '240px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {r.commit_message}
+                        </div>
+                      </td>
 
-                    {/* Status */}
-                    <td style={{ padding: '14px' }}>
-                      {getStatusBadge(r.status)}
-                    </td>
+                      {/* Triggered By */}
+                      <td style={{ padding: '14px', color: 'var(--text-secondary)' }}>
+                        {r.triggered_by}
+                      </td>
 
-                    {/* Duration */}
-                    <td style={{ padding: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                      {r.duration_seconds}s
-                    </td>
+                      {/* Status */}
+                      <td style={{ padding: '14px' }}>
+                        {getStatusBadge(r.status)}
+                      </td>
 
-                    {/* Recorded At */}
-                    <td style={{ padding: '14px', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
-                      {new Date(r.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </td>
+                      {/* Duration */}
+                      <td style={{ padding: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        {r.duration_seconds}s
+                      </td>
 
-                    {/* Action Button */}
-                    <td style={{ padding: '14px' }}>
-                      <button
-                        type="button"
-                        className="btn-secondary"
-                        onClick={() => onOpenRunDetails(r.id)}
-                        style={{ padding: '4px 10px', fontSize: '0.76rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        <Terminal size={12} /> View Logs
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                      {/* Actions */}
+                      <td style={{ padding: '14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={() => onOpenRunDetails(r.id)}
+                            style={{ padding: '4px 10px', fontSize: '0.76rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          >
+                            <Terminal size={12} /> View Logs
+                          </button>
+
+                          {isExternal && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  await fetch(`${API_BASE}/pipelines/${r.pipeline_id || r.id}/migrate-provider`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                    body: JSON.stringify({ provider: 'evaops_native' })
+                                  });
+                                  fetchPipelineRuns();
+                                } catch (e) {}
+                              }}
+                              style={{ padding: '4px 10px', borderRadius: '6px', background: 'var(--accent-purple)', color: '#ffffff', border: 'none', cursor: 'pointer', fontSize: '0.74rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                            >
+                              <Zap size={12} /> Switch to EvaOps Native
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

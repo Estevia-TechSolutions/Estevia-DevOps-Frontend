@@ -142,6 +142,7 @@ export const PipelineCreatorDrawer: React.FC<PipelineCreatorDrawerProps> = ({
     let stagesYaml = '';
 
     if (autoProvisionInfra) {
+      const cleanSub = projectName.toLowerCase().replace(/[^a-z0-9]/g, '');
       stagesYaml += `  - stage: infra_provision
     jobs:
       - job: azure_${iacTemplateType}_deploy
@@ -150,7 +151,14 @@ export const PipelineCreatorDrawer: React.FC<PipelineCreatorDrawerProps> = ({
           - name: Provision Azure Infrastructure via ${iacTemplateType.toUpperCase()}
             run: |
               az group create --name Estevia-Prod-RG --location eastus
-              az deployment group create --resource-group Estevia-Prod-RG --template-file infra/main.${iacTemplateType === 'bicep' ? 'bicep' : 'tf'}\n\n`;
+              az deployment group create --resource-group Estevia-Prod-RG --template-file infra/main.${iacTemplateType === 'bicep' ? 'bicep' : 'tf'}
+          - name: Auto-Allocate GoDaddy CNAME DNS Record
+            run: |
+              echo "Binding GoDaddy DNS CNAME: ${cleanSub}.esteviatech.com..."
+              curl -s -X PUT "https://api.godaddy.com/v1/domains/esteviatech.com/records/CNAME/${cleanSub}" \\
+                -H "Authorization: sso-key \\\${{ secrets.GODADDY_API_KEY }}:\\\${{ secrets.GODADDY_API_SECRET }}" \\
+                -H "Content-Type: application/json" \\
+                -d '[{"data": "${cleanSub}.azurestaticapps.net", "ttl": 3600}]'\n\n`;
     }
 
     if (template === 'node_swa' || targetType === 'static_web_app') {

@@ -226,7 +226,7 @@ export const RichSelect: React.FC<RichSelectProps> = ({
             maxWidth: '90vw',
             maxHeight: '320px',
             overflowY: 'auto',
-            zIndex: 9999,
+            zIndex: 999999,
             background: 'var(--bg-secondary)',
             border: '1px solid var(--glass-border)',
             borderRadius: '12px',
