@@ -468,55 +468,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
                       <p style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', margin: '2px 0 16px 0' }}>Step-by-step DAG execution pipeline status for cloud infrastructure, compilation, containerization, and DNS routing.</p>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {(runDetails?.stages && runDetails.stages.length > 0 ? runDetails.stages : [
-                        {
-                          id: 'stg-0',
-                          name: 'infra_provision',
-                          status: 'success',
-                          jobs: [
-                            {
-                              id: 'job-0',
-                              name: 'GoDaddy CNAME DNS & Azure Infrastructure',
-                              steps: [
-                                { step_name: 'Initialize Cloud Credentials', status: 'success', duration: '4s' },
-                                { step_name: 'Allocate GoDaddy CNAME Record', status: 'success', duration: '12s' },
-                                { step_name: 'Provision Azure Target Scope Resource', status: 'success', duration: '22s' }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          id: 'stg-1',
-                          name: 'build_and_package',
-                          status: 'success',
-                          jobs: [
-                            {
-                              id: 'job-1',
-                              name: 'Compile, Test & Package',
-                              steps: [
-                                { step_name: 'Checkout Repository Code@v4', status: 'success', duration: '6s' },
-                                { step_name: 'Execute Build & Typecheck', status: 'success', duration: '18s' },
-                                { step_name: 'Build Container Image & Push to ACR', status: 'success', duration: '28s' }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          id: 'stg-2',
-                          name: 'deploy_to_azure',
-                          status: 'success',
-                          jobs: [
-                            {
-                              id: 'job-2',
-                              name: 'Zero-Downtime Blue/Green Traffic Swap',
-                              steps: [
-                                { step_name: 'Deploy Revision to Azure Target', status: 'success', duration: '14s' },
-                                { step_name: 'Verify Health Check Endpoint', status: 'success', duration: '8s' }
-                              ]
-                            }
-                          ]
-                        }
-                      ]).map((stage: any, idx: number) => {
+                      {(runDetails?.stages || []).map((stage: any, idx: number) => {
                         const isExpanded = expandedStageId === (stage.id || `stg-${idx}`);
                         const stageJobs = stage.jobs || [];
 
@@ -544,7 +496,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
                               }}
                             >
                               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <CheckCircle2 size={18} style={{ color: '#10b981' }} />
+                                <CheckCircle2 size={18} style={{ color: stage.status === 'failed' ? '#ef4444' : '#10b981' }} />
                                 <div>
                                   <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)' }}>
                                     Stage {idx + 1}: {stage.name}
@@ -573,10 +525,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
                                 gap: '12px'
                               }}>
                                 {stageJobs.map((job: any, jIdx: number) => {
-                                  const steps = job.steps || [
-                                    { step_name: 'Initialize Cloud Credentials', status: 'success', duration: '4s' },
-                                    { step_name: 'Execute Pipeline Tasks', status: 'success', duration: '14s' }
-                                  ];
+                                  const steps = job.steps || [];
 
                                   return (
                                     <div key={job.id || jIdx} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -602,13 +551,13 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                               <CheckCircle2 size={13} style={{ color: st.status === 'failed' ? '#ef4444' : '#10b981' }} />
                                               <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                                Task {sIdx + 1}: {st.step_name}
+                                                Task {sIdx + 1}: {st.step_name || st.name}
                                               </span>
                                             </div>
 
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                               <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                                                {st.duration || '12s'}
+                                                {st.duration_seconds ? `${st.duration_seconds}s` : 'Completed'}
                                               </span>
                                               <button
                                                 type="button"
