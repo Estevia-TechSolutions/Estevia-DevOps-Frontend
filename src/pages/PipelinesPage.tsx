@@ -101,14 +101,8 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
         const appKey = (app.name || '').toLowerCase();
         if (!runMap.has(appKey)) {
           let prov = (app.provider || app.build_provider || '').toLowerCase();
-          if (!prov || prov === 'unconfigured') {
-            if (app.pipelineId) {
-              prov = 'azure_devops';
-            } else if (app.githubRepo || app.repo_url) {
-              prov = 'github_actions';
-            } else {
-              prov = 'unconfigured';
-            }
+          if (!prov || prov === 'unconfigured' || prov.includes('github')) {
+            prov = app.pipelineId ? 'azure_devops' : 'evaops_native';
           }
 
           combined.push({
@@ -120,7 +114,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
             branch: app.branch || 'main',
             commit_sha: 'a4bafe6',
             commit_message: `Cloud Scanned Azure Resource (${app.type?.toUpperCase() || 'AZURE'})`,
-            triggered_by: app.pipelineId ? 'Azure DevOps Pipelines' : 'Cloud Scanner Sync',
+            triggered_by: prov === 'azure_devops' ? 'Azure Pipelines Bot' : 'Cloud Scanner Sync',
             duration_seconds: 48,
             created_at: new Date().toISOString(),
             provider: prov
@@ -142,8 +136,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
     const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
     const provLow = (r.provider || '').toLowerCase();
     const matchesProvider = providerFilter === 'all' ||
-      (providerFilter === 'azure' && provLow.includes('azure')) ||
-      (providerFilter === 'github' && provLow.includes('github')) ||
+      (providerFilter === 'azure' && (provLow.includes('azure') || provLow.includes('devops'))) ||
       (providerFilter === 'evaforge' && (provLow.includes('eva') || provLow.includes('native'))) ||
       (providerFilter === 'unconfigured' && (provLow === 'unconfigured' || !provLow));
 
@@ -400,7 +393,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
 
       {/* FILTER TABS & SEARCH BAR */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '24px' }}>
-        {/* Provider Quick Filter Tabs */}
+        {/* Provider Quick Filter Tabs (STRICT AZURE DEVOPS & EVAFORGE ONLY) */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -413,7 +406,6 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
           {[
             { id: 'all', label: 'All Pipelines', icon: <Layers size={13} /> },
             { id: 'azure', label: 'Azure DevOps', icon: <Layers size={13} style={{ color: '#3b82f6' }} /> },
-            { id: 'github', label: 'GitHub Actions', icon: <GitBranch size={13} /> },
             { id: 'evaforge', label: 'EvaForge CI/CD', icon: <Zap size={13} style={{ color: '#a855f7' }} /> },
             { id: 'unconfigured', label: 'Unconfigured', icon: <Globe size={13} /> }
           ].map(tab => (
@@ -484,8 +476,9 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
         }}>
           {filteredRuns.map((r) => {
             const prov = (r.provider || 'unconfigured').toLowerCase();
-            const isExternal = prov.includes('azure') || prov.includes('github');
-            const isUnconfigured = prov === 'unconfigured' || !prov;
+            const isAzure = prov.includes('azure') || prov.includes('devops');
+            const isEvaForge = prov.includes('eva') || prov.includes('native') || prov.includes('evaforge');
+            const isUnconfigured = prov === 'unconfigured' || (!isAzure && !isEvaForge);
             const isHovered = hoveredCardId === r.id;
 
             return (
@@ -527,15 +520,11 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                     </div>
 
                     {/* Provider Badge */}
-                    {prov.includes('azure') ? (
+                    {isAzure ? (
                       <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.14)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.35)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                         <Layers size={13} /> Azure DevOps
                       </span>
-                    ) : prov.includes('github') ? (
-                      <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                        <GitBranch size={13} /> GitHub Actions
-                      </span>
-                    ) : prov.includes('eva') || prov.includes('native') || prov.includes('evaforge') ? (
+                    ) : isEvaForge ? (
                       <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(236,72,153,0.15) 100%)', color: '#c084fc', border: '1px solid rgba(192,132,252,0.4)', boxShadow: '0 0 10px rgba(192,132,252,0.2)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                         <Zap size={13} /> ⚡ EvaForge
                       </span>
@@ -609,7 +598,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                     <Terminal size={13} /> View Build Logs
                   </button>
 
-                  {isExternal && (
+                  {isAzure && (
                     <button
                       type="button"
                       onClick={async () => {
