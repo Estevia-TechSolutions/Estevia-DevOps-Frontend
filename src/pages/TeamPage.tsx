@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, RefreshCw, UserCheck, Shield, Award, Eye, X, Check, Terminal, ShieldAlert, ShieldX, KeyRound, ChevronDown, MoreVertical, Lock } from 'lucide-react';
+import { Users, RefreshCw, UserCheck, Shield, Award, Eye, X, Check, Terminal, ShieldAlert, ShieldX, KeyRound, ChevronDown, MoreVertical, Lock, Crown, ShieldCheck } from 'lucide-react';
 import { UserAuditLogDrawer } from '../components/team/UserAuditLogDrawer';
 
 // Dynamic environment branding suffix
@@ -46,6 +46,217 @@ interface TeamPageProps {
   apps?: any[];
   appGroups?: any[];
 }
+
+interface RichRoleSelectorProps {
+  value: string;
+  disabled?: boolean;
+  loading?: boolean;
+  isLight?: boolean;
+  onChange: (newRole: string) => void;
+}
+
+const ROLE_OPTIONS = [
+  {
+    key: 'owner',
+    label: 'Owner',
+    icon: Crown,
+    badgeBg: 'rgba(236, 72, 153, 0.15)',
+    badgeBorder: 'rgba(236, 72, 153, 0.4)',
+    color: '#ec4899',
+    description: 'Full organization control, billing, subscription management & user deletion.'
+  },
+  {
+    key: 'admin',
+    label: 'Admin',
+    icon: ShieldCheck,
+    badgeBg: 'rgba(13, 148, 136, 0.15)',
+    badgeBorder: 'rgba(13, 148, 136, 0.4)',
+    color: '#0d9488',
+    description: 'DevOps control, cloud scope management, environment hydration & team provisioning.'
+  },
+  {
+    key: 'contributor',
+    label: 'Contributor',
+    icon: UserCheck,
+    badgeBg: 'rgba(59, 130, 246, 0.15)',
+    badgeBorder: 'rgba(59, 130, 246, 0.4)',
+    color: '#3b82f6',
+    description: 'Read & write access to build pipelines, deployments, and observability metrics.'
+  },
+  {
+    key: 'viewer',
+    label: 'Viewer',
+    icon: Eye,
+    badgeBg: 'rgba(148, 163, 184, 0.15)',
+    badgeBorder: 'rgba(148, 163, 184, 0.3)',
+    color: '#94a3b8',
+    description: 'Read-only access to dashboards, infrastructure logs, and telemetry monitoring.'
+  }
+];
+
+export const RichRoleSelector: React.FC<RichRoleSelectorProps> = ({
+  value,
+  disabled = false,
+  loading = false,
+  isLight = false,
+  onChange
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  const normalizedValue = (value === 'member' ? 'contributor' : value || 'viewer').toLowerCase();
+  const currentRole = ROLE_OPTIONS.find(r => r.key === normalizedValue) || ROLE_OPTIONS[3];
+  const IconComponent = currentRole.icon;
+
+  React.useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-block' }}>
+      {/* Trigger Button */}
+      <button
+        type="button"
+        disabled={disabled || loading}
+        onClick={() => !disabled && !loading && setIsOpen(!isOpen)}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '5px 12px',
+          borderRadius: '8px',
+          fontSize: '0.78rem',
+          fontWeight: 700,
+          background: currentRole.badgeBg,
+          color: currentRole.color,
+          border: `1px solid ${currentRole.badgeBorder}`,
+          cursor: disabled || loading ? 'not-allowed' : 'pointer',
+          opacity: disabled ? 0.65 : 1,
+          transition: 'all 0.15s ease',
+          boxShadow: isOpen ? '0 0 12px rgba(139, 92, 246, 0.25)' : 'none'
+        }}
+      >
+        {loading ? (
+          <RefreshCw size={13} className="spin-anim" />
+        ) : (
+          <IconComponent size={14} />
+        )}
+        <span style={{ textTransform: 'capitalize' }}>{currentRole.label}</span>
+        {disabled ? (
+          <Lock size={12} style={{ opacity: 0.6 }} />
+        ) : (
+          <ChevronDown size={13} style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+        )}
+      </button>
+
+      {/* Rich Dropdown Popover */}
+      {isOpen && !disabled && (
+        <div style={{
+          position: 'absolute',
+          top: 'calc(100% + 6px)',
+          left: 0,
+          zIndex: 9999,
+          width: '280px',
+          padding: '6px',
+          borderRadius: '12px',
+          background: isLight ? '#ffffff' : '#0f172a',
+          border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(139, 92, 246, 0.3)',
+          boxShadow: '0 12px 32px rgba(0, 0, 0, 0.45)',
+          backdropFilter: 'blur(12px)'
+        }}>
+          <div style={{
+            fontSize: '0.68rem',
+            fontWeight: 800,
+            color: isLight ? '#64748b' : 'var(--text-secondary)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            padding: '6px 8px 4px 8px'
+          }}>
+            Select Organization Role
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {ROLE_OPTIONS.map(opt => {
+              const OptIcon = opt.icon;
+              const isSelected = opt.key === normalizedValue;
+
+              return (
+                <div
+                  key={opt.key}
+                  onClick={() => {
+                    onChange(opt.key);
+                    setIsOpen(false);
+                  }}
+                  style={{
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    background: isSelected 
+                      ? (isLight ? '#f1f5f9' : 'rgba(139, 92, 246, 0.12)') 
+                      : 'transparent',
+                    border: isSelected 
+                      ? (isLight ? '1px solid #cbd5e1' : '1px solid rgba(139, 92, 246, 0.3)') 
+                      : '1px solid transparent',
+                    transition: 'background 0.12s ease',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.background = isLight ? '#f8fafc' : 'rgba(255, 255, 255, 0.04)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.background = 'transparent';
+                    }
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '22px',
+                        height: '22px',
+                        borderRadius: '6px',
+                        background: opt.badgeBg,
+                        color: opt.color
+                      }}>
+                        <OptIcon size={13} />
+                      </span>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+                        {opt.label}
+                      </span>
+                    </div>
+
+                    {isSelected && (
+                      <Check size={14} style={{ color: opt.color }} />
+                    )}
+                  </div>
+
+                  <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', lineHeight: 1.35, paddingLeft: '28px' }}>
+                    {opt.description}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const TeamPage: React.FC<TeamPageProps> = ({
   users,
@@ -1009,32 +1220,13 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                       )}
                     </td>
                     <td style={{ padding: '14px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <select
-                          value={u.role || 'viewer'}
-                          disabled={isSelectDisabled}
-                          onChange={(e) => onRoleChange(u.id, u.role, e.target.value)}
-                          style={{
-                            fontSize: '0.8rem',
-                            height: '32px',
-                            borderRadius: '6px',
-                            background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)',
-                            color: 'var(--text-primary)',
-                            border: '1px solid var(--glass-border)',
-                            padding: '0 8px',
-                            width: '140px',
-                            cursor: isSelectDisabled ? 'not-allowed' : 'pointer'
-                          }}
-                        >
-                          <option value="owner">Owner</option>
-                          <option value="admin">Admin</option>
-                          <option value="contributor">Contributor</option>
-                          <option value="viewer">Viewer</option>
-                        </select>
-                        {updatingUserId === u.id && (
-                          <RefreshCw size={12} className="spin-anim" style={{ color: 'var(--text-secondary)' }} />
-                        )}
-                      </div>
+                      <RichRoleSelector
+                        value={u.role || 'viewer'}
+                        disabled={isSelectDisabled}
+                        loading={updatingUserId === u.id}
+                        isLight={isLight}
+                        onChange={(newRole) => onRoleChange(u.id, u.role, newRole)}
+                      />
                     </td>
                     <td style={{ padding: '14px 16px', position: 'relative' }}>
                       <div style={{ position: 'relative' }}>
