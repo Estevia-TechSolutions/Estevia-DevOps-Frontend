@@ -97,25 +97,28 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
       apps.forEach((app, idx) => {
         const appKey = (app.name || '').toLowerCase();
         if (!runMap.has(appKey)) {
-          const pLow = (app.provider || app.build_provider || '').toLowerCase();
-          let prov = 'evaops_native';
-          
-          if (pLow.includes('azure') || app.name.toLowerCase().includes('api') || app.name.toLowerCase().includes('processor')) {
-            prov = 'azure_devops';
-          } else if (pLow.includes('github') || app.githubRepo || app.repo_url || app.type === 'frontend') {
-            prov = 'github_actions';
+          // Respect exact Cloud Scanner matching: pipelineId indicates Azure DevOps, provider indicates GitHub Actions / EvaForge
+          let prov = (app.provider || app.build_provider || '').toLowerCase();
+          if (!prov || prov === 'unconfigured') {
+            if (app.pipelineId) {
+              prov = 'azure_devops';
+            } else if (app.githubRepo || app.repo_url) {
+              prov = 'github_actions';
+            } else {
+              prov = 'unconfigured';
+            }
           }
 
           combined.push({
             id: `scanned-${idx}-${app.name}`,
-            pipeline_name: `${app.name} CI/CD Pipeline`,
+            pipeline_name: app.pipelineName || `${app.name} Pipeline`,
             project_name: app.name,
             run_number: 1,
             status: 'success',
-            branch: 'main',
+            branch: app.branch || 'main',
             commit_sha: 'a4bafe6',
-            commit_message: `Active Target Scope Azure Resource (${app.type?.toUpperCase() || 'AZURE'})`,
-            triggered_by: 'Azure DevOps Scanner',
+            commit_message: `Cloud Scanned Azure Resource (${app.type?.toUpperCase() || 'AZURE'})`,
+            triggered_by: app.pipelineId ? 'Azure DevOps Pipelines' : 'Cloud Scanner Sync',
             duration_seconds: 48,
             created_at: new Date().toISOString(),
             provider: prov
