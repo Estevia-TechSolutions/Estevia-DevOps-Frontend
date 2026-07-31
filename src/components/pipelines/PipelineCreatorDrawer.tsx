@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Play, Zap, CheckCircle2, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Play, Zap, CheckCircle2, RefreshCw, GitBranch, ChevronDown, Search, Folder, Server, Database, Layers, Check } from 'lucide-react';
 
 export interface AppResource {
   id?: string;
@@ -33,7 +33,7 @@ export const PipelineCreatorDrawer: React.FC<PipelineCreatorDrawerProps> = ({
   apps = [],
   onPipelineCreated
 }) => {
-  // Available Organization Repositories (Fallback list if apps array is empty)
+  // Fallback organization repos
   const defaultOrgRepos = [
     { repo: 'Estevia-TechSolutions/Estevia-Corporate-Marketing-Web', name: 'Estevia Corporate Marketing Web', type: 'frontend' },
     { repo: 'Estevia-TechSolutions/DocuAI-Frontend', name: 'DocuAI Frontend Portal', type: 'frontend' },
@@ -43,12 +43,11 @@ export const PipelineCreatorDrawer: React.FC<PipelineCreatorDrawerProps> = ({
     { repo: 'Estevia-TechSolutions/Estevia-Database-Cluster', name: 'Estevia Production Database', type: 'database' }
   ];
 
-  // Derive repo options from scanned apps or default org repos
   const repoOptions = apps.length > 0
     ? apps.map(a => ({
         repo: a.githubRepo || a.repo_url || `Estevia-TechSolutions/${a.name}`,
         name: a.name,
-        type: a.type,
+        type: a.type || 'backend',
         resourceGroup: a.resourceGroup,
         location: a.location
       }))
@@ -58,7 +57,13 @@ export const PipelineCreatorDrawer: React.FC<PipelineCreatorDrawerProps> = ({
   const [projectName, setProjectName] = useState<string>(repoOptions[0]?.name || 'DocuAI Processor API');
   const [name, setName] = useState<string>(`${repoOptions[0]?.name || 'DocuAI'} CI/CD Pipeline`);
   const [branch, setBranch] = useState<string>('main');
-  const [availableBranches] = useState<string[]>(['main', 'dev', 'qa']);
+  const [availableBranches] = useState<string[]>(['main', 'dev', 'qa', 'staging']);
+
+  // Custom Dropdown Open States
+  const [isRepoDropdownOpen, setIsRepoDropdownOpen] = useState<boolean>(false);
+  const [isBranchDropdownOpen, setIsBranchDropdownOpen] = useState<boolean>(false);
+  const [repoSearch, setRepoSearch] = useState<string>('');
+
   const [targetType, setTargetType] = useState<'static_web_app' | 'container_app' | 'database'>('static_web_app');
   const [autoProvisionInfra, setAutoProvisionInfra] = useState<boolean>(true);
   const [iacTemplateType, setIacTemplateType] = useState<'bicep' | 'terraform'>('bicep');
@@ -68,10 +73,27 @@ export const PipelineCreatorDrawer: React.FC<PipelineCreatorDrawerProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const isLight = theme === 'light';
+  const repoDropdownRef = useRef<HTMLDivElement>(null);
+  const branchDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (repoDropdownRef.current && !repoDropdownRef.current.contains(event.target as Node)) {
+        setIsRepoDropdownOpen(false);
+      }
+      if (branchDropdownRef.current && !branchDropdownRef.current.contains(event.target as Node)) {
+        setIsBranchDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // ── Auto-Pick Step 2 Target Resource & Workflow Template based on Repo Selection ──────────
   const handleRepoSelect = (repoPath: string) => {
     setSelectedRepoPath(repoPath);
+    setIsRepoDropdownOpen(false);
     const found = repoOptions.find(r => r.repo === repoPath);
 
     if (found) {
@@ -107,6 +129,13 @@ export const PipelineCreatorDrawer: React.FC<PipelineCreatorDrawerProps> = ({
       handleRepoSelect(selectedRepoPath);
     }
   }, [isOpen]);
+
+  const filteredRepos = repoOptions.filter(r => 
+    r.repo.toLowerCase().includes(repoSearch.toLowerCase()) || 
+    r.name.toLowerCase().includes(repoSearch.toLowerCase())
+  );
+
+  const selectedRepoObj = repoOptions.find(r => r.repo === selectedRepoPath) || repoOptions[0];
 
   // ── Dynamic YAML Preview Generator matching Step 2 ──────────────────────────
   const generateYamlPreview = () => {
@@ -318,43 +347,120 @@ ${stagesYaml}`;
             </div>
           )}
 
-          {/* STEP 1: DYNAMIC GITHUB REPOSITORY SELECTOR */}
+          {/* STEP 1: RICH GITHUB REPOSITORY & BRANCH SELECTOR */}
           <div className="glass-panel" style={{ padding: '16px', borderRadius: '10px', border: '1px solid var(--glass-border)' }}>
             <div style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--accent-purple)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span>Step 1: Select Git Repository & Branch</span>
+              <span>Step 1: Select Git Repository & Target Branch</span>
               <span style={{ fontSize: '0.7rem', color: '#10b981', background: 'rgba(16,185,129,0.12)', padding: '2px 8px', borderRadius: '6px', textTransform: 'none', fontWeight: 600 }}>
                 {repoOptions.length} Repositories Discovered
               </span>
             </div>
 
-            {/* DYNAMIC REPOSITORY SELECTOR DROPDOWN */}
-            <div style={{ marginBottom: '14px' }}>
+            {/* RICH REPOSITORY SELECTOR DROPDOWN */}
+            <div style={{ marginBottom: '14px', position: 'relative' }} ref={repoDropdownRef}>
               <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 700 }}>
                 GitHub Repository <span style={{ color: '#ef4444' }}>*</span>
               </label>
-              <select
-                value={selectedRepoPath}
-                onChange={(e) => handleRepoSelect(e.target.value)}
+
+              {/* Rich Selector Box */}
+              <div
+                onClick={() => setIsRepoDropdownOpen(!isRepoDropdownOpen)}
                 style={{
-                  width: '100%',
-                  height: '38px',
-                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
                   background: isLight ? '#ffffff' : '#1e293b',
-                  border: '1px solid var(--accent-purple)',
-                  color: 'var(--text-primary)',
-                  padding: '0 12px',
-                  fontSize: '0.84rem',
-                  fontWeight: 600,
+                  border: isRepoDropdownOpen ? '1px solid var(--accent-purple)' : '1px solid var(--glass-border)',
+                  boxShadow: isRepoDropdownOpen ? '0 0 12px rgba(139, 92, 246, 0.25)' : 'none',
                   cursor: 'pointer',
-                  outline: 'none'
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  transition: 'all 0.15s ease'
                 }}
               >
-                {repoOptions.map((r, idx) => (
-                  <option key={idx} value={r.repo} style={{ background: '#0f172a', color: '#ffffff' }}>
-                    🐙 {r.repo} ({r.type.toUpperCase()})
-                  </option>
-                ))}
-              </select>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <GitBranch size={16} style={{ color: 'var(--accent-purple)' }} />
+                  <div>
+                    <div style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      {selectedRepoObj?.repo || selectedRepoPath}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                      {selectedRepoObj?.name} • Type: {selectedRepoObj?.type?.toUpperCase()}
+                    </div>
+                  </div>
+                </div>
+                <ChevronDown size={16} style={{ color: 'var(--text-secondary)', transform: isRepoDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+              </div>
+
+              {/* Rich Selector Overlay List */}
+              {isRepoDropdownOpen && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  marginTop: '6px',
+                  background: isLight ? '#ffffff' : '#0f172a',
+                  border: '1px solid var(--accent-purple)',
+                  borderRadius: '10px',
+                  boxShadow: '0 12px 32px rgba(0, 0, 0, 0.5)',
+                  zIndex: 100,
+                  maxHeight: '260px',
+                  overflowY: 'auto',
+                  padding: '8px'
+                }}>
+                  {/* Filter Search Input */}
+                  <div style={{ position: 'relative', marginBottom: '8px', padding: '0 4px' }}>
+                    <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                    <input
+                      type="text"
+                      placeholder="Filter organization repositories..."
+                      value={repoSearch}
+                      onChange={(e) => setRepoSearch(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ width: '100%', height: '32px', paddingLeft: '32px', borderRadius: '6px', background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.04)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', fontSize: '0.78rem' }}
+                    />
+                  </div>
+
+                  {filteredRepos.map((r, idx) => {
+                    const isSelected = r.repo === selectedRepoPath;
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => handleRepoSelect(r.repo)}
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          background: isSelected ? 'rgba(139, 92, 246, 0.18)' : 'transparent',
+                          border: isSelected ? '1px solid rgba(139, 92, 246, 0.4)' : '1px solid transparent',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginBottom: '4px',
+                          transition: 'all 0.12s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <GitBranch size={15} style={{ color: isSelected ? 'var(--accent-purple)' : 'var(--text-secondary)' }} />
+                          <div>
+                            <div style={{ fontSize: '0.82rem', fontWeight: isSelected ? 700 : 500, color: 'var(--text-primary)' }}>
+                              {r.repo}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                              {r.name}
+                            </div>
+                          </div>
+                        </div>
+
+                        <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                          {r.type}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '14px' }}>
@@ -364,23 +470,73 @@ ${stagesYaml}`;
                   type="text"
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
-                  style={{ width: '100%', height: '34px', borderRadius: '6px', background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', padding: '0 10px', fontSize: '0.8rem' }}
+                  style={{ width: '100%', height: '36px', borderRadius: '8px', background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', padding: '0 10px', fontSize: '0.8rem' }}
                 />
               </div>
 
-              <div>
+              {/* RICH TARGET BRANCH SELECTOR */}
+              <div style={{ position: 'relative' }} ref={branchDropdownRef}>
                 <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '4px', fontWeight: 600 }}>Target Branch</label>
-                <select
-                  value={branch}
-                  onChange={(e) => setBranch(e.target.value)}
-                  style={{ width: '100%', height: '34px', borderRadius: '6px', background: isLight ? '#ffffff' : '#1e293b', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', padding: '0 10px', fontSize: '0.8rem', cursor: 'pointer' }}
+                <div
+                  onClick={() => setIsBranchDropdownOpen(!isBranchDropdownOpen)}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    background: isLight ? '#ffffff' : '#1e293b',
+                    border: '1px solid var(--glass-border)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    height: '36px'
+                  }}
                 >
-                  {availableBranches.map(b => (
-                    <option key={b} value={b} style={{ background: '#0f172a', color: '#ffffff' }}>
-                      🌿 {b}
-                    </option>
-                  ))}
-                </select>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <GitBranch size={14} style={{ color: 'var(--accent-purple)' }} />
+                    <span>{branch}</span>
+                  </div>
+                  <ChevronDown size={14} style={{ color: 'var(--text-secondary)', transform: isBranchDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+                </div>
+
+                {isBranchDropdownOpen && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    marginTop: '4px',
+                    background: isLight ? '#ffffff' : '#0f172a',
+                    border: '1px solid var(--accent-purple)',
+                    borderRadius: '8px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                    zIndex: 100,
+                    padding: '4px'
+                  }}>
+                    {availableBranches.map(b => (
+                      <div
+                        key={b}
+                        onClick={() => { setBranch(b); setIsBranchDropdownOpen(false); }}
+                        style={{
+                          padding: '6px 10px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '0.78rem',
+                          fontWeight: branch === b ? 700 : 500,
+                          background: branch === b ? 'rgba(139, 92, 246, 0.18)' : 'transparent',
+                          color: branch === b ? 'var(--accent-purple)' : 'var(--text-primary)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <GitBranch size={13} /> {b}
+                        </div>
+                        {branch === b && <Check size={12} />}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -420,13 +576,14 @@ ${stagesYaml}`;
             </div>
           </div>
 
-          {/* STEP 2: AUTO-PICKED WORKFLOW TEMPLATE & TARGET RESOURCE */}
+          {/* STEP 2: TARGET RESOURCE & WORKFLOW TEMPLATE WITH AUTO-PICKED BADGE HEADERS */}
           <div className="glass-panel" style={{ padding: '16px', borderRadius: '10px', border: '1px solid var(--glass-border)' }}>
-            <div style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--accent-purple)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* CARD HEADER WITH ELEVATED AUTO-PICKED BADGE */}
+            <div style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--accent-purple)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span>Step 2: Target Resource & Workflow Template</span>
               {autoPickedNotice && (
-                <span style={{ fontSize: '0.72rem', color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '4px', textTransform: 'none', fontWeight: 600 }}>
-                  <CheckCircle2 size={12} /> {autoPickedNotice}
+                <span style={{ fontSize: '0.72rem', color: '#10b981', background: 'rgba(16,185,129,0.14)', border: '1px solid rgba(16,185,129,0.35)', padding: '3px 10px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '5px', textTransform: 'none', fontWeight: 700, boxShadow: '0 0 10px rgba(16,185,129,0.2)' }}>
+                  <CheckCircle2 size={13} /> {autoPickedNotice}
                 </span>
               )}
             </div>
@@ -444,12 +601,10 @@ ${stagesYaml}`;
                   position: 'relative'
                 }}
               >
-                {template === 'node_swa' && (
-                  <span style={{ position: 'absolute', top: '6px', right: '6px', fontSize: '0.64rem', padding: '1px 5px', borderRadius: '4px', background: 'var(--accent-purple)', color: '#fff', fontWeight: 700 }}>
-                    AUTO-PICKED
-                  </span>
-                )}
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>⚡ Node.js / React SWA</div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Zap size={14} style={{ color: 'var(--accent-purple)' }} />
+                  <span>Node.js / React SWA</span>
+                </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Azure Static Web Apps zero-token deployment</div>
               </div>
 
@@ -465,12 +620,10 @@ ${stagesYaml}`;
                   position: 'relative'
                 }}
               >
-                {template === 'python_aca' && (
-                  <span style={{ position: 'absolute', top: '6px', right: '6px', fontSize: '0.64rem', padding: '1px 5px', borderRadius: '4px', background: 'var(--accent-purple)', color: '#fff', fontWeight: 700 }}>
-                    AUTO-PICKED
-                  </span>
-                )}
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>🐍 Python FastAPI ACA</div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Server size={14} style={{ color: 'var(--accent-purple)' }} />
+                  <span>Python FastAPI ACA</span>
+                </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Azure Container Apps serverless API</div>
               </div>
 
@@ -486,12 +639,10 @@ ${stagesYaml}`;
                   position: 'relative'
                 }}
               >
-                {template === 'docker' && (
-                  <span style={{ position: 'absolute', top: '6px', right: '6px', fontSize: '0.64rem', padding: '1px 5px', borderRadius: '4px', background: 'var(--accent-purple)', color: '#fff', fontWeight: 700 }}>
-                    AUTO-PICKED
-                  </span>
-                )}
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>🐳 Docker Container</div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Layers size={14} style={{ color: 'var(--accent-purple)' }} />
+                  <span>Docker Container</span>
+                </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Generic Container build & ACR push</div>
               </div>
             </div>
