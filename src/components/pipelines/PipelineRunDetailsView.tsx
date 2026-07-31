@@ -31,9 +31,16 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
 
   useEffect(() => {
     if (runId && isOpen) {
-      fetchRunDetails(selectedHistoricalRunId || runId);
+      setSelectedHistoricalRunId(null);
+      fetchRunDetails(runId);
     }
-  }, [runId, isOpen, selectedHistoricalRunId]);
+  }, [runId, isOpen]);
+
+  useEffect(() => {
+    if (selectedHistoricalRunId && isOpen) {
+      fetchRunDetails(selectedHistoricalRunId);
+    }
+  }, [selectedHistoricalRunId]);
 
   const fetchRunDetails = async (targetRunId: string) => {
     setLoading(true);
