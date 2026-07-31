@@ -54,6 +54,9 @@ import { EsteviaLoginBadge } from './components/shared/EsteviaLoginBadge';
 import { PWAUpdateManager } from './components/shared/PWAUpdateManager';
 import { EmailTemplatesPage } from './pages/EmailTemplatesPage';
 import { AppStartLoader } from './components/shared/AppStartLoader';
+import { PipelinesPage } from './pages/PipelinesPage';
+import { PipelineCreatorDrawer } from './components/pipelines/PipelineCreatorDrawer';
+import { PipelineRunDetailsView } from './components/pipelines/PipelineRunDetailsView';
 
 // Dynamic environment branding suffix
 const getEnvSuffix = (): string => {
@@ -1069,10 +1072,15 @@ function App() {
   const [bindSuccess, setBindSuccess] = useState<string | null>(null);
   const [bindError, setBindError] = useState<string | null>(null);
 
-  // Pipeline Modal State
+  // Pipeline Modal & Drawer States
+  const [showPipelineCreatorDrawer, setShowPipelineCreatorDrawer] = useState<boolean>(false);
+  const [selectedRunIdForDetails, setSelectedRunIdForDetails] = useState<string | null>(null);
+  const [showRunDetailsView, setShowRunDetailsView] = useState<boolean>(false);
+  const [provisionViewMode, setProvisionViewMode] = useState<'pipelines' | 'wizard'>('pipelines');
+
   const [pipelineApp, setPipelineApp] = useState<AppResource | null>(null);
   const [githubRepo, setGithubRepo] = useState('');
-  const [pipelineProvider, setPipelineProvider] = useState<'azure_devops' | 'github_actions'>('azure_devops');
+  const [pipelineProvider, setPipelineProvider] = useState<'evaops_native' | 'azure_devops' | 'github_actions'>('evaops_native');
   const [useCustomRepo, setUseCustomRepo] = useState(false);
   const [devopsOrgUrl, setDevopsOrgUrl] = useState('https://dev.azure.com/Estevia-TechSolutions');
   const [devopsProject, setDevopsProject] = useState('ProTrack');
@@ -5232,7 +5240,7 @@ function App() {
     }
   };
 
-  const checkYmlExists = async (repo: string, provider: 'azure_devops' | 'github_actions' = pipelineProvider) => {
+  const checkYmlExists = async (repo: string, provider: 'evaops_native' | 'azure_devops' | 'github_actions' = pipelineProvider) => {
     if (!repo) return;
     setCheckingYml(true);
     setYmlMissing(null);
@@ -5257,7 +5265,7 @@ function App() {
     }
   };
 
-  const loadYmlForPipelineModal = async (repo: string, branch: string, provider: 'azure_devops' | 'github_actions' = pipelineProvider) => {
+  const loadYmlForPipelineModal = async (repo: string, branch: string, provider: 'evaops_native' | 'azure_devops' | 'github_actions' = pipelineProvider) => {
     if (!repo) return;
     setPipelineModalYmlLoading(true);
     setPipelineModalYmlContent('');
@@ -7732,8 +7740,8 @@ function App() {
                     }}
                     disabled={requiresCredentialSetup || isOrgDisabled}
                   >
-                    <PlusCircle size={16} />
-                    <span>Provision App</span>
+                    <GitBranch size={16} />
+                    <span>Provision & Pipelines</span>
                     {!subPackageDevops && (
                       <div style={{
                         position: 'absolute',
@@ -7758,8 +7766,8 @@ function App() {
                       <span className="tab-loading-spin" title="Loading..." />
                     )}
                     <div className="menu-hover-card">
-                      <div className="menu-hover-card-title"><PlusCircle size={12} /> Provision App {!subPackageDevops && '🔒'}</div>
-                      <div className="menu-hover-card-desc">Launch new Azure Static Web Apps or backend containers with guided step-by-step provisioning wizard.</div>
+                      <div className="menu-hover-card-title"><GitBranch size={12} /> Provision & Pipelines {!subPackageDevops && '🔒'}</div>
+                      <div className="menu-hover-card-desc">Provision Azure Static Web Apps, backend containers, and execute serverless CI/CD build pipelines.</div>
                     </div>
                   </button>
                   <button
@@ -8281,9 +8289,22 @@ function App() {
                 </div>
               )}
 
-              {/* TAB 2: PROVISION WEB APP WIZARD */}
+              {/* TAB 2: PROVISION & CI/CD PIPELINES */}
               {activeTab === 'provision' && (
-                <ProvisionWizard
+                provisionViewMode === 'pipelines' ? (
+                  <PipelinesPage
+                    API_BASE={API_BASE}
+                    token={user?.token || ''}
+                    theme={theme}
+                    onOpenCreateDrawer={() => setShowPipelineCreatorDrawer(true)}
+                    onOpenRunDetails={(runId) => {
+                      setSelectedRunIdForDetails(runId);
+                      setShowRunDetailsView(true);
+                    }}
+                    onSwitchToProvisionWizard={() => setProvisionViewMode('wizard')}
+                  />
+                ) : (
+                  <ProvisionWizard
                   pipelineProvider={pipelineProvider}
                   setPipelineProvider={setPipelineProvider}
                   kubernetesVersion={kubernetesVersion}
@@ -8413,6 +8434,7 @@ function App() {
                   provisionYmlValidation={provisionYmlValidation}
                   provisionYmlValidating={provisionYmlValidating}
                 />
+              )
               )}
 
               {/* TAB 3: CREDENTIALS MANAGEMENT */}
@@ -11064,6 +11086,27 @@ function App() {
             );
           })}
         </div>
+        {/* EvaOps Native CI/CD Modals */}
+        <PipelineCreatorDrawer
+          isOpen={showPipelineCreatorDrawer}
+          onClose={() => setShowPipelineCreatorDrawer(false)}
+          API_BASE={API_BASE}
+          token={user?.token || ''}
+          theme={theme}
+          onPipelineCreated={() => {
+            setShowPipelineCreatorDrawer(false);
+          }}
+        />
+
+        <PipelineRunDetailsView
+          runId={selectedRunIdForDetails}
+          isOpen={showRunDetailsView}
+          onClose={() => setShowRunDetailsView(false)}
+          API_BASE={API_BASE}
+          token={user?.token || ''}
+          theme={theme}
+        />
+
         <PWAUpdateManager />
       </div>
     </div>

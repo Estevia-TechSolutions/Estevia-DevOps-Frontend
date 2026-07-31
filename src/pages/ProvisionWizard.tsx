@@ -225,8 +225,8 @@ interface AppResource {
 }
 
 interface ProvisionWizardProps {
-  pipelineProvider: 'azure_devops' | 'github_actions';
-  setPipelineProvider: (val: 'azure_devops' | 'github_actions') => void;
+  pipelineProvider: 'evaops_native' | 'azure_devops' | 'github_actions';
+  setPipelineProvider: (val: 'evaops_native' | 'azure_devops' | 'github_actions') => void;
   provisionStep: number;
   setProvisionStep: (val: number) => void;
   appType: 'frontend' | 'backend' | 'cluster' | 'database';
@@ -640,8 +640,8 @@ export const DockerfileEditorStep: React.FC<DockerfileEditorStepProps> = ({
    Step1Content — GitHub Source Selection with Repo Integrity
    ───────────────────────────────────────────────────────────── */
 interface Step1ContentProps {
-  pipelineProvider: 'azure_devops' | 'github_actions';
-  setPipelineProvider: (val: 'azure_devops' | 'github_actions') => void;
+  pipelineProvider: 'evaops_native' | 'azure_devops' | 'github_actions';
+  setPipelineProvider: (val: 'evaops_native' | 'azure_devops' | 'github_actions') => void;
   appType: 'frontend' | 'backend' | 'cluster' | 'database';
   handleAppTypeChange: (type: 'frontend' | 'backend' | 'cluster' | 'database') => void;
   selectedRepo: string;
@@ -819,15 +819,21 @@ const Step1Content: React.FC<Step1ContentProps> = ({
                 <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>CI/CD Pipeline Provider</label>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button type="button"
+                    className={pipelineProvider === 'evaops_native' ? 'btn-primary' : 'btn-secondary'}
+                    onClick={() => setPipelineProvider('evaops_native')}
+                    style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    ⚡ EvaOps Native CI/CD (Recommended)
+                  </button>
+                  <button type="button"
                     className={pipelineProvider === 'azure_devops' ? 'btn-primary' : 'btn-secondary'}
                     onClick={() => setPipelineProvider('azure_devops')}
-                    style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600 }}>
-                    Azure DevOps Pipelines
+                    style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600 }}>
+                    Azure DevOps
                   </button>
                   <button type="button"
                     className={pipelineProvider === 'github_actions' ? 'btn-primary' : 'btn-secondary'}
                     onClick={() => setPipelineProvider('github_actions')}
-                    style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600 }}>
+                    style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600 }}>
                     GitHub Actions
                   </button>
                 </div>
