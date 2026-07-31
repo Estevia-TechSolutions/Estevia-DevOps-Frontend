@@ -1198,7 +1198,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                         <span>
                           {u.last_login_at || (u as any).last_login
                             ? new Date(u.last_login_at || (u as any).last_login).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                            : 'Active Session'}
+                            : 'Not logged yet'}
                         </span>
                       </div>
                     </td>
