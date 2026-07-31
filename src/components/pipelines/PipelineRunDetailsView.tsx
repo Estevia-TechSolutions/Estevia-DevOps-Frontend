@@ -28,6 +28,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
   const [selectedHistoricalRunId, setSelectedHistoricalRunId] = useState<string | null>(null);
   const [copiedLog, setCopiedLog] = useState<boolean>(false);
   const [showSecrets, setShowSecrets] = useState<boolean>(false);
+  const [expandedStageId, setExpandedStageId] = useState<string | null>('stg-0');
 
   const isLight = theme === 'light';
 
@@ -468,21 +469,181 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {(runDetails?.stages && runDetails.stages.length > 0 ? runDetails.stages : [
-                        { id: 'stg-0', name: 'infra_provision', status: 'success', jobs: [1, 2] },
-                        { id: 'stg-1', name: 'build_and_package', status: 'success', jobs: [1, 2, 3] },
-                        { id: 'stg-2', name: 'deploy_to_azure', status: 'success', jobs: [1, 2] }
-                      ]).map((stage: any, idx: number) => (
-                        <div key={stage.id || idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <CheckCircle2 size={16} style={{ color: '#10b981' }} />
-                            <div>
-                              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Stage {idx + 1}: {stage.name}</div>
-                              <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>{stage.jobs?.length || 2} jobs • Succeeded</div>
+                        {
+                          id: 'stg-0',
+                          name: 'infra_provision',
+                          status: 'success',
+                          jobs: [
+                            {
+                              id: 'job-0',
+                              name: 'GoDaddy CNAME DNS & Azure Infrastructure',
+                              steps: [
+                                { step_name: 'Initialize Cloud Credentials', status: 'success', duration: '4s' },
+                                { step_name: 'Allocate GoDaddy CNAME Record', status: 'success', duration: '12s' },
+                                { step_name: 'Provision Azure Target Scope Resource', status: 'success', duration: '22s' }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          id: 'stg-1',
+                          name: 'build_and_package',
+                          status: 'success',
+                          jobs: [
+                            {
+                              id: 'job-1',
+                              name: 'Compile, Test & Package',
+                              steps: [
+                                { step_name: 'Checkout Repository Code@v4', status: 'success', duration: '6s' },
+                                { step_name: 'Execute Build & Typecheck', status: 'success', duration: '18s' },
+                                { step_name: 'Build Container Image & Push to ACR', status: 'success', duration: '28s' }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          id: 'stg-2',
+                          name: 'deploy_to_azure',
+                          status: 'success',
+                          jobs: [
+                            {
+                              id: 'job-2',
+                              name: 'Zero-Downtime Blue/Green Traffic Swap',
+                              steps: [
+                                { step_name: 'Deploy Revision to Azure Target', status: 'success', duration: '14s' },
+                                { step_name: 'Verify Health Check Endpoint', status: 'success', duration: '8s' }
+                              ]
+                            }
+                          ]
+                        }
+                      ]).map((stage: any, idx: number) => {
+                        const isExpanded = expandedStageId === (stage.id || `stg-${idx}`);
+                        const stageJobs = stage.jobs || [];
+
+                        return (
+                          <div
+                            key={stage.id || idx}
+                            style={{
+                              borderRadius: '12px',
+                              background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.02)',
+                              border: isExpanded ? '1px solid rgba(139, 92, 246, 0.4)' : '1px solid var(--glass-border)',
+                              overflow: 'hidden',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            {/* Stage Header Row */}
+                            <div
+                              onClick={() => setExpandedStageId(isExpanded ? null : (stage.id || `stg-${idx}`))}
+                              style={{
+                                padding: '14px 18px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                cursor: 'pointer',
+                                background: isExpanded ? (isLight ? '#e2e8f0' : 'rgba(139, 92, 246, 0.1)') : 'transparent'
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <CheckCircle2 size={18} style={{ color: '#10b981' }} />
+                                <div>
+                                  <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                                    Stage {idx + 1}: {stage.name}
+                                  </div>
+                                  <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                    {stageJobs.length} job(s) • Click to {isExpanded ? 'collapse' : 'expand'} tasks
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--accent-purple)' }}>
+                                  {isExpanded ? '▲ Hide Tasks' : '▼ View Tasks'}
+                                </span>
+                              </div>
                             </div>
+
+                            {/* Stage Expanded Tasks Accordion */}
+                            {isExpanded && (
+                              <div style={{
+                                padding: '16px 18px',
+                                borderTop: '1px solid var(--glass-border)',
+                                background: isLight ? '#ffffff' : 'rgba(0,0,0,0.2)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '12px'
+                              }}>
+                                {stageJobs.map((job: any, jIdx: number) => {
+                                  const steps = job.steps || [
+                                    { step_name: 'Initialize Cloud Credentials', status: 'success', duration: '4s' },
+                                    { step_name: 'Execute Pipeline Tasks', status: 'success', duration: '14s' }
+                                  ];
+
+                                  return (
+                                    <div key={job.id || jIdx} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                      <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <Cpu size={14} style={{ color: 'var(--accent-purple)' }} />
+                                        <span>Job: {job.name}</span>
+                                      </div>
+
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '12px' }}>
+                                        {steps.map((st: any, sIdx: number) => (
+                                          <div
+                                            key={sIdx}
+                                            style={{
+                                              padding: '8px 12px',
+                                              borderRadius: '8px',
+                                              background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.03)',
+                                              border: '1px solid var(--glass-border)',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'space-between'
+                                            }}
+                                          >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                              <CheckCircle2 size={13} style={{ color: st.status === 'failed' ? '#ef4444' : '#10b981' }} />
+                                              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                                Task {sIdx + 1}: {st.step_name}
+                                              </span>
+                                            </div>
+
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                              <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                                {st.duration || '12s'}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  if (job.id) setSelectedJobId(job.id);
+                                                  setActiveTab('logs');
+                                                }}
+                                                style={{
+                                                  padding: '3px 8px',
+                                                  borderRadius: '6px',
+                                                  fontSize: '0.7rem',
+                                                  fontWeight: 700,
+                                                  background: 'rgba(139, 92, 246, 0.15)',
+                                                  color: 'var(--accent-purple)',
+                                                  border: '1px solid rgba(139, 92, 246, 0.3)',
+                                                  cursor: 'pointer',
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  gap: '4px'
+                                                }}
+                                              >
+                                                <Terminal size={11} /> View Log
+                                              </button>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
-                          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Completed in 16s</span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
