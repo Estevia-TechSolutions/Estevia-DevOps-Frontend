@@ -801,14 +801,14 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                                 {new Date(inc.created_at).toLocaleString()}
                                             </td>
 
-                                            {/* Column 6: Actions */}
+                                            {/* Column 6: Vertical Actions */}
                                             <td style={{ padding: '16px 18px', verticalAlign: 'top', textAlign: 'right' }}>
-                                                <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end', minWidth: '105px' }}>
                                                     <button
                                                         type="button"
                                                         onClick={() => setSelectedIncident(inc)}
                                                         style={{
-                                                            padding: '4px 10px',
+                                                            padding: '5px 12px',
                                                             borderRadius: '6px',
                                                             fontSize: '0.74rem',
                                                             fontWeight: 600,
@@ -818,7 +818,9 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                                             cursor: 'pointer',
                                                             display: 'inline-flex',
                                                             alignItems: 'center',
-                                                            gap: '4px'
+                                                            justifyContent: 'center',
+                                                            gap: '6px',
+                                                            width: '100%'
                                                         }}
                                                     >
                                                         <Search size={12} /> Details
@@ -828,7 +830,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                                             type="button"
                                                             onClick={() => handleAcknowledge(inc.id)}
                                                             style={{
-                                                                padding: '4px 10px',
+                                                                padding: '5px 12px',
                                                                 borderRadius: '6px',
                                                                 fontSize: '0.74rem',
                                                                 fontWeight: 600,
@@ -838,7 +840,9 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                                                 cursor: 'pointer',
                                                                 display: 'inline-flex',
                                                                 alignItems: 'center',
-                                                                gap: '4px'
+                                                                justifyContent: 'center',
+                                                                gap: '6px',
+                                                                width: '100%'
                                                             }}
                                                         >
                                                             <Hand size={12} /> Acknowledge
@@ -849,7 +853,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                                             type="button"
                                                             onClick={() => handleResolve(inc)}
                                                             style={{
-                                                                padding: '4px 10px',
+                                                                padding: '5px 12px',
                                                                 borderRadius: '6px',
                                                                 fontSize: '0.74rem',
                                                                 fontWeight: 600,
@@ -859,7 +863,9 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                                                 cursor: 'pointer',
                                                                 display: 'inline-flex',
                                                                 alignItems: 'center',
-                                                                gap: '4px'
+                                                                justifyContent: 'center',
+                                                                gap: '6px',
+                                                                width: '100%'
                                                             }}
                                                         >
                                                             <CheckCircle2 size={12} /> Resolve
