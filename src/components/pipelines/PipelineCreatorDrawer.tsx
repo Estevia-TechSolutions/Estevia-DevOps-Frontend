@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Play, Zap, CheckCircle2, RefreshCw, GitBranch, ChevronDown, Search, Folder, Server, Database, Layers, Check } from 'lucide-react';
+import { X, Play, Zap, CheckCircle2, RefreshCw, GitBranch, ChevronDown, Search, Folder, Server, Database, Layers, Check, Globe } from 'lucide-react';
 
 export interface AppResource {
   id?: string;
@@ -549,36 +549,51 @@ ${stagesYaml}`;
             </div>
 
             {/* AUTO-PROVISION INFRASTRUCTURE TOGGLE */}
-            <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input
-                  type="checkbox"
-                  id="autoInfra"
-                  checked={autoProvisionInfra}
-                  onChange={(e) => setAutoProvisionInfra(e.target.checked)}
-                  style={{ cursor: 'pointer', width: '16px', height: '16px' }}
-                />
-                <label htmlFor="autoInfra" style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', cursor: 'pointer' }}>
-                  Auto-Provision Target Azure Infrastructure if not existing
-                </label>
+            <div style={{ padding: '14px', borderRadius: '8px', background: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.25)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="checkbox"
+                    id="autoInfra"
+                    checked={autoProvisionInfra}
+                    onChange={(e) => setAutoProvisionInfra(e.target.checked)}
+                    style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                  />
+                  <label htmlFor="autoInfra" style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', cursor: 'pointer' }}>
+                    Auto-Provision Target Azure Infrastructure if not existing
+                  </label>
+                </div>
+
+                {autoProvisionInfra && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setIacTemplateType('bicep')}
+                      style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '4px', background: iacTemplateType === 'bicep' ? 'var(--accent-purple)' : 'transparent', color: '#ffffff', border: 'none', cursor: 'pointer' }}
+                    >
+                      Bicep
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIacTemplateType('terraform')}
+                      style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '4px', background: iacTemplateType === 'terraform' ? 'var(--accent-purple)' : 'transparent', color: '#ffffff', border: 'none', cursor: 'pointer' }}
+                    >
+                      Terraform
+                    </button>
+                  </div>
+                )}
               </div>
 
+              {/* GODADDY CNAME DNS AUTO-ALLOCATION BADGE */}
               {autoProvisionInfra && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setIacTemplateType('bicep')}
-                    style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '4px', background: iacTemplateType === 'bicep' ? 'var(--accent-purple)' : 'transparent', color: '#ffffff', border: 'none', cursor: 'pointer' }}
-                  >
-                    Bicep
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIacTemplateType('terraform')}
-                    style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '4px', background: iacTemplateType === 'terraform' ? 'var(--accent-purple)' : 'transparent', color: '#ffffff', border: 'none', cursor: 'pointer' }}
-                  >
-                    Terraform
-                  </button>
+                <div style={{ paddingTop: '8px', borderTop: '1px dashed rgba(139, 92, 246, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: '#10b981', fontWeight: 600 }}>
+                    <Globe size={14} />
+                    <span>Auto-Allocate GoDaddy CNAME DNS ({projectName.toLowerCase().replace(/[^a-z0-9]/g, '')}.esteviatech.com)</span>
+                  </div>
+                  <span style={{ fontSize: '0.68rem', padding: '2px 8px', borderRadius: '4px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', fontWeight: 700 }}>
+                    GoDaddy DNS Ready
+                  </span>
                 </div>
               )}
             </div>
