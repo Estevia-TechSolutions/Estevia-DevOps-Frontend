@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, RefreshCw, CheckCircle2, XCircle, Clock, Plus, Zap, Cpu, Server, ExternalLink, ArrowRight, Shield, Terminal, Filter, Search, Layers, GitBranch, Sparkles, Activity, Globe } from 'lucide-react';
+import { Play, RefreshCw, CheckCircle2, XCircle, Clock, Plus, Zap, Cpu, Server, ExternalLink, ArrowRight, Shield, Terminal, Filter, Search, Layers, GitBranch, Sparkles, Activity, Globe, Box, Check } from 'lucide-react';
 
 interface PipelineRun {
   id: string;
@@ -42,7 +42,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [providerFilter, setProviderFilter] = useState<string>('all');
-  const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
+  const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
 
   const [metrics, setMetrics] = useState({
     passRate: '100%',
@@ -254,7 +254,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
               WebkitTextFillColor: 'transparent',
               letterSpacing: '-0.02em'
             }}>
-              Target Scope CI/CD Pipelines
+              Target Scope CI/CD Pipelines Grid
             </h1>
 
             <span style={{
@@ -271,12 +271,12 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
               boxShadow: '0 0 10px rgba(16, 185, 129, 0.2)'
             }}>
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block', animation: 'pulse 1.5s infinite' }}></span>
-              ⚡ EvaForge Cloud Runners Online
+              ⚡ EvaForge Cloud Runners Active
             </span>
           </div>
 
           <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', margin: 0, fontWeight: 500 }}>
-            Unified multi-cloud pipeline orchestration for active Azure Target Scope applications.
+            Unified multi-cloud pipeline orchestration cards for active Azure Target Scope applications.
           </p>
         </div>
 
@@ -399,7 +399,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
       </div>
 
       {/* FILTER TABS & SEARCH BAR */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '24px' }}>
         {/* Provider Quick Filter Tabs */}
         <div style={{
           display: 'flex',
@@ -451,7 +451,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
           <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
           <input
             type="text"
-            placeholder="Search pipelines, branches..."
+            placeholder="Search pipeline cards..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
@@ -469,199 +469,205 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
         </div>
       </div>
 
-      {/* HYPER-PREMIUM PIPELINES TABLE GRID */}
-      <div className="glass-panel" style={{
-        borderRadius: '16px',
-        background: isLight ? '#ffffff' : 'rgba(15,23,42,0.8)',
-        border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(139, 92, 246, 0.25)',
-        boxShadow: '0 16px 40px rgba(0, 0, 0, 0.3)',
-        backdropFilter: 'blur(20px)',
-        overflow: 'hidden'
-      }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{
-                borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)',
-                background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.02)',
-                color: 'var(--text-secondary)',
-                fontSize: '0.76rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em'
-              }}>
-                <th style={{ padding: '16px 20px', fontWeight: 800 }}>Pipeline & Application</th>
-                <th style={{ padding: '16px 20px', fontWeight: 800 }}>CI/CD Engine</th>
-                <th style={{ padding: '16px 20px', fontWeight: 800 }}>Branch & Commit</th>
-                <th style={{ padding: '16px 20px', fontWeight: 800 }}>Triggered By</th>
-                <th style={{ padding: '16px 20px', fontWeight: 800 }}>Status</th>
-                <th style={{ padding: '16px 20px', fontWeight: 800 }}>Duration</th>
-                <th style={{ padding: '16px 20px', fontWeight: 800, width: '220px', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRuns.length === 0 ? (
-                <tr>
-                  <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.88rem' }}>
-                    No target scope pipelines found matching your search.
-                  </td>
-                </tr>
-              ) : (
-                filteredRuns.map((r) => {
-                  const prov = (r.provider || 'unconfigured').toLowerCase();
-                  const isExternal = prov.includes('azure') || prov.includes('github');
-                  const isUnconfigured = prov === 'unconfigured' || !prov;
-                  const isHovered = hoveredRowId === r.id;
+      {/* MULTI-ROW PIPELINE CARD GRID (3 COLUMNS) */}
+      {filteredRuns.length === 0 ? (
+        <div className="glass-panel" style={{ padding: '48px', textAlign: 'center', borderRadius: '16px', border: '1px solid var(--glass-border)' }}>
+          <Box size={36} style={{ color: 'var(--text-secondary)', marginBottom: '12px' }} />
+          <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>No Target Scope Pipelines Found</div>
+          <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Try adjusting your search query or provider filter tabs.</p>
+        </div>
+      ) : (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+          gap: '20px'
+        }}>
+          {filteredRuns.map((r) => {
+            const prov = (r.provider || 'unconfigured').toLowerCase();
+            const isExternal = prov.includes('azure') || prov.includes('github');
+            const isUnconfigured = prov === 'unconfigured' || !prov;
+            const isHovered = hoveredCardId === r.id;
 
-                  return (
-                    <tr
-                      key={r.id}
-                      onMouseEnter={() => setHoveredRowId(r.id)}
-                      onMouseLeave={() => setHoveredRowId(null)}
+            return (
+              <div
+                key={r.id}
+                onMouseEnter={() => setHoveredCardId(r.id)}
+                onMouseLeave={() => setHoveredCardId(null)}
+                className="glass-panel"
+                style={{
+                  borderRadius: '16px',
+                  background: isLight 
+                    ? '#ffffff' 
+                    : 'linear-gradient(135deg, rgba(15,23,42,0.85) 0%, rgba(30,41,59,0.7) 100%)',
+                  border: isHovered
+                    ? '1px solid rgba(168, 85, 247, 0.6)'
+                    : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)'),
+                  boxShadow: isHovered
+                    ? '0 12px 32px rgba(139, 92, 246, 0.25)'
+                    : '0 8px 24px rgba(0,0,0,0.15)',
+                  padding: '20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  transition: 'all 0.2s ease',
+                  transform: isHovered ? 'translateY(-2px)' : 'none'
+                }}
+              >
+                <div>
+                  {/* Card Header: Application & Provider Badge */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '14px' }}>
+                    <div>
+                      <div style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Zap size={16} style={{ color: 'var(--accent-purple)' }} />
+                        <span>{r.project_name}</span>
+                      </div>
+                      <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                        {r.pipeline_name} • #{r.run_number}
+                      </div>
+                    </div>
+
+                    {/* Provider Badge */}
+                    {prov.includes('azure') ? (
+                      <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.14)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.35)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <Layers size={13} /> Azure DevOps
+                      </span>
+                    ) : prov.includes('github') ? (
+                      <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <GitBranch size={13} /> GitHub Actions
+                      </span>
+                    ) : prov.includes('eva') || prov.includes('native') || prov.includes('evaforge') ? (
+                      <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(236,72,153,0.15) 100%)', color: '#c084fc', border: '1px solid rgba(192,132,252,0.4)', boxShadow: '0 0 10px rgba(192,132,252,0.2)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <Zap size={13} /> ⚡ EvaForge
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(148, 163, 184, 0.12)', color: 'var(--text-secondary)', border: '1px solid var(--glass-border)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <Globe size={13} /> Unconfigured
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Status Banner */}
+                  <div style={{
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
+                    border: '1px solid var(--glass-border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '14px'
+                  }}>
+                    {getStatusBadge(r.status)}
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Clock size={13} style={{ color: 'var(--text-secondary)' }} /> {r.duration_seconds}s
+                    </span>
+                  </div>
+
+                  {/* Branch & Commit Info */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                      <span style={{ padding: '3px 8px', borderRadius: '6px', background: 'rgba(139, 92, 246, 0.12)', border: '1px solid rgba(139, 92, 246, 0.25)', fontSize: '0.74rem', fontFamily: 'monospace', fontWeight: 800, color: 'var(--accent-purple)' }}>
+                        <GitBranch size={11} style={{ marginRight: '4px', display: 'inline' }} />
+                        {r.branch}
+                      </span>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                        {r.commit_sha}
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                      {r.commit_message}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card Footer Actions */}
+                <div style={{
+                  paddingTop: '14px',
+                  borderTop: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.06)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '8px'
+                }}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => onOpenRunDetails(r.id)}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      borderRadius: '8px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <Terminal size={13} /> View Build Logs
+                  </button>
+
+                  {isExternal && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await fetch(`${API_BASE}/pipelines/${r.pipeline_id || r.id}/migrate-provider`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ provider: 'evaops_native' })
+                          });
+                          fetchPipelineRuns();
+                        } catch (e) {}
+                      }}
                       style={{
-                        borderBottom: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.05)',
-                        background: isHovered 
-                          ? (isLight ? 'rgba(139, 92, 246, 0.04)' : 'rgba(139, 92, 246, 0.08)') 
-                          : 'transparent',
-                        transition: 'background 0.15s ease'
+                        padding: '8px 14px',
+                        borderRadius: '8px',
+                        background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+                        color: '#ffffff',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        boxShadow: '0 2px 10px rgba(139, 92, 246, 0.3)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px'
                       }}
                     >
-                      {/* Pipeline Name */}
-                      <td style={{ padding: '16px 20px' }}>
-                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <Zap size={14} style={{ color: 'var(--accent-purple)' }} />
-                          <span>{r.pipeline_name}</span>
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                          #{r.run_number} • <strong style={{ color: 'var(--text-primary)' }}>{r.project_name}</strong>
-                        </div>
-                      </td>
+                      <Zap size={13} /> Switch to EvaForge
+                    </button>
+                  )}
 
-                      {/* Provider Badge */}
-                      <td style={{ padding: '16px 20px' }}>
-                        {prov.includes('azure') ? (
-                          <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.14)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.35)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                            <Layers size={13} /> Azure DevOps
-                          </span>
-                        ) : prov.includes('github') ? (
-                          <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                            <GitBranch size={13} /> GitHub Actions
-                          </span>
-                        ) : prov.includes('eva') || prov.includes('native') || prov.includes('evaforge') ? (
-                          <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(236,72,153,0.15) 100%)', color: '#c084fc', border: '1px solid rgba(192,132,252,0.4)', boxShadow: '0 0 10px rgba(192,132,252,0.2)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                            <Zap size={13} /> ⚡ EvaForge CI/CD
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(148, 163, 184, 0.12)', color: 'var(--text-secondary)', border: '1px solid var(--glass-border)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                            <Globe size={13} /> Unconfigured
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Branch & Commit */}
-                      <td style={{ padding: '16px 20px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--glass-border)', fontSize: '0.74rem', fontFamily: 'monospace', fontWeight: 700, color: 'var(--accent-purple)' }}>
-                            {r.branch}
-                          </span>
-                          <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-                            {r.commit_sha}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '4px', maxWidth: '220px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {r.commit_message}
-                        </div>
-                      </td>
-
-                      {/* Triggered By */}
-                      <td style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontSize: '0.82rem', fontWeight: 500 }}>
-                        {r.triggered_by}
-                      </td>
-
-                      {/* Status */}
-                      <td style={{ padding: '16px 20px' }}>
-                        {getStatusBadge(r.status)}
-                      </td>
-
-                      {/* Duration */}
-                      <td style={{ padding: '16px 20px', fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.84rem' }}>
-                        {r.duration_seconds}s
-                      </td>
-
-                      {/* Actions */}
-                      <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
-                          <button
-                            type="button"
-                            className="btn-secondary"
-                            onClick={() => onOpenRunDetails(r.id)}
-                            style={{ padding: '6px 12px', fontSize: '0.76rem', fontWeight: 700, borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                          >
-                            <Terminal size={13} /> View Logs
-                          </button>
-
-                          {isExternal && (
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                try {
-                                  await fetch(`${API_BASE}/pipelines/${r.pipeline_id || r.id}/migrate-provider`, {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                                    body: JSON.stringify({ provider: 'evaops_native' })
-                                  });
-                                  fetchPipelineRuns();
-                                } catch (e) {}
-                              }}
-                              style={{
-                                padding: '6px 12px',
-                                borderRadius: '8px',
-                                background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-                                color: '#ffffff',
-                                border: 'none',
-                                cursor: 'pointer',
-                                fontSize: '0.76rem',
-                                fontWeight: 800,
-                                boxShadow: '0 2px 10px rgba(139, 92, 246, 0.3)',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                              }}
-                            >
-                              <Zap size={13} /> Switch to EvaForge
-                            </button>
-                          )}
-
-                          {isUnconfigured && (
-                            <button
-                              type="button"
-                              onClick={onOpenCreateDrawer}
-                              style={{
-                                padding: '6px 12px',
-                                borderRadius: '8px',
-                                background: 'rgba(139, 92, 246, 0.2)',
-                                border: '1px solid rgba(139, 92, 246, 0.4)',
-                                color: 'var(--accent-purple)',
-                                cursor: 'pointer',
-                                fontSize: '0.76rem',
-                                fontWeight: 800,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                              }}
-                            >
-                              <Plus size={13} /> Setup Pipeline
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                  {isUnconfigured && (
+                    <button
+                      type="button"
+                      onClick={onOpenCreateDrawer}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: '8px',
+                        background: 'rgba(139, 92, 246, 0.2)',
+                        border: '1px solid rgba(139, 92, 246, 0.4)',
+                        color: 'var(--accent-purple)',
+                        cursor: 'pointer',
+                        fontSize: '0.78rem',
+                        fontWeight: 800,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}
+                    >
+                      <Plus size={13} /> Setup Pipeline
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
-      </div>
+      )}
     </div>
   );
 };
