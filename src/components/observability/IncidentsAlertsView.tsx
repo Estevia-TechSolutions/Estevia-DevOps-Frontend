@@ -607,15 +607,14 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                 border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)'
             }}>
                 <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem', textAlign: 'left' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem', textAlign: 'left', tableLayout: 'auto' }}>
                         <thead>
                             <tr style={{ background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)' }}>
-                                <th style={{ padding: '14px 18px', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>Severity & Category</th>
-                                <th style={{ padding: '14px 18px', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>Resource, Scope & Env</th>
-                                <th style={{ padding: '14px 18px', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>Title & Description</th>
-                                <th style={{ padding: '14px 18px', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>Status</th>
-                                <th style={{ padding: '14px 18px', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>Created At</th>
-                                <th style={{ padding: '14px 18px', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', textAlign: 'right' }}>Actions</th>
+                                <th style={{ padding: '14px 18px', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', width: '130px' }}>Severity</th>
+                                <th style={{ padding: '14px 18px', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', minWidth: '320px', width: '35%' }}>Resource, Scope & Env</th>
+                                <th style={{ padding: '14px 18px', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', minWidth: '260px' }}>Title & Description</th>
+                                <th style={{ padding: '14px 18px', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', width: '170px' }}>Status & Recorded</th>
+                                <th style={{ padding: '14px 18px', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)', textAlign: 'right', width: '115px' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -641,7 +640,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                 if (filteredIncidents.length === 0) {
                                     return (
                                         <tr>
-                                            <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
+                                            <td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
                                                 <CheckCircle size={32} style={{ color: '#10b981', marginBottom: '8px' }} />
                                                 <div>No telemetry incidents match your active filters.</div>
                                             </td>
@@ -669,25 +668,25 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                                     {sev.text}
                                                 </span>
                                             </td>
-                                            {/* Column 2: 5-Line Stacked Resource, Scope & Azure Identity */}
-                                            <td style={{ padding: '16px 18px', verticalAlign: 'top', color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                            {/* Column 2: Expanded Resource, Scope & Azure Identity */}
+                                            <td style={{ padding: '16px 18px', verticalAlign: 'top', color: isLight ? '#0f172a' : 'var(--text-primary)', minWidth: '320px' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                                     {/* Line 1: Human Title */}
-                                                    <div style={{ fontWeight: 800, fontSize: '0.92rem', color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
+                                                    <div style={{ fontWeight: 800, fontSize: '0.96rem', color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
                                                         {resInfo.displayName}
                                                     </div>
 
                                                     {/* Line 2: Subscription */}
-                                                    <div style={{ fontSize: '0.74rem', color: isLight ? '#475569' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <div style={{ fontSize: '0.76rem', color: isLight ? '#475569' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                                         <span style={{ fontWeight: 700, color: isLight ? '#1e293b' : '#e2e8f0' }}>{scopeInfo.subName}</span>
                                                     </div>
 
                                                     {/* Line 3: Resource Group Badge */}
                                                     <div>
                                                         <span style={{
-                                                            fontSize: '0.7rem',
-                                                            padding: '2px 8px',
-                                                            borderRadius: '4px',
+                                                            fontSize: '0.72rem',
+                                                            padding: '3px 10px',
+                                                            borderRadius: '6px',
                                                             background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.12)',
                                                             color: isLight ? '#0369a1' : '#38bdf8',
                                                             border: isLight ? '1px solid #bae6fd' : '1px solid rgba(56, 189, 248, 0.3)',
@@ -700,7 +699,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
 
                                                     {/* Line 4: Azure Native Name + Link */}
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '2px' }}>
-                                                        <code style={{ fontSize: '0.74rem', color: '#38bdf8', padding: '1px 6px', borderRadius: '4px', background: isLight ? '#f1f5f9' : 'rgba(56, 189, 248, 0.08)', fontWeight: 700 }}>
+                                                        <code style={{ fontSize: '0.76rem', color: '#38bdf8', padding: '2px 8px', borderRadius: '4px', background: isLight ? '#f1f5f9' : 'rgba(56, 189, 248, 0.08)', fontWeight: 700 }}>
                                                             {resInfo.azureResourceName}
                                                         </code>
                                                         <a
@@ -708,10 +707,10 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             style={{
-                                                                fontSize: '0.7rem',
+                                                                fontSize: '0.72rem',
                                                                 color: isLight ? '#0284c7' : '#38bdf8',
                                                                 background: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.15)',
-                                                                padding: '2px 8px',
+                                                                padding: '3px 9px',
                                                                 borderRadius: '6px',
                                                                 textDecoration: 'none',
                                                                 fontWeight: 600,
@@ -727,8 +726,8 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                                     {/* Line 5: Resource Type + Environment */}
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
                                                         <span style={{
-                                                            fontSize: '0.68rem',
-                                                            padding: '2px 8px',
+                                                            fontSize: '0.7rem',
+                                                            padding: '3px 8px',
                                                             borderRadius: '4px',
                                                             background: isLight ? '#f1f5f9' : 'rgba(255, 255, 255, 0.06)',
                                                             color: isLight ? '#475569' : 'var(--text-secondary)',
@@ -738,8 +737,8 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                                             {resInfo.serviceType}
                                                         </span>
                                                         <span style={{
-                                                            fontSize: '0.68rem',
-                                                            padding: '2px 8px',
+                                                            fontSize: '0.7rem',
+                                                            padding: '3px 8px',
                                                             borderRadius: '4px',
                                                             background: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.15)',
                                                             color: isLight ? '#b45309' : '#fbbf24',
@@ -781,24 +780,26 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                                 )}
                                             </td>
 
-                                            {/* Column 4: Status */}
+                                            {/* Column 4: Combined Status & Created At */}
                                             <td style={{ padding: '16px 18px', verticalAlign: 'top' }}>
-                                                <span style={{
-                                                    padding: '3px 10px',
-                                                    borderRadius: '10px',
-                                                    fontSize: '0.72rem',
-                                                    fontWeight: 600,
-                                                    textTransform: 'uppercase',
-                                                    background: inc.status === 'triggered' ? 'rgba(239,68,68,0.1)' : inc.status === 'acknowledged' ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)',
-                                                    color: inc.status === 'triggered' ? '#ef4444' : inc.status === 'acknowledged' ? '#f59e0b' : '#10b981'
-                                                }}>
-                                                    {inc.status}
-                                                </span>
-                                            </td>
-
-                                            {/* Column 5: Created At */}
-                                            <td style={{ padding: '16px 18px', verticalAlign: 'top', fontSize: '0.76rem', color: isLight ? '#64748b' : 'var(--text-secondary)' }}>
-                                                {new Date(inc.created_at).toLocaleString()}
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
+                                                    <span style={{
+                                                        padding: '3px 10px',
+                                                        borderRadius: '10px',
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: 700,
+                                                        textTransform: 'uppercase',
+                                                        background: inc.status === 'triggered' ? 'rgba(239,68,68,0.12)' : inc.status === 'acknowledged' ? 'rgba(245,158,11,0.12)' : 'rgba(16,185,129,0.12)',
+                                                        color: inc.status === 'triggered' ? '#ef4444' : inc.status === 'acknowledged' ? '#f59e0b' : '#10b981',
+                                                        border: inc.status === 'triggered' ? '1px solid rgba(239,68,68,0.25)' : inc.status === 'acknowledged' ? '1px solid rgba(245,158,11,0.25)' : '1px solid rgba(16,185,129,0.25)'
+                                                    }}>
+                                                        {inc.status}
+                                                    </span>
+                                                    <div style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 500 }}>
+                                                        <Clock size={12} style={{ opacity: 0.8 }} />
+                                                        <span>{new Date(inc.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                                    </div>
+                                                </div>
                                             </td>
 
                                             {/* Column 6: Vertical Actions */}
