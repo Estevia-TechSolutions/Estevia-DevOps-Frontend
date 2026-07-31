@@ -112,8 +112,8 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
         const appKey = (app.name || '').toLowerCase();
         if (!runMap.has(appKey)) {
           let prov = (app.provider || app.build_provider || '').toLowerCase();
-          if (!prov || prov === 'unconfigured' || prov.includes('github')) {
-            prov = app.pipelineId ? 'azure_devops' : 'evaops_native';
+          if (!prov || prov === 'unconfigured' || prov === 'evaops_native') {
+            prov = (app.name || '').toLowerCase().includes('peoplecraft') ? 'github_actions' : 'azure_devops';
           }
 
           combined.push({
