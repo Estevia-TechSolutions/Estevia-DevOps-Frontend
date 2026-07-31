@@ -822,7 +822,7 @@ const Step1Content: React.FC<Step1ContentProps> = ({
                     className={pipelineProvider === 'evaops_native' ? 'btn-primary' : 'btn-secondary'}
                     onClick={() => setPipelineProvider('evaops_native')}
                     style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                    ⚡ EvaOps Native CI/CD (Recommended)
+                    ⚡ EvaForge CI/CD (Recommended)
                   </button>
                   <button type="button"
                     className={pipelineProvider === 'azure_devops' ? 'btn-primary' : 'btn-secondary'}

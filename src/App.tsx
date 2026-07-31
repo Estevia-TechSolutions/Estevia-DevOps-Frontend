@@ -8352,6 +8352,7 @@ function App() {
                       API_BASE={API_BASE}
                       token={user?.token || ''}
                       theme={theme}
+                      apps={apps}
                       onOpenCreateDrawer={() => setShowPipelineCreatorDrawer(true)}
                       onOpenRunDetails={(runId) => {
                         setSelectedRunIdForDetails(runId);
@@ -11143,7 +11144,7 @@ function App() {
             );
           })}
         </div>
-        {/* EvaOps Native CI/CD Modals */}
+        {/* EvaForge CI/CD Modals */}
         <PipelineCreatorDrawer
           isOpen={showPipelineCreatorDrawer}
           onClose={() => setShowPipelineCreatorDrawer(false)}
