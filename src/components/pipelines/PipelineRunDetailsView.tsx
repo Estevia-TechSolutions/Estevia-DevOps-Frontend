@@ -168,11 +168,59 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
                   {buildNumber}
                 </span>
 
-                {/* Provider Badge */}
+                {/* Provider Badge & Direct Link */}
                 {provider.includes('azure') ? (
-                  <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(59, 130, 246, 0.14)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.3)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <Layers size={11} /> Azure DevOps
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(59, 130, 246, 0.14)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.3)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Layers size={11} /> Azure DevOps
+                    </span>
+                    <a
+                      href="https://dev.azure.com/esteviatech/Estevia-Platform/_build"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        background: 'rgba(59, 130, 246, 0.2)',
+                        color: '#3b82f6',
+                        border: '1px solid rgba(59, 130, 246, 0.4)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        textDecoration: 'none'
+                      }}
+                    >
+                      <ExternalLink size={11} /> Open in Azure DevOps Pipelines
+                    </a>
+                  </div>
+                ) : provider.includes('github') ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <GitBranch size={11} /> GitHub Actions
+                    </span>
+                    <a
+                      href={`https://github.com/Estevia-TechSolutions/${projectName}/actions`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        background: 'rgba(255, 255, 255, 0.12)',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--glass-border)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        textDecoration: 'none'
+                      }}
+                    >
+                      <ExternalLink size={11} /> Open in GitHub Actions
+                    </a>
+                  </div>
                 ) : (
                   <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(139, 92, 246, 0.16)', color: '#c084fc', border: '1px solid rgba(139, 92, 246, 0.35)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     <Zap size={11} /> ⚡ EvaForge CI/CD

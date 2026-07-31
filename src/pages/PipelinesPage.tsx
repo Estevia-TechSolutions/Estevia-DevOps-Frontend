@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, RefreshCw, CheckCircle2, XCircle, Clock, Plus, Zap, Cpu, Server, ExternalLink, ArrowRight, Shield, Terminal, Filter, Search, Layers, GitBranch, Sparkles, Activity, Globe, Box, Check, CheckCircle } from 'lucide-react';
+import { Play, RefreshCw, CheckCircle2, XCircle, Clock, Plus, Zap, Cpu, Server, ExternalLink, ArrowRight, Shield, Terminal, Filter, Search, Layers, GitBranch, Sparkles, Activity, Globe, Box, Check, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface PipelineRun {
   id: string;
@@ -45,6 +45,10 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
   const [providerFilter, setProviderFilter] = useState<string>('all');
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(6);
+
   const [metrics, setMetrics] = useState({
     passRate: '100%',
     totalRuns: 0,
@@ -89,6 +93,11 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
   useEffect(() => {
     fetchPipelineRuns();
   }, []);
+
+  // Reset pagination on search or filter change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, providerFilter, statusFilter, pageSize]);
 
   // ── Combine DB execution runs with scanned Azure Target Scope apps ──────────
   const targetScopeRuns = React.useMemo(() => {
@@ -149,6 +158,12 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
 
     return matchesSearch && matchesStatus && matchesProvider;
   });
+
+  // Calculate paginated slices
+  const totalPages = Math.ceil(filteredRuns.length / pageSize) || 1;
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, filteredRuns.length);
+  const paginatedRuns = filteredRuns.slice(startIndex, startIndex + pageSize);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -476,215 +491,308 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
           <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Try adjusting your search query or provider filter tabs.</p>
         </div>
       ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
-          gap: '20px'
-        }}>
-          {filteredRuns.map((r) => {
-            const prov = (r.provider || 'unconfigured').toLowerCase();
-            const isAzure = prov.includes('azure') || prov.includes('devops');
-            const isEvaForge = prov.includes('eva') || prov.includes('native') || prov.includes('evaforge');
-            const isUnconfigured = prov === 'unconfigured' || (!isAzure && !isEvaForge);
-            const isHovered = hoveredCardId === r.id;
+        <>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+            gap: '20px',
+            marginBottom: '28px'
+          }}>
+            {paginatedRuns.map((r) => {
+              const prov = (r.provider || 'unconfigured').toLowerCase();
+              const isAzure = prov.includes('azure') || prov.includes('devops');
+              const isEvaForge = prov.includes('eva') || prov.includes('native') || prov.includes('evaforge');
+              const isUnconfigured = prov === 'unconfigured' || (!isAzure && !isEvaForge);
+              const isHovered = hoveredCardId === r.id;
 
-            const branchesList = r.branches || [
-              { branch: 'main', target: `${r.project_name.toLowerCase()}.esteviatech.com (Prod)`, status: 'success' },
-              { branch: 'qa', target: `${r.project_name.toLowerCase()}-qa.esteviatech.com (QA)`, status: 'success' },
-              { branch: 'dev', target: `${r.project_name.toLowerCase()}-dev.esteviatech.com (Dev)`, status: 'success' }
-            ];
+              const branchesList = r.branches || [
+                { branch: 'main', target: `${r.project_name.toLowerCase()}.esteviatech.com (Prod)`, status: 'success' },
+                { branch: 'qa', target: `${r.project_name.toLowerCase()}-qa.esteviatech.com (QA)`, status: 'success' },
+                { branch: 'dev', target: `${r.project_name.toLowerCase()}-dev.esteviatech.com (Dev)`, status: 'success' }
+              ];
 
-            return (
-              <div
-                key={r.id}
-                onMouseEnter={() => setHoveredCardId(r.id)}
-                onMouseLeave={() => setHoveredCardId(null)}
-                className="glass-panel"
-                style={{
-                  borderRadius: '16px',
-                  background: isLight 
-                    ? '#ffffff' 
-                    : 'linear-gradient(135deg, rgba(15,23,42,0.85) 0%, rgba(30,41,59,0.7) 100%)',
-                  border: isHovered
-                    ? '1px solid rgba(168, 85, 247, 0.6)'
-                    : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)'),
-                  boxShadow: isHovered
-                    ? '0 12px 32px rgba(139, 92, 246, 0.25)'
-                    : '0 8px 24px rgba(0,0,0,0.15)',
-                  padding: '20px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  transition: 'all 0.2s ease',
-                  transform: isHovered ? 'translateY(-2px)' : 'none'
-                }}
-              >
-                <div>
-                  {/* Card Header: Application Codebase & Provider Badge */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '14px' }}>
-                    <div>
-                      <div style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Zap size={16} style={{ color: 'var(--accent-purple)' }} />
-                        <span>{r.project_name}</span>
+              return (
+                <div
+                  key={r.id}
+                  onMouseEnter={() => setHoveredCardId(r.id)}
+                  onMouseLeave={() => setHoveredCardId(null)}
+                  className="glass-panel"
+                  style={{
+                    borderRadius: '16px',
+                    background: isLight 
+                      ? '#ffffff' 
+                      : 'linear-gradient(135deg, rgba(15,23,42,0.85) 0%, rgba(30,41,59,0.7) 100%)',
+                    border: isHovered
+                      ? '1px solid rgba(168, 85, 247, 0.6)'
+                      : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)'),
+                    boxShadow: isHovered
+                      ? '0 12px 32px rgba(139, 92, 246, 0.25)'
+                      : '0 8px 24px rgba(0,0,0,0.15)',
+                    padding: '20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    transition: 'all 0.2s ease',
+                    transform: isHovered ? 'translateY(-2px)' : 'none'
+                  }}
+                >
+                  <div>
+                    {/* Card Header: Application Codebase & Provider Badge */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '14px' }}>
+                      <div>
+                        <div style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Zap size={16} style={{ color: 'var(--accent-purple)' }} />
+                          <span>{r.project_name}</span>
+                        </div>
+                        <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                          {r.pipeline_name} • Latest Run #{r.run_number}
+                        </div>
                       </div>
-                      <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                        {r.pipeline_name} • Latest Run #{r.run_number}
+
+                      {/* Provider Badge */}
+                      {isAzure ? (
+                        <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.14)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.35)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                          <Layers size={13} /> Azure DevOps
+                        </span>
+                      ) : isEvaForge ? (
+                        <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(236,72,153,0.15) 100%)', color: '#c084fc', border: '1px solid rgba(192,132,252,0.4)', boxShadow: '0 0 10px rgba(192,132,252,0.2)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                          <Zap size={13} /> ⚡ EvaForge
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(148, 163, 184, 0.12)', color: 'var(--text-secondary)', border: '1px solid var(--glass-border)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                          <Globe size={13} /> Unconfigured
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Environment Branch Badges Bar */}
+                    <div style={{ marginBottom: '14px' }}>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>Target Environment Branches</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {branchesList.map((b, bIdx) => (
+                          <div
+                            key={bIdx}
+                            onClick={() => onOpenRunDetails(r.id, b.branch)}
+                            style={{
+                              padding: '6px 10px',
+                              borderRadius: '8px',
+                              background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
+                              border: '1px solid var(--glass-border)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                fontSize: '0.7rem',
+                                fontFamily: 'monospace',
+                                fontWeight: 800,
+                                background: b.branch === 'main' ? 'rgba(59, 130, 246, 0.2)' : b.branch === 'qa' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(139, 92, 246, 0.2)',
+                                color: b.branch === 'main' ? '#3b82f6' : b.branch === 'qa' ? '#f59e0b' : '#a855f7',
+                                border: '1px solid var(--glass-border)'
+                              }}>
+                                <GitBranch size={10} style={{ marginRight: '3px', display: 'inline' }} />
+                                {b.branch}
+                              </span>
+                              <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                                {b.target}
+                              </span>
+                            </div>
+
+                            <CheckCircle2 size={12} style={{ color: '#10b981' }} />
+                          </div>
+                        ))}
                       </div>
                     </div>
 
-                    {/* Provider Badge */}
-                    {isAzure ? (
-                      <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.14)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.35)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                        <Layers size={13} /> Azure DevOps
-                      </span>
-                    ) : isEvaForge ? (
-                      <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(236,72,153,0.15) 100%)', color: '#c084fc', border: '1px solid rgba(192,132,252,0.4)', boxShadow: '0 0 10px rgba(192,132,252,0.2)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                        <Zap size={13} /> ⚡ EvaForge
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(148, 163, 184, 0.12)', color: 'var(--text-secondary)', border: '1px solid var(--glass-border)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                        <Globe size={13} /> Unconfigured
-                      </span>
+                    {/* Latest Commit Message */}
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', marginBottom: '16px' }}>
+                      {r.commit_message}
+                    </div>
+                  </div>
+
+                  {/* Card Footer Actions */}
+                  <div style={{
+                    paddingTop: '14px',
+                    borderTop: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.06)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '8px'
+                  }}>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => onOpenRunDetails(r.id, 'main')}
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        borderRadius: '8px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Terminal size={13} /> View Branch History
+                    </button>
+
+                    {isAzure && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await fetch(`${API_BASE}/pipelines/${r.pipeline_id || r.id}/migrate-provider`, {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                              body: JSON.stringify({ provider: 'evaops_native' })
+                            });
+                            fetchPipelineRuns();
+                          } catch (e) {}
+                        }}
+                        style={{
+                          padding: '8px 14px',
+                          borderRadius: '8px',
+                          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+                          color: '#ffffff',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: '0.78rem',
+                          fontWeight: 800,
+                          boxShadow: '0 2px 10px rgba(139, 92, 246, 0.3)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px'
+                        }}
+                      >
+                        <Zap size={13} /> Switch to EvaForge
+                      </button>
+                    )}
+
+                    {isUnconfigured && (
+                      <button
+                        type="button"
+                        onClick={onOpenCreateDrawer}
+                        style={{
+                          padding: '8px 14px',
+                          borderRadius: '8px',
+                          background: 'rgba(139, 92, 246, 0.2)',
+                          border: '1px solid rgba(139, 92, 246, 0.4)',
+                          color: 'var(--accent-purple)',
+                          cursor: 'pointer',
+                          fontSize: '0.78rem',
+                          fontWeight: 800,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px'
+                        }}
+                      >
+                        <Plus size={13} /> Setup Pipeline
+                      </button>
                     )}
                   </div>
-
-                  {/* Environment Branch Badges Bar */}
-                  <div style={{ marginBottom: '14px' }}>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>Target Environment Branches</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {branchesList.map((b, bIdx) => (
-                        <div
-                          key={bIdx}
-                          onClick={() => onOpenRunDetails(r.id, b.branch)}
-                          style={{
-                            padding: '6px 10px',
-                            borderRadius: '8px',
-                            background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
-                            border: '1px solid var(--glass-border)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              fontSize: '0.7rem',
-                              fontFamily: 'monospace',
-                              fontWeight: 800,
-                              background: b.branch === 'main' ? 'rgba(59, 130, 246, 0.2)' : b.branch === 'qa' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(139, 92, 246, 0.2)',
-                              color: b.branch === 'main' ? '#3b82f6' : b.branch === 'qa' ? '#f59e0b' : '#a855f7',
-                              border: '1px solid var(--glass-border)'
-                            }}>
-                              <GitBranch size={10} style={{ marginRight: '3px', display: 'inline' }} />
-                              {b.branch}
-                            </span>
-                            <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-                              {b.target}
-                            </span>
-                          </div>
-
-                          <CheckCircle2 size={12} style={{ color: '#10b981' }} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Latest Commit Message */}
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', marginBottom: '16px' }}>
-                    {r.commit_message}
-                  </div>
                 </div>
+              );
+            })}
+          </div>
 
-                {/* Card Footer Actions */}
-                <div style={{
-                  paddingTop: '14px',
-                  borderTop: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.06)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '8px'
-                }}>
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    onClick={() => onOpenRunDetails(r.id, 'main')}
-                    style={{
-                      flex: 1,
-                      padding: '8px 12px',
-                      fontSize: '0.78rem',
-                      fontWeight: 700,
-                      borderRadius: '8px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <Terminal size={13} /> View Branch History
-                  </button>
+          {/* GLASSMORPHIC PAGINATION CONTROL BAR */}
+          <div className="glass-panel" style={{
+            padding: '14px 24px',
+            borderRadius: '14px',
+            background: isLight ? '#ffffff' : 'rgba(15,23,42,0.8)',
+            border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(255,255,255,0.08)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+              Showing <strong style={{ color: 'var(--text-primary)' }}>{startIndex + 1} - {endIndex}</strong> of <strong style={{ color: 'var(--accent-purple)' }}>{filteredRuns.length}</strong> Pipelines
+            </div>
 
-                  {isAzure && (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          await fetch(`${API_BASE}/pipelines/${r.pipeline_id || r.id}/migrate-provider`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                            body: JSON.stringify({ provider: 'evaops_native' })
-                          });
-                          fetchPipelineRuns();
-                        } catch (e) {}
-                      }}
-                      style={{
-                        padding: '8px 14px',
-                        borderRadius: '8px',
-                        background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-                        color: '#ffffff',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '0.78rem',
-                        fontWeight: 800,
-                        boxShadow: '0 2px 10px rgba(139, 92, 246, 0.3)',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px'
-                      }}
-                    >
-                      <Zap size={13} /> Switch to EvaForge
-                    </button>
-                  )}
-
-                  {isUnconfigured && (
-                    <button
-                      type="button"
-                      onClick={onOpenCreateDrawer}
-                      style={{
-                        padding: '8px 14px',
-                        borderRadius: '8px',
-                        background: 'rgba(139, 92, 246, 0.2)',
-                        border: '1px solid rgba(139, 92, 246, 0.4)',
-                        color: 'var(--accent-purple)',
-                        cursor: 'pointer',
-                        fontSize: '0.78rem',
-                        fontWeight: 800,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px'
-                      }}
-                    >
-                      <Plus size={13} /> Setup Pipeline
-                    </button>
-                  )}
-                </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                <span>Items per page:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                  style={{
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: isLight ? '#f8fafc' : '#1e293b',
+                    border: '1px solid var(--glass-border)',
+                    color: 'var(--text-primary)',
+                    padding: '0 8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value={6}>6 per page</option>
+                  <option value={12}>12 per page</option>
+                  <option value={24}>24 per page</option>
+                </select>
               </div>
-            );
-          })}
-        </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  type="button"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    background: currentPage === 1 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.08)',
+                    color: currentPage === 1 ? 'var(--text-secondary)' : 'var(--text-primary)',
+                    border: '1px solid var(--glass-border)',
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    opacity: currentPage === 1 ? 0.5 : 1
+                  }}
+                >
+                  <ChevronLeft size={14} /> Previous
+                </button>
+
+                <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-primary)', padding: '0 8px' }}>
+                  Page {currentPage} of {totalPages}
+                </div>
+
+                <button
+                  type="button"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    background: currentPage >= totalPages ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.08)',
+                    color: currentPage >= totalPages ? 'var(--text-secondary)' : 'var(--text-primary)',
+                    border: '1px solid var(--glass-border)',
+                    cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    opacity: currentPage >= totalPages ? 0.5 : 1
+                  }}
+                >
+                  Next <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
