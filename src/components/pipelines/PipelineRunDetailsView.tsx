@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle2, XCircle, Clock, RefreshCw, Terminal, Download, Search, Copy, Check, ExternalLink, Cpu, Layers, Package, Sliders } from 'lucide-react';
+import { X, CheckCircle2, XCircle, Clock, RefreshCw, Terminal, Download, Search, Copy, Check, ExternalLink, Cpu, Layers, Package, Sliders, Lock, Eye, EyeOff, GitBranch, Zap, Globe, FileText } from 'lucide-react';
 
 interface PipelineRunDetailsViewProps {
   runId: string | null;
@@ -22,22 +22,23 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
   const [runDetails, setRunDetails] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [selectedHistoricalRunId, setSelectedHistoricalRunId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [autoScroll, setAutoScroll] = useState<boolean>(true);
   const [copiedLog, setCopiedLog] = useState<boolean>(false);
+  const [showSecrets, setShowSecrets] = useState<boolean>(false);
 
   const isLight = theme === 'light';
 
   useEffect(() => {
     if (runId && isOpen) {
-      fetchRunDetails();
+      fetchRunDetails(selectedHistoricalRunId || runId);
     }
-  }, [runId, isOpen]);
+  }, [runId, isOpen, selectedHistoricalRunId]);
 
-  const fetchRunDetails = async () => {
+  const fetchRunDetails = async (targetRunId: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/pipelines/runs/${runId}`, {
+      const res = await fetch(`${API_BASE}/pipelines/runs/${targetRunId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -56,37 +57,49 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
 
   if (!isOpen) return null;
 
-  const currentJob = runDetails?.stages
-    ?.flatMap((s: any) => s.jobs || [])
-    ?.find((j: any) => j.id === selectedJobId) || runDetails?.stages?.[0]?.jobs?.[0];
+  const projectName = runDetails?.project_name || runId?.replace(/^scanned-\d+-/, '') || 'Estevia Application';
+  const buildNumber = runDetails?.run_number ? `#${runDetails.run_number}` : '#42';
+  const provider = (runDetails?.provider || 'evaops_native').toLowerCase();
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'success':
         return (
-          <span style={{ padding: '3px 10px', borderRadius: '10px', fontSize: '0.74rem', fontWeight: 700, background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+          <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.74rem', fontWeight: 800, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
             <CheckCircle2 size={12} /> Succeeded
           </span>
         );
       case 'running':
         return (
-          <span style={{ padding: '3px 10px', borderRadius: '10px', fontSize: '0.74rem', fontWeight: 700, background: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+          <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.74rem', fontWeight: 800, background: 'rgba(139, 92, 246, 0.15)', color: '#a855f7', border: '1px solid rgba(139, 92, 246, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
             <RefreshCw size={12} className="spin-anim" /> Running
           </span>
         );
       case 'failed':
         return (
-          <span style={{ padding: '3px 10px', borderRadius: '10px', fontSize: '0.74rem', fontWeight: 700, background: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+          <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.74rem', fontWeight: 800, background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
             <XCircle size={12} /> Failed
           </span>
         );
       default:
         return (
-          <span style={{ padding: '3px 10px', borderRadius: '10px', fontSize: '0.74rem', fontWeight: 700, background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+          <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.74rem', fontWeight: 800, background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
             <Clock size={12} /> Queued
           </span>
         );
     }
+  };
+
+  const allJobs = runDetails?.stages?.flatMap((s: any) => s.jobs || []) || [];
+  const activeJob = allJobs.find((j: any) => j.id === selectedJobId) || allJobs[0];
+
+  const fullLogsString = activeJob?.steps?.map((step: any) => `=== Step: ${step.step_name} ===\n${step.log_output}`).join('\n\n') || 
+    `[INFO] Initializing Cloud Credentials for ${projectName}...\n[INFO] Validating Target Scope Configuration...\n[SUCCESS] Pipeline execution active.`;
+
+  const copyLogsToClipboard = () => {
+    navigator.clipboard.writeText(fullLogsString);
+    setCopiedLog(true);
+    setTimeout(() => setCopiedLog(false), 2000);
   };
 
   return (
@@ -96,259 +109,353 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
       left: 0,
       right: 0,
       bottom: 0,
-      zIndex: 9999,
-      background: 'rgba(0, 0, 0, 0.7)',
-      backdropFilter: 'blur(8px)',
+      zIndex: 99999,
+      background: 'rgba(0,0,0,0.75)',
+      backdropFilter: 'blur(12px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '20px',
-      animation: 'fadeIn 0.2s ease-out'
+      padding: '24px'
     }}>
-      <div style={{
-        width: '1300px',
-        maxWidth: '100%',
-        height: '90vh',
+      <div className="glass-panel" style={{
+        width: '100%',
+        maxWidth: '1100px',
+        height: '85vh',
+        borderRadius: '20px',
         background: isLight ? '#ffffff' : '#0f172a',
-        border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(139, 92, 246, 0.3)',
-        borderRadius: '16px',
-        boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+        border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(139, 92, 246, 0.3)',
+        boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        {/* TOP BANNER SUMMARY HEADER */}
+        {/* MODAL HEADER */}
         <div style={{
-          padding: '16px 24px',
-          borderBottom: '1px solid var(--divider)',
+          padding: '20px 24px',
+          borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)',
           background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.02)',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '12px'
+          justifyContent: 'space-between'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            {getStatusBadge(runDetails?.status || 'success')}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ padding: '10px', borderRadius: '12px', background: 'rgba(139, 92, 246, 0.15)', color: 'var(--accent-purple)' }}>
+              <Terminal size={22} />
+            </div>
             <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>{runDetails?.pipeline_name || 'DocuAI Processor API'}</span>
-                <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>#{runDetails?.run_number || 142}</span>
-              </h3>
-              <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
+                  {projectName}
+                </h2>
+                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent-purple)', fontFamily: 'monospace' }}>
+                  {buildNumber}
+                </span>
+
+                {/* Provider Badge */}
+                {provider.includes('azure') ? (
+                  <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(59, 130, 246, 0.14)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.3)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <Layers size={11} /> Azure DevOps
+                  </span>
+                ) : provider.includes('github') ? (
+                  <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <GitBranch size={11} /> GitHub Actions
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(139, 92, 246, 0.16)', color: '#c084fc', border: '1px solid rgba(139, 92, 246, 0.35)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <Zap size={11} /> ⚡ EvaForge CI/CD
+                  </span>
+                )}
+              </div>
+
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span>Branch: <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{runDetails?.branch || 'main'}</strong></span>
                 <span>•</span>
-                <span>Commit: <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{runDetails?.commit_sha || '82665a9'}</strong></span>
+                <span>Commit: <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{runDetails?.commit_sha || 'a4bafe6'}</strong></span>
                 <span>•</span>
-                <span>Duration: <strong>{runDetails?.duration_seconds || 84}s</strong></span>
-                <span>•</span>
-                <span>Agent Pool: <strong>{runDetails?.agent_pool || 'EvaOps Hosted Linux Pool'}</strong></span>
+                <span>Agent: <strong>{runDetails?.agent_pool || 'EvaForge Hosted Runner #01'}</strong></span>
               </div>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '6px' }}
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* SUB-NAVIGATION TABS */}
-        <div style={{
-          padding: '0 24px',
-          borderBottom: '1px solid var(--divider)',
-          display: 'flex',
-          gap: '16px',
-          background: isLight ? '#f1f5f9' : 'rgba(0,0,0,0.2)'
-        }}>
-          {[
-            { id: 'logs', label: 'Jobs & Logs', icon: Terminal },
-            { id: 'summary', label: 'Summary Metrics', icon: Layers },
-            { id: 'artifacts', label: 'Build Artifacts (2)', icon: Package },
-            { id: 'variables', label: 'Matrix & Variables', icon: Sliders }
-          ].map(t => {
-            const TabIcon = t.icon;
-            const isActive = activeTab === t.id;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setActiveTab(t.id as any)}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {/* Historical Run Selector Dropdown */}
+            {runDetails?.historicalRuns && runDetails.historicalRuns.length > 0 && (
+              <select
+                value={selectedHistoricalRunId || runId || ''}
+                onChange={(e) => setSelectedHistoricalRunId(e.target.value)}
                 style={{
-                  padding: '12px 14px',
-                  fontSize: '0.82rem',
-                  fontWeight: isActive ? 700 : 500,
-                  color: isActive ? 'var(--accent-purple)' : 'var(--text-secondary)',
-                  borderBottom: isActive ? '2px solid var(--accent-purple)' : '2px solid transparent',
-                  background: 'transparent',
-                  borderTop: 'none',
-                  borderLeft: 'none',
-                  borderRight: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
+                  height: '34px',
+                  borderRadius: '8px',
+                  background: isLight ? '#ffffff' : '#1e293b',
+                  border: '1px solid var(--glass-border)',
+                  color: 'var(--text-primary)',
+                  padding: '0 10px',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
                 }}
               >
-                <TabIcon size={14} /> {t.label}
-              </button>
-            );
-          })}
+                {runDetails.historicalRuns.map((hr: any) => (
+                  <option key={hr.id} value={hr.id} style={{ background: '#0f172a', color: '#ffffff' }}>
+                    Run #{hr.run_number} ({hr.status}) - {hr.commit_sha}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {getStatusBadge(runDetails?.status || 'success')}
+
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid var(--glass-border)',
+                color: 'var(--text-primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
-        {/* MAIN BODY: JOBS & LOGS SPLIT VIEW */}
-        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-          {/* LEFT SIDEBAR: STAGE & JOB DAG TREE */}
-          <div style={{
-            width: '320px',
-            borderRight: '1px solid var(--divider)',
-            padding: '16px',
-            overflowY: 'auto',
-            background: isLight ? '#f8fafc' : 'rgba(0,0,0,0.15)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px'
-          }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Execution Stages & Jobs
+        {/* MODAL NAVIGATION TABS */}
+        <div style={{
+          padding: '0 24px',
+          borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '20px',
+          background: isLight ? '#f1f5f9' : 'rgba(0,0,0,0.1)'
+        }}>
+          {[
+            { id: 'logs', label: 'Execution Logs', icon: <Terminal size={14} /> },
+            { id: 'summary', label: 'Run Summary', icon: <Cpu size={14} /> },
+            { id: 'artifacts', label: `Artifacts (${runDetails?.artifacts?.length || 3})`, icon: <Package size={14} /> },
+            { id: 'variables', label: 'Environment Variables', icon: <Sliders size={14} /> }
+          ].map(t => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setActiveTab(t.id as any)}
+              style={{
+                padding: '12px 0',
+                background: 'transparent',
+                border: 'none',
+                borderBottom: activeTab === t.id ? '2px solid var(--accent-purple)' : '2px solid transparent',
+                color: activeTab === t.id ? 'var(--accent-purple)' : 'var(--text-secondary)',
+                fontWeight: activeTab === t.id ? 800 : 600,
+                fontSize: '0.84rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {t.icon} {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* MODAL BODY CONTENT */}
+        <div style={{ flex: 1, padding: '24px', overflowY: 'auto' }}>
+          {loading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)', gap: '10px' }}>
+              <RefreshCw size={24} className="spin-anim" /> Loading execution details...
             </div>
-
-            {runDetails?.stages?.map((stage: any, idx: number) => (
-              <div key={stage.id || idx} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {/* Stage Header */}
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  {getStatusBadge(stage.status)}
-                  <span>{stage.name}</span>
-                </div>
-
-                {/* Job Items */}
-                <div style={{ paddingLeft: '14px', borderLeft: '2px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {stage.jobs?.map((j: any) => {
-                    const isSelected = j.id === selectedJobId;
-                    return (
-                      <div
-                        key={j.id}
-                        onClick={() => setSelectedJobId(j.id)}
-                        style={{
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          background: isSelected ? 'rgba(139, 92, 246, 0.15)' : 'transparent',
-                          border: isSelected ? '1px solid rgba(139, 92, 246, 0.4)' : '1px solid transparent',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between'
-                        }}
-                      >
-                        <div style={{ fontSize: '0.78rem', fontWeight: isSelected ? 700 : 500, color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+          ) : (
+            <>
+              {/* TAB 1: EXECUTION LOGS */}
+              {activeTab === 'logs' && (
+                <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '16px' }}>
+                  {/* Job Selector Bar */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflowX: 'auto' }}>
+                      {allJobs.map((j: any) => (
+                        <button
+                          key={j.id}
+                          type="button"
+                          onClick={() => setSelectedJobId(j.id)}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            fontSize: '0.78rem',
+                            fontWeight: selectedJobId === j.id ? 800 : 600,
+                            background: selectedJobId === j.id ? 'var(--accent-purple)' : 'rgba(255,255,255,0.04)',
+                            color: selectedJobId === j.id ? '#ffffff' : 'var(--text-secondary)',
+                            border: '1px solid var(--glass-border)',
+                            cursor: 'pointer'
+                          }}
+                        >
                           {j.name}
-                        </div>
-                        <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>{j.duration_seconds || 14}s</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* RIGHT MAIN PANEL: STEP ACCORDIONS & ANSI LOG TERMINAL */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            {/* Step Controls Bar */}
-            <div style={{
-              padding: '12px 20px',
-              borderBottom: '1px solid var(--divider)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              background: isLight ? '#ffffff' : 'rgba(255,255,255,0.01)'
-            }}>
-              <div style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Terminal size={15} style={{ color: 'var(--accent-purple)' }} />
-                <span>Job: {currentJob?.name || 'Compile TypeScript & Bundle'}</span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {/* Search Box */}
-                <div style={{ position: 'relative' }}>
-                  <Search size={12} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-                  <input
-                    type="text"
-                    placeholder="Search logs..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ height: '28px', paddingLeft: '26px', borderRadius: '6px', fontSize: '0.76rem', background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCopiedLog(true);
-                    setTimeout(() => setCopiedLog(false), 2000);
-                  }}
-                  style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.74rem', background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                >
-                  {copiedLog ? <Check size={12} style={{ color: '#10b981' }} /> : <Copy size={12} />}
-                  <span>{copiedLog ? 'Copied' : 'Copy'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '0.74rem', background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                >
-                  <Download size={12} /> Raw Log
-                </button>
-              </div>
-            </div>
-
-            {/* STEP ACCORDIONS & TERMINAL CANVAS */}
-            <div style={{ flex: 1, padding: '16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {currentJob?.steps?.map((step: any, idx: number) => (
-                <div key={step.id || idx} style={{ borderRadius: '8px', border: '1px solid var(--glass-border)', overflow: 'hidden' }}>
-                  {/* Step Header Accordion */}
-                  <div style={{
-                    padding: '10px 14px',
-                    background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.02)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    fontWeight: 600,
-                    fontSize: '0.8rem'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <CheckCircle2 size={14} style={{ color: '#10b981' }} />
-                      <span style={{ color: 'var(--text-primary)' }}>{idx + 1}. {step.name}</span>
+                        </button>
+                      ))}
                     </div>
-                    <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>{step.durationSeconds || step.duration_seconds || 2}s</span>
+
+                    <button
+                      type="button"
+                      onClick={copyLogsToClipboard}
+                      className="btn-secondary"
+                      style={{ padding: '6px 12px', fontSize: '0.76rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      {copiedLog ? <Check size={14} style={{ color: '#10b981' }} /> : <Copy size={14} />}
+                      {copiedLog ? 'Copied Logs!' : 'Copy Logs'}
+                    </button>
                   </div>
 
-                  {/* Dark Terminal Log Canvas */}
+                  {/* Terminal Log Console */}
                   <div style={{
+                    flex: 1,
                     background: '#090d16',
-                    padding: '12px 16px',
-                    fontFamily: 'monospace',
-                    fontSize: '0.76rem',
-                    lineHeight: 1.5,
+                    borderRadius: '12px',
+                    border: '1px solid #1e293b',
+                    padding: '16px',
+                    fontFamily: 'Consolas, Monaco, "Andale Mono", monospace',
+                    fontSize: '0.82rem',
                     color: '#38bdf8',
-                    overflowX: 'auto'
+                    overflowY: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    lineHeight: '1.6'
                   }}>
-                    {Array.isArray(step.logs) ? step.logs.map((line: string, i: number) => (
-                      <div key={i} style={{ display: 'flex', gap: '12px' }}>
-                        <span style={{ color: '#475569', userSelect: 'none', width: '24px', textAlign: 'right' }}>{i + 1}</span>
-                        <span style={{ color: line.includes('[ERROR]') ? '#ef4444' : line.includes('[SUCCESS]') ? '#10b981' : '#cbd5e1' }}>{line}</span>
-                      </div>
-                    )) : (
-                      <div>{step.log_content || '[INFO] Step execution logs stream initialized.\n[SUCCESS] Completed step successfully.'}</div>
-                    )}
+                    {fullLogsString}
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              )}
+
+              {/* TAB 2: RUN SUMMARY */}
+              {activeTab === 'summary' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                    <div className="glass-panel" style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 800 }}>Resource Group</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px' }}>Estevia-Prod-RG</div>
+                    </div>
+
+                    <div className="glass-panel" style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 800 }}>GoDaddy CNAME Record</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#10b981', marginTop: '4px' }}>{projectName.toLowerCase()}.esteviatech.com</div>
+                    </div>
+
+                    <div className="glass-panel" style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 800 }}>Execution Time</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--accent-purple)', marginTop: '4px' }}>{runDetails?.duration_seconds || 48} seconds</div>
+                    </div>
+                  </div>
+
+                  {/* Stage Timeline */}
+                  <div className="glass-panel" style={{ padding: '20px', borderRadius: '14px', border: '1px solid var(--glass-border)' }}>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 16px 0' }}>Stage Breakdown Timeline</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {(runDetails?.stages || []).map((stage: any, idx: number) => (
+                        <div key={stage.id || idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <CheckCircle2 size={16} style={{ color: '#10b981' }} />
+                            <div>
+                              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>Stage {idx + 1}: {stage.name}</div>
+                              <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>{stage.jobs?.length || 1} job • Succeeded</div>
+                            </div>
+                          </div>
+                          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Completed in 16s</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: ARTIFACTS */}
+              {activeTab === 'artifacts' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Compiled Build Artifacts</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {(runDetails?.artifacts || [
+                      { name: 'build-output.zip', size: '14.2 MB', type: 'application/zip' },
+                      { name: 'bicep-deployment.json', size: '2.4 KB', type: 'application/json' },
+                      { name: 'cname-allocation-audit.json', size: '850 B', type: 'application/json' }
+                    ]).map((art: any, i: number) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderRadius: '12px', background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <Package size={18} style={{ color: 'var(--accent-purple)' }} />
+                          <div>
+                            <div style={{ fontSize: '0.86rem', fontWeight: 800, color: 'var(--text-primary)' }}>{art.name}</div>
+                            <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>Size: {art.size} • Type: {art.type}</div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          style={{ padding: '6px 14px', fontSize: '0.78rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <Download size={14} /> Download
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: ENVIRONMENT VARIABLES */}
+              {activeTab === 'variables' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Pipeline Secret & Environment Variables</h3>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => setShowSecrets(!showSecrets)}
+                      style={{ padding: '6px 12px', fontSize: '0.78rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      {showSecrets ? <EyeOff size={14} /> : <Eye size={14} />}
+                      {showSecrets ? 'Hide Masked Tokens' : 'Show Masked Tokens'}
+                    </button>
+                  </div>
+
+                  <div className="glass-panel" style={{ borderRadius: '12px', border: '1px solid var(--glass-border)', overflow: 'hidden' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--divider)', fontSize: '0.76rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                          <th style={{ padding: '12px 16px', fontWeight: 800 }}>Variable Key</th>
+                          <th style={{ padding: '12px 16px', fontWeight: 800 }}>Value</th>
+                          <th style={{ padding: '12px 16px', fontWeight: 800 }}>Type</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(runDetails?.variables || [
+                          { name: 'AZURE_SUBSCRIPTION_ID', value: '4a161497-891d-4e99-b12d-ae79f03eb900', is_secret: true },
+                          { name: 'GODADDY_API_KEY', value: 'sK92m_xY1892kLqP', is_secret: true },
+                          { name: 'RESOURCE_GROUP', value: 'Estevia-Prod-RG', is_secret: false },
+                          { name: 'TARGET_ENVIRONMENT', value: 'production', is_secret: false }
+                        ]).map((v: any, idx: number) => (
+                          <tr key={idx} style={{ borderBottom: '1px solid var(--divider)', fontSize: '0.82rem' }}>
+                            <td style={{ padding: '12px 16px', fontWeight: 800, color: 'var(--accent-purple)', fontFamily: 'monospace' }}>{v.name}</td>
+                            <td style={{ padding: '12px 16px', fontFamily: 'monospace', color: 'var(--text-primary)' }}>
+                              {v.is_secret && !showSecrets ? '••••••••••••••••' : v.value}
+                            </td>
+                            <td style={{ padding: '12px 16px' }}>
+                              {v.is_secret ? (
+                                <span style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(239,68,68,0.15)', color: '#ef4444', fontWeight: 700 }}>SECRET</span>
+                              ) : (
+                                <span style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(59,130,246,0.15)', color: '#3b82f6', fontWeight: 700 }}>ENV_VAR</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>
