@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, RefreshCw, UserCheck, Shield, Award, Eye, X, Check, Terminal, ShieldAlert, ShieldX, KeyRound, ChevronDown, MoreVertical, Lock, Crown, ShieldCheck } from 'lucide-react';
+import { Users, RefreshCw, UserCheck, Shield, Award, Eye, X, Check, Terminal, ShieldAlert, ShieldX, KeyRound, ChevronDown, MoreVertical, Lock, Crown, ShieldCheck, Clock } from 'lucide-react';
 import { UserAuditLogDrawer } from '../components/team/UserAuditLogDrawer';
 
 // Dynamic environment branding suffix
@@ -1165,7 +1165,7 @@ export const TeamPage: React.FC<TeamPageProps> = ({
               <tr style={{ borderBottom: '1px solid var(--divider)', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
                 <th style={{ padding: '12px 16px', fontWeight: 600 }}>Name</th>
                 <th style={{ padding: '12px 16px', fontWeight: 600 }}>Email</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Current Role</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Last Login</th>
                 <th style={{ padding: '12px 16px', fontWeight: 600 }}>MFA</th>
                 <th style={{ padding: '12px 16px', fontWeight: 600 }}>Role Assignment</th>
                 <th style={{ padding: '12px 16px', fontWeight: 600, width: '220px' }}>Actions</th>
@@ -1174,7 +1174,6 @@ export const TeamPage: React.FC<TeamPageProps> = ({
             <tbody>
               {filteredUsers.map((u) => {
                 const isSelf = u.id === currentUser?.id;
-                const badgeStyle = getRoleBadgeStyle(u.role);
                 const isTargetOwner = u.role === 'owner';
                 // Admins cannot change owner roles. Nobody can change their own role.
                 const isSelectDisabled = updatingUserId === u.id || isSelf || !canManageRoles || (isTargetOwner && currentUser?.role !== 'owner');
@@ -1192,21 +1191,15 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                       </div>
                     </td>
                     <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{u.email}</td>
-                    <td style={{ padding: '14px 16px' }}>
-                      <span style={{
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        padding: '3px 10px',
-                        borderRadius: '12px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        ...badgeStyle
-                      }}>
-                        {getRoleIcon(u.role)}
-                        {u.role ? (u.role === 'member' ? 'contributor' : u.role) : 'viewer'}
-                      </span>
+                    <td style={{ padding: '14px 16px', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 500 }}>
+                        <Clock size={12} style={{ opacity: 0.75 }} />
+                        <span>
+                          {(u as any).last_login || (u as any).last_login_at || (u as any).updated_at || u.created_at
+                            ? new Date((u as any).last_login || (u as any).last_login_at || (u as any).updated_at || u.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                            : 'Recently'}
+                        </span>
+                      </div>
                     </td>
                     <td style={{ padding: '14px 16px' }}>
                       {u.mfa_enabled ? (

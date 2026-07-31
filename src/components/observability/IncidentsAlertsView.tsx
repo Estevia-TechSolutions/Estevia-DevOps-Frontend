@@ -797,7 +797,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
                                                     </span>
                                                     <div style={{ fontSize: '0.74rem', color: isLight ? '#64748b' : 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 500 }}>
                                                         <Clock size={12} style={{ opacity: 0.8 }} />
-                                                        <span>{new Date(inc.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                                        <span>{new Date(inc.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                                                     </div>
                                                 </div>
                                             </td>
