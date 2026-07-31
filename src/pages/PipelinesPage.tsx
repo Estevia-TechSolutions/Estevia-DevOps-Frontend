@@ -99,6 +99,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
 
     if (apps && apps.length > 0) {
       apps.forEach((app, idx) => {
+        if (app.type === 'database' || (app.name || '').toLowerCase().endsWith('-db')) return;
         const appKey = (app.name || '').toLowerCase();
         if (!runMap.has(appKey)) {
           let prov = (app.provider || app.build_provider || '').toLowerCase();

@@ -410,7 +410,10 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
 
                   {/* Stage Timeline */}
                   <div className="glass-panel" style={{ padding: '20px', borderRadius: '14px', border: '1px solid var(--glass-border)' }}>
-                    <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 16px 0' }}>Stage Breakdown Timeline ({activeBranch} branch)</h3>
+                    <div>
+                      <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Pipeline Execution Stage Breakdown ({activeBranch} branch)</h3>
+                      <p style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', margin: '2px 0 16px 0' }}>Step-by-step DAG execution pipeline status for cloud infrastructure, compilation, containerization, and DNS routing.</p>
+                    </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {(runDetails?.stages || []).map((stage: any, idx: number) => (
                         <div key={stage.id || idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}>
