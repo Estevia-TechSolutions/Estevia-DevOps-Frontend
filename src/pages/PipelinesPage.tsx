@@ -153,63 +153,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
         </button>
       </div>
 
-      {/* Internal Sub-Navigation Switcher */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '4px',
-        borderRadius: '10px',
-        background: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)',
-        border: '1px solid var(--glass-border)',
-        marginBottom: '24px',
-        width: 'fit-content'
-      }}>
-        <button
-          type="button"
-          onClick={() => setActiveSubTab('pipelines')}
-          style={{
-            padding: '7px 16px',
-            borderRadius: '8px',
-            fontSize: '0.82rem',
-            fontWeight: 700,
-            background: activeSubTab === 'pipelines' ? 'var(--accent-purple)' : 'transparent',
-            color: activeSubTab === 'pipelines' ? '#ffffff' : 'var(--text-secondary)',
-            border: 'none',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}
-        >
-          <Zap size={14} /> CI/CD Pipelines & Build History
-        </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            setActiveSubTab('provision');
-            onSwitchToProvisionWizard();
-          }}
-          style={{
-            padding: '7px 16px',
-            borderRadius: '8px',
-            fontSize: '0.82rem',
-            fontWeight: 600,
-            background: activeSubTab === 'provision' ? 'var(--accent-purple)' : 'transparent',
-            color: activeSubTab === 'provision' ? '#ffffff' : 'var(--text-secondary)',
-            border: 'none',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}
-        >
-          <Plus size={14} /> Provision Infrastructure (Wizard)
-        </button>
-      </div>
 
       {/* METRICS SUMMARY GRID */}
       <div style={{
