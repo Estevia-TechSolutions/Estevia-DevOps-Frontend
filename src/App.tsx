@@ -11150,6 +11150,7 @@ function App() {
           API_BASE={API_BASE}
           token={user?.token || ''}
           theme={theme}
+          apps={apps}
           onPipelineCreated={() => {
             setShowPipelineCreatorDrawer(false);
           }}
