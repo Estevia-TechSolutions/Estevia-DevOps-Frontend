@@ -97,10 +97,10 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
       apps.forEach((app, idx) => {
         const appKey = (app.name || '').toLowerCase();
         if (!runMap.has(appKey)) {
-          const prov = app.provider || (app.type === 'frontend' ? 'github_actions' : app.name.includes('API') || app.name.includes('Processor') ? 'azure_devops' : 'evaops_native');
+          const prov = (app.provider || app.build_provider || 'unconfigured').toLowerCase();
           combined.push({
             id: `scanned-${idx}-${app.name}`,
-            pipeline_name: `${app.name} CI/CD Pipeline`,
+            pipeline_name: `${app.name} Pipeline`,
             project_name: app.name,
             run_number: 1,
             status: 'success',
@@ -289,9 +289,13 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                           <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                             <GitBranch size={12} /> GitHub Actions
                           </span>
-                        ) : (
+                        ) : prov.includes('eva') || prov.includes('native') ? (
                           <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(139, 92, 246, 0.16)', color: 'var(--accent-purple)', border: '1px solid rgba(139, 92, 246, 0.35)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                             <Zap size={12} /> ⚡ EvaForge CI/CD
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(148, 163, 184, 0.12)', color: 'var(--text-secondary)', border: '1px solid var(--glass-border)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            ⚙️ Unconfigured
                           </span>
                         )}
                       </td>
