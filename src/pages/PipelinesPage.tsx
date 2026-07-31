@@ -24,7 +24,7 @@ interface PipelinesPageProps {
   theme: 'dark' | 'light';
   apps?: any[];
   onOpenCreateDrawer: () => void;
-  onOpenRunDetails: (runId: string, branch?: string) => void;
+  onOpenRunDetails: (runId: string, branch?: string, provider?: string) => void;
   onSwitchToProvisionWizard: () => void;
 }
 
@@ -574,7 +574,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                         {branchesList.map((b, bIdx) => (
                           <div
                             key={bIdx}
-                            onClick={() => onOpenRunDetails(r.id, b.branch)}
+                            onClick={() => onOpenRunDetails(r.id, b.branch, r.provider)}
                             style={{
                               padding: '6px 10px',
                               borderRadius: '8px',
@@ -630,7 +630,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                     <button
                       type="button"
                       className="btn-secondary"
-                      onClick={() => onOpenRunDetails(r.id, 'main')}
+                      onClick={() => onOpenRunDetails(r.id, 'main', r.provider)}
                       style={{
                         flex: 1,
                         padding: '8px 12px',

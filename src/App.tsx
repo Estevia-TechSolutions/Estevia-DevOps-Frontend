@@ -1076,6 +1076,7 @@ function App() {
   const [showPipelineCreatorDrawer, setShowPipelineCreatorDrawer] = useState<boolean>(false);
   const [selectedRunIdForDetails, setSelectedRunIdForDetails] = useState<string | null>(null);
   const [selectedRunBranchForDetails, setSelectedRunBranchForDetails] = useState<string>('main');
+  const [selectedRunProviderForDetails, setSelectedRunProviderForDetails] = useState<string>('azure_devops');
   const [showRunDetailsView, setShowRunDetailsView] = useState<boolean>(false);
   const [provisionViewMode, setProvisionViewMode] = useState<'pipelines' | 'wizard'>('pipelines');
 
@@ -8355,9 +8356,10 @@ function App() {
                       theme={theme}
                       apps={apps}
                       onOpenCreateDrawer={() => setShowPipelineCreatorDrawer(true)}
-                      onOpenRunDetails={(runId, branch = 'main') => {
+                      onOpenRunDetails={(runId, branch = 'main', provider = 'azure_devops') => {
                         setSelectedRunIdForDetails(runId);
                         setSelectedRunBranchForDetails(branch);
+                        setSelectedRunProviderForDetails(provider);
                         setShowRunDetailsView(true);
                       }}
                       onSwitchToProvisionWizard={() => setProvisionViewMode('wizard')}
@@ -11161,6 +11163,8 @@ function App() {
 
         <PipelineRunDetailsView
           runId={selectedRunIdForDetails}
+          initialBranch={selectedRunBranchForDetails}
+          initialProvider={selectedRunProviderForDetails}
           isOpen={showRunDetailsView}
           onClose={() => setShowRunDetailsView(false)}
           API_BASE={API_BASE}

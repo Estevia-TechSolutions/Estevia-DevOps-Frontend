@@ -4,6 +4,7 @@ import { X, CheckCircle2, XCircle, Clock, RefreshCw, Terminal, Download, Search,
 interface PipelineRunDetailsViewProps {
   runId: string | null;
   initialBranch?: string;
+  initialProvider?: string;
   isOpen: boolean;
   onClose: () => void;
   API_BASE: string;
@@ -14,6 +15,7 @@ interface PipelineRunDetailsViewProps {
 export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
   runId,
   initialBranch = 'main',
+  initialProvider = 'azure_devops',
   isOpen,
   onClose,
   API_BASE,
@@ -75,7 +77,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
 
   const projectName = runDetails?.project_name || runId?.replace(/^scanned-\d+-/, '') || 'Estevia Codebase';
   const buildNumber = runDetails?.run_number ? `#${runDetails.run_number}` : '#42';
-  const provider = (runDetails?.provider || 'evaops_native').toLowerCase();
+  const provider = (runDetails?.provider || initialProvider || 'azure_devops').toLowerCase();
   const cnameHost = runDetails?.cname_host || `${projectName.toLowerCase()}.esteviatech.com`;
   const resourceGroup = runDetails?.resource_group || 'Estevia-Prod-RG';
 
