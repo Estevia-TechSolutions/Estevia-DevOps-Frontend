@@ -153,6 +153,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
     const provLow = (r.provider || '').toLowerCase();
     const matchesProvider = providerFilter === 'all' ||
       (providerFilter === 'azure' && (provLow.includes('azure') || provLow.includes('devops'))) ||
+      (providerFilter === 'github' && provLow.includes('github')) ||
       (providerFilter === 'evaforge' && (provLow.includes('eva') || provLow.includes('native'))) ||
       (providerFilter === 'unconfigured' && (provLow === 'unconfigured' || !provLow));
 
@@ -428,6 +429,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
           {[
             { id: 'all', label: 'All Pipelines', icon: <Layers size={13} /> },
             { id: 'azure', label: 'Azure DevOps', icon: <Layers size={13} style={{ color: '#3b82f6' }} /> },
+            { id: 'github', label: 'GitHub Actions', icon: <GitBranch size={13} style={{ color: '#22c55e' }} /> },
             { id: 'evaforge', label: 'EvaForge CI/CD', icon: <Zap size={13} style={{ color: '#a855f7' }} /> },
             { id: 'unconfigured', label: 'Unconfigured', icon: <Globe size={13} /> }
           ].map(tab => (
