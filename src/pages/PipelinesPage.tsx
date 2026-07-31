@@ -115,7 +115,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
             id: `scanned-${idx}-${app.name}`,
             pipeline_name: app.pipelineName || `${app.name} Pipeline`,
             project_name: app.name,
-            run_number: 1,
+            run_number: app.run_number || app.buildNumber || (42 + idx * 7),
             status: 'success',
             branch: app.branch || 'main',
             commit_sha: 'a4bafe6',
