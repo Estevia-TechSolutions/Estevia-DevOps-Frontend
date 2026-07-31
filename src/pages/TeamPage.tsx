@@ -23,6 +23,7 @@ export interface UserRecord {
   name: string;
   role: 'owner' | 'admin' | 'contributor' | 'viewer' | 'member';
   created_at: string;
+  last_login_at?: string;
   mfa_enabled?: number | boolean;
 }
 
@@ -1195,9 +1196,9 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 500 }}>
                         <Clock size={12} style={{ opacity: 0.75 }} />
                         <span>
-                          {(u as any).last_login || (u as any).last_login_at || (u as any).updated_at || u.created_at
-                            ? new Date((u as any).last_login || (u as any).last_login_at || (u as any).updated_at || u.created_at).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                            : 'Recently'}
+                          {u.last_login_at || (u as any).last_login
+                            ? new Date(u.last_login_at || (u as any).last_login).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                            : 'Active Session'}
                         </span>
                       </div>
                     </td>
