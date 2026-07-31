@@ -39,11 +39,35 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
+  const [metrics, setMetrics] = useState({
+    passRate: '0%',
+    totalRuns: 0,
+    avgDuration: '0s',
+    activePodsCount: 0
+  });
+
   const isLight = theme === 'light';
 
   useEffect(() => {
     fetchPipelineRuns();
+    fetchMetrics();
   }, []);
+
+  const fetchMetrics = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/pipelines`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.metrics) {
+          setMetrics(data.metrics);
+        }
+      }
+    } catch (e) {
+      console.warn('[PipelinesPage] Failed to fetch metrics:', e);
+    }
+  };
 
   const fetchPipelineRuns = async () => {
     setLoading(true);
@@ -53,66 +77,13 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
       });
       if (res.ok) {
         const data = await res.json();
-        setRuns(data);
+        setRuns(Array.isArray(data) ? data : []);
       } else {
-        // Fallback sample pipeline runs for demonstration
-        setRuns([
-          {
-            id: 'run-142',
-            pipeline_name: 'DocuAI Processor API',
-            project_name: 'DocuAI-Processor',
-            run_number: 142,
-            status: 'success',
-            branch: 'main',
-            commit_sha: '82665a9',
-            commit_message: 'feat(team): add last_login_at timestamp tracking',
-            triggered_by: 'gmenon@esteviatech.com',
-            duration_seconds: 84,
-            created_at: new Date().toISOString()
-          },
-          {
-            id: 'run-141',
-            pipeline_name: 'Estevia Marketing Web',
-            project_name: 'Estevia-Corporate-Web',
-            run_number: 141,
-            status: 'running',
-            branch: 'dev',
-            commit_sha: '0ef0046',
-            commit_message: 'style(team): style Not logged yet fallback badge',
-            triggered_by: 'aSharma@esteviatech.com',
-            duration_seconds: 42,
-            created_at: new Date(Date.now() - 300000).toISOString()
-          },
-          {
-            id: 'run-140',
-            pipeline_name: 'ConnectHub Integration Platform',
-            project_name: 'ConnectHub-Core',
-            run_number: 140,
-            status: 'failed',
-            branch: 'qa',
-            commit_sha: '3c152e1',
-            commit_message: 'fix(api): correct CORS origins header',
-            triggered_by: 'dev-bot@esteviatech.com',
-            duration_seconds: 28,
-            created_at: new Date(Date.now() - 3600000).toISOString()
-          },
-          {
-            id: 'run-139',
-            pipeline_name: 'PeopleCraft Enterprise HR Core',
-            project_name: 'PeopleCraft-HR',
-            run_number: 139,
-            status: 'success',
-            branch: 'main',
-            commit_sha: '09429f4',
-            commit_message: 'refactor(db): optimize MySQL index query',
-            triggered_by: 'gmenon@esteviatech.com',
-            duration_seconds: 124,
-            created_at: new Date(Date.now() - 7200000).toISOString()
-          }
-        ]);
+        setRuns([]);
       }
     } catch (err) {
-      console.warn('[PipelinesPage] Failed to fetch pipeline runs, using sample dataset.');
+      console.warn('[PipelinesPage] Failed to fetch pipeline runs from backend API.');
+      setRuns([]);
     } finally {
       setLoading(false);
     }
@@ -253,18 +224,17 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
             Pass Rate %
           </div>
           <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>98.4%</span>
-            <span style={{ fontSize: '0.72rem', color: '#10b981', background: 'rgba(16,185,129,0.12)', padding: '2px 6px', borderRadius: '6px' }}>+2.1%</span>
+            <span>{metrics.passRate}</span>
           </div>
         </div>
 
         {/* Metric 2 */}
         <div className="glass-panel" style={{ padding: '16px 20px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
           <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-            Total Executions (30D)
+            Total Executions
           </div>
           <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            1,248 Runs
+            {metrics.totalRuns} Runs
           </div>
         </div>
 
@@ -274,8 +244,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
             Avg Build Duration
           </div>
           <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>1m 12s</span>
-            <span style={{ fontSize: '0.72rem', color: '#3b82f6', background: 'rgba(59,130,246,0.12)', padding: '2px 6px', borderRadius: '6px' }}>-14s faster</span>
+            <span>{metrics.avgDuration}</span>
           </div>
         </div>
 
@@ -286,7 +255,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
           </div>
           <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#ec4899', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Cpu size={20} />
-            <span>4 Pods</span>
+            <span>{metrics.activePodsCount} Pods</span>
           </div>
         </div>
       </div>

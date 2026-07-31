@@ -8291,20 +8291,76 @@ function App() {
 
               {/* TAB 2: PROVISION & CI/CD PIPELINES */}
               {activeTab === 'provision' && (
-                provisionViewMode === 'pipelines' ? (
-                  <PipelinesPage
-                    API_BASE={API_BASE}
-                    token={user?.token || ''}
-                    theme={theme}
-                    onOpenCreateDrawer={() => setShowPipelineCreatorDrawer(true)}
-                    onOpenRunDetails={(runId) => {
-                      setSelectedRunIdForDetails(runId);
-                      setShowRunDetailsView(true);
-                    }}
-                    onSwitchToProvisionWizard={() => setProvisionViewMode('wizard')}
-                  />
-                ) : (
-                  <ProvisionWizard
+                <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+                  {/* PERMANENT TOP SUB-NAVIGATION CONTROL BAR */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '4px',
+                    borderRadius: '10px',
+                    background: theme === 'light' ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.03)',
+                    border: '1px solid var(--glass-border)',
+                    marginBottom: '24px',
+                    width: 'fit-content'
+                  }}>
+                    <button
+                      type="button"
+                      onClick={() => setProvisionViewMode('pipelines')}
+                      style={{
+                        padding: '8px 18px',
+                        borderRadius: '8px',
+                        fontSize: '0.84rem',
+                        fontWeight: 700,
+                        background: provisionViewMode === 'pipelines' ? 'var(--accent-purple)' : 'transparent',
+                        color: provisionViewMode === 'pipelines' ? '#ffffff' : 'var(--text-secondary)',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Zap size={14} /> 🚀 CI/CD Pipelines & Build History
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setProvisionViewMode('wizard')}
+                      style={{
+                        padding: '8px 18px',
+                        borderRadius: '8px',
+                        fontSize: '0.84rem',
+                        fontWeight: 700,
+                        background: provisionViewMode === 'wizard' ? 'var(--accent-purple)' : 'transparent',
+                        color: provisionViewMode === 'wizard' ? '#ffffff' : 'var(--text-secondary)',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <PlusCircle size={14} /> ➕ Provision Infrastructure (Wizard)
+                    </button>
+                  </div>
+
+                  {provisionViewMode === 'pipelines' ? (
+                    <PipelinesPage
+                      API_BASE={API_BASE}
+                      token={user?.token || ''}
+                      theme={theme}
+                      onOpenCreateDrawer={() => setShowPipelineCreatorDrawer(true)}
+                      onOpenRunDetails={(runId) => {
+                        setSelectedRunIdForDetails(runId);
+                        setShowRunDetailsView(true);
+                      }}
+                      onSwitchToProvisionWizard={() => setProvisionViewMode('wizard')}
+                    />
+                  ) : (
+                    <ProvisionWizard
                   pipelineProvider={pipelineProvider}
                   setPipelineProvider={setPipelineProvider}
                   kubernetesVersion={kubernetesVersion}
@@ -8434,8 +8490,9 @@ function App() {
                   provisionYmlValidation={provisionYmlValidation}
                   provisionYmlValidating={provisionYmlValidating}
                 />
-              )
               )}
+            </div>
+          )}
 
               {/* TAB 3: CREDENTIALS MANAGEMENT */}
               {activeTab === 'credentials' && (
