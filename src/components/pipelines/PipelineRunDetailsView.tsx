@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle2, XCircle, Clock, RefreshCw, Terminal, Download, Search, Copy, Check, ExternalLink, Cpu, Layers, Package, Sliders, Lock, Eye, EyeOff, GitBranch, Zap, Globe, FileText } from 'lucide-react';
+import { X, CheckCircle2, XCircle, Clock, RefreshCw, Terminal, Download, Search, Copy, Check, ExternalLink, Cpu, Layers, Package, Sliders, Lock, Eye, EyeOff, GitBranch, Zap, Globe, FileText, Server } from 'lucide-react';
 
 interface PipelineRunDetailsViewProps {
   runId: string | null;
+  initialBranch?: string;
   isOpen: boolean;
   onClose: () => void;
   API_BASE: string;
@@ -12,6 +13,7 @@ interface PipelineRunDetailsViewProps {
 
 export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
   runId,
+  initialBranch = 'main',
   isOpen,
   onClose,
   API_BASE,
@@ -19,33 +21,39 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
   theme
 }) => {
   const [activeTab, setActiveTab] = useState<'logs' | 'summary' | 'artifacts' | 'variables'>('logs');
+  const [activeBranch, setActiveBranch] = useState<string>(initialBranch);
   const [runDetails, setRunDetails] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [selectedHistoricalRunId, setSelectedHistoricalRunId] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>('');
   const [copiedLog, setCopiedLog] = useState<boolean>(false);
   const [showSecrets, setShowSecrets] = useState<boolean>(false);
 
   const isLight = theme === 'light';
 
   useEffect(() => {
+    if (initialBranch) {
+      setActiveBranch(initialBranch);
+    }
+  }, [initialBranch]);
+
+  useEffect(() => {
     if (runId && isOpen) {
       setSelectedHistoricalRunId(null);
-      fetchRunDetails(runId);
+      fetchRunDetails(runId, activeBranch);
     }
-  }, [runId, isOpen]);
+  }, [runId, isOpen, activeBranch]);
 
   useEffect(() => {
     if (selectedHistoricalRunId && isOpen) {
-      fetchRunDetails(selectedHistoricalRunId);
+      fetchRunDetails(selectedHistoricalRunId, activeBranch);
     }
   }, [selectedHistoricalRunId]);
 
-  const fetchRunDetails = async (targetRunId: string) => {
+  const fetchRunDetails = async (targetRunId: string, branchName: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/pipelines/runs/${targetRunId}`, {
+      const res = await fetch(`${API_BASE}/pipelines/runs/${targetRunId}?branch=${branchName}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -64,9 +72,11 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
 
   if (!isOpen) return null;
 
-  const projectName = runDetails?.project_name || runId?.replace(/^scanned-\d+-/, '') || 'Estevia Application';
+  const projectName = runDetails?.project_name || runId?.replace(/^scanned-\d+-/, '') || 'Estevia Codebase';
   const buildNumber = runDetails?.run_number ? `#${runDetails.run_number}` : '#42';
   const provider = (runDetails?.provider || 'evaops_native').toLowerCase();
+  const cnameHost = runDetails?.cname_host || `${projectName.toLowerCase()}.esteviatech.com`;
+  const resourceGroup = runDetails?.resource_group || 'Estevia-Prod-RG';
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -79,7 +89,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
       case 'running':
         return (
           <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.74rem', fontWeight: 800, background: 'rgba(139, 92, 246, 0.15)', color: '#a855f7', border: '1px solid rgba(139, 92, 246, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-            <RefreshCw size={12} className="spin-anim" /> Running
+            <RefreshCw size={12} className="spin-anim" /> Building
           </span>
         );
       case 'failed':
@@ -101,7 +111,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
   const activeJob = allJobs.find((j: any) => j.id === selectedJobId) || allJobs[0];
 
   const fullLogsString = activeJob?.steps?.map((step: any) => `=== Step: ${step.step_name} ===\n${step.log_output}`).join('\n\n') || 
-    `[INFO] Initializing Cloud Credentials for ${projectName}...\n[INFO] Validating Target Scope Configuration...\n[SUCCESS] Pipeline execution active.`;
+    `[INFO] Initializing Cloud Credentials for ${projectName} on branch ${activeBranch}...\n[INFO] Target Environment Scope: ${resourceGroup} (${cnameHost})\n[SUCCESS] Pipeline execution active.`;
 
   const copyLogsToClipboard = () => {
     navigator.clipboard.writeText(fullLogsString);
@@ -126,8 +136,8 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
     }}>
       <div className="glass-panel" style={{
         width: '100%',
-        maxWidth: '1100px',
-        height: '85vh',
+        maxWidth: '1140px',
+        height: '88vh',
         borderRadius: '20px',
         background: isLight ? '#ffffff' : '#0f172a',
         border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(139, 92, 246, 0.3)',
@@ -163,10 +173,6 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
                   <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(59, 130, 246, 0.14)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.3)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     <Layers size={11} /> Azure DevOps
                   </span>
-                ) : provider.includes('github') ? (
-                  <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <GitBranch size={11} /> GitHub Actions
-                  </span>
                 ) : (
                   <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(139, 92, 246, 0.16)', color: '#c084fc', border: '1px solid rgba(139, 92, 246, 0.35)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     <Zap size={11} /> ⚡ EvaForge CI/CD
@@ -175,11 +181,11 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
               </div>
 
               <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span>Branch: <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{runDetails?.branch || 'main'}</strong></span>
+                <span>Target Host: <strong style={{ color: '#10b981', fontFamily: 'monospace' }}>{cnameHost}</strong></span>
+                <span>•</span>
+                <span>RG: <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{resourceGroup}</strong></span>
                 <span>•</span>
                 <span>Commit: <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{runDetails?.commit_sha || 'a4bafe6'}</strong></span>
-                <span>•</span>
-                <span>Agent: <strong>{runDetails?.agent_pool || 'EvaForge Hosted Runner #01'}</strong></span>
               </div>
             </div>
           </div>
@@ -204,7 +210,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
               >
                 {runDetails.historicalRuns.map((hr: any) => (
                   <option key={hr.id} value={hr.id} style={{ background: '#0f172a', color: '#ffffff' }}>
-                    Run #{hr.run_number} ({hr.status}) - {hr.commit_sha}
+                    Run #{hr.run_number} ({hr.status}) - {hr.commit_sha} [{hr.branch || activeBranch}]
                   </option>
                 ))}
               </select>
@@ -233,6 +239,51 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
           </div>
         </div>
 
+        {/* TARGET ENVIRONMENT BRANCH SELECTOR BAR */}
+        <div style={{
+          padding: '10px 24px',
+          background: isLight ? '#f1f5f9' : 'rgba(0,0,0,0.2)',
+          borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.06)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Select Branch / Target Environment:</span>
+            {[
+              { branch: 'main', envLabel: 'main (Production ACA)', color: '#3b82f6' },
+              { branch: 'qa', envLabel: 'qa (QA Staging ACA)', color: '#f59e0b' },
+              { branch: 'dev', envLabel: 'dev (Development ACA)', color: '#a855f7' }
+            ].map(b => (
+              <button
+                key={b.branch}
+                type="button"
+                onClick={() => setActiveBranch(b.branch)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: '8px',
+                  fontSize: '0.78rem',
+                  fontWeight: activeBranch === b.branch ? 800 : 600,
+                  background: activeBranch === b.branch ? b.color : 'rgba(255,255,255,0.04)',
+                  color: activeBranch === b.branch ? '#ffffff' : 'var(--text-secondary)',
+                  border: '1px solid var(--glass-border)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <GitBranch size={12} /> {b.envLabel}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+            Active Scope: <strong style={{ color: 'var(--accent-purple)' }}>{activeBranch.toUpperCase()} Branch Pipeline History</strong>
+          </div>
+        </div>
+
         {/* MODAL NAVIGATION TABS */}
         <div style={{
           padding: '0 24px',
@@ -240,7 +291,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
           display: 'flex',
           alignItems: 'center',
           gap: '20px',
-          background: isLight ? '#f1f5f9' : 'rgba(0,0,0,0.1)'
+          background: isLight ? '#ffffff' : 'rgba(0,0,0,0.1)'
         }}>
           {[
             { id: 'logs', label: 'Execution Logs', icon: <Terminal size={14} /> },
@@ -276,7 +327,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
         <div style={{ flex: 1, padding: '24px', overflowY: 'auto' }}>
           {loading ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)', gap: '10px' }}>
-              <RefreshCw size={24} className="spin-anim" /> Loading execution details...
+              <RefreshCw size={24} className="spin-anim" /> Loading execution details for branch {activeBranch}...
             </div>
           ) : (
             <>
@@ -342,13 +393,13 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
                     <div className="glass-panel" style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
-                      <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 800 }}>Resource Group</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px' }}>Estevia-Prod-RG</div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 800 }}>Target Resource Group</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px' }}>{resourceGroup}</div>
                     </div>
 
                     <div className="glass-panel" style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
                       <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 800 }}>GoDaddy CNAME Record</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#10b981', marginTop: '4px' }}>{projectName.toLowerCase()}.esteviatech.com</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#10b981', marginTop: '4px' }}>{cnameHost}</div>
                     </div>
 
                     <div className="glass-panel" style={{ padding: '16px', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
@@ -359,7 +410,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
 
                   {/* Stage Timeline */}
                   <div className="glass-panel" style={{ padding: '20px', borderRadius: '14px', border: '1px solid var(--glass-border)' }}>
-                    <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 16px 0' }}>Stage Breakdown Timeline</h3>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 16px 0' }}>Stage Breakdown Timeline ({activeBranch} branch)</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {(runDetails?.stages || []).map((stage: any, idx: number) => (
                         <div key={stage.id || idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}>
@@ -381,11 +432,11 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
               {/* TAB 3: ARTIFACTS */}
               {activeTab === 'artifacts' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Compiled Build Artifacts</h3>
+                  <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Compiled Build Artifacts ({activeBranch})</h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {(runDetails?.artifacts || [
-                      { name: 'build-output.zip', size: '14.2 MB', type: 'application/zip' },
-                      { name: 'bicep-deployment.json', size: '2.4 KB', type: 'application/json' },
+                      { name: `${projectName}-${activeBranch}-build.zip`, size: '14.2 MB', type: 'application/zip' },
+                      { name: `${activeBranch}-bicep-deployment.json`, size: '2.4 KB', type: 'application/json' },
                       { name: 'cname-allocation-audit.json', size: '850 B', type: 'application/json' }
                     ]).map((art: any, i: number) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderRadius: '12px', background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border)' }}>
@@ -414,7 +465,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
               {activeTab === 'variables' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Pipeline Secret & Environment Variables</h3>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Pipeline Secret & Environment Variables ({activeBranch})</h3>
                     <button
                       type="button"
                       className="btn-secondary"
@@ -439,8 +490,8 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
                         {(runDetails?.variables || [
                           { name: 'AZURE_SUBSCRIPTION_ID', value: '4a161497-891d-4e99-b12d-ae79f03eb900', is_secret: true },
                           { name: 'GODADDY_API_KEY', value: 'sK92m_xY1892kLqP', is_secret: true },
-                          { name: 'RESOURCE_GROUP', value: 'Estevia-Prod-RG', is_secret: false },
-                          { name: 'TARGET_ENVIRONMENT', value: 'production', is_secret: false }
+                          { name: 'RESOURCE_GROUP', value: resourceGroup, is_secret: false },
+                          { name: 'TARGET_ENVIRONMENT', value: activeBranch === 'main' ? 'production' : activeBranch === 'qa' ? 'qa_staging' : 'development', is_secret: false }
                         ]).map((v: any, idx: number) => (
                           <tr key={idx} style={{ borderBottom: '1px solid var(--divider)', fontSize: '0.82rem' }}>
                             <td style={{ padding: '12px 16px', fontWeight: 800, color: 'var(--accent-purple)', fontFamily: 'monospace' }}>{v.name}</td>

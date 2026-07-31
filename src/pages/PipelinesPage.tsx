@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, RefreshCw, CheckCircle2, XCircle, Clock, Plus, Zap, Cpu, Server, ExternalLink, ArrowRight, Shield, Terminal, Filter, Search, Layers, GitBranch, Sparkles, Activity, Globe, Box, Check } from 'lucide-react';
+import { Play, RefreshCw, CheckCircle2, XCircle, Clock, Plus, Zap, Cpu, Server, ExternalLink, ArrowRight, Shield, Terminal, Filter, Search, Layers, GitBranch, Sparkles, Activity, Globe, Box, Check, CheckCircle } from 'lucide-react';
 
 interface PipelineRun {
   id: string;
@@ -15,6 +15,7 @@ interface PipelineRun {
   duration_seconds: number;
   created_at: string;
   provider?: string;
+  branches?: { branch: string; target: string; status: string }[];
 }
 
 interface PipelinesPageProps {
@@ -23,7 +24,7 @@ interface PipelinesPageProps {
   theme: 'dark' | 'light';
   apps?: any[];
   onOpenCreateDrawer: () => void;
-  onOpenRunDetails: (runId: string) => void;
+  onOpenRunDetails: (runId: string, branch?: string) => void;
   onSwitchToProvisionWizard: () => void;
 }
 
@@ -113,11 +114,16 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
             status: 'success',
             branch: app.branch || 'main',
             commit_sha: 'a4bafe6',
-            commit_message: `Cloud Scanned Azure Resource (${app.type?.toUpperCase() || 'AZURE'})`,
+            commit_message: `Deploy ${app.name} to target multi-branch environment`,
             triggered_by: prov === 'azure_devops' ? 'Azure Pipelines Bot' : 'Cloud Scanner Sync',
             duration_seconds: 48,
             created_at: new Date().toISOString(),
-            provider: prov
+            provider: prov,
+            branches: [
+              { branch: 'main', target: `${app.name.toLowerCase()}.esteviatech.com (Prod ACA)`, status: 'success' },
+              { branch: 'qa', target: `${app.name.toLowerCase()}-qa.esteviatech.com (QA Staging ACA)`, status: 'success' },
+              { branch: 'dev', target: `${app.name.toLowerCase()}-dev.esteviatech.com (Dev ACA)`, status: 'success' }
+            ]
           });
         }
       });
@@ -247,7 +253,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
               WebkitTextFillColor: 'transparent',
               letterSpacing: '-0.02em'
             }}>
-              Target Scope CI/CD Pipelines Grid
+              Target Scope Codebase & Pipeline Grid
             </h1>
 
             <span style={{
@@ -264,12 +270,12 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
               boxShadow: '0 0 10px rgba(16, 185, 129, 0.2)'
             }}>
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block', animation: 'pulse 1.5s infinite' }}></span>
-              ⚡ EvaForge Cloud Runners Active
+              ⚡ Multi-Branch CI/CD Sync Active
             </span>
           </div>
 
           <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', margin: 0, fontWeight: 500 }}>
-            Unified multi-cloud pipeline orchestration cards for active Azure Target Scope applications.
+            Unified repository pipeline cards showing target branch environments (main, qa, dev) and build history.
           </p>
         </div>
 
@@ -329,11 +335,11 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
         }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #8b5cf6, #3b82f6)' }}></div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Target Scope Pipelines</span>
+            <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Target Codebase Pipelines</span>
             <Layers size={18} style={{ color: '#8b5cf6' }} />
           </div>
           <div style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-primary)', marginTop: '8px' }}>{targetScopeRuns.length}</div>
-          <div style={{ fontSize: '0.74rem', color: '#10b981', marginTop: '4px', fontWeight: 600 }}>Active Azure Subscriptions Sync</div>
+          <div style={{ fontSize: '0.74rem', color: '#10b981', marginTop: '4px', fontWeight: 600 }}>Active Multi-Branch Pipelines</div>
         </div>
 
         <div className="glass-panel" style={{
@@ -383,17 +389,17 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
         }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, #38bdf8, #3b82f6)' }}></div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>EvaForge Active Pods</span>
+            <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Active Environments</span>
             <Cpu size={18} style={{ color: '#38bdf8' }} />
           </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#38bdf8', marginTop: '8px' }}>2 Pods</div>
-          <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Ephemeral Pod Allocator</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#38bdf8', marginTop: '8px' }}>3 Envs</div>
+          <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '4px' }}>main (Prod), qa (QA), dev (Dev)</div>
         </div>
       </div>
 
       {/* FILTER TABS & SEARCH BAR */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '24px' }}>
-        {/* Provider Quick Filter Tabs (STRICT AZURE DEVOPS & EVAFORGE ONLY) */}
+        {/* Provider Quick Filter Tabs */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -443,7 +449,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
           <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
           <input
             type="text"
-            placeholder="Search pipeline cards..."
+            placeholder="Search repository pipelines..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
@@ -481,6 +487,12 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
             const isUnconfigured = prov === 'unconfigured' || (!isAzure && !isEvaForge);
             const isHovered = hoveredCardId === r.id;
 
+            const branchesList = r.branches || [
+              { branch: 'main', target: `${r.project_name.toLowerCase()}.esteviatech.com (Prod)`, status: 'success' },
+              { branch: 'qa', target: `${r.project_name.toLowerCase()}-qa.esteviatech.com (QA)`, status: 'success' },
+              { branch: 'dev', target: `${r.project_name.toLowerCase()}-dev.esteviatech.com (Dev)`, status: 'success' }
+            ];
+
             return (
               <div
                 key={r.id}
@@ -507,7 +519,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                 }}
               >
                 <div>
-                  {/* Card Header: Application & Provider Badge */}
+                  {/* Card Header: Application Codebase & Provider Badge */}
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '14px' }}>
                     <div>
                       <div style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -515,7 +527,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                         <span>{r.project_name}</span>
                       </div>
                       <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                        {r.pipeline_name} • #{r.run_number}
+                        {r.pipeline_name} • Latest Run #{r.run_number}
                       </div>
                     </div>
 
@@ -535,38 +547,54 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                     )}
                   </div>
 
-                  {/* Status Banner */}
-                  <div style={{
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
-                    border: '1px solid var(--glass-border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: '14px'
-                  }}>
-                    {getStatusBadge(r.status)}
-                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      <Clock size={13} style={{ color: 'var(--text-secondary)' }} /> {r.duration_seconds}s
-                    </span>
+                  {/* Environment Branch Badges Bar */}
+                  <div style={{ marginBottom: '14px' }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>Target Environment Branches</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {branchesList.map((b, bIdx) => (
+                        <div
+                          key={bIdx}
+                          onClick={() => onOpenRunDetails(r.id, b.branch)}
+                          style={{
+                            padding: '6px 10px',
+                            borderRadius: '8px',
+                            background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
+                            border: '1px solid var(--glass-border)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              fontSize: '0.7rem',
+                              fontFamily: 'monospace',
+                              fontWeight: 800,
+                              background: b.branch === 'main' ? 'rgba(59, 130, 246, 0.2)' : b.branch === 'qa' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(139, 92, 246, 0.2)',
+                              color: b.branch === 'main' ? '#3b82f6' : b.branch === 'qa' ? '#f59e0b' : '#a855f7',
+                              border: '1px solid var(--glass-border)'
+                            }}>
+                              <GitBranch size={10} style={{ marginRight: '3px', display: 'inline' }} />
+                              {b.branch}
+                            </span>
+                            <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                              {b.target}
+                            </span>
+                          </div>
+
+                          <CheckCircle2 size={12} style={{ color: '#10b981' }} />
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
-                  {/* Branch & Commit Info */}
-                  <div style={{ marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                      <span style={{ padding: '3px 8px', borderRadius: '6px', background: 'rgba(139, 92, 246, 0.12)', border: '1px solid rgba(139, 92, 246, 0.25)', fontSize: '0.74rem', fontFamily: 'monospace', fontWeight: 800, color: 'var(--accent-purple)' }}>
-                        <GitBranch size={11} style={{ marginRight: '4px', display: 'inline' }} />
-                        {r.branch}
-                      </span>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-                        {r.commit_sha}
-                      </span>
-                    </div>
-
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                      {r.commit_message}
-                    </div>
+                  {/* Latest Commit Message */}
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', marginBottom: '16px' }}>
+                    {r.commit_message}
                   </div>
                 </div>
 
@@ -582,7 +610,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                   <button
                     type="button"
                     className="btn-secondary"
-                    onClick={() => onOpenRunDetails(r.id)}
+                    onClick={() => onOpenRunDetails(r.id, 'main')}
                     style={{
                       flex: 1,
                       padding: '8px 12px',
@@ -595,7 +623,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                       gap: '6px'
                     }}
                   >
-                    <Terminal size={13} /> View Build Logs
+                    <Terminal size={13} /> View Branch History
                   </button>
 
                   {isAzure && (

@@ -1075,6 +1075,7 @@ function App() {
   // Pipeline Modal & Drawer States
   const [showPipelineCreatorDrawer, setShowPipelineCreatorDrawer] = useState<boolean>(false);
   const [selectedRunIdForDetails, setSelectedRunIdForDetails] = useState<string | null>(null);
+  const [selectedRunBranchForDetails, setSelectedRunBranchForDetails] = useState<string>('main');
   const [showRunDetailsView, setShowRunDetailsView] = useState<boolean>(false);
   const [provisionViewMode, setProvisionViewMode] = useState<'pipelines' | 'wizard'>('pipelines');
 
@@ -8306,27 +8307,6 @@ function App() {
                   }}>
                     <button
                       type="button"
-                      onClick={() => setProvisionViewMode('pipelines')}
-                      style={{
-                        padding: '8px 18px',
-                        borderRadius: '8px',
-                        fontSize: '0.84rem',
-                        fontWeight: 700,
-                        background: provisionViewMode === 'pipelines' ? 'var(--accent-purple)' : 'transparent',
-                        color: provisionViewMode === 'pipelines' ? '#ffffff' : 'var(--text-secondary)',
-                        border: 'none',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      <Zap size={14} /> CI/CD Pipelines & Build History
-                    </button>
-
-                    <button
-                      type="button"
                       onClick={() => setProvisionViewMode('wizard')}
                       style={{
                         padding: '8px 18px',
@@ -8345,6 +8325,27 @@ function App() {
                     >
                       <PlusCircle size={14} /> ➕ Provision Infrastructure (Wizard)
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setProvisionViewMode('pipelines')}
+                      style={{
+                        padding: '8px 18px',
+                        borderRadius: '8px',
+                        fontSize: '0.84rem',
+                        fontWeight: 700,
+                        background: provisionViewMode === 'pipelines' ? 'var(--accent-purple)' : 'transparent',
+                        color: provisionViewMode === 'pipelines' ? '#ffffff' : 'var(--text-secondary)',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <Zap size={14} /> ⚡ Target Scope CI/CD Pipelines Grid
+                    </button>
                   </div>
 
                   {provisionViewMode === 'pipelines' ? (
@@ -8354,8 +8355,9 @@ function App() {
                       theme={theme}
                       apps={apps}
                       onOpenCreateDrawer={() => setShowPipelineCreatorDrawer(true)}
-                      onOpenRunDetails={(runId) => {
+                      onOpenRunDetails={(runId, branch = 'main') => {
                         setSelectedRunIdForDetails(runId);
+                        setSelectedRunBranchForDetails(branch);
                         setShowRunDetailsView(true);
                       }}
                       onSwitchToProvisionWizard={() => setProvisionViewMode('wizard')}
