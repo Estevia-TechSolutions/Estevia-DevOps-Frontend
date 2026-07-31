@@ -1193,14 +1193,29 @@ export const TeamPage: React.FC<TeamPageProps> = ({
                     </td>
                     <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{u.email}</td>
                     <td style={{ padding: '14px 16px', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 500 }}>
-                        <Clock size={12} style={{ opacity: 0.75 }} />
-                        <span>
-                          {u.last_login_at || (u as any).last_login
-                            ? new Date(u.last_login_at || (u as any).last_login).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                            : 'Not logged yet'}
+                      {u.last_login_at || (u as any).last_login ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 500 }}>
+                          <Clock size={12} style={{ opacity: 0.75 }} />
+                          <span>
+                            {new Date(u.last_login_at || (u as any).last_login).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      ) : (
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
+                          padding: '3px 10px',
+                          borderRadius: '10px',
+                          background: 'rgba(245, 158, 11, 0.12)',
+                          color: '#f59e0b',
+                          border: '1px solid rgba(245, 158, 11, 0.25)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          <Clock size={11} /> Not logged yet
                         </span>
-                      </div>
+                      )}
                     </td>
                     <td style={{ padding: '14px 16px' }}>
                       {u.mfa_enabled ? (
