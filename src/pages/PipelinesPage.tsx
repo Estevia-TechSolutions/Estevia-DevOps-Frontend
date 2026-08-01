@@ -16,6 +16,7 @@ interface PipelineRun {
   created_at: string;
   provider?: string;
   repo_url?: string;
+  pipeline_url?: string;
   target_type?: string;
   supported_branches?: string[];
   branches?: { branch: string; target: string; status: string }[];
@@ -673,7 +674,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
 
                     {isAzure && (
                       <a
-                        href={`https://dev.azure.com/esteviatech/Estevia-Platform/_build/results?buildId=${r.run_number || 6158}&view=results`}
+                        href={r.pipeline_url || `https://dev.azure.com/esteviatech/Estevia-Platform/_build/results?buildId=${r.run_number}&view=results`}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
