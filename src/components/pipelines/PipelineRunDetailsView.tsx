@@ -359,6 +359,31 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
                         </div>
                       );
                     })}
+                    <div style={{
+                      padding: '10px 10px 4px',
+                      marginTop: '6px',
+                      borderTop: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)',
+                      textAlign: 'center'
+                    }}>
+                      <a
+                        href={runDetails?.pipeline_url || `https://dev.azure.com/esteviatech/Estevia-Platform/_build`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setIsDropdownOpen(false)}
+                        style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          color: 'var(--accent-purple)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          textDecoration: 'none'
+                        }}
+                      >
+                        <ExternalLink size={12} />
+                        For full history & build artifacts beyond the last 10 runs, view in {runDetails?.provider === 'github_actions' ? 'GitHub Actions' : 'Azure DevOps'} &rarr;
+                      </a>
+                    </div>
                   </div>
                 )}
               </div>
