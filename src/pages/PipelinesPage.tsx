@@ -16,6 +16,7 @@ interface PipelineRun {
   created_at: string;
   provider?: string;
   repo_url?: string;
+  target_type?: string;
   branches?: { branch: string; target: string; status: string }[];
 }
 
@@ -106,26 +107,18 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
   const targetScopeRuns = React.useMemo(() => {
     if (!apps || apps.length === 0) return [];
 
-    const sanitizeName = (str: string) => (str || '')
-      .toLowerCase()
-      .replace(/^estevia-/g, '')
-      .replace(/-(dev|qa|prod|swa|api|backend|frontend)$/g, '')
-      .replace(/-(dev|qa|prod|swa|api|backend|frontend)$/g, '');
-
     const activeAppNames = new Set(apps.map(a => (a.name || '').toLowerCase()));
-    const activeCleanNames = new Set(apps.map(a => sanitizeName(a.name)));
 
-    // Filter runs so ONLY pipelines strictly belonging to active target scope apps are shown
+    // Filter runs so ONLY pipelines strictly matching active header Target Scope apps are displayed (excluding databases)
     const scopedRuns = runs.filter(r => {
+      if (r.target_type === 'database' || (r.project_name || '').toLowerCase().endsWith('-db')) return false;
       const pNameLow = (r.project_name || '').toLowerCase();
-      const pClean = sanitizeName(r.project_name || '');
-      return activeAppNames.has(pNameLow) || (pClean && activeCleanNames.has(pClean));
+      return activeAppNames.has(pNameLow);
     });
 
     const runMap = new Map();
     scopedRuns.forEach(r => {
       runMap.set((r.project_name || '').toLowerCase(), r);
-      runMap.set(sanitizeName(r.project_name || ''), r);
     });
 
     const combined = [...scopedRuns];
@@ -133,8 +126,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
     apps.forEach((app, idx) => {
       if (app.type === 'database' || (app.name || '').toLowerCase().endsWith('-db')) return;
       const appKey = (app.name || '').toLowerCase();
-      const cleanKey = sanitizeName(app.name);
-      if (!runMap.has(appKey) && !runMap.has(cleanKey)) {
+      if (!runMap.has(appKey)) {
         let prov = (app.provider || app.build_provider || '').toLowerCase();
         if (app.pipeline_id && String(app.pipeline_id).startsWith('github-actions:')) {
           prov = 'github_actions';
