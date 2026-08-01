@@ -8368,7 +8368,7 @@ function App() {
                       API_BASE={API_BASE}
                       token={user?.token || ''}
                       theme={theme}
-                      apps={apps}
+                      apps={filteredApps}
                       selectedControlResourceGroup={selectedControlResourceGroup}
                       selectedSubscriptionId={selectedSubscriptionId}
                       onOpenCreateDrawer={() => setShowPipelineCreatorDrawer(true)}
