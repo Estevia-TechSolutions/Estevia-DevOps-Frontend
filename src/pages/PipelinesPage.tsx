@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, RefreshCw, CheckCircle2, XCircle, Clock, Plus, Zap, Cpu, Server, ExternalLink, ArrowRight, Shield, Terminal, Filter, Search, Layers, GitBranch, Sparkles, Activity, Globe, Box, Check, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Play, RefreshCw, CheckCircle2, XCircle, Clock, Plus, Zap, Cpu, Server, ExternalLink, ArrowRight, Shield, Terminal, Filter, Search, Layers, GitBranch, Sparkles, Activity, Globe, Box, Check, CheckCircle, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 
 interface PipelineRun {
   id: string;
@@ -105,6 +105,26 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
     setCurrentPage(1);
   }, [apps, searchQuery, providerFilter, statusFilter, pageSize]);
 
+  const handleDeleteEvaForgePipeline = async (pipelineId: string, name: string) => {
+    const cleanId = pipelineId.replace(/^scanned-/, '');
+    if (window.confirm(`Are you sure you want to delete EvaForge pipeline '${name}'? This action cannot be undone.`)) {
+      try {
+        const res = await fetch(`${API_BASE}/pipelines/${cleanId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          fetchPipelineRuns();
+        } else {
+          const err = await res.json();
+          alert(err.error || 'Failed to delete pipeline');
+        }
+      } catch (e) {
+        console.error('Delete pipeline failed:', e);
+      }
+    }
+  };
+
   // ── Combine DB execution runs with scanned Azure Target Scope apps ──────────
   const targetScopeRuns = React.useMemo(() => {
     if (!apps || apps.length === 0) return [];
@@ -115,7 +135,13 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
     const scopedRuns = runs.filter(r => {
       if (r.target_type === 'database' || (r.project_name || '').toLowerCase().endsWith('-db')) return false;
       const pNameLow = (r.project_name || '').toLowerCase();
-      return activeAppNames.has(pNameLow);
+      if (activeAppNames.has(pNameLow)) return true;
+      return Array.from(activeAppNames).some(appSlug => 
+        appSlug.includes(pNameLow) || pNameLow.includes(appSlug) ||
+        (pNameLow.includes('marketing') && appSlug.includes('marketing')) ||
+        (pNameLow.includes('restaurant') && appSlug.includes('restaurant')) ||
+        (pNameLow.includes('peoplecraft') && appSlug.includes('peoplecraft'))
+      );
     });
 
     const runMap = new Map();
@@ -722,6 +748,29 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                       >
                         <ExternalLink size={13} /> Open GitHub Actions
                       </a>
+                    )}
+
+                    {isEvaForge && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteEvaForgePipeline(r.id, r.project_name)}
+                        title="Delete EvaForge Pipeline"
+                        style={{
+                          padding: '8px 12px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          borderRadius: '8px',
+                          background: 'rgba(239, 68, 68, 0.12)',
+                          color: '#ef4444',
+                          border: '1px solid rgba(239, 68, 68, 0.3)',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px'
+                        }}
+                      >
+                        <Trash2 size={13} /> Delete Pipeline
+                      </button>
                     )}
 
                     {isUnconfigured && (
