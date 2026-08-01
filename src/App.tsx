@@ -8369,6 +8369,8 @@ function App() {
                       token={user?.token || ''}
                       theme={theme}
                       apps={apps}
+                      selectedControlResourceGroup={selectedControlResourceGroup}
+                      selectedSubscriptionId={selectedSubscriptionId}
                       onOpenCreateDrawer={() => setShowPipelineCreatorDrawer(true)}
                       onOpenRunDetails={(runId, branch = 'main', provider = 'azure_devops') => {
                         setSelectedRunIdForDetails(runId);

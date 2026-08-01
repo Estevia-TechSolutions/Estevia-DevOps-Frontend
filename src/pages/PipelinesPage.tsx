@@ -24,6 +24,8 @@ interface PipelinesPageProps {
   token: string;
   theme: 'dark' | 'light';
   apps?: any[];
+  selectedControlResourceGroup?: string;
+  selectedSubscriptionId?: string;
   onOpenCreateDrawer: () => void;
   onOpenRunDetails: (runId: string, branch?: string, provider?: string) => void;
   onSwitchToProvisionWizard: () => void;
@@ -102,43 +104,51 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
 
   // ── Combine DB execution runs with scanned Azure Target Scope apps ──────────
   const targetScopeRuns = React.useMemo(() => {
+    if (!apps || apps.length === 0) return runs;
+
+    const activeAppNames = new Set(apps.map(a => (a.name || '').toLowerCase()));
+
+    // Filter runs so only pipelines matching active header Target Scope apps are displayed
+    const scopedRuns = runs.filter(r => {
+      const pNameLow = (r.project_name || '').toLowerCase();
+      return activeAppNames.has(pNameLow) || Array.from(activeAppNames).some(name => name.includes(pNameLow) || pNameLow.includes(name));
+    });
+
     const runMap = new Map();
-    runs.forEach(r => runMap.set((r.project_name || '').toLowerCase(), r));
+    scopedRuns.forEach(r => runMap.set((r.project_name || '').toLowerCase(), r));
 
-    const combined = [...runs];
+    const combined = [...scopedRuns];
 
-    if (apps && apps.length > 0) {
-      apps.forEach((app, idx) => {
-        if (app.type === 'database' || (app.name || '').toLowerCase().endsWith('-db')) return;
-        const appKey = (app.name || '').toLowerCase();
-        if (!runMap.has(appKey)) {
-          let prov = (app.provider || app.build_provider || '').toLowerCase();
-          if (!prov || prov === 'unconfigured' || prov === 'evaops_native') {
-            prov = (app.name || '').toLowerCase().includes('peoplecraft') ? 'github_actions' : 'azure_devops';
-          }
-
-          combined.push({
-            id: `scanned-${idx}-${app.name}`,
-            pipeline_name: app.pipelineName || `${app.name} Pipeline`,
-            project_name: app.name,
-            run_number: app.run_number || app.buildNumber || (42 + idx * 7),
-            status: 'success',
-            branch: app.branch || 'main',
-            commit_sha: 'a4bafe6',
-            commit_message: `Deploy ${app.name} to target multi-branch environment`,
-            triggered_by: prov === 'azure_devops' ? 'Azure Pipelines Bot' : 'Cloud Scanner Sync',
-            duration_seconds: 48,
-            created_at: new Date().toISOString(),
-            provider: prov,
-            branches: [
-              { branch: 'main', target: `${app.name.toLowerCase()}.esteviatech.com (Prod ACA)`, status: 'success' },
-              { branch: 'qa', target: `${app.name.toLowerCase()}-qa.esteviatech.com (QA Staging ACA)`, status: 'success' },
-              { branch: 'dev', target: `${app.name.toLowerCase()}-dev.esteviatech.com (Dev ACA)`, status: 'success' }
-            ]
-          });
+    apps.forEach((app, idx) => {
+      if (app.type === 'database' || (app.name || '').toLowerCase().endsWith('-db')) return;
+      const appKey = (app.name || '').toLowerCase();
+      if (!runMap.has(appKey)) {
+        let prov = (app.provider || app.build_provider || '').toLowerCase();
+        if (!prov || prov === 'unconfigured' || prov === 'evaops_native') {
+          prov = (app.name || '').toLowerCase().includes('peoplecraft-frontend') ? 'github_actions' : 'azure_devops';
         }
-      });
-    }
+
+        combined.push({
+          id: `scanned-${idx}-${app.name}`,
+          pipeline_name: app.pipelineName || `${app.name} Pipeline`,
+          project_name: app.name,
+          run_number: app.run_number || app.buildNumber || (42 + idx * 7),
+          status: 'success',
+          branch: app.branch || 'main',
+          commit_sha: 'a4bafe6',
+          commit_message: `Deploy ${app.name} to target multi-branch environment`,
+          triggered_by: prov === 'azure_devops' ? 'Azure Pipelines Bot' : 'Cloud Scanner Sync',
+          duration_seconds: 48,
+          created_at: new Date().toISOString(),
+          provider: prov,
+          branches: [
+            { branch: 'main', target: `${app.name.toLowerCase()}.esteviatech.com (Prod ACA)`, status: 'success' },
+            { branch: 'qa', target: `${app.name.toLowerCase()}-qa.esteviatech.com (QA Staging ACA)`, status: 'success' },
+            { branch: 'dev', target: `${app.name.toLowerCase()}-dev.esteviatech.com (Dev ACA)`, status: 'success' }
+          ]
+        });
+      }
+    });
 
     return combined;
   }, [runs, apps]);
