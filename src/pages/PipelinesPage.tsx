@@ -128,9 +128,6 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
           prov = 'github_actions';
         } else if (app.pipeline_id && !isNaN(Number(app.pipeline_id))) {
           prov = 'azure_devops';
-        } else if (!prov || prov === 'unconfigured' || prov === 'evaops_native') {
-          const isFront = app.type === 'frontend' || (app.name || '').toLowerCase().endsWith('-swa') || (app.name || '').toLowerCase().includes('frontend');
-          prov = isFront ? 'github_actions' : 'azure_devops';
         }
 
         combined.push({
