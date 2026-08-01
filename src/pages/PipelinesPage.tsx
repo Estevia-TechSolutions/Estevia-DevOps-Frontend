@@ -144,7 +144,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
 
         let targetRunNum = 42;
         if (appKey.includes('evaops-frontend')) targetRunNum = 312;
-        else if (appKey.includes('api-evaops')) targetRunNum = 6264;
+        else if (appKey.includes('api-evaops')) targetRunNum = 6158;
         else if (appKey.includes('marketing')) targetRunNum = 6158;
         else if (appKey.includes('restaurant-frontend')) targetRunNum = 234;
         else if (appKey.includes('restaurant-backend')) targetRunNum = 187;
