@@ -106,23 +106,31 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
   const targetScopeRuns = React.useMemo(() => {
     if (!apps || apps.length === 0) return runs;
 
+    const sanitizeName = (str: string) => (str || '').toLowerCase().replace(/-(dev|qa|prod|swa|api|backend|frontend)$/g, '').replace(/-(dev|qa|prod|swa|api|backend|frontend)$/g, '');
+
     const activeAppNames = new Set(apps.map(a => (a.name || '').toLowerCase()));
+    const activeCleanNames = new Set(apps.map(a => sanitizeName(a.name)));
 
     // Filter runs so only pipelines matching active header Target Scope apps are displayed
     const scopedRuns = runs.filter(r => {
       const pNameLow = (r.project_name || '').toLowerCase();
-      return activeAppNames.has(pNameLow) || Array.from(activeAppNames).some(name => name.includes(pNameLow) || pNameLow.includes(name));
+      const pClean = sanitizeName(r.project_name || '');
+      return activeAppNames.has(pNameLow) || activeCleanNames.has(pClean) || Array.from(activeAppNames).some(name => name.includes(pNameLow) || pNameLow.includes(name));
     });
 
     const runMap = new Map();
-    scopedRuns.forEach(r => runMap.set((r.project_name || '').toLowerCase(), r));
+    scopedRuns.forEach(r => {
+      runMap.set((r.project_name || '').toLowerCase(), r);
+      runMap.set(sanitizeName(r.project_name || ''), r);
+    });
 
     const combined = [...scopedRuns];
 
     apps.forEach((app, idx) => {
       if (app.type === 'database' || (app.name || '').toLowerCase().endsWith('-db')) return;
       const appKey = (app.name || '').toLowerCase();
-      if (!runMap.has(appKey)) {
+      const cleanKey = sanitizeName(app.name);
+      if (!runMap.has(appKey) && !runMap.has(cleanKey)) {
         let prov = (app.provider || app.build_provider || '').toLowerCase();
         if (app.pipeline_id && String(app.pipeline_id).startsWith('github-actions:')) {
           prov = 'github_actions';
