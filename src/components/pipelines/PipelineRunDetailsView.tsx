@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle2, XCircle, Clock, RefreshCw, Terminal, Download, Search, Copy, Check, ExternalLink, Cpu, Layers, Package, Sliders, Lock, Eye, EyeOff, GitBranch, Zap, Globe, FileText, Server } from 'lucide-react';
+import { X, CheckCircle2, XCircle, Clock, RefreshCw, Terminal, Download, Search, Copy, Check, ExternalLink, Cpu, Layers, Package, Sliders, Lock, Eye, EyeOff, GitBranch, Zap, Globe, FileText, Server, History, ChevronDown } from 'lucide-react';
 
 interface PipelineRunDetailsViewProps {
   runId: string | null;
@@ -28,6 +28,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [selectedHistoricalRunId, setSelectedHistoricalRunId] = useState<string | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
   const [copiedLog, setCopiedLog] = useState<boolean>(false);
   const [showSecrets, setShowSecrets] = useState<boolean>(false);
   const [expandedStageId, setExpandedStageId] = useState<string | null>('stg-0');
@@ -246,29 +247,121 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {/* Historical Run Selector Dropdown */}
+            {/* Rich Custom Selector Dropdown for Build History */}
             {runDetails?.historicalRuns && runDetails.historicalRuns.length > 0 && (
-              <select
-                value={selectedHistoricalRunId || runId || ''}
-                onChange={(e) => setSelectedHistoricalRunId(e.target.value)}
-                style={{
-                  height: '34px',
-                  borderRadius: '8px',
-                  background: isLight ? '#ffffff' : '#1e293b',
-                  border: '1px solid var(--glass-border)',
-                  color: 'var(--text-primary)',
-                  padding: '0 10px',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                {runDetails.historicalRuns.map((hr: any) => (
-                  <option key={hr.id} value={hr.id} style={{ background: '#0f172a', color: '#ffffff' }}>
-                    Run #{hr.run_number} ({hr.status}) - {hr.commit_sha} [{hr.branch || activeBranch}]
-                  </option>
-                ))}
-              </select>
+              <div style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  style={{
+                    height: '36px',
+                    padding: '0 12px',
+                    borderRadius: '10px',
+                    background: isLight ? '#ffffff' : 'rgba(30, 41, 59, 0.85)',
+                    border: '1px solid var(--glass-border)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    backdropFilter: 'blur(12px)'
+                  }}
+                >
+                  <History size={14} style={{ color: 'var(--accent-purple)' }} />
+                  <span>
+                    {(() => {
+                      const currentHr = runDetails.historicalRuns.find((hr: any) => hr.id === (selectedHistoricalRunId || runId)) || runDetails.historicalRuns[0];
+                      return `Build #${currentHr.run_number} (${currentHr.commit_sha || 'a4bafe6'})`;
+                    })()}
+                  </span>
+                  <ChevronDown size={14} style={{ transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }} />
+                </button>
+
+                {isDropdownOpen && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '42px',
+                      right: 0,
+                      width: '290px',
+                      maxHeight: '280px',
+                      overflowY: 'auto',
+                      borderRadius: '12px',
+                      background: isLight ? '#ffffff' : '#0f172a',
+                      border: '1px solid var(--glass-border)',
+                      boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
+                      zIndex: 1000,
+                      padding: '8px'
+                    }}
+                  >
+                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', padding: '4px 8px 8px' }}>
+                      Select Pipeline Build Run
+                    </div>
+                    {runDetails.historicalRuns.map((hr: any) => {
+                      const isSelected = (selectedHistoricalRunId || runId) === hr.id;
+                      const isSuccess = hr.status === 'success';
+                      return (
+                        <div
+                          key={hr.id}
+                          onClick={() => {
+                            setSelectedHistoricalRunId(hr.id);
+                            setIsDropdownOpen(false);
+                          }}
+                          style={{
+                            padding: '8px 10px',
+                            borderRadius: '8px',
+                            background: isSelected ? 'rgba(168, 85, 247, 0.15)' : isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
+                            border: isSelected ? '1px solid rgba(168, 85, 247, 0.35)' : '1px solid var(--glass-border)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginBottom: '6px',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span
+                              style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                background: isSuccess ? '#10b981' : '#ef4444',
+                                boxShadow: isSuccess ? '0 0 6px rgba(16,185,129,0.5)' : '0 0 6px rgba(239,68,68,0.5)'
+                              }}
+                            />
+                            <div>
+                              <div style={{ fontSize: '0.78rem', fontWeight: isSelected ? 800 : 600, color: isSelected ? 'var(--accent-purple)' : 'var(--text-primary)' }}>
+                                Run #{hr.run_number}
+                              </div>
+                              <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                                {hr.commit_sha || 'a4bafe6'} • {hr.branch || activeBranch}
+                              </div>
+                            </div>
+                          </div>
+
+                          <span
+                            style={{
+                              fontSize: '0.65rem',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              fontWeight: 800,
+                              textTransform: 'uppercase',
+                              background: isSuccess ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                              color: isSuccess ? '#10b981' : '#ef4444'
+                            }}
+                          >
+                            {hr.status}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             )}
 
             {getStatusBadge(runDetails?.status || 'success')}
