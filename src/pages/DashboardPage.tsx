@@ -3676,7 +3676,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                               {/* Pipeline Details */}
                                               <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
                                                 <Server size={12} style={{ opacity: 0.7, color: 'var(--accent-teal)', flexShrink: 0 }} />
-                                                <span>Pipeline: <strong style={{ color: item.pipelineName ? 'var(--success)' : '#ef4444' }}>{item.pipelineName || 'Not Set'}</strong></span>
+                                                <span>Pipeline: <strong style={{ color: (item.pipelineName || item.pipelineId) ? 'var(--success)' : '#ef4444' }}>
+                                                  {item.pipelineId?.startsWith('github-actions:')
+                                                    ? `GitHub Actions (${item.pipelineId.replace('github-actions:', '').split('/')[1] || item.pipelineId.replace('github-actions:', '')})`
+                                                    : (item.pipelineName || 'Not Set')
+                                                  }
+                                                </strong></span>
                                                 {item.pipelineId && onShowBuildHistory && (
                                                   <button
                                                     type="button"
