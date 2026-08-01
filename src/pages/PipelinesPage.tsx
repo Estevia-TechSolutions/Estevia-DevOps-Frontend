@@ -15,6 +15,7 @@ interface PipelineRun {
   duration_seconds: number;
   created_at: string;
   provider?: string;
+  repo_url?: string;
   branches?: { branch: string; target: string; status: string }[];
 }
 
@@ -503,8 +504,9 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
             {paginatedRuns.map((r) => {
               const prov = (r.provider || 'unconfigured').toLowerCase();
               const isAzure = prov.includes('azure') || prov.includes('devops');
+              const isGithub = prov.includes('github') || prov.includes('actions');
               const isEvaForge = prov.includes('eva') || prov.includes('native') || prov.includes('evaforge');
-              const isUnconfigured = prov === 'unconfigured' || (!isAzure && !isEvaForge);
+              const isUnconfigured = prov === 'unconfigured' || (!isAzure && !isGithub && !isEvaForge);
               const isHovered = hoveredCardId === r.id;
 
               const branchesList = r.branches || [
@@ -555,6 +557,10 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                       {isAzure ? (
                         <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.14)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.35)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                           <Layers size={13} /> Azure DevOps
+                        </span>
+                      ) : isGithub ? (
+                        <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.14)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.35)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                          <GitBranch size={13} /> GitHub Actions
                         </span>
                       ) : isEvaForge ? (
                         <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(236,72,153,0.15) 100%)', color: '#c084fc', border: '1px solid rgba(192,132,252,0.4)', boxShadow: '0 0 10px rgba(192,132,252,0.2)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
@@ -647,35 +653,49 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                     </button>
 
                     {isAzure && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            await fetch(`${API_BASE}/pipelines/${r.pipeline_id || r.id}/migrate-provider`, {
-                              method: 'PUT',
-                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                              body: JSON.stringify({ provider: 'evaops_native' })
-                            });
-                            fetchPipelineRuns();
-                          } catch (e) { }
-                        }}
+                      <a
+                        href={`https://dev.azure.com/esteviatech/Estevia-Platform/_build?definitionId=${r.pipeline_id || r.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         style={{
-                          padding: '8px 14px',
-                          borderRadius: '8px',
-                          background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-                          color: '#ffffff',
-                          border: 'none',
-                          cursor: 'pointer',
+                          padding: '8px 12px',
                           fontSize: '0.78rem',
-                          fontWeight: 800,
-                          boxShadow: '0 2px 10px rgba(139, 92, 246, 0.3)',
+                          fontWeight: 700,
+                          borderRadius: '8px',
+                          background: 'rgba(59, 130, 246, 0.12)',
+                          color: '#3b82f6',
+                          border: '1px solid rgba(59, 130, 246, 0.3)',
+                          textDecoration: 'none',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '5px'
                         }}
                       >
-                        <Zap size={13} /> Switch to EvaForge
-                      </button>
+                        <ExternalLink size={13} /> Open Azure DevOps
+                      </a>
+                    )}
+
+                    {isGithub && (
+                      <a
+                        href={r.repo_url ? `${r.repo_url.replace(/\/$/, '')}/actions` : `https://github.com/Estevia-TechSolutions/${r.project_name}/actions`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          padding: '8px 12px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          borderRadius: '8px',
+                          background: 'rgba(16, 185, 129, 0.12)',
+                          color: '#10b981',
+                          border: '1px solid rgba(16, 185, 129, 0.3)',
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px'
+                        }}
+                      >
+                        <ExternalLink size={13} /> Open GitHub Actions
+                      </a>
                     )}
 
                     {isUnconfigured && (
