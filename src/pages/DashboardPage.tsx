@@ -983,7 +983,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         try {
           // Resolve the branch for this specific app environment so we only get builds for the right branch
           const resolvedBranch = `refs/heads/${resolveBranchName(app)}`;
-          console.log(`[DevOps Discovery] Checking latest build for app ${app.name} | Pipeline: ${pipelineId} | Branch: ${resolvedBranch}`);
+          console.log(`[DevOps Diagnostics] App: ${app.name} | Repo: ${app.repositoryUrl} | PipelineID: ${app.pipelineId} | PipelineName: ${app.pipelineName} | Branch: ${resolvedBranch}`);
           const res = await fetch(
             `${API_BASE}/apps/pipeline/latest?organizationId=${organizationId}&pipelineId=${pipelineId}&branchName=${encodeURIComponent(resolvedBranch)}`,
             { headers: { 'Authorization': `Bearer ${token}` } }
