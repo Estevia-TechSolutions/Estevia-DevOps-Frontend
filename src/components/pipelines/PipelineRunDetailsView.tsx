@@ -22,7 +22,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
   token,
   theme
 }) => {
-  const [activeTab, setActiveTab] = useState<'logs' | 'summary' | 'artifacts' | 'variables'>('logs');
+  const [activeTab, setActiveTab] = useState<'logs' | 'summary' | 'artifacts' | 'variables'>('summary');
   const [activeBranch, setActiveBranch] = useState<string>(initialBranch);
   const [runDetails, setRunDetails] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -305,33 +305,42 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontSize: '0.76rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Select Branch / Target Environment:</span>
-            {[
-              { branch: 'main', envLabel: 'main (Production ACA)', color: '#3b82f6' },
-              { branch: 'qa', envLabel: 'qa (QA Staging ACA)', color: '#f59e0b' },
-              { branch: 'dev', envLabel: 'dev (Development ACA)', color: '#a855f7' }
-            ].map(b => (
-              <button
-                key={b.branch}
-                type="button"
-                onClick={() => setActiveBranch(b.branch)}
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: '8px',
-                  fontSize: '0.78rem',
-                  fontWeight: activeBranch === b.branch ? 800 : 600,
-                  background: activeBranch === b.branch ? b.color : 'rgba(255,255,255,0.04)',
-                  color: activeBranch === b.branch ? '#ffffff' : 'var(--text-secondary)',
-                  border: '1px solid var(--glass-border)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <GitBranch size={12} /> {b.envLabel}
-              </button>
-            ))}
+            {(() => {
+              const supportedBranches: string[] = runDetails?.supported_branches || (runDetails?.branches?.map((b: any) => b.branch)) || ['main'];
+              return [
+                { branch: 'main', envLabel: 'main (Production ACA)', color: '#3b82f6' },
+                { branch: 'qa', envLabel: 'qa (QA Staging ACA)', color: '#f59e0b' },
+                { branch: 'dev', envLabel: 'dev (Development ACA)', color: '#a855f7' }
+              ].map(b => {
+                const isSupported = supportedBranches.includes(b.branch);
+                return (
+                  <button
+                    key={b.branch}
+                    type="button"
+                    disabled={!isSupported}
+                    onClick={() => isSupported && setActiveBranch(b.branch)}
+                    title={isSupported ? `Switch to ${b.branch} branch history` : `Branch '${b.branch}' is not configured for this pipeline`}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      fontWeight: activeBranch === b.branch ? 800 : 600,
+                      background: !isSupported ? 'rgba(255,255,255,0.02)' : activeBranch === b.branch ? b.color : 'rgba(255,255,255,0.04)',
+                      color: !isSupported ? 'rgba(255,255,255,0.3)' : activeBranch === b.branch ? '#ffffff' : 'var(--text-secondary)',
+                      border: '1px solid var(--glass-border)',
+                      cursor: !isSupported ? 'not-allowed' : 'pointer',
+                      opacity: !isSupported ? 0.45 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <GitBranch size={12} /> {b.envLabel} {!isSupported && <span style={{ fontSize: '0.68rem', opacity: 0.8 }}>(Not Configured)</span>}
+                  </button>
+                );
+              });
+            })()}
           </div>
 
           <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
@@ -349,8 +358,8 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
           background: isLight ? '#ffffff' : 'rgba(0,0,0,0.1)'
         }}>
           {[
-            { id: 'logs', label: 'Execution Logs', icon: <Terminal size={14} /> },
             { id: 'summary', label: 'Run Summary', icon: <Cpu size={14} /> },
+            { id: 'logs', label: 'Execution Logs', icon: <Terminal size={14} /> },
             { id: 'artifacts', label: `Artifacts (${runDetails?.artifacts?.length || 3})`, icon: <Package size={14} /> },
             { id: 'variables', label: 'Environment Variables', icon: <Sliders size={14} /> }
           ].map(t => (

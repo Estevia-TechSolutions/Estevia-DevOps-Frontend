@@ -17,6 +17,7 @@ interface PipelineRun {
   provider?: string;
   repo_url?: string;
   target_type?: string;
+  supported_branches?: string[];
   branches?: { branch: string; target: string; status: string }[];
 }
 
@@ -525,11 +526,13 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
               const isUnconfigured = prov === 'unconfigured' || (!isAzure && !isGithub && !isEvaForge);
               const isHovered = hoveredCardId === r.id;
 
-              const branchesList = r.branches || [
+              const supportedBranches: string[] = r.supported_branches || (r.branches?.map(b => b.branch)) || ['main'];
+              const rawBranches = r.branches || [
                 { branch: 'main', target: `${r.project_name.toLowerCase()}.esteviatech.com (Prod)`, status: 'success' },
                 { branch: 'qa', target: `${r.project_name.toLowerCase()}-qa.esteviatech.com (QA)`, status: 'success' },
                 { branch: 'dev', target: `${r.project_name.toLowerCase()}-dev.esteviatech.com (Dev)`, status: 'success' }
               ];
+              const branchesList = rawBranches.filter(b => supportedBranches.includes(b.branch));
 
               return (
                 <div
@@ -670,11 +673,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
 
                     {isAzure && (
                       <a
-                        href={
-                          r.pipeline_id && !isNaN(Number(r.pipeline_id))
-                            ? `https://dev.azure.com/esteviatech/Estevia-Platform/_build?definitionId=${r.pipeline_id}`
-                            : `https://dev.azure.com/esteviatech/Estevia-Platform/_build`
-                        }
+                        href={`https://dev.azure.com/esteviatech/Estevia-Platform/_build/results?buildId=${r.run_number || 6158}&view=results`}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
