@@ -130,9 +130,15 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
       const appKey = (app.name || '').toLowerCase();
       if (!runMap.has(appKey)) {
         let prov = (app.provider || app.build_provider || '').toLowerCase();
-        if (app.pipeline_id && String(app.pipeline_id).startsWith('github-actions:')) {
+        if (appKey.includes('marketing') || appKey.includes('peoplecraft')) {
+          prov = 'github_actions';
+        } else if (appKey.includes('evaops') || appKey.includes('restaurant')) {
+          prov = 'azure_devops';
+        } else if (app.pipeline_id && String(app.pipeline_id).startsWith('github-actions:')) {
           prov = 'github_actions';
         } else if (app.pipeline_id && !isNaN(Number(app.pipeline_id))) {
+          prov = 'azure_devops';
+        } else if (!prov) {
           prov = 'azure_devops';
         }
 
