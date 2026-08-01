@@ -100,22 +100,26 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
   // Reset pagination on search or filter change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, providerFilter, statusFilter, pageSize]);
+  }, [apps, searchQuery, providerFilter, statusFilter, pageSize]);
 
   // ── Combine DB execution runs with scanned Azure Target Scope apps ──────────
   const targetScopeRuns = React.useMemo(() => {
-    if (!apps || apps.length === 0) return runs;
+    if (!apps || apps.length === 0) return [];
 
-    const sanitizeName = (str: string) => (str || '').toLowerCase().replace(/-(dev|qa|prod|swa|api|backend|frontend)$/g, '').replace(/-(dev|qa|prod|swa|api|backend|frontend)$/g, '');
+    const sanitizeName = (str: string) => (str || '')
+      .toLowerCase()
+      .replace(/^estevia-/g, '')
+      .replace(/-(dev|qa|prod|swa|api|backend|frontend)$/g, '')
+      .replace(/-(dev|qa|prod|swa|api|backend|frontend)$/g, '');
 
     const activeAppNames = new Set(apps.map(a => (a.name || '').toLowerCase()));
     const activeCleanNames = new Set(apps.map(a => sanitizeName(a.name)));
 
-    // Filter runs so only pipelines matching active header Target Scope apps are displayed
+    // Filter runs so ONLY pipelines strictly belonging to active target scope apps are shown
     const scopedRuns = runs.filter(r => {
       const pNameLow = (r.project_name || '').toLowerCase();
       const pClean = sanitizeName(r.project_name || '');
-      return activeAppNames.has(pNameLow) || activeCleanNames.has(pClean) || Array.from(activeAppNames).some(name => name.includes(pNameLow) || pNameLow.includes(name));
+      return activeAppNames.has(pNameLow) || (pClean && activeCleanNames.has(pClean));
     });
 
     const runMap = new Map();
@@ -139,7 +143,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
         }
 
         combined.push({
-          id: `scanned-${idx}-${app.name}`,
+          id: `scanned-${app.name}`,
           pipeline_name: app.pipelineName || `${app.name} Pipeline`,
           project_name: app.name,
           run_number: app.run_number || app.buildNumber || (42 + idx * 7),
