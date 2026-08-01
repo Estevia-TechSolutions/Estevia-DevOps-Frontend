@@ -148,7 +148,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
       (r.project_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (r.branch || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (r.commit_message || '').toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
     const provLow = (r.provider || '').toLowerCase();
     const matchesProvider = providerFilter === 'all' ||
@@ -243,13 +243,13 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
   };
 
   return (
-    <div style={{ padding: '32px', width: '100%', boxSizing: 'border-box' }}>
+    <div style={{ width: '100%', boxSizing: 'border-box' }}>
       {/* HERO HEADER & CONTROL BAR */}
       <div style={{
         padding: '24px 28px',
         borderRadius: '16px',
-        background: isLight 
-          ? 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)' 
+        background: isLight
+          ? 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)'
           : 'linear-gradient(135deg, rgba(15,23,42,0.9) 0%, rgba(30,41,59,0.7) 100%)',
         border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(139, 92, 246, 0.3)',
         boxShadow: '0 12px 32px rgba(0, 0, 0, 0.25)',
@@ -442,11 +442,11 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                 borderRadius: '8px',
                 fontSize: '0.8rem',
                 fontWeight: providerFilter === tab.id ? 800 : 600,
-                background: providerFilter === tab.id 
-                  ? (isLight ? '#ffffff' : 'var(--accent-purple)') 
+                background: providerFilter === tab.id
+                  ? (isLight ? '#ffffff' : 'var(--accent-purple)')
                   : 'transparent',
-                color: providerFilter === tab.id 
-                  ? (isLight ? '#0f172a' : '#ffffff') 
+                color: providerFilter === tab.id
+                  ? (isLight ? '#0f172a' : '#ffffff')
                   : 'var(--text-secondary)',
                 border: 'none',
                 cursor: 'pointer',
@@ -521,8 +521,8 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                   className="glass-panel"
                   style={{
                     borderRadius: '16px',
-                    background: isLight 
-                      ? '#ffffff' 
+                    background: isLight
+                      ? '#ffffff'
                       : 'linear-gradient(135deg, rgba(15,23,42,0.85) 0%, rgba(30,41,59,0.7) 100%)',
                     border: isHovered
                       ? '1px solid rgba(168, 85, 247, 0.6)'
@@ -657,7 +657,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                               body: JSON.stringify({ provider: 'evaops_native' })
                             });
                             fetchPipelineRuns();
-                          } catch (e) {}
+                          } catch (e) { }
                         }}
                         style={{
                           padding: '8px 14px',
