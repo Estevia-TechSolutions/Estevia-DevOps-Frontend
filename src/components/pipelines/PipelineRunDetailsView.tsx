@@ -77,8 +77,14 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
 
   if (!isOpen) return null;
 
-  const projectName = runDetails?.project_name || runId?.replace(/^scanned-\d+-/, '') || 'Estevia Codebase';
-  const buildNumber = runDetails?.run_number ? `#${runDetails.run_number}` : '#42';
+  const selectedHistoricalRun = runDetails?.historicalRuns?.find((hr: any) => hr.id === (selectedHistoricalRunId || runId)) || runDetails?.historicalRuns?.[0];
+
+  const projectName = runDetails?.project_name || (runId && !runId.startsWith('run-') ? runId.replace(/^scanned-\d+-/, '') : null) || 'Estevia-App';
+  const buildNumber = selectedHistoricalRun?.run_number 
+    ? `#${selectedHistoricalRun.run_number}` 
+    : runDetails?.run_number 
+    ? `#${runDetails.run_number}` 
+    : '#1';
   const provider = (runDetails?.provider || initialProvider || 'azure_devops').toLowerCase();
   const cnameHost = runDetails?.cname_host || `${projectName.toLowerCase()}.esteviatech.com`;
   const resourceGroup = runDetails?.resource_group || 'Estevia-Prod-RG';
