@@ -4180,8 +4180,17 @@ function App() {
         const appsCount = data.apps ? data.apps.length : 0;
         console.log(`[DevOps Scan] [SUCCESS] Discovered ${appsCount} resources.`, data.apps);
         console.log('[DevOps Debug Logs] Fresh Scan Apps List JSON String:\n', JSON.stringify(data.apps, null, 2));
+
+        if (data.apps && Array.isArray(data.apps)) {
+          const pcApps = data.apps.filter((a: any) => a.name?.toLowerCase().includes('peoplecraft') || a.repositoryUrl?.toLowerCase().includes('peoplecraft'));
+          console.log('🔍 [FRONTEND DIAGNOSTICS] PeopleCraft Scanned Apps Array:', pcApps);
+
+          const evaApps = data.apps.filter((a: any) => a.name?.toLowerCase().includes('evaops') || a.repositoryUrl?.toLowerCase().includes('evaops'));
+          console.log('🔍 [FRONTEND DIAGNOSTICS] EvaOps Scanned Apps Array:', evaApps);
+        }
+
         if (appsCount === 0 && !buildsOnly) {
-          console.warn('[DevOps Scan] [WARN] Scan returned 0 active resources. Check Azure subscription permissions or resource group filters.');
+          console.warn(`[DevOps Scan] [WARN] Scan returned 0 active resources. Organization: "${organizationId}" | Selected SubID: "${activeSub || 'All'}" | Selected ResourceGroup: "${activeRg || 'All'}" | Scan URL: "${scanUrl}". Check Azure subscription permissions or resource group filters.`);
         }
         setApps(data.apps || []);
         const newlyGrouped = groupApps(data.apps || []);

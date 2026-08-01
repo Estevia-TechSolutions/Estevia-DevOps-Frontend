@@ -813,7 +813,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
   // Map appGroups to override pipelineRun statuses with live data
   const localAppGroups = React.useMemo(() => {
-    return appGroups.map(group => {
+    const computedGroups = appGroups.map(group => {
       const updatedEnvs = group.envs.map(app => {
         const runId = app.pipelineRun?.id;
         const pidKey = app.pipelineId ? `pid-${app.pipelineId}-${resolveBranchName(app)}` : null;
@@ -835,6 +835,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         envs: updatedEnvs
       };
     });
+    console.log('🔍 [FRONTEND DIAGNOSTICS - DashboardPage] effectiveAppGroups output:', computedGroups);
+    return computedGroups;
   }, [appGroups, livePipelineRuns]);
 
   // Memoized string of active build IDs to optimize active telemetry poller dependency
