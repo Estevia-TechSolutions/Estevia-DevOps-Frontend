@@ -654,7 +654,11 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
 
                     {isAzure && (
                       <a
-                        href={`https://dev.azure.com/esteviatech/Estevia-Platform/_build?definitionId=${r.pipeline_id || r.id}`}
+                        href={
+                          r.pipeline_id && !isNaN(Number(r.pipeline_id))
+                            ? `https://dev.azure.com/esteviatech/Estevia-Platform/_build?definitionId=${r.pipeline_id}`
+                            : `https://dev.azure.com/esteviatech/Estevia-Platform/_build`
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
