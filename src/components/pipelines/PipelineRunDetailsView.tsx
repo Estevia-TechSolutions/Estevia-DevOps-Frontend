@@ -43,6 +43,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
 
   useEffect(() => {
     if (runId && isOpen) {
+      setRunDetails(null);
       setSelectedHistoricalRunId(null);
       fetchRunDetails(runId, activeBranch);
     }
