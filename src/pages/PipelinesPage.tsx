@@ -125,7 +125,8 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
       if (!runMap.has(appKey)) {
         let prov = (app.provider || app.build_provider || '').toLowerCase();
         if (!prov || prov === 'unconfigured' || prov === 'evaops_native') {
-          prov = (app.name || '').toLowerCase().includes('peoplecraft-frontend') ? 'github_actions' : 'azure_devops';
+          const isFront = app.type === 'frontend' || (app.name || '').toLowerCase().endsWith('-swa') || (app.name || '').toLowerCase().includes('frontend');
+          prov = isFront ? 'github_actions' : 'azure_devops';
         }
 
         combined.push({
