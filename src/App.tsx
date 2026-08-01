@@ -1790,7 +1790,10 @@ function App() {
             `&branch=${encodeURIComponent(branch)}` +
             `&pipelineProvider=${pipelineProvider || 'azure_devops'}` +
             `&checkDockerfile=${isBackend}`,
-            { signal: controller.signal }
+            {
+              headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+              signal: controller.signal
+            }
           );
           if (timeoutId) {
             clearTimeout(timeoutId);
@@ -4170,7 +4173,9 @@ function App() {
     const scanUrl = `${API_BASE}/apps/scan?organizationId=${organizationId}${activeRg ? `&resourceGroup=${activeRg}` : ''}${activeSub ? `&subscriptionId=${activeSub}` : ''}${buildsOnly ? '&buildsOnly=true' : ''}`;
     console.log('[DevOps Scan] [START] Initiating Cloud Scan.', { organizationId, scanUrl, buildsOnly });
     try {
-      const res = await fetch(scanUrl);
+      const res = await fetch(scanUrl, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
       console.log('[DevOps Scan] [HTTP STATUS]', res.status, res.statusText);
 
       const data = await res.json();
