@@ -625,6 +625,42 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                       )}
                     </div>
 
+                    {/* LIVE BUILD IN PROGRESS BANNER */}
+                    {(r.status === 'running' || r.status === 'queued' || (r as any).in_progress_run) && (
+                      <div style={{
+                        marginBottom: '14px',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        background: 'rgba(59, 130, 246, 0.12)',
+                        border: '1px solid rgba(59, 130, 246, 0.35)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        animation: 'pulse 1.5s infinite'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', fontWeight: 800, color: '#3b82f6' }}>
+                          <RefreshCw size={13} className="spin-anim" />
+                          <span>⚡ {isEvaForge ? 'EvaForge' : isAzure ? 'Azure DevOps' : 'GitHub'} Build #{r.run_number} in Progress...</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onOpenRunDetails(r.id, r.branch || 'main', r.provider)}
+                          style={{
+                            padding: '4px 10px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            borderRadius: '6px',
+                            background: '#3b82f6',
+                            color: '#ffffff',
+                            border: 'none',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Live Terminal
+                        </button>
+                      </div>
+                    )}
+
                     {/* Environment Branch Badges Bar */}
                     <div style={{ marginBottom: '14px' }}>
                       <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>Target Environment Branches</div>
