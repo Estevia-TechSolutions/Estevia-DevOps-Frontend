@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Play, RefreshCw, CheckCircle2, XCircle, Clock, Plus, Zap, Cpu, Server, ExternalLink, ArrowRight, Shield, ShieldAlert, Terminal, Filter, Search, Layers, GitBranch, Sparkles, Activity, Globe, Box, Check, CheckCircle, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { getNormalizedCodebaseName } from '../utils/codebase';
 
 interface PipelineRun {
   id: string;
@@ -179,16 +180,21 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
       );
     });
 
-    // Group & deduplicate runs by project_name so each application codebase has ONE card in the grid
+    // Group & deduplicate runs by normalized codebase name so each application codebase has ONE card in the grid
     const uniqueMap = new Map<string, PipelineRun>();
     scopedRuns.forEach(r => {
-      const key = (r.project_name || '').toLowerCase();
+      const key = getNormalizedCodebaseName(r.project_name || '');
       if (!uniqueMap.has(key)) {
         uniqueMap.set(key, { ...r });
       } else {
         const existing = uniqueMap.get(key)!;
         if ((r as any).has_cicd_conflict) {
           (existing as any).has_cicd_conflict = true;
+        }
+        if ((!existing.provider || existing.provider === 'unconfigured') && r.provider && r.provider !== 'unconfigured') {
+          existing.provider = r.provider;
+          existing.pipeline_name = r.pipeline_name;
+          existing.pipeline_url = r.pipeline_url;
         }
       }
     });
@@ -560,11 +566,10 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
             {paginatedRuns.map((r) => {
               const prov = (r.provider || 'unconfigured').toLowerCase();
               const isConflictCard = !!(r as any).has_cicd_conflict;
-              // Conflict cards should only show the Conflict badge, not a single provider badge
-              const isAzure = !isConflictCard && (prov.includes('azure') || prov.includes('devops'));
-              const isGithub = !isConflictCard && (prov.includes('github') || prov.includes('actions'));
-              const isEvaForge = !isConflictCard && (prov.includes('eva') || prov.includes('native') || prov.includes('evaforge'));
-              const isUnconfigured = !isConflictCard && (prov === 'unconfigured' || (!isAzure && !isGithub && !isEvaForge));
+              const isAzure = prov.includes('azure') || prov.includes('devops');
+              const isGithub = prov.includes('github') || prov.includes('actions');
+              const isEvaForge = prov.includes('eva') || prov.includes('native') || prov.includes('evaforge');
+              const isUnconfigured = prov === 'unconfigured' || (!isAzure && !isGithub && !isEvaForge);
               const isHovered = hoveredCardId === r.id;
 
               const supportedBranches: string[] = r.supported_branches || (r.branches?.map(b => b.branch)) || ['main'];

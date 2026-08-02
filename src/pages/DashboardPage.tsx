@@ -39,9 +39,12 @@ import {
   ChevronsDown,
   ChevronsUp,
   XCircle,
-  ShieldAlert
+  ShieldAlert,
+  Layers,
+  Zap
 } from 'lucide-react';
 import { resolveBranchName, hasEnvSegment, branchToEnv } from '../App';
+import { resolveAppProvider } from '../utils/codebase';
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE || (['evaops.esteviatech.com', 'evaops-crm.esteviatech.com'].includes(window.location.hostname) ? 'https://api-evaops.esteviatech.com/api' : `http://${window.location.hostname}:5005/api`);
 
@@ -3528,6 +3531,61 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                     Dev / Test
                                                   </span>
                                                 )}
+
+                                                {/* Multi-CI/CD Conflict Badge */}
+                                                {(item as any).hasConflict && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); setConflictDrawerApp(item); }}
+                                                    style={{
+                                                      fontSize: '0.62rem',
+                                                      fontWeight: 700,
+                                                      color: '#f59e0b',
+                                                      background: 'rgba(245, 158, 11, 0.15)',
+                                                      padding: '2px 7px',
+                                                      borderRadius: '4px',
+                                                      border: '1px solid rgba(245, 158, 11, 0.4)',
+                                                      display: 'inline-flex',
+                                                      alignItems: 'center',
+                                                      gap: '4px',
+                                                      cursor: 'pointer'
+                                                    }}
+                                                    title="Multiple active CI/CD pipelines detected for this codebase - click to resolve"
+                                                  >
+                                                    <ShieldAlert size={10} /> Multi-CI/CD Conflict
+                                                  </button>
+                                                )}
+
+                                                {/* Provider Badge */}
+                                                {(() => {
+                                                  const prov = resolveAppProvider(item);
+                                                  if (prov === 'azure_devops') {
+                                                    return (
+                                                      <span style={{ fontSize: '0.62rem', padding: '2px 7px', borderRadius: '4px', background: 'rgba(59, 130, 246, 0.14)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.35)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                        <Layers size={10} /> Azure DevOps
+                                                      </span>
+                                                    );
+                                                  }
+                                                  if (prov === 'github_actions') {
+                                                    return (
+                                                      <span style={{ fontSize: '0.62rem', padding: '2px 7px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.14)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.35)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                        <GitBranch size={10} /> GitHub Actions
+                                                      </span>
+                                                    );
+                                                  }
+                                                  if (prov === 'evaops_native') {
+                                                    return (
+                                                      <span style={{ fontSize: '0.62rem', padding: '2px 7px', borderRadius: '4px', background: 'linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(236,72,153,0.15) 100%)', color: '#c084fc', border: '1px solid rgba(192,132,252,0.4)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                        <Zap size={10} /> ⚡ EvaForge
+                                                      </span>
+                                                    );
+                                                  }
+                                                  return (
+                                                    <span style={{ fontSize: '0.62rem', padding: '2px 7px', borderRadius: '4px', background: 'rgba(148, 163, 184, 0.12)', color: 'var(--text-secondary)', border: '1px solid var(--glass-border)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                      <Globe size={10} /> Unconfigured
+                                                    </span>
+                                                  );
+                                                })()}
                                                 {isOrphaned && (
                                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                     <span style={{
@@ -3729,7 +3787,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                 <Server size={12} style={{ opacity: 0.7, color: 'var(--accent-teal)', flexShrink: 0 }} />
                                                 <span>Pipeline: <strong style={{ color: 'var(--success)' }}>
                                                   {(() => {
-                                                    const prov = (item as any).provider || (item as any).azureResourceDetails?.provider || ((item.pipelineId && String(item.pipelineId).startsWith('github-actions:')) ? 'github_actions' : 'azure_devops');
+                                                    const prov = resolveAppProvider(item);
                                                     if (prov === 'github_actions') return `GitHub Actions (${item.name})`;
                                                     if (prov === 'evaops_native') return `⚡ EvaForge Engine (${item.name})`;
                                                     return item.pipelineName || `Azure DevOps (${item.name})`;
