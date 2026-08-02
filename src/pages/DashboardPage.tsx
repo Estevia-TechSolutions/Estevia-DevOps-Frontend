@@ -3676,11 +3676,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                               {/* Pipeline Details */}
                                               <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
                                                 <Server size={12} style={{ opacity: 0.7, color: 'var(--accent-teal)', flexShrink: 0 }} />
-                                                <span>Pipeline: <strong style={{ color: (item.pipelineName || item.pipelineId) ? 'var(--success)' : '#ef4444' }}>
-                                                  {item.pipelineId?.startsWith('github-actions:')
-                                                    ? `GitHub Actions (${item.pipelineId.replace('github-actions:', '').split('/')[1] || item.pipelineId.replace('github-actions:', '')})`
-                                                    : (item.pipelineName || 'Not Set')
-                                                  }
+                                                <span>Pipeline: <strong style={{ color: 'var(--success)' }}>
+                                                  {item.pipelineName || (
+                                                    ((item as any).provider === 'github_actions' || item.pipelineId?.startsWith('github-actions:') || (item.name || '').toLowerCase().includes('peoplecraft-frontend'))
+                                                      ? `GitHub Actions (${item.name})`
+                                                      : (item as any).provider === 'evaops_native'
+                                                      ? `⚡ EvaForge Engine (${item.name})`
+                                                      : `Azure DevOps (${item.name})`
+                                                  )}
                                                 </strong></span>
                                                 {item.pipelineId && onShowBuildHistory && (
                                                   <button
