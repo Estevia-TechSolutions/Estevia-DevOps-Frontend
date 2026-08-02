@@ -559,8 +559,22 @@ function groupApps(apps: AppResource[]): AppGroup[] {
     }
   }
 
-  // Sort envs within each group: dev → qa → prod → others
+  // Deduplicate envs within each group by app.name to prevent duplicate cards in Dashboard
   for (const g of map.values()) {
+    const envMap = new Map<string, AppResource>();
+    for (const env of g.envs) {
+      const k = env.name.toLowerCase();
+      if (!envMap.has(k)) {
+        envMap.set(k, env);
+      } else {
+        const existing = envMap.get(k)!;
+        if ((env as any).hasConflict || (env as any).has_cicd_conflict) {
+          (existing as any).hasConflict = true;
+          (existing as any).has_cicd_conflict = true;
+        }
+      }
+    }
+    g.envs = Array.from(envMap.values());
     g.envs.sort((a, b) => getEnvOrder(a.name) - getEnvOrder(b.name));
   }
 
