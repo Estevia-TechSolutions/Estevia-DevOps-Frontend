@@ -115,3 +115,46 @@ export function hasCiCdConflict(item: any): boolean {
   // Multi-CI/CD Conflict: Both GitHub Actions AND Azure DevOps signals exist for the same resource
   return hasGha && hasAzdo;
 }
+
+/**
+ * Dynamically resolves target environment branch badges for a resource object.
+ * Extracts environment tags via generic regex without hardcoding any app strings.
+ */
+export function getDynamicTargetBranches(resource: any): { branch: string; target: string; status: string }[] {
+  if (!resource) return [];
+
+  const pName = String(resource.project_name || resource.name || '').toLowerCase();
+  const primaryBranch = String(resource.branch || 'main').toLowerCase();
+
+  // Generic regex extraction for environment tags (-qa, -dev, -prod, _qa, _dev, _prod, -qa-swa, etc.)
+  const match = pName.match(/[-_](dev|qa|prod|stage|staging|test)([-_]|$)/i);
+  let resolvedBranch: string | null = null;
+  if (match) {
+    const env = match[1].toLowerCase();
+    resolvedBranch = env === 'prod' ? 'main' : env;
+  } else if (primaryBranch && primaryBranch !== 'main') {
+    resolvedBranch = primaryBranch;
+  }
+
+  // If specific environment branch resolved, return single target branch entry for this environment card
+  if (resolvedBranch) {
+    const targetLabel = `${pName.toLowerCase()}.esteviatech.com (${resolvedBranch.toUpperCase()} Target)`;
+    return [{ branch: resolvedBranch, target: targetLabel, status: 'success' }];
+  }
+
+  // If r.branches explicitly provided, use them
+  if (Array.isArray(resource.branches) && resource.branches.length > 0) {
+    return resource.branches;
+  }
+
+  // Multi-branch fallback for root codebase pipelines without specific environment suffix
+  const supported = Array.isArray(resource.supported_branches) && resource.supported_branches.length > 0
+    ? resource.supported_branches
+    : ['main', 'qa', 'dev'];
+
+  return supported.map((b: string) => ({
+    branch: b,
+    target: `${pName.toLowerCase()}${b === 'main' ? '' : '-' + b}.esteviatech.com (${b.toUpperCase()} Target)`,
+    status: 'success'
+  }));
+}

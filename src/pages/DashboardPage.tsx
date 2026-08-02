@@ -3819,7 +3819,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                     <span>History</span>
                                                   </button>
                                                 )}
-                                                {(item as any).hasConflict && (
+                                                {hasCiCdConflict(item) && (
                                                   <button
                                                     type="button"
                                                     onClick={(e) => { e.stopPropagation(); setConflictDrawerApp(item); }}

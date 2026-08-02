@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Play, RefreshCw, CheckCircle2, XCircle, Clock, Plus, Zap, Cpu, Server, ExternalLink, ArrowRight, Shield, ShieldAlert, Terminal, Filter, Search, Layers, GitBranch, Sparkles, Activity, Globe, Box, Check, CheckCircle, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
-import { getNormalizedCodebaseName, resolveAppProvider, hasCiCdConflict } from '../utils/codebase';
+import { getNormalizedCodebaseName, resolveAppProvider, hasCiCdConflict, getDynamicTargetBranches } from '../utils/codebase';
 
 interface PipelineRun {
   id: string;
@@ -571,13 +571,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
               const isUnconfigured = effectiveProv === 'unconfigured';
               const isHovered = hoveredCardId === r.id;
 
-              const supportedBranches: string[] = r.supported_branches || (r.branches?.map(b => b.branch)) || ['main'];
-              const rawBranches = r.branches || [
-                { branch: 'main', target: `${r.project_name.toLowerCase()}.esteviatech.com (Prod)`, status: 'success' },
-                { branch: 'qa', target: `${r.project_name.toLowerCase()}-qa.esteviatech.com (QA)`, status: 'success' },
-                { branch: 'dev', target: `${r.project_name.toLowerCase()}-dev.esteviatech.com (Dev)`, status: 'success' }
-              ];
-              const branchesList = rawBranches.filter(b => supportedBranches.includes(b.branch));
+              const branchesList = getDynamicTargetBranches(r);
 
               return (
                 <div
