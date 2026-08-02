@@ -26,7 +26,8 @@ import {
   PlusCircle,
   Compass,
   AlertTriangle,
-  KeyRound
+  KeyRound,
+  Zap
 } from 'lucide-react';
 
 interface GuidePageProps {
@@ -1979,6 +1980,14 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                 >
                   GitHub Actions CI/CD
                 </button>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('evaforge-engine-native') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('evaforge-engine-native')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px', background: isSubTabActive('evaforge-engine-native') ? 'rgba(168,85,247,0.2)' : undefined, color: isSubTabActive('evaforge-engine-native') ? '#a855f7' : undefined }}
+                >
+                  ⚡ EvaForge Engine (Native)
+                </button>
               </div>
               <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
@@ -2093,6 +2102,76 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                   <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
                     For Azure Container Apps (ACA), deployment requires write and push permissions to ECR/ACR. During the setup process, EvaOps automatically configures registry access controls so that the workflow runner can log in and push Docker images securely using the organization credentials.
                   </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB CONTENT: EVAFORGE NATIVE ENGINE */}
+          {activeSubTab === 'pipelines-cicd' && guideSubTab === 'evaforge-engine-native' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div className="tabs-container" style={{ 
+                background: 'rgba(255, 255, 255, 0.02)', 
+                padding: '4px', 
+                borderRadius: '10px', 
+                display: 'inline-flex', 
+                width: 'fit-content',
+                border: '1px solid var(--glass-border)',
+                marginBottom: '10px'
+              }}>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('azure-devops-cicd') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('azure-devops-cicd')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  Azure DevOps CI/CD
+                </button>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('github-actions-cicd') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('github-actions-cicd')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px' }}
+                >
+                  GitHub Actions CI/CD
+                </button>
+                <button 
+                  type="button"
+                  className={`tab-btn tab-btn-cost ${isSubTabActive('evaforge-engine-native') ? 'active' : ''}`}
+                  onClick={() => setGuideSubTab('evaforge-engine-native')}
+                  style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px', background: 'rgba(168,85,247,0.2)', color: '#a855f7' }}
+                >
+                  ⚡ EvaForge Engine (Native)
+                </button>
+              </div>
+              <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  ⚡ EvaForge Engine: Native Autonomous CI/CD Pipeline Automation
+                </h3>
+                <p style={{ margin: '6px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
+                  EvaForge is the core native autonomous CI/CD execution subset of EvaOps. It eliminates dedicated build VMs, version-controls workflows in `.evaforge/config.yml`, and deploys live to Azure ARM.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: '#a855f7', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Zap size={16} /> In-Repo Workflow Specification (.evaforge/config.yml)
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                    EvaForge workflows use standard CircleCI-style YAML syntax stored in `.evaforge/config.yml` at your repository root. Every push to <code>main</code>, <code>qa</code>, or <code>dev</code> automatically triggers ephemeral runner pods that compile code, execute unit tests, and deploy live to Azure.
+                  </p>
+                </div>
+
+                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    Target Scope Codebase & Pipeline Grid Master Guide
+                  </h4>
+                  <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.7' }}>
+                    <li><strong>Resource Scope Binding:</strong> Bind scanned Azure Static Web Apps and Container Apps directly via <code>app_id</code> foreign key mapping.</li>
+                    <li><strong>Multi-CI/CD Conflict Detector:</strong> Automatically detects when legacy GitHub Actions or Azure DevOps workflows coexist with EvaForge and provides 1-Click decommissioning options.</li>
+                    <li><strong>Subscription Concurrency Slots:</strong> Concurrency quotas are strictly managed by your organization package: <strong>Sovereign</strong> (25 parallel slots), <strong>Scale</strong> (10 slots), <strong>Growth</strong> (3 slots). Excess builds are queued automatically and dequeued on completion.</li>
+                  </ul>
                 </div>
               </div>
             </div>

@@ -262,6 +262,7 @@ ${stagesYaml}`;
     setCreating(true);
     setError(null);
     try {
+      const selectedApp = apps.find(a => a.githubRepo === selectedRepoPath || a.repo_url === selectedRepoPath || a.name === projectName);
       const res = await fetch(`${API_BASE}/pipelines/create-on-the-fly`, {
         method: 'POST',
         headers: {
@@ -271,6 +272,7 @@ ${stagesYaml}`;
         body: JSON.stringify({
           projectName,
           name,
+          app_id: selectedApp?.id,
           repoUrl: selectedRepoPath,
           branch,
           targetType,
