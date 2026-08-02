@@ -3728,13 +3728,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                               <div style={{ fontSize: '0.72rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 400, color: 'var(--text-secondary)' }}>
                                                 <Server size={12} style={{ opacity: 0.7, color: 'var(--accent-teal)', flexShrink: 0 }} />
                                                 <span>Pipeline: <strong style={{ color: 'var(--success)' }}>
-                                                  {item.pipelineName || (
-                                                    ((item as any).provider === 'github_actions' || (item as any).azureResourceDetails?.provider === 'github_actions' || item.pipelineId?.startsWith('github-actions:'))
-                                                      ? `GitHub Actions (${item.name})`
-                                                      : ((item as any).provider === 'evaops_native' || (item as any).azureResourceDetails?.provider === 'evaops_native')
-                                                      ? `⚡ EvaForge Engine (${item.name})`
-                                                      : `Azure DevOps (${item.name})`
-                                                  )}
+                                                  {(() => {
+                                                    const prov = (item as any).provider || (item as any).azureResourceDetails?.provider || ((item.pipelineId && String(item.pipelineId).startsWith('github-actions:')) ? 'github_actions' : 'azure_devops');
+                                                    if (prov === 'github_actions') return `GitHub Actions (${item.name})`;
+                                                    if (prov === 'evaops_native') return `⚡ EvaForge Engine (${item.name})`;
+                                                    return item.pipelineName || `Azure DevOps (${item.name})`;
+                                                  })()}
                                                 </strong></span>
                                                 {item.pipelineId && onShowBuildHistory && (
                                                   <button
