@@ -127,48 +127,12 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
 
   // ── Combine DB execution runs with scanned Azure Target Scope apps ──────────
   const targetScopeRuns = React.useMemo(() => {
-    if (!apps || apps.length === 0) return [];
-
-    const activeAppNames = new Set(apps.map(a => (a.name || '').toLowerCase()));
-
-    // Filter runs so ONLY pipelines strictly matching active header Target Scope apps are displayed (excluding databases)
-    const scopedRuns = runs.filter(r => {
-      if (r.target_type === 'database' || (r.project_name || '').toLowerCase().endsWith('-db')) return false;
-      const pNameLow = (r.project_name || '').toLowerCase();
-      if (activeAppNames.has(pNameLow)) return true;
-      return Array.from(activeAppNames).some(appSlug => 
-        appSlug.includes(pNameLow) || pNameLow.includes(appSlug) ||
-        (pNameLow.includes('marketing') && appSlug.includes('marketing')) ||
-        (pNameLow.includes('restaurant') && appSlug.includes('restaurant')) ||
-        (pNameLow.includes('peoplecraft') && appSlug.includes('peoplecraft'))
-      );
-    });
-
-    const runMap = new Map();
-    scopedRuns.forEach(r => {
-      runMap.set((r.project_name || '').toLowerCase(), r);
-    });
-
-    const combined = [...scopedRuns];
-
-    apps.forEach((app, idx) => {
-      if (app.type === 'database' || (app.name || '').toLowerCase().endsWith('-db')) return;
-      const appKey = (app.name || '').toLowerCase();
-      if (!runMap.has(appKey)) {
-        let prov = (app.provider || app.build_provider || '').toLowerCase();
-        if (appKey.includes('marketing') || appKey.includes('peoplecraft')) {
-          prov = 'github_actions';
-        } else if (appKey.includes('evaops') || appKey.includes('restaurant')) {
-          prov = 'azure_devops';
-        } else if (app.pipeline_id && String(app.pipeline_id).startsWith('github-actions:')) {
-          prov = 'github_actions';
-        } else if (app.pipeline_id && !isNaN(Number(app.pipeline_id))) {
-          prov = 'azure_devops';
-        } else if (!prov) {
-          prov = 'azure_devops';
-        }
-
-        combined.push({
+    if (!runs || runs.length === 0) {
+      if (!apps || apps.length === 0) return [];
+      return apps.filter(a => a.type !== 'database' && !(a.name || '').toLowerCase().endsWith('-db')).map(app => {
+        const appKey = (app.name || '').toLowerCase();
+        const prov = appKey.includes('peoplecraft-frontend') ? 'github_actions' : 'azure_devops';
+        return {
           id: `scanned-${app.name}`,
           pipeline_name: app.pipelineName || `${app.name} Pipeline`,
           project_name: app.name,
@@ -181,16 +145,27 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
           duration_seconds: 48,
           created_at: new Date().toISOString(),
           provider: prov,
+          pipeline_url: prov === 'azure_devops' 
+            ? `https://dev.azure.com/esteviatech/Estevia-Platform/_build/results?buildId=${app.run_number || 1}&view=results`
+            : `https://github.com/Estevia-TechSolutions/${app.name}/actions`,
+          repo_url: `https://github.com/Estevia-TechSolutions/${app.name}`,
+          supported_branches: ['main', 'qa', 'dev'],
           branches: [
             { branch: 'main', target: `${app.name.toLowerCase()}.esteviatech.com (Prod ACA)`, status: 'success' },
             { branch: 'qa', target: `${app.name.toLowerCase()}-qa.esteviatech.com (QA Staging ACA)`, status: 'success' },
             { branch: 'dev', target: `${app.name.toLowerCase()}-dev.esteviatech.com (Dev ACA)`, status: 'success' }
           ]
-        });
-      }
+        };
+      });
+    }
+
+    // Filter runs to exclude databases
+    const scopedRuns = runs.filter(r => {
+      if (r.target_type === 'database' || (r.project_name || '').toLowerCase().endsWith('-db')) return false;
+      return true;
     });
 
-    return combined;
+    return scopedRuns;
   }, [runs, apps]);
 
   const filteredRuns = targetScopeRuns.filter((r) => {
