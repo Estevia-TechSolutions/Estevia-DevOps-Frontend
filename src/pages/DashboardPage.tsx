@@ -1,4 +1,5 @@
 import React from 'react';
+import { ConflictResolutionDrawer } from '../components/pipelines/ConflictResolutionDrawer';
 import {
   RefreshCw,
   Search,
@@ -37,7 +38,8 @@ import {
   Activity,
   ChevronsDown,
   ChevronsUp,
-  XCircle
+  XCircle,
+  ShieldAlert
 } from 'lucide-react';
 import { resolveBranchName, hasEnvSegment, branchToEnv } from '../App';
 
@@ -120,6 +122,8 @@ interface AppResource {
   branches?: { name: string; protected: boolean }[];
   isTestResource?: boolean;
   azureResourceDetails?: any;
+  hasConflict?: boolean;
+  provider?: string;
 }
 
 interface AppGroup {
@@ -364,6 +368,53 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   const [expandedWarnings, setExpandedWarnings] = React.useState<Record<string, boolean>>({});
   const [expandedYamlDetails, setExpandedYamlDetails] = React.useState<Record<string, boolean>>({});
   const [expandedDockerDetails, setExpandedDockerDetails] = React.useState<Record<string, boolean>>({});
+  // Multi-CI/CD Conflict Drawer state
+  const [conflictDrawerApp, setConflictDrawerApp] = React.useState<AppResource | null>(null);
+  const [conflictPipelines, setConflictPipelines] = React.useState<any[]>([]);
+  const [loadingConflictPipelines, setLoadingConflictPipelines] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!conflictDrawerApp) {
+      setConflictPipelines([]);
+      return;
+    }
+    const fetchConflictPipelines = async () => {
+      setLoadingConflictPipelines(true);
+      try {
+        const token = localStorage.getItem('devops_token');
+        const res = await fetch(`${API_BASE}/pipelines?appName=${encodeURIComponent(conflictDrawerApp.name)}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const pipes = (data.pipelines || []).map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            provider: p.provider,
+            is_active: !!p.is_active,
+            project_name: p.project_name,
+            pipeline_url: p.pipeline_url || null,
+            repo_url: conflictDrawerApp.repositoryUrl
+          }));
+          setConflictPipelines(pipes.length > 0 ? pipes : [
+            {
+              id: conflictDrawerApp.pipelineId || conflictDrawerApp.name,
+              name: conflictDrawerApp.pipelineName || `${conflictDrawerApp.name} CI/CD Pipeline`,
+              provider: (conflictDrawerApp as any).provider || 'azure_devops',
+              is_active: true,
+              project_name: conflictDrawerApp.name,
+              repo_url: conflictDrawerApp.repositoryUrl
+            }
+          ]);
+        }
+      } catch (e) {
+        console.warn('[DashboardPage] Failed to fetch conflict pipelines:', e);
+      } finally {
+        setLoadingConflictPipelines(false);
+      }
+    };
+    fetchConflictPipelines();
+  }, [conflictDrawerApp]);
 
   const [viewingFileDrawer, setViewingFileDrawer] = React.useState<{
     appName: string;
@@ -3709,6 +3760,31 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                   >
                                                     <Clock size={10} />
                                                     <span>History</span>
+                                                  </button>
+                                                )}
+                                                {(item as any).hasConflict && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); setConflictDrawerApp(item); }}
+                                                    title="Multi-CI/CD Conflict Detected — Click to resolve"
+                                                    style={{
+                                                      display: 'inline-flex',
+                                                      alignItems: 'center',
+                                                      gap: '4px',
+                                                      marginLeft: '8px',
+                                                      padding: '2px 7px',
+                                                      borderRadius: '6px',
+                                                      fontSize: '0.66rem',
+                                                      fontWeight: 700,
+                                                      background: 'rgba(245, 158, 11, 0.15)',
+                                                      color: '#f59e0b',
+                                                      border: '1px solid rgba(245, 158, 11, 0.4)',
+                                                      cursor: 'pointer',
+                                                      animation: 'pulse 2s infinite'
+                                                    }}
+                                                  >
+                                                    <ShieldAlert size={10} />
+                                                    <span>Multi-CI/CD Conflict</span>
                                                   </button>
                                                 )}
                                               </div>
@@ -7828,6 +7904,23 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             </div>
           </div>
         </>
+      )}
+
+      {/* Multi-CI/CD Conflict Resolution Drawer */}
+      {conflictDrawerApp && (
+        <ConflictResolutionDrawer
+          isOpen={!!conflictDrawerApp}
+          onClose={() => setConflictDrawerApp(null)}
+          appName={conflictDrawerApp.name}
+          pipelines={loadingConflictPipelines ? [] : conflictPipelines}
+          API_BASE={API_BASE}
+          token={localStorage.getItem('devops_token') || ''}
+          theme={theme}
+          onResolved={() => {
+            setConflictDrawerApp(null);
+            handleScan();
+          }}
+        />
       )}
     </div>
   );
