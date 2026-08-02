@@ -31,9 +31,10 @@ export function hasGitHubActionsSignal(item: any): boolean {
   const pid = String(item.pipelineId || item.pipeline_id || '');
   const prov = String(item.provider || item.azureResourceDetails?.provider || '').toLowerCase();
   const ymlPath = String(item.ymlHealth?.filePath || item.health?.ymlHealth?.filePath || '').toLowerCase();
-  const runUrl = String(item.pipelineRun?.webUrl || '').toLowerCase();
-  const type = String(item.type || item.app_type || '').toLowerCase();
+  const runUrl = String(item.pipelineRun?.webUrl || item.pipeline_url || '').toLowerCase();
+  const type = String(item.type || item.app_type || item.target_type || '').toLowerCase();
   const name = String(item.name || item.project_name || '').toLowerCase();
+  const repoUrl = String(item.repositoryUrl || item.repo_url || '').toLowerCase();
 
   return (
     pid.startsWith('github-actions:') ||
@@ -42,8 +43,9 @@ export function hasGitHubActionsSignal(item: any): boolean {
     prov.includes('actions') ||
     ymlPath.includes('.github') ||
     runUrl.includes('github.com') ||
+    repoUrl.includes('github.com') ||
     // Azure Static Web Apps (SWA) connected to GitHub repositories default to GitHub Actions workflows
-    ((type === 'frontend' || name.endsWith('-swa')) && !!item.repositoryUrl && item.repositoryUrl.includes('github.com'))
+    ((type === 'frontend' || name.endsWith('-swa')) && (repoUrl.includes('github') || !prov.includes('eva')))
   );
 }
 

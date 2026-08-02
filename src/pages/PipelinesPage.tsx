@@ -214,8 +214,8 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
     const isConflict = hasCiCdConflict(r);
 
     const matchesProvider = providerFilter === 'all' ||
-      (providerFilter === 'azure' && (effectiveProv === 'azure_devops' || (isConflict && (r.provider || '').toLowerCase().includes('azure')))) ||
-      (providerFilter === 'github' && (effectiveProv === 'github_actions' || (isConflict && (r.provider || '').toLowerCase().includes('github')))) ||
+      (providerFilter === 'azure' && effectiveProv === 'azure_devops') ||
+      (providerFilter === 'github' && effectiveProv === 'github_actions') ||
       (providerFilter === 'evaforge' && effectiveProv === 'evaops_native') ||
       (providerFilter === 'unconfigured' && effectiveProv === 'unconfigured');
 
@@ -607,7 +607,9 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                           <span>{r.project_name}</span>
                         </div>
                         <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                          {r.pipeline_name} • Latest Run #{r.run_number}
+                          {effectiveProv === 'github_actions' && r.pipeline_name?.includes('Azure DevOps')
+                            ? `GitHub Actions (${r.project_name})`
+                            : (r.pipeline_name || `Pipeline (${r.project_name})`)} • Latest Run #{r.run_number}
                         </div>
                       </div>
 
