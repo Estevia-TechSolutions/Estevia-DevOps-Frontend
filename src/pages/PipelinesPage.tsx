@@ -131,9 +131,11 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
     if (!runs || runs.length === 0) {
       if (!apps || apps.length === 0) return [];
       return apps.filter(a => a.type !== 'database' && !(a.name || '').toLowerCase().endsWith('-db')).map(app => {
-        // Use the provider already resolved by the backend scan — never guess by name
+        // Use the provider already resolved by the backend scan — never guess by resource type
         const prov = (app as any).provider
-          || ((app.pipelineId && String(app.pipelineId).startsWith('github-actions:')) ? 'github_actions' : 'azure_devops');
+          || ((app.pipelineId && String(app.pipelineId).startsWith('github-actions:')) ? 'github_actions'
+            : (app.pipelineId && /^\d+$/.test(String(app.pipelineId))) ? 'azure_devops'
+            : 'unconfigured');
 
         const repoUrl = (app as any).repositoryUrl || `https://github.com/Estevia-TechSolutions/${app.name}`;
         const pipelineUrl = prov === 'github_actions'
