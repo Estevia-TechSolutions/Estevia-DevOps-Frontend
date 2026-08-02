@@ -4158,7 +4158,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                     <span>DNS Settings</span>
                                                   </button>
 
-                                                  {item.pipelineId ? (
+                                                  {(item.pipelineId || (item as any).provider || item.repositoryUrl || (item.name || '').toLowerCase().includes('peoplecraft-frontend')) ? (
                                                     <a
                                                       href={item.license_frozen === 1 ? undefined : (() => {
                                                         const pid = String(item.pipelineId || '');

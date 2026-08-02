@@ -159,10 +159,17 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
       });
     }
 
-    // Filter runs to exclude databases
+    const activeAppNames = (apps && apps.length > 0) ? new Set(apps.map(a => (a.name || '').toLowerCase())) : null;
+
+    // Filter runs to exclude databases and match active Target Scope Resource Group apps
     const scopedRuns = runs.filter(r => {
       if (r.target_type === 'database' || (r.project_name || '').toLowerCase().endsWith('-db')) return false;
-      return true;
+      if (!activeAppNames) return true;
+      const pNameLow = (r.project_name || '').toLowerCase();
+      if (activeAppNames.has(pNameLow)) return true;
+      return Array.from(activeAppNames).some(appSlug => 
+        appSlug === pNameLow || appSlug.includes(pNameLow) || pNameLow.includes(appSlug)
+      );
     });
 
     return scopedRuns;
