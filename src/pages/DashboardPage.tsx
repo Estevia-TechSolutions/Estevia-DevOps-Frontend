@@ -44,7 +44,7 @@ import {
   Zap
 } from 'lucide-react';
 import { resolveBranchName, hasEnvSegment, branchToEnv } from '../App';
-import { resolveAppProvider } from '../utils/codebase';
+import { resolveAppProvider, hasCiCdConflict } from '../utils/codebase';
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE || (['evaops.esteviatech.com', 'evaops-crm.esteviatech.com'].includes(window.location.hostname) ? 'https://api-evaops.esteviatech.com/api' : `http://${window.location.hostname}:5005/api`);
 
@@ -3533,7 +3533,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                 )}
 
                                                 {/* Multi-CI/CD Conflict Badge */}
-                                                {(item as any).hasConflict && (
+                                                {hasCiCdConflict(item) && (
                                                   <button
                                                     type="button"
                                                     onClick={(e) => { e.stopPropagation(); setConflictDrawerApp(item); }}

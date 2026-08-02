@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Play, RefreshCw, CheckCircle2, XCircle, Clock, Plus, Zap, Cpu, Server, ExternalLink, ArrowRight, Shield, ShieldAlert, Terminal, Filter, Search, Layers, GitBranch, Sparkles, Activity, Globe, Box, Check, CheckCircle, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
-import { getNormalizedCodebaseName } from '../utils/codebase';
+import { getNormalizedCodebaseName, resolveAppProvider, hasCiCdConflict } from '../utils/codebase';
 
 interface PipelineRun {
   id: string;
@@ -180,15 +180,15 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
       );
     });
 
-    // Group & deduplicate runs by normalized codebase name so each application codebase has ONE card in the grid
+    // Group & deduplicate runs by exact project_name so each deployed environment app has ONE card in the grid
     const uniqueMap = new Map<string, PipelineRun>();
     scopedRuns.forEach(r => {
-      const key = getNormalizedCodebaseName(r.project_name || '');
+      const key = (r.project_name || '').toLowerCase();
       if (!uniqueMap.has(key)) {
         uniqueMap.set(key, { ...r });
       } else {
         const existing = uniqueMap.get(key)!;
-        if ((r as any).has_cicd_conflict) {
+        if (hasCiCdConflict(r)) {
           (existing as any).has_cicd_conflict = true;
         }
         if ((!existing.provider || existing.provider === 'unconfigured') && r.provider && r.provider !== 'unconfigured') {
@@ -210,15 +210,14 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
       (r.commit_message || '').toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
-    const provLow = (r.provider || '').toLowerCase();
-    const isConflict = !!(r as any).has_cicd_conflict;
-    // Conflict apps have both Azure DevOps AND GitHub Actions — they must appear under either provider filter
+    const effectiveProv = resolveAppProvider(r);
+    const isConflict = hasCiCdConflict(r);
+
     const matchesProvider = providerFilter === 'all' ||
-      (isConflict && (providerFilter === 'azure' || providerFilter === 'github')) ||
-      (providerFilter === 'azure' && (provLow.includes('azure') || provLow.includes('devops'))) ||
-      (providerFilter === 'github' && provLow.includes('github')) ||
-      (providerFilter === 'evaforge' && (provLow.includes('eva') || provLow.includes('native'))) ||
-      (providerFilter === 'unconfigured' && (provLow === 'unconfigured' || !provLow));
+      (providerFilter === 'azure' && (effectiveProv === 'azure_devops' || (isConflict && (r.provider || '').toLowerCase().includes('azure')))) ||
+      (providerFilter === 'github' && (effectiveProv === 'github_actions' || (isConflict && (r.provider || '').toLowerCase().includes('github')))) ||
+      (providerFilter === 'evaforge' && effectiveProv === 'evaops_native') ||
+      (providerFilter === 'unconfigured' && effectiveProv === 'unconfigured');
 
     return matchesSearch && matchesStatus && matchesProvider;
   });
@@ -564,12 +563,12 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
             marginBottom: '28px'
           }}>
             {paginatedRuns.map((r) => {
-              const prov = (r.provider || 'unconfigured').toLowerCase();
-              const isConflictCard = !!(r as any).has_cicd_conflict;
-              const isAzure = prov.includes('azure') || prov.includes('devops');
-              const isGithub = prov.includes('github') || prov.includes('actions');
-              const isEvaForge = prov.includes('eva') || prov.includes('native') || prov.includes('evaforge');
-              const isUnconfigured = prov === 'unconfigured' || (!isAzure && !isGithub && !isEvaForge);
+              const effectiveProv = resolveAppProvider(r);
+              const isConflictCard = hasCiCdConflict(r);
+              const isAzure = effectiveProv === 'azure_devops';
+              const isGithub = effectiveProv === 'github_actions';
+              const isEvaForge = effectiveProv === 'evaops_native';
+              const isUnconfigured = effectiveProv === 'unconfigured';
               const isHovered = hoveredCardId === r.id;
 
               const supportedBranches: string[] = r.supported_branches || (r.branches?.map(b => b.branch)) || ['main'];
