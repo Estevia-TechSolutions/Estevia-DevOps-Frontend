@@ -659,7 +659,41 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                   <div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ width: '3px', height: '12px', borderRadius: '2px', background: '#ca8a04', display: 'inline-block' }} />
-                      Critical Credentials
+                      Critical Credentials &amp; License Concurrency
+                    </div>
+
+                    {/* EvaForge Concurrency Quotas */}
+                    <div style={{
+                      marginBottom: '14px',
+                      padding: '16px',
+                      borderRadius: '12px',
+                      background: 'linear-gradient(145deg, rgba(139,92,246,0.08) 0%, rgba(59,130,246,0.04) 100%)',
+                      border: '1px solid rgba(139,92,246,0.25)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '12px'
+                    }}>
+                      <div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#c084fc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Zap size={15} /> ⚡ EvaForge Engine License Concurrency Quotas
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                          Package Tiers: <strong>Growth</strong> (3 Slots) • <strong>Scale / Enterprise</strong> (10 Slots) • <strong>Sovereign</strong> (25 Parallel Build Slots)
+                        </div>
+                      </div>
+                      <span style={{
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        padding: '4px 10px',
+                        borderRadius: '20px',
+                        background: 'rgba(34,197,94,0.14)',
+                        color: '#4ade80',
+                        border: '1px solid rgba(34,197,94,0.3)'
+                      }}>
+                        ACTIVE QUOTA: 25 SLOTS
+                      </span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {creds.map(cred => {
