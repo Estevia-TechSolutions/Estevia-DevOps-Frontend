@@ -3678,9 +3678,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                 <Server size={12} style={{ opacity: 0.7, color: 'var(--accent-teal)', flexShrink: 0 }} />
                                                 <span>Pipeline: <strong style={{ color: 'var(--success)' }}>
                                                   {item.pipelineName || (
-                                                    ((item as any).provider === 'github_actions' || item.pipelineId?.startsWith('github-actions:') || (item.name || '').toLowerCase().includes('peoplecraft-frontend'))
+                                                    ((item as any).provider === 'github_actions' || (item as any).azureResourceDetails?.provider === 'github_actions' || item.pipelineId?.startsWith('github-actions:'))
                                                       ? `GitHub Actions (${item.name})`
-                                                      : (item as any).provider === 'evaops_native'
+                                                      : ((item as any).provider === 'evaops_native' || (item as any).azureResourceDetails?.provider === 'evaops_native')
                                                       ? `⚡ EvaForge Engine (${item.name})`
                                                       : `Azure DevOps (${item.name})`
                                                   )}
