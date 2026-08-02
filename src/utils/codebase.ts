@@ -25,6 +25,7 @@ export type ProviderType = 'azure_devops' | 'github_actions' | 'evaops_native' |
 
 /**
  * Dynamically detects GitHub Actions workflow signals on an application or pipeline object.
+ * Does NOT check source repository URLs (which can be hosted on GitHub for Azure DevOps projects).
  */
 export function hasGitHubActionsSignal(item: any): boolean {
   if (!item) return false;
@@ -34,7 +35,6 @@ export function hasGitHubActionsSignal(item: any): boolean {
   const runUrl = String(item.pipelineRun?.webUrl || item.pipeline_url || '').toLowerCase();
   const type = String(item.type || item.app_type || item.target_type || '').toLowerCase();
   const name = String(item.name || item.project_name || '').toLowerCase();
-  const repoUrl = String(item.repositoryUrl || item.repo_url || '').toLowerCase();
 
   return (
     pid.startsWith('github-actions:') ||
@@ -42,10 +42,9 @@ export function hasGitHubActionsSignal(item: any): boolean {
     prov.includes('github') ||
     prov.includes('actions') ||
     ymlPath.includes('.github') ||
-    runUrl.includes('github.com') ||
-    repoUrl.includes('github.com') ||
-    // Azure Static Web Apps (SWA) connected to GitHub repositories default to GitHub Actions workflows
-    ((type === 'frontend' || name.endsWith('-swa')) && (repoUrl.includes('github') || !prov.includes('eva')))
+    (runUrl.includes('github.com') && runUrl.includes('/actions')) ||
+    // Azure Static Web Apps (-swa or frontend type) default to GitHub Actions workflows
+    (type === 'frontend' || name.endsWith('-swa'))
   );
 }
 
@@ -57,7 +56,7 @@ export function hasAzureDevOpsSignal(item: any): boolean {
   const pid = String(item.pipelineId || item.pipeline_id || '');
   const prov = String(item.provider || item.azureResourceDetails?.provider || '').toLowerCase();
   const ymlPath = String(item.ymlHealth?.filePath || item.health?.ymlHealth?.filePath || '').toLowerCase();
-  const runUrl = String(item.pipelineRun?.webUrl || '').toLowerCase();
+  const runUrl = String(item.pipelineRun?.webUrl || item.pipeline_url || '').toLowerCase();
 
   return (
     /^\d+$/.test(pid) ||
@@ -72,33 +71,39 @@ export function hasAzureDevOpsSignal(item: any): boolean {
 
 /**
  * Dynamically resolves the active/primary CI/CD provider type for an application or pipeline run object.
- * Checks ground truth execution runs, YML health signals, repository features, and provider descriptors dynamically.
+ * Hierarchy: Live execution URL ground truth -> YML health -> explicit provider -> pipeline ID -> resource type.
  */
 export function resolveAppProvider(item: any): ProviderType {
   if (!item) return 'unconfigured';
 
-  // 1. Check live active pipeline run web URL ground truth
-  const runUrl = String(item.pipelineRun?.webUrl || '').toLowerCase();
-  if (runUrl.includes('github.com')) return 'github_actions';
+  // 1. Live active pipeline run web URL ground truth
+  const runUrl = String(item.pipelineRun?.webUrl || item.pipeline_url || '').toLowerCase();
   if (runUrl.includes('dev.azure.com')) return 'azure_devops';
+  if (runUrl.includes('github.com') && runUrl.includes('/actions')) return 'github_actions';
 
-  // 2. Check YML health file path signals
+  // 2. YML health file path signals
   const ymlPath = String(item.ymlHealth?.filePath || item.health?.ymlHealth?.filePath || '').toLowerCase();
-  if (ymlPath.includes('.github')) return 'github_actions';
   if (ymlPath.includes('azure-pipelines')) return 'azure_devops';
+  if (ymlPath.includes('.github')) return 'github_actions';
   if (ymlPath.includes('.evaforge')) return 'evaops_native';
 
-  // 3. Check GitHub Actions signals (including Static Web Apps with GitHub repositories)
-  if (hasGitHubActionsSignal(item)) return 'github_actions';
-
-  // 4. Check explicit EvaForge provider signal
+  // 3. Explicit provider descriptor from cloud scan / database row
   const rawProv = String(item.provider || item.azureResourceDetails?.provider || '').toLowerCase();
-  if (rawProv.includes('eva') || rawProv.includes('native') || rawProv.includes('evaforge')) {
-    return 'evaops_native';
-  }
+  if (rawProv.includes('azure') || rawProv.includes('devops')) return 'azure_devops';
+  if (rawProv.includes('eva') || rawProv.includes('native') || rawProv.includes('evaforge')) return 'evaops_native';
+  if (rawProv.includes('github') || rawProv.includes('actions')) return 'github_actions';
 
-  // 5. Check Azure DevOps signals
-  if (hasAzureDevOpsSignal(item)) return 'azure_devops';
+  // 4. Pipeline ID structure
+  const pid = String(item.pipelineId || item.pipeline_id || '');
+  if (pid.startsWith('github-actions:')) return 'github_actions';
+  if (/^\d+$/.test(pid) || pid.startsWith('azdev-') || pid.startsWith('azdo-')) return 'azure_devops';
+
+  // 5. Azure Static Web Apps (-swa or frontend type) default to GitHub Actions
+  const type = String(item.type || item.app_type || item.target_type || '').toLowerCase();
+  const name = String(item.name || item.project_name || '').toLowerCase();
+  if (type === 'frontend' || name.endsWith('-swa')) {
+    return 'github_actions';
+  }
 
   return 'unconfigured';
 }
@@ -111,10 +116,18 @@ export function hasCiCdConflict(item: any): boolean {
   if (!item) return false;
   if (!!item.hasConflict || !!item.has_cicd_conflict) return true;
 
+  const name = String(item.name || item.project_name || '').toLowerCase();
+  const type = String(item.type || item.app_type || item.target_type || '').toLowerCase();
+  const pid = String(item.pipelineId || item.pipeline_id || '');
+
+  // Conflict case: Static Web App running GitHub Actions that also has a numeric Azure DevOps pipeline ID linked in DB
+  if ((type === 'frontend' || name.endsWith('-swa')) && /^\d+$/.test(pid)) {
+    return true;
+  }
+
   const hasGha = hasGitHubActionsSignal(item);
   const hasAzdo = hasAzureDevOpsSignal(item);
 
-  // Multi-CI/CD Conflict: Both GitHub Actions AND Azure DevOps signals exist for the same resource
   return hasGha && hasAzdo;
 }
 
