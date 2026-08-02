@@ -179,7 +179,21 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
       );
     });
 
-    return scopedRuns;
+    // Group & deduplicate runs by project_name so each application codebase has ONE card in the grid
+    const uniqueMap = new Map<string, PipelineRun>();
+    scopedRuns.forEach(r => {
+      const key = (r.project_name || '').toLowerCase();
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, { ...r });
+      } else {
+        const existing = uniqueMap.get(key)!;
+        if ((r as any).has_cicd_conflict) {
+          (existing as any).has_cicd_conflict = true;
+        }
+      }
+    });
+
+    return Array.from(uniqueMap.values());
   }, [runs, apps]);
 
   const filteredRuns = targetScopeRuns.filter((r) => {
