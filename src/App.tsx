@@ -308,7 +308,9 @@ interface AppResource {
     mappedAt?: string;
   };
   pipelineId?: string;
+  provider?: string; // 'github_actions' | 'azure_devops' | 'evaops_native' | 'unconfigured'
   pipelineName?: string;
+
   pipelineRun?: {
     id: number;
     name: string;
@@ -9987,6 +9989,7 @@ function App() {
                 isOpen={!!buildHistoryDrawerApp}
                 appName={buildHistoryDrawerApp.name}
                 pipelineId={buildHistoryDrawerApp.pipelineId || null}
+                provider={buildHistoryDrawerApp.provider}
                 appType={buildHistoryDrawerApp.type as any}
                 organizationId={organizationId}
                 currentUser={user}
@@ -10000,6 +10003,7 @@ function App() {
                   setTimeout(() => handleScan(undefined, true), 4000);
                 }}
               />
+
             )}
           </>
         )}

@@ -28,6 +28,7 @@ interface BuildHistoryDrawerProps {
   isOpen: boolean;
   appName: string;
   pipelineId: string | number | null;
+  provider?: string; // 'github_actions' | 'azure_devops' | 'evaops_native' | 'unconfigured'
   appType: 'frontend' | 'backend' | 'vm' | 'cluster';
   organizationId: string;
   currentUser: { role: string } | null;
@@ -38,10 +39,12 @@ interface BuildHistoryDrawerProps {
   onClose: () => void;
 }
 
+
 export const BuildHistoryDrawer: React.FC<BuildHistoryDrawerProps> = ({
   isOpen,
   appName,
   pipelineId,
+  provider,
   appType,
   organizationId,
   currentUser,
@@ -51,6 +54,7 @@ export const BuildHistoryDrawer: React.FC<BuildHistoryDrawerProps> = ({
   onReDeployQueued,
   onClose
 }) => {
+
   const [builds, setBuilds] = useState<BuildRun[]>([]);
   const [revisions, setRevisions] = useState<ContainerRevision[]>([]);
   const [activeRevisionsMode, setActiveRevisionsMode] = useState<string>('Single');
@@ -75,12 +79,21 @@ export const BuildHistoryDrawer: React.FC<BuildHistoryDrawerProps> = ({
   const canAct = ['owner', 'admin', 'contributor'].includes(userRole);
 
   const fetchBuildHistory = async () => {
-    if (!pipelineId) return;
+    // GitHub Actions: construct github-actions: prefix so the backend routes to the GitHub API.
+    // Azure DevOps:   uses the existing numeric pipelineId path — UNTOUCHED.
+    let effectivePipelineId: string | null = pipelineId ? String(pipelineId) : null;
+    if (provider === 'github_actions') {
+      if (!effectivePipelineId || !effectivePipelineId.startsWith('github-actions:')) {
+        effectivePipelineId = `github-actions:${appName}`;
+      }
+    }
+    if (!effectivePipelineId) return;
+
     setLoadingBuilds(true);
     setBuildsError(null);
     try {
       const token = localStorage.getItem('devops_token');
-      const res = await fetch(`${API_BASE}/apps/pipeline/history?organizationId=${organizationId}&pipelineId=${pipelineId}&top=12`, {
+      const res = await fetch(`${API_BASE}/apps/pipeline/history?organizationId=${organizationId}&pipelineId=${encodeURIComponent(effectivePipelineId)}&top=12`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       const data = await res.json();
@@ -96,6 +109,7 @@ export const BuildHistoryDrawer: React.FC<BuildHistoryDrawerProps> = ({
       setLoadingBuilds(false);
     }
   };
+
 
   const fetchContainerRevisions = async () => {
     if (appType !== 'backend') return;
