@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, RefreshCw, CheckCircle2, XCircle, Clock, Plus, Zap, Cpu, Server, ExternalLink, ArrowRight, Shield, Terminal, Filter, Search, Layers, GitBranch, Sparkles, Activity, Globe, Box, Check, CheckCircle, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { Play, RefreshCw, CheckCircle2, XCircle, Clock, Plus, Zap, Cpu, Server, ExternalLink, ArrowRight, Shield, ShieldAlert, Terminal, Filter, Search, Layers, GitBranch, Sparkles, Activity, Globe, Box, Check, CheckCircle, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 
 interface PipelineRun {
   id: string;
@@ -608,24 +608,43 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                         </div>
                       </div>
 
-                      {/* Provider Badge */}
-                      {isAzure ? (
-                        <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.14)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.35)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                          <Layers size={13} /> Azure DevOps
-                        </span>
-                      ) : isGithub ? (
-                        <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.14)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.35)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                          <GitBranch size={13} /> GitHub Actions
-                        </span>
-                      ) : isEvaForge ? (
-                        <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(236,72,153,0.15) 100%)', color: '#c084fc', border: '1px solid rgba(192,132,252,0.4)', boxShadow: '0 0 10px rgba(192,132,252,0.2)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                          <Zap size={13} /> ⚡ EvaForge
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(148, 163, 184, 0.12)', color: 'var(--text-secondary)', border: '1px solid var(--glass-border)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                          <Globe size={13} /> Unconfigured
-                        </span>
-                      )}
+                      {/* Provider Badge & Optional Conflict Badge */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {(r as any).has_cicd_conflict && (
+                          <span style={{
+                            fontSize: '0.72rem',
+                            padding: '4px 10px',
+                            borderRadius: '8px',
+                            background: 'rgba(245, 158, 11, 0.15)',
+                            color: '#f59e0b',
+                            border: '1px solid rgba(245, 158, 11, 0.4)',
+                            fontWeight: 700,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            animation: 'pulse 2s infinite'
+                          }} title="Multiple active CI/CD pipelines detected for this codebase">
+                            <ShieldAlert size={12} /> Conflict Detected
+                          </span>
+                        )}
+                        {isAzure ? (
+                          <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.14)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.35)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                            <Layers size={13} /> Azure DevOps
+                          </span>
+                        ) : isGithub ? (
+                          <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.14)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.35)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                            <GitBranch size={13} /> GitHub Actions
+                          </span>
+                        ) : isEvaForge ? (
+                          <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(236,72,153,0.15) 100%)', color: '#c084fc', border: '1px solid rgba(192,132,252,0.4)', boxShadow: '0 0 10px rgba(192,132,252,0.2)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                            <Zap size={13} /> ⚡ EvaForge
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(148, 163, 184, 0.12)', color: 'var(--text-secondary)', border: '1px solid var(--glass-border)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                            <Globe size={13} /> Unconfigured
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* LIVE BUILD IN PROGRESS BANNER */}
