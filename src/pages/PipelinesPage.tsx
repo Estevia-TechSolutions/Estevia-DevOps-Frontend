@@ -205,7 +205,10 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
 
     const matchesStatus = statusFilter === 'all' || r.status === statusFilter;
     const provLow = (r.provider || '').toLowerCase();
+    const isConflict = !!(r as any).has_cicd_conflict;
+    // Conflict apps have both Azure DevOps AND GitHub Actions — they must appear under either provider filter
     const matchesProvider = providerFilter === 'all' ||
+      (isConflict && (providerFilter === 'azure' || providerFilter === 'github')) ||
       (providerFilter === 'azure' && (provLow.includes('azure') || provLow.includes('devops'))) ||
       (providerFilter === 'github' && provLow.includes('github')) ||
       (providerFilter === 'evaforge' && (provLow.includes('eva') || provLow.includes('native'))) ||
@@ -556,10 +559,12 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
           }}>
             {paginatedRuns.map((r) => {
               const prov = (r.provider || 'unconfigured').toLowerCase();
-              const isAzure = prov.includes('azure') || prov.includes('devops');
-              const isGithub = prov.includes('github') || prov.includes('actions');
-              const isEvaForge = prov.includes('eva') || prov.includes('native') || prov.includes('evaforge');
-              const isUnconfigured = prov === 'unconfigured' || (!isAzure && !isGithub && !isEvaForge);
+              const isConflictCard = !!(r as any).has_cicd_conflict;
+              // Conflict cards should only show the Conflict badge, not a single provider badge
+              const isAzure = !isConflictCard && (prov.includes('azure') || prov.includes('devops'));
+              const isGithub = !isConflictCard && (prov.includes('github') || prov.includes('actions'));
+              const isEvaForge = !isConflictCard && (prov.includes('eva') || prov.includes('native') || prov.includes('evaforge'));
+              const isUnconfigured = !isConflictCard && (prov === 'unconfigured' || (!isAzure && !isGithub && !isEvaForge));
               const isHovered = hoveredCardId === r.id;
 
               const supportedBranches: string[] = r.supported_branches || (r.branches?.map(b => b.branch)) || ['main'];
