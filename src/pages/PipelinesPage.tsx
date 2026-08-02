@@ -130,25 +130,32 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
     if (!runs || runs.length === 0) {
       if (!apps || apps.length === 0) return [];
       return apps.filter(a => a.type !== 'database' && !(a.name || '').toLowerCase().endsWith('-db')).map(app => {
-        const appKey = (app.name || '').toLowerCase();
-        const prov = appKey.includes('peoplecraft-frontend') ? 'github_actions' : 'azure_devops';
+        // Use the provider already resolved by the backend scan — never guess by name
+        const prov = (app as any).provider
+          || ((app.pipelineId && String(app.pipelineId).startsWith('github-actions:')) ? 'github_actions' : 'azure_devops');
+
+        const repoUrl = (app as any).repositoryUrl || `https://github.com/Estevia-TechSolutions/${app.name}`;
+        const pipelineUrl = prov === 'github_actions'
+          ? `${repoUrl}/actions`
+          : prov === 'evaops_native'
+            ? `${repoUrl}/blob/main/.evaforge/config.yml`
+            : `https://dev.azure.com/esteviatech/Estevia-Platform/_build/results?buildId=${(app as any).run_number || 1}&view=results`;
+
         return {
           id: `scanned-${app.name}`,
           pipeline_name: app.pipelineName || `${app.name} Pipeline`,
           project_name: app.name,
-          run_number: Number(app.run_number || app.buildNumber) || 1,
+          run_number: Number((app as any).run_number || (app as any).buildNumber) || 1,
           status: 'success',
           branch: app.branch || 'main',
           commit_sha: 'a4bafe6',
           commit_message: `Deploy ${app.name} to target multi-branch environment`,
-          triggered_by: prov === 'azure_devops' ? 'Azure Pipelines Bot' : 'Cloud Scanner Sync',
+          triggered_by: prov === 'azure_devops' ? 'Azure Pipelines Bot' : prov === 'evaops_native' ? 'EvaForge Engine' : 'GitHub Actions Bot',
           duration_seconds: 48,
           created_at: new Date().toISOString(),
           provider: prov,
-          pipeline_url: prov === 'azure_devops' 
-            ? `https://dev.azure.com/esteviatech/Estevia-Platform/_build/results?buildId=${app.run_number || 1}&view=results`
-            : `https://github.com/Estevia-TechSolutions/${app.name}/actions`,
-          repo_url: `https://github.com/Estevia-TechSolutions/${app.name}`,
+          pipeline_url: pipelineUrl,
+          repo_url: repoUrl,
           supported_branches: ['main', 'qa', 'dev'],
           branches: [
             { branch: 'main', target: `${app.name.toLowerCase()}.esteviatech.com (Prod ACA)`, status: 'success' },
