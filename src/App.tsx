@@ -7322,26 +7322,11 @@ function App() {
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap'
                               }}>
-                                {(() => {
-                                  // Restricted/inactive subscriptions: always show "No Resource Group" —
-                                  // even if the API returns RGs, the scope is locked.
-                                  if (isCurrentSubscriptionInactive) {
-                                    return (
-                                      <span style={{ color: '#ef444499', fontStyle: 'italic', fontWeight: 500 }}>
-                                        No Resource Group
-                                      </span>
-                                    );
-                                  }
-                                  const subRgs = currentSub?.resourceGroups || [];
-                                  const rgValid = selectedControlResourceGroup && subRgs.includes(selectedControlResourceGroup);
-                                  return rgValid
-                                    ? selectedControlResourceGroup
-                                    : (
-                                      <span style={{ color: theme === 'light' ? 'rgba(0,0,0,0.38)' : 'rgba(255,255,255,0.38)', fontStyle: 'italic', fontWeight: 500 }}>
-                                        No Resource Group
-                                      </span>
-                                    );
-                                })()}
+                                {selectedControlResourceGroup || (
+                                  <span style={{ color: theme === 'light' ? 'rgba(0,0,0,0.38)' : 'rgba(255,255,255,0.38)', fontStyle: 'italic', fontWeight: 500 }}>
+                                    No Resource Group
+                                  </span>
+                                )}
                               </div>
                             </div>
                             <ChevronDown
