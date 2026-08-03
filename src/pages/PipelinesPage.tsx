@@ -8,7 +8,8 @@ interface PipelineRun {
   pipeline_name: string;
   project_name: string;
   run_number: number;
-  status: 'queued' | 'running' | 'success' | 'failed' | 'canceled';
+  status: 'queued' | 'running' | 'success' | 'failed' | 'canceled' | string;
+  result?: string;
   branch: string;
   commit_sha: string;
   commit_message: string;
@@ -22,6 +23,7 @@ interface PipelineRun {
   supported_branches?: string[];
   branches?: { branch: string; target: string; status: string }[];
 }
+
 
 interface PipelinesPageProps {
   API_BASE: string;
@@ -575,293 +577,456 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
 
               const branchesList = getDynamicTargetBranches(r);
 
-              return (
-                <div
-                  key={r.id}
-                  onMouseEnter={() => setHoveredCardId(r.id)}
-                  onMouseLeave={() => setHoveredCardId(null)}
-                  className="glass-panel"
-                  style={{
-                    borderRadius: '16px',
-                    background: isLight
-                      ? '#ffffff'
-                      : 'linear-gradient(135deg, rgba(15,23,42,0.85) 0%, rgba(30,41,59,0.7) 100%)',
-                    border: isHovered
-                      ? '1px solid rgba(168, 85, 247, 0.6)'
-                      : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)'),
-                    boxShadow: isHovered
-                      ? '0 12px 32px rgba(139, 92, 246, 0.25)'
-                      : '0 8px 24px rgba(0,0,0,0.15)',
-                    padding: '20px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    transition: 'all 0.2s ease',
-                    transform: isHovered ? 'translateY(-2px)' : 'none'
-                  }}
-                >
-                  <div>
-                    {/* Card Header: Application Codebase & Provider Badge */}
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '14px' }}>
+              return (() => {
+                // ── Provider accent colour ──────────────────────────────
+                const accentColor = isAzure ? '#3b82f6'
+                  : isGithub ? '#22c55e'
+                  : isEvaForge ? '#a855f7'
+                  : '#64748b';
+
+                const accentGradient = isAzure
+                  ? 'linear-gradient(90deg, #3b82f6, #60a5fa)'
+                  : isGithub
+                  ? 'linear-gradient(90deg, #22c55e, #4ade80)'
+                  : isEvaForge
+                  ? 'linear-gradient(90deg, #8b5cf6, #ec4899)'
+                  : 'linear-gradient(90deg, #64748b, #94a3b8)';
+
+                // ── Build status pill ────────────────────────────────────
+                const rawResult = String((r as any).result || r.status || '').toLowerCase();
+                const rawStatus = String(r.status || '').toLowerCase();
+
+                let statusPill: { label: string; color: string; bg: string; border: string; pulse?: boolean } | null = null;
+                if (rawResult === 'succeeded' || rawResult === 'success') {
+                  statusPill = { label: '✓ Succeeded', color: '#22c55e', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.25)' };
+                } else if (rawResult === 'failed') {
+                  statusPill = { label: '✕ Failed', color: '#ef4444', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.25)' };
+                } else if (rawStatus === 'running' || rawStatus === 'inprogress' || rawResult === 'inprogress') {
+                  statusPill = { label: '↻ Building', color: '#3b82f6', bg: 'rgba(59,130,246,0.1)', border: 'rgba(59,130,246,0.25)', pulse: true };
+                } else if (rawStatus === 'queued' || rawResult === 'notstarted') {
+                  statusPill = { label: '⏳ Queued', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', pulse: true };
+                } else if (rawResult === 'canceled' || rawResult === 'cancelled') {
+                  statusPill = { label: '⊘ Canceled', color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', border: 'rgba(148,163,184,0.2)' };
+                }
+
+                // ── Provider icon ────────────────────────────────────────
+                const providerIcon = isAzure ? <Layers size={14} style={{ color: accentColor }} />
+                  : isGithub ? <GitBranch size={14} style={{ color: accentColor }} />
+                  : isEvaForge ? <Zap size={14} style={{ color: accentColor }} />
+                  : <Globe size={14} style={{ color: accentColor }} />;
+
+                const providerLabel = isAzure ? 'Azure DevOps'
+                  : isGithub ? 'GitHub Actions'
+                  : isEvaForge ? 'EvaForge'
+                  : 'Unconfigured';
+
+                // ── Commit short SHA ─────────────────────────────────────
+                const shortSha = r.commit_sha ? String(r.commit_sha).slice(0, 7) : null;
+
+                return (
+                  <div
+                    key={r.id}
+                    onMouseEnter={() => setHoveredCardId(r.id)}
+                    onMouseLeave={() => setHoveredCardId(null)}
+                    className="glass-panel"
+                    style={{
+                      borderRadius: '14px',
+                      background: isLight
+                        ? '#ffffff'
+                        : 'linear-gradient(160deg, rgba(15,23,42,0.9) 0%, rgba(22,32,52,0.75) 100%)',
+                      border: isHovered
+                        ? `1px solid ${accentColor}55`
+                        : (isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.07)'),
+                      boxShadow: isHovered
+                        ? `0 8px 28px ${accentColor}22`
+                        : '0 4px 16px rgba(0,0,0,0.12)',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      transition: 'all 0.18s ease',
+                      transform: isHovered ? 'translateY(-2px)' : 'none'
+                    }}
+                  >
+                    {/* ── ACCENT BAR ─────────────────────────────────── */}
+                    <div style={{ height: '3px', background: accentGradient, flexShrink: 0 }} />
+
+                    <div style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+
+                      {/* ── ZONE 1: HEADER ──────────────────────────── */}
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+                        {/* Left: icon + name + sub-label */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '3px' }}>
+                            {providerIcon}
+                            <span style={{
+                              fontSize: '0.95rem',
+                              fontWeight: 800,
+                              color: 'var(--text-primary)',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {r.project_name}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            {/* Provider pill — clean, tight */}
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '0.68rem',
+                              fontWeight: 600,
+                              padding: '2px 7px',
+                              borderRadius: '5px',
+                              background: isAzure ? 'rgba(59,130,246,0.1)'
+                                : isGithub ? 'rgba(34,197,94,0.1)'
+                                : isEvaForge ? 'rgba(168,85,247,0.1)'
+                                : 'rgba(100,116,139,0.1)',
+                              color: accentColor,
+                              border: `1px solid ${accentColor}33`,
+                            }}>
+                              {providerLabel}
+                            </span>
+                            <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {effectiveProv === 'github_actions' && r.pipeline_name?.includes('Azure DevOps')
+                                ? `GitHub Actions (${r.project_name})`
+                                : (r.pipeline_name || `Pipeline · ${r.project_name}`)
+                              }
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Right: status pill */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
+                          {statusPill && (
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              padding: '3px 8px',
+                              borderRadius: '20px',
+                              background: statusPill.bg,
+                              color: statusPill.color,
+                              border: `1px solid ${statusPill.border}`,
+                              animation: statusPill.pulse ? 'pulse 1.8s infinite' : 'none',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {statusPill.label}
+                            </span>
+                          )}
+                          {(r as any).has_cicd_conflict && (
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '0.65rem',
+                              fontWeight: 700,
+                              padding: '2px 7px',
+                              borderRadius: '5px',
+                              background: 'rgba(245,158,11,0.12)',
+                              color: '#f59e0b',
+                              border: '1px solid rgba(245,158,11,0.3)',
+                            }} title="Multiple active CI/CD pipelines detected">
+                              <ShieldAlert size={10} /> Conflict
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* ── LIVE BUILD BANNER (only when actively running) ── */}
+                      {(r.status === 'running' || (r as any).in_progress_run) && (
+                        <div style={{
+                          padding: '7px 11px',
+                          borderRadius: '8px',
+                          background: 'rgba(59,130,246,0.08)',
+                          border: '1px solid rgba(59,130,246,0.25)',
+                          borderLeft: '3px solid #3b82f6',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          animation: 'pulse 1.8s infinite'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '0.74rem', fontWeight: 700, color: '#3b82f6' }}>
+                            <RefreshCw size={12} className="spin-anim" />
+                            {isEvaForge ? 'EvaForge' : isAzure ? 'Azure DevOps' : 'GitHub'} Build #{r.run_number} in Progress
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => onOpenRunDetails(r.id, r.branch || 'main', r.provider)}
+                            style={{ padding: '3px 9px', fontSize: '0.68rem', fontWeight: 700, borderRadius: '5px', background: '#3b82f6', color: '#fff', border: 'none', cursor: 'pointer' }}
+                          >
+                            Live Terminal
+                          </button>
+                        </div>
+                      )}
+
+                      {/* ── ZONE 2: BRANCH ROW(S) ───────────────────── */}
                       <div>
-                        <div style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <Zap size={16} style={{ color: 'var(--accent-purple)' }} />
-                          <span>{r.project_name}</span>
+                        <div style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>
+                          Target Environment
                         </div>
-                        <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                          {effectiveProv === 'github_actions' && r.pipeline_name?.includes('Azure DevOps')
-                            ? `GitHub Actions (${r.project_name})`
-                            : (r.pipeline_name || `Pipeline (${r.project_name})`)} • Latest Run #{r.run_number}
-                        </div>
-                      </div>
-
-                      {/* Provider Badge & Optional Conflict Badge */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {(r as any).has_cicd_conflict && (
-                          <span style={{
-                            fontSize: '0.72rem',
-                            padding: '4px 10px',
-                            borderRadius: '8px',
-                            background: 'rgba(245, 158, 11, 0.15)',
-                            color: '#f59e0b',
-                            border: '1px solid rgba(245, 158, 11, 0.4)',
-                            fontWeight: 700,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            animation: 'pulse 2s infinite'
-                          }} title="Multiple active CI/CD pipelines detected for this codebase">
-                            <ShieldAlert size={12} /> Conflict Detected
-                          </span>
-                        )}
-                        {isAzure ? (
-                          <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.14)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.35)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                            <Layers size={13} /> Azure DevOps
-                          </span>
-                        ) : isGithub ? (
-                          <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.14)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.35)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                            <GitBranch size={13} /> GitHub Actions
-                          </span>
-                        ) : isEvaForge ? (
-                          <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(236,72,153,0.15) 100%)', color: '#c084fc', border: '1px solid rgba(192,132,252,0.4)', boxShadow: '0 0 10px rgba(192,132,252,0.2)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                            <Zap size={13} /> ⚡ EvaForge
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '8px', background: 'rgba(148, 163, 184, 0.12)', color: 'var(--text-secondary)', border: '1px solid var(--glass-border)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                            <Globe size={13} /> Unconfigured
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* LIVE BUILD IN PROGRESS BANNER */}
-                    {(r.status === 'running' || r.status === 'queued' || (r as any).in_progress_run) && (
-                      <div style={{
-                        marginBottom: '14px',
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        background: 'rgba(59, 130, 246, 0.12)',
-                        border: '1px solid rgba(59, 130, 246, 0.35)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        animation: 'pulse 1.5s infinite'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', fontWeight: 800, color: '#3b82f6' }}>
-                          <RefreshCw size={13} className="spin-anim" />
-                          <span>⚡ {isEvaForge ? 'EvaForge' : isAzure ? 'Azure DevOps' : 'GitHub'} Build #{r.run_number} in Progress...</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => onOpenRunDetails(r.id, r.branch || 'main', r.provider)}
-                          style={{
-                            padding: '4px 10px',
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            borderRadius: '6px',
-                            background: '#3b82f6',
-                            color: '#ffffff',
-                            border: 'none',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Live Terminal
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Environment Branch Badges Bar */}
-                    <div style={{ marginBottom: '14px' }}>
-                      <div style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '6px' }}>Target Environment Branches</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        {branchesList.map((b, bIdx) => (
+                        {branchesList.length === 1 ? (
+                          // Single branch — full-width clean row
                           <div
-                            key={bIdx}
-                            onClick={() => onOpenRunDetails(r.id, b.branch, r.provider)}
+                            onClick={() => onOpenRunDetails(r.id, branchesList[0].branch, r.provider)}
                             style={{
-                              padding: '6px 10px',
-                              borderRadius: '8px',
-                              background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
-                              border: '1px solid var(--glass-border)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
+                              padding: '8px 12px',
+                              borderRadius: '8px',
+                              background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.04)',
+                              border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)',
                               cursor: 'pointer',
-                              transition: 'all 0.15s ease'
+                              transition: 'all 0.15s ease',
+                            }}
+                            onMouseEnter={e => {
+                              (e.currentTarget as HTMLDivElement).style.background = isLight ? '#f1f5f9' : 'rgba(255,255,255,0.07)';
+                              (e.currentTarget as HTMLDivElement).style.borderColor = `${accentColor}55`;
+                            }}
+                            onMouseLeave={e => {
+                              (e.currentTarget as HTMLDivElement).style.background = isLight ? '#f8fafc' : 'rgba(255,255,255,0.04)';
+                              (e.currentTarget as HTMLDivElement).style.borderColor = isLight ? '#e2e8f0' : 'rgba(255,255,255,0.08)';
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <span style={{
-                                padding: '2px 6px',
+                                padding: '2px 7px',
                                 borderRadius: '4px',
                                 fontSize: '0.7rem',
                                 fontFamily: 'monospace',
                                 fontWeight: 800,
-                                background: b.branch === 'main' ? 'rgba(59, 130, 246, 0.2)' : b.branch === 'qa' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(139, 92, 246, 0.2)',
-                                color: b.branch === 'main' ? '#3b82f6' : b.branch === 'qa' ? '#f59e0b' : '#a855f7',
-                                border: '1px solid var(--glass-border)'
+                                background: branchesList[0].branch === 'main' ? 'rgba(59,130,246,0.15)'
+                                  : branchesList[0].branch === 'qa' ? 'rgba(245,158,11,0.15)'
+                                  : 'rgba(139,92,246,0.15)',
+                                color: branchesList[0].branch === 'main' ? '#60a5fa'
+                                  : branchesList[0].branch === 'qa' ? '#fbbf24'
+                                  : '#c084fc',
                               }}>
-                                <GitBranch size={10} style={{ marginRight: '3px', display: 'inline' }} />
-                                {b.branch}
+                                ⎇ {branchesList[0].branch}
                               </span>
-                              <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-                                {b.target}
+                              <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {branchesList[0].target}
                               </span>
                             </div>
-
-                            <CheckCircle2 size={12} style={{ color: '#10b981' }} />
+                            <ArrowRight size={13} style={{ color: accentColor, opacity: 0.7, flexShrink: 0 }} />
                           </div>
-                        ))}
+                        ) : (
+                          // Multi-branch — compact stacked list
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                            {branchesList.map((b, bIdx) => (
+                              <div
+                                key={bIdx}
+                                onClick={() => onOpenRunDetails(r.id, b.branch, r.provider)}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  padding: '6px 10px',
+                                  borderRadius: '7px',
+                                  background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
+                                  border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.07)',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease',
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                                  <span style={{
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.68rem',
+                                    fontFamily: 'monospace',
+                                    fontWeight: 800,
+                                    background: b.branch === 'main' ? 'rgba(59,130,246,0.15)'
+                                      : b.branch === 'qa' ? 'rgba(245,158,11,0.15)'
+                                      : 'rgba(139,92,246,0.15)',
+                                    color: b.branch === 'main' ? '#60a5fa'
+                                      : b.branch === 'qa' ? '#fbbf24'
+                                      : '#c084fc',
+                                  }}>
+                                    ⎇ {b.branch}
+                                  </span>
+                                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {b.target}
+                                  </span>
+                                </div>
+                                <CheckCircle2 size={11} style={{ color: '#22c55e', flexShrink: 0 }} />
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
+
+                      {/* ── ZONE 3: COMMIT STRIP ──────────────────────── */}
+                      {(r.commit_message || shortSha) && (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '8px',
+                          padding: '6px 10px',
+                          borderRadius: '7px',
+                          background: isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.025)',
+                          border: isLight ? '1px solid rgba(0,0,0,0.05)' : '1px solid rgba(255,255,255,0.05)',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+                            <GitBranch size={11} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+                            <span style={{
+                              fontSize: '0.72rem',
+                              color: 'var(--text-secondary)',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              flex: 1
+                            }}>
+                              {r.commit_message || 'No commit message'}
+                            </span>
+                          </div>
+                          {shortSha && (
+                            <span style={{
+                              fontSize: '0.65rem',
+                              fontFamily: 'monospace',
+                              fontWeight: 700,
+                              color: 'var(--text-secondary)',
+                              background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.07)',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              flexShrink: 0
+                            }}>
+                              #{shortSha}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
 
-                    {/* Latest Commit Message */}
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', marginBottom: '16px' }}>
-                      {r.commit_message}
+                    {/* ── ZONE 4: FOOTER ──────────────────────────────── */}
+                    <div style={{
+                      padding: '10px 18px',
+                      borderTop: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.05)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                      background: isLight ? 'rgba(248,250,252,0.7)' : 'rgba(0,0,0,0.15)'
+                    }}>
+                      {/* Left actions */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => onOpenRunDetails(r.id, 'main', r.provider)}
+                          title="View Branch History"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '5px 10px',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            borderRadius: '6px',
+                            background: isLight ? '#ffffff' : 'rgba(255,255,255,0.06)',
+                            border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)',
+                            color: 'var(--text-primary)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <Terminal size={12} /> History
+                        </button>
+
+                        {isAzure && (
+                          <a
+                            href={r.pipeline_url || `https://dev.azure.com/esteviatech/Estevia-Platform/_build/results?buildId=${r.run_number}&view=results`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Open in Azure DevOps"
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '5px',
+                              padding: '5px 10px', fontSize: '0.72rem', fontWeight: 700, borderRadius: '6px',
+                              background: 'rgba(59,130,246,0.1)', color: '#60a5fa',
+                              border: '1px solid rgba(59,130,246,0.2)', textDecoration: 'none',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <ExternalLink size={11} /> Azure DevOps
+                          </a>
+                        )}
+
+                        {isGithub && (
+                          <a
+                            href={r.repo_url ? `${r.repo_url.replace(/\/$/, '')}/actions` : `https://github.com/Estevia-TechSolutions/${r.project_name}/actions`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Open in GitHub Actions"
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '5px',
+                              padding: '5px 10px', fontSize: '0.72rem', fontWeight: 700, borderRadius: '6px',
+                              background: 'rgba(34,197,94,0.1)', color: '#4ade80',
+                              border: '1px solid rgba(34,197,94,0.2)', textDecoration: 'none',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <ExternalLink size={11} /> GitHub Actions
+                          </a>
+                        )}
+
+                        {isEvaForge && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteEvaForgePipeline(r.id, r.project_name)}
+                            title="Delete EvaForge Pipeline"
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '5px',
+                              padding: '5px 10px', fontSize: '0.72rem', fontWeight: 700, borderRadius: '6px',
+                              background: 'rgba(239,68,68,0.1)', color: '#f87171',
+                              border: '1px solid rgba(239,68,68,0.2)', cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <Trash2 size={11} /> Delete
+                          </button>
+                        )}
+
+                        {isUnconfigured && (
+                          <button
+                            type="button"
+                            onClick={onOpenCreateDrawer}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '5px',
+                              padding: '5px 12px', fontSize: '0.72rem', fontWeight: 800, borderRadius: '6px',
+                              background: 'rgba(139,92,246,0.15)', color: 'var(--accent-purple)',
+                              border: '1px solid rgba(139,92,246,0.3)', cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <Plus size={11} /> Setup Pipeline
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Right: Run number pill */}
+                      {r.run_number && (
+                        <span style={{
+                          fontSize: '0.66rem',
+                          fontFamily: 'monospace',
+                          fontWeight: 700,
+                          padding: '3px 8px',
+                          borderRadius: '20px',
+                          background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)',
+                          color: 'var(--text-secondary)',
+                          border: isLight ? '1px solid rgba(0,0,0,0.07)' : '1px solid rgba(255,255,255,0.08)',
+                          flexShrink: 0
+                        }}>
+                          Run #{r.run_number}
+                        </span>
+                      )}
                     </div>
                   </div>
-
-                  {/* Card Footer Actions */}
-                  <div style={{
-                    paddingTop: '14px',
-                    borderTop: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.06)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '8px'
-                  }}>
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      onClick={() => onOpenRunDetails(r.id, 'main', r.provider)}
-                      style={{
-                        flex: 1,
-                        padding: '8px 12px',
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        borderRadius: '8px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      <Terminal size={13} /> View Branch History
-                    </button>
-
-                    {isAzure && (
-                      <a
-                        href={r.pipeline_url || `https://dev.azure.com/esteviatech/Estevia-Platform/_build/results?buildId=${r.run_number}&view=results`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          padding: '8px 12px',
-                          fontSize: '0.78rem',
-                          fontWeight: 700,
-                          borderRadius: '8px',
-                          background: 'rgba(59, 130, 246, 0.12)',
-                          color: '#3b82f6',
-                          border: '1px solid rgba(59, 130, 246, 0.3)',
-                          textDecoration: 'none',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px'
-                        }}
-                      >
-                        <ExternalLink size={13} /> Open Azure DevOps
-                      </a>
-                    )}
-
-                    {isGithub && (
-                      <a
-                        href={r.repo_url ? `${r.repo_url.replace(/\/$/, '')}/actions` : `https://github.com/Estevia-TechSolutions/${r.project_name}/actions`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          padding: '8px 12px',
-                          fontSize: '0.78rem',
-                          fontWeight: 700,
-                          borderRadius: '8px',
-                          background: 'rgba(16, 185, 129, 0.12)',
-                          color: '#10b981',
-                          border: '1px solid rgba(16, 185, 129, 0.3)',
-                          textDecoration: 'none',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px'
-                        }}
-                      >
-                        <ExternalLink size={13} /> Open GitHub Actions
-                      </a>
-                    )}
-
-                    {isEvaForge && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteEvaForgePipeline(r.id, r.project_name)}
-                        title="Delete EvaForge Pipeline"
-                        style={{
-                          padding: '8px 12px',
-                          fontSize: '0.78rem',
-                          fontWeight: 700,
-                          borderRadius: '8px',
-                          background: 'rgba(239, 68, 68, 0.12)',
-                          color: '#ef4444',
-                          border: '1px solid rgba(239, 68, 68, 0.3)',
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px'
-                        }}
-                      >
-                        <Trash2 size={13} /> Delete Pipeline
-                      </button>
-                    )}
-
-                    {isUnconfigured && (
-                      <button
-                        type="button"
-                        onClick={onOpenCreateDrawer}
-                        style={{
-                          padding: '8px 14px',
-                          borderRadius: '8px',
-                          background: 'rgba(139, 92, 246, 0.2)',
-                          border: '1px solid rgba(139, 92, 246, 0.4)',
-                          color: 'var(--accent-purple)',
-                          cursor: 'pointer',
-                          fontSize: '0.78rem',
-                          fontWeight: 800,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px'
-                        }}
-                      >
-                        <Plus size={13} /> Setup Pipeline
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
+                );
+              })();
             })}
           </div>
 
