@@ -7322,11 +7322,17 @@ function App() {
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap'
                               }}>
-                                {selectedControlResourceGroup || (
-                                  <span style={{ color: theme === 'light' ? 'rgba(0,0,0,0.28)' : 'rgba(255,255,255,0.22)', fontStyle: 'italic', fontWeight: 500 }}>
-                                    No Resource Group
-                                  </span>
-                                )}
+                                {(() => {
+                                  const subRgs = currentSub?.resourceGroups || [];
+                                  const rgValid = selectedControlResourceGroup && subRgs.length > 0 && subRgs.includes(selectedControlResourceGroup);
+                                  return rgValid
+                                    ? selectedControlResourceGroup
+                                    : (
+                                      <span style={{ color: theme === 'light' ? 'rgba(0,0,0,0.38)' : 'rgba(255,255,255,0.38)', fontStyle: 'italic', fontWeight: 500 }}>
+                                        No Resource Group
+                                      </span>
+                                    );
+                                })()}
                               </div>
                             </div>
                             <ChevronDown
@@ -8120,7 +8126,7 @@ function App() {
                         lineHeight: 1.6,
                         color: theme === 'light' ? '#475569' : '#94a3b8'
                       }}>
-                        Subscription <strong>{currentSub?.displayName || selectedSubscriptionId}</strong> ({selectedControlResourceGroup || 'No Resource Group'}) is in <strong>{currentSub?.status || 'restricted'}</strong> status. Cloud resource scanning, database catalogs, provisioning, and cost operations are locked for this scope.
+                        Subscription <strong>{currentSub?.displayName || selectedSubscriptionId}</strong> ({(selectedControlResourceGroup && (currentSub?.resourceGroups || []).includes(selectedControlResourceGroup)) ? selectedControlResourceGroup : 'No Resource Group'}) is in <strong>{currentSub?.status || 'restricted'}</strong> status. Cloud resource scanning, database catalogs, provisioning, and cost operations are locked for this scope.
                       </p>
                     </div>
 
