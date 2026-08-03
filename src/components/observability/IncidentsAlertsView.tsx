@@ -202,7 +202,7 @@ export const IncidentsAlertsView: React.FC<IncidentsAlertsViewProps> = ({
     const fetchTeamAndCatalog = async () => {
         try {
             const token = getToken();
-            const uRes = await fetch(`${API_BASE}/users`, {
+            const uRes = await fetch(`${API_BASE}/auth/users`, {
                 headers: { Authorization: `Bearer ${token}` }
             }).catch(() => null);
             if (uRes && uRes.ok) {

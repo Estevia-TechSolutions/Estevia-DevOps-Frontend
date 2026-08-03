@@ -7322,7 +7322,11 @@ function App() {
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap'
                               }}>
-                                {selectedControlResourceGroup}
+                                {selectedControlResourceGroup || (
+                                  <span style={{ color: theme === 'light' ? 'rgba(0,0,0,0.28)' : 'rgba(255,255,255,0.22)', fontStyle: 'italic', fontWeight: 500 }}>
+                                    No Resource Group
+                                  </span>
+                                )}
                               </div>
                             </div>
                             <ChevronDown
@@ -8116,7 +8120,7 @@ function App() {
                         lineHeight: 1.6,
                         color: theme === 'light' ? '#475569' : '#94a3b8'
                       }}>
-                        Subscription <strong>{currentSub?.displayName || selectedSubscriptionId}</strong> ({selectedControlResourceGroup || 'Selected RG'}) is in <strong>{currentSub?.status || 'restricted'}</strong> status. Cloud resource scanning, database catalogs, provisioning, and cost operations are locked for this scope.
+                        Subscription <strong>{currentSub?.displayName || selectedSubscriptionId}</strong> ({selectedControlResourceGroup || 'No Resource Group'}) is in <strong>{currentSub?.status || 'restricted'}</strong> status. Cloud resource scanning, database catalogs, provisioning, and cost operations are locked for this scope.
                       </p>
                     </div>
 

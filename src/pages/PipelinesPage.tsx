@@ -849,7 +849,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                                   }}>
                                     ⎇ {b.branch}
                                   </span>
-                                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'per-line' }}>
+                                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'pre-line' }}>
                                     {b.target}
                                   </span>
                                 </div>
@@ -879,7 +879,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                               color: 'var(--text-secondary)',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
-                              whiteSpace: 'per-line',
+                              whiteSpace: 'nowrap',
                               flex: 1
                             }}>
                               {r.commit_message || 'No commit message'}
@@ -915,27 +915,50 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                     }}>
                       {/* Left actions */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <button
-                          type="button"
-                          onClick={() => onOpenRunDetails(r.id, 'main', r.provider)}
-                          title="View Branch History"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            padding: '5px 10px',
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            borderRadius: '6px',
-                            background: isLight ? '#ffffff' : 'rgba(255,255,255,0.06)',
-                            border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)',
-                            color: 'var(--text-primary)',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          <Terminal size={12} /> History
-                        </button>
+                        {isGithub ? (
+                          // History drawer not available for GitHub — already has GitHub Actions link in footer
+                          <span
+                            title="History available via GitHub Actions link below"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '5px 10px',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              borderRadius: '6px',
+                              background: isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
+                              border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.06)',
+                              color: isLight ? '#cbd5e1' : 'rgba(255,255,255,0.22)',
+                              cursor: 'not-allowed',
+                              userSelect: 'none',
+                            }}
+                          >
+                            <Terminal size={12} /> History
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => onOpenRunDetails(r.id, 'main', r.provider)}
+                            title="View Branch History"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '5px 10px',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              borderRadius: '6px',
+                              background: isLight ? '#ffffff' : 'rgba(255,255,255,0.06)',
+                              border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)',
+                              color: 'var(--text-primary)',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <Terminal size={12} /> History
+                          </button>
+                        )}
 
                         {isAzure && (
                           <a
