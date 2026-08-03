@@ -808,7 +808,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                               }}>
                                 ⎇ {branchesList[0].branch}
                               </span>
-                              <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'pre-line' }}>
                                 {branchesList[0].target}
                               </span>
                             </div>
