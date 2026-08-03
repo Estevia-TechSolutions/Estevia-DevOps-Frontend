@@ -137,7 +137,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
         const prov = (app as any).provider
           || ((app.pipelineId && String(app.pipelineId).startsWith('github-actions:')) ? 'github_actions'
             : (app.pipelineId && /^\d+$/.test(String(app.pipelineId))) ? 'azure_devops'
-            : 'unconfigured');
+              : 'unconfigured');
 
         const repoUrl = (app as any).repositoryUrl || `https://github.com/Estevia-TechSolutions/${app.name}`;
         const pipelineUrl = prov === 'github_actions'
@@ -179,7 +179,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
       if (!activeAppNames) return true;
       const pNameLow = (r.project_name || '').toLowerCase();
       if (activeAppNames.has(pNameLow)) return true;
-      return Array.from(activeAppNames).some(appSlug => 
+      return Array.from(activeAppNames).some(appSlug =>
         appSlug === pNameLow || appSlug.includes(pNameLow) || pNameLow.includes(appSlug)
       );
     });
@@ -581,16 +581,16 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                 // ── Provider accent colour ──────────────────────────────
                 const accentColor = isAzure ? '#3b82f6'
                   : isGithub ? '#22c55e'
-                  : isEvaForge ? '#a855f7'
-                  : '#64748b';
+                    : isEvaForge ? '#a855f7'
+                      : '#64748b';
 
                 const accentGradient = isAzure
                   ? 'linear-gradient(90deg, #3b82f6, #60a5fa)'
                   : isGithub
-                  ? 'linear-gradient(90deg, #22c55e, #4ade80)'
-                  : isEvaForge
-                  ? 'linear-gradient(90deg, #8b5cf6, #ec4899)'
-                  : 'linear-gradient(90deg, #64748b, #94a3b8)';
+                    ? 'linear-gradient(90deg, #22c55e, #4ade80)'
+                    : isEvaForge
+                      ? 'linear-gradient(90deg, #8b5cf6, #ec4899)'
+                      : 'linear-gradient(90deg, #64748b, #94a3b8)';
 
                 // ── Build status pill ────────────────────────────────────
                 const rawResult = String((r as any).result || r.status || '').toLowerCase();
@@ -612,13 +612,13 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                 // ── Provider icon ────────────────────────────────────────
                 const providerIcon = isAzure ? <Layers size={14} style={{ color: accentColor }} />
                   : isGithub ? <GitBranch size={14} style={{ color: accentColor }} />
-                  : isEvaForge ? <Zap size={14} style={{ color: accentColor }} />
-                  : <Globe size={14} style={{ color: accentColor }} />;
+                    : isEvaForge ? <Zap size={14} style={{ color: accentColor }} />
+                      : <Globe size={14} style={{ color: accentColor }} />;
 
                 const providerLabel = isAzure ? 'Azure DevOps'
                   : isGithub ? 'GitHub Actions'
-                  : isEvaForge ? 'EvaForge'
-                  : 'Unconfigured';
+                    : isEvaForge ? 'EvaForge'
+                      : 'Unconfigured';
 
                 // ── Commit short SHA ─────────────────────────────────────
                 const shortSha = r.commit_sha ? String(r.commit_sha).slice(0, 7) : null;
@@ -681,8 +681,8 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                               borderRadius: '5px',
                               background: isAzure ? 'rgba(59,130,246,0.1)'
                                 : isGithub ? 'rgba(34,197,94,0.1)'
-                                : isEvaForge ? 'rgba(168,85,247,0.1)'
-                                : 'rgba(100,116,139,0.1)',
+                                  : isEvaForge ? 'rgba(168,85,247,0.1)'
+                                    : 'rgba(100,116,139,0.1)',
                               color: accentColor,
                               border: `1px solid ${accentColor}33`,
                             }}>
@@ -801,10 +801,10 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                                 fontWeight: 800,
                                 background: branchesList[0].branch === 'main' ? 'rgba(59,130,246,0.15)'
                                   : branchesList[0].branch === 'qa' ? 'rgba(245,158,11,0.15)'
-                                  : 'rgba(139,92,246,0.15)',
+                                    : 'rgba(139,92,246,0.15)',
                                 color: branchesList[0].branch === 'main' ? '#60a5fa'
                                   : branchesList[0].branch === 'qa' ? '#fbbf24'
-                                  : '#c084fc',
+                                    : '#c084fc',
                               }}>
                                 ⎇ {branchesList[0].branch}
                               </span>
@@ -842,14 +842,14 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                                     fontWeight: 800,
                                     background: b.branch === 'main' ? 'rgba(59,130,246,0.15)'
                                       : b.branch === 'qa' ? 'rgba(245,158,11,0.15)'
-                                      : 'rgba(139,92,246,0.15)',
+                                        : 'rgba(139,92,246,0.15)',
                                     color: b.branch === 'main' ? '#60a5fa'
                                       : b.branch === 'qa' ? '#fbbf24'
-                                      : '#c084fc',
+                                        : '#c084fc',
                                   }}>
                                     ⎇ {b.branch}
                                   </span>
-                                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'per-line' }}>
                                     {b.target}
                                   </span>
                                 </div>
@@ -879,7 +879,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                               color: 'var(--text-secondary)',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
+                              whiteSpace: 'per-line',
                               flex: 1
                             }}>
                               {r.commit_message || 'No commit message'}
