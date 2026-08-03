@@ -5161,7 +5161,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                       )} {/* End Block 2 */}
 
                                       {/* Block 3: Continuous Integration Telemetry Block */}
-                                      {item.pipelineId && (item.pipelineRun || !loadedPipelines[item.pipelineId]) && (
+                                      {(item.pipelineId || resolveAppProvider(item) === 'github_actions') && (item.pipelineRun || !loadedPipelines[item.pipelineId || item.name] || resolveAppProvider(item) === 'github_actions') && (
+
                                         <div style={{
                                           background: theme === 'light'
                                             ? 'rgba(15, 23, 42, 0.02)'
@@ -5185,13 +5186,63 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
                                           {(() => {
                                             const isLight = theme === 'light';
+                                            const isGitHub = resolveAppProvider(item) === 'github_actions';
 
                                             if (!item.pipelineRun) {
+                                              // GitHub Actions apps don't have pipelineRun (Azure DevOps-specific)
+                                              // Show a GitHub Actions status card with link to view runs
+                                              if (isGitHub) {
+                                                const repoUrl = item.repositoryUrl || `https://github.com/Estevia-TechSolutions/${item.name}`;
+                                                const actionsUrl = `${repoUrl}/actions`;
+                                                return (
+                                                  <div style={{ width: '100%', boxSizing: 'border-box' }}>
+                                                    <div style={{
+                                                      display: 'flex',
+                                                      alignItems: 'center',
+                                                      justifyContent: 'space-between',
+                                                      gap: '8px',
+                                                      padding: '12px 14px',
+                                                      borderRadius: '8px',
+                                                      background: isLight ? 'rgba(34,197,94,0.04)' : 'rgba(34,197,94,0.06)',
+                                                      border: `1px solid ${isLight ? 'rgba(34,197,94,0.15)' : 'rgba(34,197,94,0.2)'}`,
+                                                    }}>
+                                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        <GitBranch size={13} style={{ color: '#22c55e' }} />
+                                                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                          GitHub Actions
+                                                        </span>
+                                                        <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
+                                                          — managed externally via workflow YML
+                                                        </span>
+                                                      </div>
+                                                      <a
+                                                        href={actionsUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        style={{
+                                                          display: 'flex',
+                                                          alignItems: 'center',
+                                                          gap: '4px',
+                                                          fontSize: '0.68rem',
+                                                          fontWeight: 600,
+                                                          color: '#22c55e',
+                                                          textDecoration: 'none',
+                                                          padding: '3px 8px',
+                                                          borderRadius: '5px',
+                                                          border: '1px solid rgba(34,197,94,0.25)',
+                                                          background: 'rgba(34,197,94,0.08)',
+                                                          whiteSpace: 'nowrap'
+                                                        }}
+                                                      >
+                                                        <ExternalLink size={10} />
+                                                        View Runs
+                                                      </a>
+                                                    </div>
+                                                  </div>
+                                                );
+                                              }
                                               return (
-                                                <div style={{
-                                                  width: '100%',
-                                                  boxSizing: 'border-box'
-                                                }}>
+                                                <div style={{ width: '100%', boxSizing: 'border-box' }}>
                                                   <div style={{
                                                     display: 'flex',
                                                     alignItems: 'center',
@@ -5199,9 +5250,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                     gap: '8px',
                                                     padding: '12px 14px',
                                                     borderRadius: '8px',
-                                                    background: isLight
-                                                      ? 'rgba(0,0,0,0.02)'
-                                                      : 'rgba(255,255,255,0.01)',
+                                                    background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.01)',
                                                     border: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)'}`,
                                                     color: 'var(--text-secondary)',
                                                     fontSize: '0.72rem',
@@ -5213,6 +5262,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                 </div>
                                               );
                                             }
+
 
                                             const isExpanded = expandedBuilds[item.name] ?? isBuildActive(item.pipelineRun);
                                             const runState = (item.pipelineRun?.state || '').toLowerCase();
