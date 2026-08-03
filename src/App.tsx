@@ -7323,8 +7323,17 @@ function App() {
                                 whiteSpace: 'nowrap'
                               }}>
                                 {(() => {
+                                  // Restricted/inactive subscriptions: always show "No Resource Group" —
+                                  // even if the API returns RGs, the scope is locked.
+                                  if (isCurrentSubscriptionInactive) {
+                                    return (
+                                      <span style={{ color: '#ef444499', fontStyle: 'italic', fontWeight: 500 }}>
+                                        No Resource Group
+                                      </span>
+                                    );
+                                  }
                                   const subRgs = currentSub?.resourceGroups || [];
-                                  const rgValid = selectedControlResourceGroup && subRgs.length > 0 && subRgs.includes(selectedControlResourceGroup);
+                                  const rgValid = selectedControlResourceGroup && subRgs.includes(selectedControlResourceGroup);
                                   return rgValid
                                     ? selectedControlResourceGroup
                                     : (
