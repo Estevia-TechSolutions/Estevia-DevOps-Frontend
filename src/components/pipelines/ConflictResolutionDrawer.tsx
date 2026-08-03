@@ -150,7 +150,7 @@ export const ConflictResolutionDrawer: React.FC<ConflictResolutionDrawerProps> =
                     color: isEvaForge ? '#a855f7' : isAzure ? '#3b82f6' : '#10b981'
                   }}>
                     {isEvaForge ? (
-                      <>EvaForge Native (Suggested Primary) <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.5rem', fontWeight: 900, padding: '1px 4px', borderRadius: '3px', background: 'linear-gradient(135deg, rgba(168,85,247,0.4), rgba(139,92,246,0.25))', border: '1px solid rgba(168,85,247,0.6)', color: '#f3e8ff', letterSpacing: '0.08em', textTransform: 'uppercase' }}>β BETA</span></>
+                      <>EvaForge Native (Suggested Primary) <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.5rem', fontWeight: 900, padding: '1px 4px', borderRadius: '3px', background: 'linear-gradient(135deg, rgba(168,85,247,0.4), rgba(139,92,246,0.25))', border: '1px solid rgba(168,85,247,0.6)', color: '#9333ea', letterSpacing: '0.08em', textTransform: 'uppercase' }}>β</span></>
                     ) : isAzure ? 'Azure DevOps' : 'GitHub Actions'}
                   </span>
                 </div>

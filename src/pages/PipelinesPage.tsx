@@ -525,7 +525,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
             >
               {tab.icon} {tab.label}
               {tab.id === 'evaforge' && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.52rem', fontWeight: 900, padding: '1px 5px', borderRadius: '4px', background: 'linear-gradient(135deg, rgba(168,85,247,0.35), rgba(139,92,246,0.22))', border: '1px solid rgba(168,85,247,0.55)', color: '#e9d5ff', letterSpacing: '0.07em', textTransform: 'uppercase', boxShadow: '0 0 8px rgba(168,85,247,0.3)', marginLeft: '2px' }}>β</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.52rem', fontWeight: 900, padding: '1px 5px', borderRadius: '4px', background: 'linear-gradient(135deg, rgba(168,85,247,0.35), rgba(139,92,246,0.22))', border: '1px solid rgba(168,85,247,0.55)', color: '#9333ea', letterSpacing: '0.07em', textTransform: 'uppercase', boxShadow: '0 0 8px rgba(168,85,247,0.3)', marginLeft: '2px' }}>β</span>
               )}
             </button>
           ))}
@@ -691,7 +691,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                             }}>
                               {providerLabel}
                               {isEvaForge && (
-                                <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.52rem', fontWeight: 900, padding: '1px 4px', borderRadius: '3px', background: 'linear-gradient(135deg, rgba(168,85,247,0.35), rgba(139,92,246,0.22))', border: '1px solid rgba(168,85,247,0.55)', color: '#e9d5ff', letterSpacing: '0.07em', textTransform: 'uppercase', boxShadow: '0 0 6px rgba(168,85,247,0.25)' }}>β</span>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.52rem', fontWeight: 900, padding: '1px 4px', borderRadius: '3px', background: 'linear-gradient(135deg, rgba(168,85,247,0.35), rgba(139,92,246,0.22))', border: '1px solid rgba(168,85,247,0.55)', color: '#9333ea', letterSpacing: '0.07em', textTransform: 'uppercase', boxShadow: '0 0 6px rgba(168,85,247,0.25)' }}>β</span>
                               )}
                             </span>
                             <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -759,7 +759,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                             <RefreshCw size={12} className="spin-anim" />
                             <span>{isEvaForge ? 'EvaForge' : isAzure ? 'Azure DevOps' : 'GitHub'} Build #{r.run_number} in Progress</span>
                             {isEvaForge && (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.52rem', fontWeight: 900, padding: '1px 5px', borderRadius: '4px', background: 'linear-gradient(135deg, rgba(168,85,247,0.35), rgba(139,92,246,0.22))', border: '1px solid rgba(168,85,247,0.55)', color: '#e9d5ff', letterSpacing: '0.07em', textTransform: 'uppercase', boxShadow: '0 0 8px rgba(168,85,247,0.3)' }}>β BETA</span>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.52rem', fontWeight: 900, padding: '1px 5px', borderRadius: '4px', background: 'linear-gradient(135deg, rgba(168,85,247,0.35), rgba(139,92,246,0.22))', border: '1px solid rgba(168,85,247,0.55)', color: '#9333ea', letterSpacing: '0.07em', textTransform: 'uppercase', boxShadow: '0 0 8px rgba(168,85,247,0.3)' }}>β</span>
                             )}
                           </div>
                           <button
