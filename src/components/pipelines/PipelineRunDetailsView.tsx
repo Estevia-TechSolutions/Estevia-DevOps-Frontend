@@ -28,6 +28,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [selectedHistoricalRunId, setSelectedHistoricalRunId] = useState<string | null>(null);
+  const [stableHistoricalRuns, setStableHistoricalRuns] = useState<any[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
   const [copiedLog, setCopiedLog] = useState<boolean>(false);
   const [showSecrets, setShowSecrets] = useState<boolean>(false);
@@ -45,17 +46,18 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
     if (runId && isOpen) {
       setRunDetails(null);
       setSelectedHistoricalRunId(null);
-      fetchRunDetails(runId, activeBranch);
+      setStableHistoricalRuns([]);
+      fetchRunDetails(runId, activeBranch, false);
     }
   }, [runId, isOpen, activeBranch]);
 
   useEffect(() => {
     if (selectedHistoricalRunId && isOpen) {
-      fetchRunDetails(selectedHistoricalRunId, activeBranch);
+      fetchRunDetails(selectedHistoricalRunId, activeBranch, true);
     }
   }, [selectedHistoricalRunId]);
 
-  const fetchRunDetails = async (targetRunId: string, branchName: string) => {
+  const fetchRunDetails = async (targetRunId: string, branchName: string, isHistoricalSwitch = false) => {
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/pipelines/runs/${targetRunId}?branch=${branchName}`, {
@@ -64,6 +66,12 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
       if (res.ok) {
         const data = await res.json();
         setRunDetails(data);
+        // Only capture the history list on the initial pipeline open — never overwrite
+        // when the user switches to a different historical run (that would replace the
+        // list with the selected run's own history, causing the cascade mismatch bug).
+        if (!isHistoricalSwitch && data.historicalRuns?.length > 0) {
+          setStableHistoricalRuns(data.historicalRuns);
+        }
         if (data.stages?.[0]?.jobs?.[0]?.id) {
           setSelectedJobId(data.stages[0].jobs[0].id);
         }
@@ -77,14 +85,18 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
 
   if (!isOpen) return null;
 
-  const selectedHistoricalRun = runDetails?.historicalRuns?.find((hr: any) => hr.id === (selectedHistoricalRunId || runId)) || runDetails?.historicalRuns?.[0];
+  // Use the stable list (captured on initial load only) so it never shifts when switching runs
+  const selectedHistoricalRun = stableHistoricalRuns.find(
+    (hr: any) => hr.id === (selectedHistoricalRunId || runId)
+  ) || stableHistoricalRuns[0];
 
   const projectName = runDetails?.project_name || (runId && !runId.startsWith('run-') ? runId.replace(/^scanned-\d+-/, '') : null) || 'Estevia-App';
-  const buildNumber = selectedHistoricalRun?.run_number 
-    ? `#${selectedHistoricalRun.run_number}` 
-    : runDetails?.run_number 
-    ? `#${runDetails.run_number}` 
-    : '#1';
+  // After any fetch, runDetails.run_number is always the correct value for the displayed run
+  const buildNumber = runDetails?.run_number
+    ? `#${runDetails.run_number}`
+    : selectedHistoricalRun?.run_number
+    ? `#${selectedHistoricalRun.run_number}`
+    : '#--';
   const provider = (runDetails?.provider || initialProvider || 'azure_devops').toLowerCase();
   const cnameHost = runDetails?.cname_host || `${projectName.toLowerCase()}.esteviatech.com`;
   const resourceGroup = runDetails?.resource_group || 'Estevia-Prod-RG';
@@ -256,7 +268,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {/* Rich Custom Selector Dropdown for Build History */}
-            {runDetails?.historicalRuns && runDetails.historicalRuns.length > 0 && (
+            {stableHistoricalRuns.length > 0 && (
               <div style={{ position: 'relative' }}>
                 <button
                   type="button"
@@ -281,7 +293,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
                   <History size={14} style={{ color: 'var(--accent-purple)' }} />
                   <span>
                     {(() => {
-                      const currentHr = runDetails.historicalRuns.find((hr: any) => hr.id === (selectedHistoricalRunId || runId)) || runDetails.historicalRuns[0];
+                      const currentHr = stableHistoricalRuns.find((hr: any) => hr.id === (selectedHistoricalRunId || runId)) || stableHistoricalRuns[0];
                       return `Build #${currentHr.run_number} (${currentHr.commit_sha || 'a4bafe6'})`;
                     })()}
                   </span>
@@ -308,7 +320,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
                     <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', padding: '4px 8px 8px' }}>
                       Select Pipeline Build Run
                     </div>
-                    {runDetails.historicalRuns.map((hr: any) => {
+                    {stableHistoricalRuns.map((hr: any) => {
                       const isSelected = (selectedHistoricalRunId || runId) === hr.id;
                       const isSuccess = hr.status === 'success';
                       return (

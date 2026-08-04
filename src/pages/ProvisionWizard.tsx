@@ -822,7 +822,7 @@ const Step1Content: React.FC<Step1ContentProps> = ({
                     className={pipelineProvider === 'evaops_native' ? 'btn-primary' : 'btn-secondary'}
                     onClick={() => setPipelineProvider('evaops_native')}
                     style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                    ⚡ EvaForge CI/CD (Recommended) <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.5rem', fontWeight: 900, padding: '1px 5px', borderRadius: '4px', background: 'linear-gradient(135deg, rgba(168,85,247,0.4), rgba(139,92,246,0.25))', border: '1px solid rgba(168,85,247,0.6)', color: '#9333ea', letterSpacing: '0.08em', textTransform: 'uppercase', boxShadow: '0 0 6px rgba(168,85,247,0.3)' }}>β</span>
+                    ⚡ EvaForge CI/CD (Recommended) <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.5rem', fontWeight: 900, padding: '1px 5px', borderRadius: '4px', background: pipelineProvider === 'evaops_native' ? 'rgba(255,255,255,0.22)' : 'rgba(168,85,247,0.18)', border: pipelineProvider === 'evaops_native' ? '1px solid rgba(255,255,255,0.55)' : '1px solid rgba(168,85,247,0.5)', color: pipelineProvider === 'evaops_native' ? '#ffffff' : '#9333ea', letterSpacing: '0.08em', textTransform: 'uppercase', boxShadow: '0 0 6px rgba(168,85,247,0.3)' }}>β</span>
                   </button>
                   <button type="button"
                     className={pipelineProvider === 'azure_devops' ? 'btn-primary' : 'btn-secondary'}
