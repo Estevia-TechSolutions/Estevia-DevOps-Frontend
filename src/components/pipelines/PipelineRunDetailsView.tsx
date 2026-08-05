@@ -178,23 +178,45 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ padding: '10px', borderRadius: '12px', background: 'rgba(139, 92, 246, 0.15)', color: 'var(--accent-purple)' }}>
-              <Terminal size={22} />
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+            <div style={{ 
+              padding: '12px', 
+              borderRadius: '14px', 
+              background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.05))', 
+              color: 'var(--accent-purple)',
+              border: '1px solid rgba(139, 92, 246, 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Terminal size={24} />
             </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {/* Row 1: Title + Build ID + Status Badge */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
                   {projectName}
                 </h2>
-                <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--accent-purple)', fontFamily: 'monospace' }}>
+                <span style={{ 
+                  fontSize: '0.9rem', 
+                  fontWeight: 800, 
+                  color: 'var(--accent-purple)', 
+                  fontFamily: 'monospace',
+                  background: 'rgba(139, 92, 246, 0.1)',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(139, 92, 246, 0.18)'
+                }}>
                   {buildNumber}
                 </span>
+                {getStatusBadge(runDetails?.status || 'success')}
+              </div>
 
-                {/* Provider Badge & Direct Link */}
+              {/* Row 2: Provider badge + External console link */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 {provider.includes('azure') ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(59, 130, 246, 0.14)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.3)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.7rem', padding: '3px 8px', borderRadius: '6px', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.2)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       <Layers size={11} /> Azure DevOps
                     </span>
                     {runDetails?.pipeline_url && (
@@ -203,26 +225,26 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
-                          padding: '2px 8px',
-                          borderRadius: '6px',
                           fontSize: '0.72rem',
-                          fontWeight: 800,
-                          background: 'rgba(59, 130, 246, 0.2)',
+                          fontWeight: 700,
                           color: '#3b82f6',
-                          border: '1px solid rgba(59, 130, 246, 0.4)',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '4px',
-                          textDecoration: 'none'
+                          textDecoration: 'none',
+                          opacity: 0.85,
+                          transition: 'opacity 0.2s'
                         }}
+                        onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                        onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.85')}
                       >
-                        <ExternalLink size={11} /> Open in Azure DevOps Pipelines
+                        <ExternalLink size={12} /> Open console
                       </a>
                     )}
                   </div>
                 ) : provider.includes('github') ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(255, 255, 255, 0.08)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.7rem', padding: '3px 8px', borderRadius: '6px', background: 'rgba(255, 255, 255, 0.06)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       <GitBranch size={11} /> GitHub Actions
                     </span>
                     {runDetails?.pipeline_url && (
@@ -231,36 +253,37 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{
-                          padding: '2px 8px',
-                          borderRadius: '6px',
                           fontSize: '0.72rem',
-                          fontWeight: 800,
-                          background: 'rgba(255, 255, 255, 0.12)',
+                          fontWeight: 700,
                           color: 'var(--text-primary)',
-                          border: '1px solid var(--glass-border)',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '4px',
-                          textDecoration: 'none'
+                          textDecoration: 'none',
+                          opacity: 0.8,
+                          transition: 'opacity 0.2s'
                         }}
+                        onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                        onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.8')}
                       >
-                        <ExternalLink size={11} /> Open in GitHub Actions
+                        <ExternalLink size={12} /> Open console
                       </a>
                     )}
                   </div>
                 ) : (
-                  <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '6px', background: 'rgba(139, 92, 246, 0.16)', color: '#c084fc', border: '1px solid rgba(139, 92, 246, 0.35)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '0.7rem', padding: '3px 8px', borderRadius: '6px', background: 'rgba(139, 92, 246, 0.1)', color: '#c084fc', border: '1px solid rgba(139, 92, 246, 0.2)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     <Zap size={11} /> ⚡ EvaForge CI/CD
-                    <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.5rem', fontWeight: 900, padding: '1px 4px', borderRadius: '3px', background: 'linear-gradient(135deg, rgba(168,85,247,0.4), rgba(139,92,246,0.25))', border: '1px solid rgba(168,85,247,0.6)', color: '#9333ea', letterSpacing: '0.08em', textTransform: 'uppercase', boxShadow: '0 0 6px rgba(168,85,247,0.35)' }}>β</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.5rem', fontWeight: 900, padding: '1px 4px', borderRadius: '3px', background: 'linear-gradient(135deg, rgba(168,85,247,0.3), rgba(139,92,246,0.15))', border: '1px solid rgba(168,85,247,0.4)', color: '#9333ea', letterSpacing: '0.08em', textTransform: 'uppercase' }}>β</span>
                   </span>
                 )}
               </div>
 
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span>Target Host: <strong style={{ color: '#10b981', fontFamily: 'monospace' }}>{cnameHost}</strong></span>
-                <span>•</span>
+              {/* Row 3: Meta details */}
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span>Host: <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{cnameHost}</strong></span>
+                <span style={{ color: 'var(--glass-border)' }}>|</span>
                 <span>RG: <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{resourceGroup}</strong></span>
-                <span>•</span>
+                <span style={{ color: 'var(--glass-border)' }}>|</span>
                 <span>Commit: <strong style={{ color: 'var(--text-primary)', fontFamily: 'monospace' }}>{runDetails?.commit_sha || 'a4bafe6'}</strong></span>
               </div>
             </div>
@@ -280,103 +303,100 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
                     background: isLight ? '#ffffff' : 'rgba(30, 41, 59, 0.85)',
                     border: '1px solid var(--glass-border)',
                     color: 'var(--text-primary)',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    backdropFilter: 'blur(12px)'
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    transition: 'all 0.2s'
                   }}
                 >
-                  <History size={14} style={{ color: 'var(--accent-purple)' }} />
-                  <span>
-                    {(() => {
-                      const currentHr = stableHistoricalRuns.find((hr: any) => hr.id === (selectedHistoricalRunId || runId)) || stableHistoricalRuns[0];
-                      return `Build #${currentHr.run_number} (${currentHr.commit_sha || 'a4bafe6'})`;
-                    })()}
-                  </span>
-                  <ChevronDown size={14} style={{ transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }} />
+                  <History size={14} />
+                  <span>Build History</span>
+                  <ChevronDown size={14} style={{ transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }} />
                 </button>
 
                 {isDropdownOpen && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '42px',
-                      right: 0,
-                      width: '290px',
-                      maxHeight: '280px',
-                      overflowY: 'auto',
-                      borderRadius: '12px',
-                      background: isLight ? '#ffffff' : '#0f172a',
-                      border: '1px solid var(--glass-border)',
-                      boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
-                      zIndex: 1000,
-                      padding: '8px'
-                    }}
-                  >
-                    <div style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', padding: '4px 8px 8px' }}>
+                  <div className="glass-panel dropdown-fade-in" style={{
+                    position: 'absolute',
+                    top: '42px',
+                    right: 0,
+                    width: '320px',
+                    maxHeight: '420px',
+                    overflowY: 'auto',
+                    borderRadius: '12px',
+                    background: isLight ? '#ffffff' : 'rgba(15,23,42,0.95)',
+                    border: '1px solid var(--glass-border)',
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                    zIndex: 1000,
+                    padding: '8px 0'
+                  }}>
+                    <div style={{
+                      padding: '6px 12px 10px',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      color: 'var(--text-secondary)',
+                      textTransform: 'uppercase',
+                      borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.08)',
+                      marginBottom: '6px'
+                    }}>
                       Select Pipeline Build Run
                     </div>
                     {stableHistoricalRuns.map((hr: any) => {
                       const isSelected = (selectedHistoricalRunId || runId) === hr.id;
-                      const isSuccess = hr.status === 'success';
+                      const dateStr = hr.created_at ? new Date(hr.created_at).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      }) : 'Unknown Date';
+
                       return (
-                        <div
+                        <button
                           key={hr.id}
+                          type="button"
                           onClick={() => {
                             setSelectedHistoricalRunId(hr.id);
                             setIsDropdownOpen(false);
                           }}
                           style={{
-                            padding: '8px 10px',
+                            width: '95%',
+                            margin: '2px 2.5%',
+                            padding: '8px 12px',
                             borderRadius: '8px',
-                            background: isSelected ? 'rgba(168, 85, 247, 0.15)' : isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
-                            border: isSelected ? '1px solid rgba(168, 85, 247, 0.35)' : '1px solid var(--glass-border)',
-                            cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            marginBottom: '6px',
-                            transition: 'all 0.15s ease'
+                            background: isSelected ? 'rgba(168, 85, 247, 0.15)' : isLight ? '#f8fafc' : 'rgba(255,255,255,0.03)',
+                            border: isSelected ? '1px solid rgba(168, 85, 247, 0.35)' : '1px solid var(--glass-border)',
+                            color: 'var(--text-primary)',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            transition: 'all 0.2s'
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span
-                              style={{
-                                width: '8px',
-                                height: '8px',
-                                borderRadius: '50%',
-                                background: isSuccess ? '#10b981' : '#ef4444',
-                                boxShadow: isSuccess ? '0 0 6px rgba(16,185,129,0.5)' : '0 0 6px rgba(239,68,68,0.5)'
-                              }}
-                            />
+                            <div style={{
+                              width: '8px',
+                              height: '8px',
+                              borderRadius: '50%',
+                              background: hr.status === 'success' ? '#10b981' : hr.status === 'failed' ? '#ef4444' : '#f59e0b'
+                            }} />
                             <div>
                               <div style={{ fontSize: '0.78rem', fontWeight: isSelected ? 800 : 600, color: isSelected ? 'var(--accent-purple)' : 'var(--text-primary)' }}>
-                                Run #{hr.run_number}
+                                Build #{hr.run_number}
                               </div>
-                              <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-                                {hr.commit_sha || 'a4bafe6'} • {hr.branch || activeBranch}
+                              <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginTop: '1px' }}>
+                                {hr.branch} • {hr.commit_sha ? `[${hr.commit_sha.slice(0, 7)}]` : '[a4bafe]'}
                               </div>
                             </div>
                           </div>
-
-                          <span
-                            style={{
-                              fontSize: '0.65rem',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              fontWeight: 800,
-                              textTransform: 'uppercase',
-                              background: isSuccess ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                              color: isSuccess ? '#10b981' : '#ef4444'
-                            }}
-                          >
-                            {hr.status}
+                          <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
+                            {dateStr}
                           </span>
-                        </div>
+                        </button>
                       );
                     })}
                     <div style={{
@@ -408,8 +428,6 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
                 )}
               </div>
             )}
-
-            {getStatusBadge(runDetails?.status || 'success')}
 
             <button
               type="button"
