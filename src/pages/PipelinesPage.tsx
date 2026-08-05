@@ -53,6 +53,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [providerFilter, setProviderFilter] = useState<string>('all');
   const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
+  const [hoveredTabId, setHoveredTabId] = useState<string | null>(null);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -497,41 +498,69 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
           border: '1px solid var(--glass-border)'
         }}>
           {[
-            { id: 'all', label: 'All Pipelines', icon: <Layers size={13} /> },
-            { id: 'azure', label: 'Azure DevOps', icon: <Layers size={13} style={{ color: '#3b82f6' }} /> },
-            { id: 'github', label: 'GitHub Actions', icon: <GitBranch size={13} style={{ color: '#22c55e' }} /> },
-            { id: 'evaforge', label: 'EvaForge CI/CD', icon: <Zap size={13} style={{ color: '#a855f7' }} /> },
-            { id: 'unconfigured', label: 'Unconfigured', icon: <Globe size={13} /> }
+            { id: 'all', label: 'All Pipelines', icon: <Layers size={13} />, tooltip: 'Show all CI/CD pipelines scanned in target scope' },
+            { id: 'azure', label: 'Azure DevOps', icon: <Layers size={13} style={{ color: '#3b82f6' }} />, tooltip: 'Filter by active Azure DevOps Pipelines' },
+            { id: 'github', label: 'GitHub Actions', icon: <GitBranch size={13} style={{ color: '#22c55e' }} />, tooltip: 'Filter by active GitHub Actions workflows' },
+            { id: 'evaforge', label: 'EvaForge CI/CD', icon: <Zap size={13} style={{ color: '#a855f7' }} />, tooltip: 'Filter by native custom EvaForge Pipelines (Beta)' },
+            { id: 'unconfigured', label: 'Unconfigured', icon: <Globe size={13} />, tooltip: 'Show resources without CI/CD configuration' }
           ].map(tab => (
-            <button
+            <div
               key={tab.id}
-              type="button"
-              onClick={() => setProviderFilter(tab.id)}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '8px',
-                fontSize: '0.8rem',
-                fontWeight: providerFilter === tab.id ? 800 : 600,
-                background: providerFilter === tab.id
-                  ? (isLight ? '#ffffff' : 'var(--accent-purple)')
-                  : 'transparent',
-                color: providerFilter === tab.id
-                  ? (isLight ? '#0f172a' : '#ffffff')
-                  : 'var(--text-secondary)',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                boxShadow: providerFilter === tab.id ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'
-              }}
+              style={{ position: 'relative' }}
+              onMouseEnter={() => setHoveredTabId(tab.id)}
+              onMouseLeave={() => setHoveredTabId(null)}
             >
-              {tab.icon} {tab.label}
-              {tab.id === 'evaforge' && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.52rem', fontWeight: 900, padding: '1px 5px', borderRadius: '4px', background: 'linear-gradient(135deg, rgba(168,85,247,0.35), rgba(139,92,246,0.22))', border: '1px solid rgba(168,85,247,0.55)', color: '#9333ea', letterSpacing: '0.07em', textTransform: 'uppercase', boxShadow: '0 0 8px rgba(168,85,247,0.3)', marginLeft: '2px' }}>β</span>
+              <button
+                type="button"
+                onClick={() => setProviderFilter(tab.id)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  fontSize: '0.8rem',
+                  fontWeight: providerFilter === tab.id ? 800 : 600,
+                  background: providerFilter === tab.id
+                    ? (isLight ? '#ffffff' : 'var(--accent-purple)')
+                    : 'transparent',
+                  color: providerFilter === tab.id
+                    ? (isLight ? '#0f172a' : '#ffffff')
+                    : 'var(--text-secondary)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: providerFilter === tab.id ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'
+                }}
+              >
+                {tab.icon} {tab.label}
+                {tab.id === 'evaforge' && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.52rem', fontWeight: 900, padding: '1px 5px', borderRadius: '4px', background: 'linear-gradient(135deg, rgba(168,85,247,0.35), rgba(139,92,246,0.22))', border: '1px solid rgba(168,85,247,0.55)', color: '#9333ea', letterSpacing: '0.07em', textTransform: 'uppercase', boxShadow: '0 0 8px rgba(168,85,247,0.3)', marginLeft: '2px' }}>β</span>
+                )}
+              </button>
+              {hoveredTabId === tab.id && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: '135%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  padding: '6px 10px',
+                  borderRadius: '6px',
+                  background: 'rgba(15, 23, 42, 0.95)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  color: '#ffffff',
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
+                  pointerEvents: 'none',
+                  zIndex: 200,
+                  transition: 'all 0.15s ease'
+                }}>
+                  {tab.tooltip}
+                </div>
               )}
-            </button>
+            </div>
           ))}
         </div>
 
@@ -677,27 +706,6 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                             </span>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                            {/* Provider pill — clean, tight */}
-                            <span style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              fontSize: '0.68rem',
-                              fontWeight: 600,
-                              padding: '2px 7px',
-                              borderRadius: '5px',
-                              background: isAzure ? 'rgba(59,130,246,0.1)'
-                                : isGithub ? 'rgba(34,197,94,0.1)'
-                                  : isEvaForge ? 'rgba(168,85,247,0.1)'
-                                    : 'rgba(100,116,139,0.1)',
-                              color: accentColor,
-                              border: `1px solid ${accentColor}33`,
-                            }}>
-                              {providerLabel}
-                              {isEvaForge && (
-                                <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.52rem', fontWeight: 900, padding: '1px 4px', borderRadius: '3px', background: 'linear-gradient(135deg, rgba(168,85,247,0.35), rgba(139,92,246,0.22))', border: '1px solid rgba(168,85,247,0.55)', color: '#9333ea', letterSpacing: '0.07em', textTransform: 'uppercase', boxShadow: '0 0 6px rgba(168,85,247,0.25)' }}>β</span>
-                              )}
-                            </span>
                             <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {effectiveProv === 'github_actions' && r.pipeline_name?.includes('Azure DevOps')
                                 ? `GitHub Actions (${r.project_name})`
