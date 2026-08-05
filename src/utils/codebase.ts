@@ -122,6 +122,11 @@ export function getDynamicTargetBranches(resource: any): { branch: string; targe
   const pName = String(resource.project_name || resource.name || '').toLowerCase();
   const primaryBranch = String(resource.branch || 'main').toLowerCase();
 
+  console.log('🔍 [FRONTEND DIAGNOSTICS] codebase.ts getDynamicTargetBranches:', pName, {
+    supported_branches: resource.supported_branches,
+    branches: resource.branches
+  });
+
   // Generic regex extraction for environment tags (-qa, -dev, -prod, _qa, _dev, _prod, -qa-swa, etc.)
   const match = pName.match(/[-_](dev|qa|prod|stage|staging|test)([-_]|$)/i);
   let resolvedBranch: string | null = null;
