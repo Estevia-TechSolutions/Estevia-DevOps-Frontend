@@ -161,12 +161,16 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
           provider: prov,
           pipeline_url: pipelineUrl,
           repo_url: repoUrl,
-          supported_branches: ['main', 'qa', 'dev'],
-          branches: [
-            { branch: 'main', target: `${app.name.toLowerCase()}.esteviatech.com (Prod ACA)`, status: 'success' },
-            { branch: 'qa', target: `${app.name.toLowerCase()}-qa.esteviatech.com (QA Staging ACA)`, status: 'success' },
-            { branch: 'dev', target: `${app.name.toLowerCase()}-dev.esteviatech.com (Dev ACA)`, status: 'success' }
-          ]
+          supported_branches: Array.isArray((app as any).supported_branches) && (app as any).supported_branches.length > 0
+            ? (app as any).supported_branches
+            : ['main'],
+          branches: (Array.isArray((app as any).supported_branches) && (app as any).supported_branches.length > 0
+            ? (app as any).supported_branches
+            : ['main']).map((b: string) => ({
+              branch: b,
+              target: `${app.name.toLowerCase()}${b === 'main' ? '' : '-' + b}.esteviatech.com (${b.toUpperCase()} Target)`,
+              status: 'success'
+            }))
         };
       });
     }
