@@ -7458,39 +7458,73 @@ function App() {
                                     </div>
 
                                     {/* Resource Groups */}
-                                    {(sub.resourceGroups || []).map((rg: string) => {
-                                      const isSelected = selectedSubscriptionId === sub.id && selectedControlResourceGroup === rg;
-                                      return (
-                                        <div
-                                          key={`${sub.id}/${rg}`}
-                                          className={`scope-dropdown-item ${isSelected ? 'selected' : ''}`}
-                                          onClick={() => {
-                                            setSelectedSubscriptionId(sub.id);
-                                            localStorage.setItem('selectedControlSubscriptionId', sub.id);
+                                    {isRestricted ? (
+                                      <div style={{
+                                        padding: '8px 24px',
+                                        fontSize: '0.74rem',
+                                        color: '#ef444499',
+                                        fontStyle: 'italic',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        userSelect: 'none',
+                                        pointerEvents: 'none',
+                                        cursor: 'default'
+                                      }}>
+                                        <Lock size={12} style={{ opacity: 0.6 }} />
+                                        <span>Cannot Access Resource Groups</span>
+                                      </div>
+                                    ) : (sub.resourceGroups || []).length > 0 ? (
+                                      (sub.resourceGroups || []).map((rg: string) => {
+                                        const isSelected = selectedSubscriptionId === sub.id && selectedControlResourceGroup === rg;
+                                        return (
+                                          <div
+                                            key={`${sub.id}/${rg}`}
+                                            className={`scope-dropdown-item ${isSelected ? 'selected' : ''}`}
+                                            onClick={() => {
+                                              setSelectedSubscriptionId(sub.id);
+                                              localStorage.setItem('selectedControlSubscriptionId', sub.id);
 
-                                            const matchedSub = subscriptionsList.find(s => s.id === sub.id);
-                                            const rgs = matchedSub ? matchedSub.resourceGroups || [] : [];
-                                            setControlResourceGroups(rgs);
+                                              const matchedSub = subscriptionsList.find(s => s.id === sub.id);
+                                              const rgs = matchedSub ? matchedSub.resourceGroups || [] : [];
+                                              setControlResourceGroups(rgs);
 
-                                            setSelectedControlResourceGroup(rg);
-                                            localStorage.setItem('selectedControlResourceGroup', rg);
+                                              setSelectedControlResourceGroup(rg);
+                                              localStorage.setItem('selectedControlResourceGroup', rg);
 
-                                            setIsScopeDropdownOpen(false);
-                                            handleScan(rg, false, false, sub.id);
-                                          }}
-                                        >
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <Database size={13} style={{ opacity: isSelected ? 1 : 0.4, color: isSelected ? (isLight ? '#7c3aed' : '#a78bfa') : 'inherit' }} />
-                                            <span>{rg}</span>
+                                              setIsScopeDropdownOpen(false);
+                                              handleScan(rg, false, false, sub.id);
+                                            }}
+                                          >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                              <Database size={13} style={{ opacity: isSelected ? 1 : 0.4, color: isSelected ? (isLight ? '#7c3aed' : '#a78bfa') : 'inherit' }} />
+                                              <span>{rg}</span>
+                                            </div>
+                                            {rg === primaryResourceGroup && (
+                                              <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)', color: isLight ? 'rgba(0,0,0,0.45)' : '#64748b', fontWeight: 600 }}>
+                                                Primary
+                                              </span>
+                                            )}
                                           </div>
-                                          {rg === primaryResourceGroup && (
-                                            <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)', color: isLight ? 'rgba(0,0,0,0.45)' : '#64748b', fontWeight: 600 }}>
-                                              Primary
-                                            </span>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
+                                        );
+                                      })
+                                    ) : (
+                                      <div style={{
+                                        padding: '8px 24px',
+                                        fontSize: '0.74rem',
+                                        color: theme === 'light' ? 'rgba(0,0,0,0.38)' : 'rgba(255,255,255,0.38)',
+                                        fontStyle: 'italic',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        userSelect: 'none',
+                                        pointerEvents: 'none',
+                                        cursor: 'default'
+                                      }}>
+                                        <Database size={12} style={{ opacity: 0.4 }} />
+                                        <span>No Resource Groups</span>
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               })}
