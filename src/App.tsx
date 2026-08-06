@@ -8392,7 +8392,7 @@ function App() {
                         gap: '6px'
                       }}
                     >
-                      <Zap size={14} /> ⚡ Target Scope CI/CD Pipelines Grid
+                      <Zap size={14} /> Target Scope CI/CD Pipelines Grid
                     </button>
 
                     <button
@@ -8413,7 +8413,7 @@ function App() {
                         gap: '6px'
                       }}
                     >
-                      <PlusCircle size={14} /> ➕ Provision Infrastructure (Wizard)
+                      <PlusCircle size={14} /> Provision Infrastructure (Wizard)
                     </button>
 
                   </div>

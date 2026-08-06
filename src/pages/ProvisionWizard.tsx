@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  GitBranch, 
-  RefreshCw, 
-  ArrowRight, 
-  ArrowLeft, 
-  Settings, 
-  PlusCircle, 
-  ShieldCheck, 
-  AlertTriangle, 
-  Globe, 
+import {
+  GitBranch,
+  RefreshCw,
+  ArrowRight,
+  ArrowLeft,
+  Settings,
+  PlusCircle,
+  ShieldCheck,
+  AlertTriangle,
+  Globe,
   ExternalLink,
   Pencil,
   Check,
@@ -334,7 +334,7 @@ interface ProvisionWizardProps {
   setCustomApiLocation: (val: string) => void;
   customOutputLocation: string;
   setCustomOutputLocation: (val: string) => void;
-  
+
   // Dockerfile checks
   dockerfileMissing: boolean;
   setDockerfileMissing: (val: boolean) => void;
@@ -407,7 +407,7 @@ export const DockerfileEditorStep: React.FC<DockerfileEditorStepProps> = ({
         const token = localStorage.getItem('devops_token');
         const res = await fetch(`${API_BASE}/apps/validate-dockerfile`, {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
@@ -463,17 +463,17 @@ export const DockerfileEditorStep: React.FC<DockerfileEditorStepProps> = ({
           {/* Edit / Cancel toggle */}
           {dockerfileContent && (
             <button type="button" onClick={handleEditToggle} disabled={isViewer || pushing}
-              style={{ 
-                background: editMode ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.05)', 
-                border: `1px solid ${editMode ? 'var(--error)' : 'var(--glass-border)'}`, 
-                color: isViewer ? 'var(--text-muted)' : (editMode ? 'var(--error)' : 'var(--accent-purple)'), 
-                borderRadius: '8px', 
-                padding: '6px 14px', 
-                cursor: isViewer ? 'not-allowed' : 'pointer', 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '6px', 
-                fontSize: '0.82rem', 
+              style={{
+                background: editMode ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${editMode ? 'var(--error)' : 'var(--glass-border)'}`,
+                color: isViewer ? 'var(--text-muted)' : (editMode ? 'var(--error)' : 'var(--accent-purple)'),
+                borderRadius: '8px',
+                padding: '6px 14px',
+                cursor: isViewer ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.82rem',
                 fontWeight: 500,
                 opacity: isViewer ? 0.6 : 1
               }}
@@ -667,17 +667,17 @@ interface Step1ContentProps {
 const CONFIDENCE_LABEL: Record<string, string> = { high: 'High', medium: 'Medium', low: 'Low' };
 const CONFIDENCE_COLOR: Record<string, string> = { high: 'var(--success)', medium: 'var(--warning)', low: 'var(--text-muted)' };
 const TYPE_COLOR: Record<string, { bg: string; border: string; text: string }> = {
-  backend:  { bg: 'var(--type-backend-bg)', border: 'var(--type-backend-border)', text: 'var(--type-backend-text)' },
+  backend: { bg: 'var(--type-backend-bg)', border: 'var(--type-backend-border)', text: 'var(--type-backend-text)' },
   frontend: { bg: 'var(--type-frontend-bg)', border: 'var(--type-frontend-border)', text: 'var(--type-frontend-text)' },
-  mixed:    { bg: 'var(--type-mixed-bg)', border: 'var(--type-mixed-border)', text: 'var(--type-mixed-text)' },
-  unknown:  { bg: 'var(--type-unknown-bg)', border: 'var(--type-unknown-border)', text: 'var(--type-unknown-text)' },
+  mixed: { bg: 'var(--type-mixed-bg)', border: 'var(--type-mixed-border)', text: 'var(--type-mixed-text)' },
+  unknown: { bg: 'var(--type-unknown-bg)', border: 'var(--type-unknown-border)', text: 'var(--type-unknown-text)' },
 };
 const TYPE_LABEL: Record<string, string> = { backend: 'BACKEND', frontend: 'FRONTEND', mixed: 'MIXED', unknown: 'UNKNOWN' };
 const TYPE_ICON: Record<string, React.ReactNode> = {
-  backend:  <GitMerge size={12} />,
+  backend: <GitMerge size={12} />,
   frontend: <Globe size={12} />,
-  mixed:    <AlertOctagon size={12} />,
-  unknown:  <HelpCircle size={12} />,
+  mixed: <AlertOctagon size={12} />,
+  unknown: <HelpCircle size={12} />,
 };
 
 const Step1Content: React.FC<Step1ContentProps> = ({
@@ -711,7 +711,7 @@ const Step1Content: React.FC<Step1ContentProps> = ({
   const isHardBlock =
     confidence !== 'low' &&
     ((detectedType === 'backend' && appType === 'frontend') ||
-     (detectedType === 'frontend' && appType === 'backend'));
+      (detectedType === 'frontend' && appType === 'backend'));
 
   const isMixedWarn = detectedType === 'mixed' && confidence !== 'low';
 
@@ -788,10 +788,10 @@ const Step1Content: React.FC<Step1ContentProps> = ({
                   className={appType === t ? 'btn-primary' : 'btn-secondary'}
                   onClick={() => handleAppTypeChange(t)}
                   style={{
-                    flex: 1, 
-                    padding: '10px 4px', 
-                    borderRadius: '8px', 
-                    fontSize: '0.8rem', 
+                    flex: 1,
+                    padding: '10px 4px',
+                    borderRadius: '8px',
+                    fontSize: '0.8rem',
                     fontWeight: 600,
                     display: 'flex',
                     alignItems: 'center',
@@ -822,7 +822,7 @@ const Step1Content: React.FC<Step1ContentProps> = ({
                     className={pipelineProvider === 'evaops_native' ? 'btn-primary' : 'btn-secondary'}
                     onClick={() => setPipelineProvider('evaops_native')}
                     style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                    ⚡ EvaForge CI/CD (Recommended) <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.5rem', fontWeight: 900, padding: '1px 5px', borderRadius: '4px', background: pipelineProvider === 'evaops_native' ? 'rgba(255,255,255,0.22)' : 'rgba(168,85,247,0.18)', border: pipelineProvider === 'evaops_native' ? '1px solid rgba(255,255,255,0.55)' : '1px solid rgba(168,85,247,0.5)', color: pipelineProvider === 'evaops_native' ? '#ffffff' : '#9333ea', letterSpacing: '0.08em', textTransform: 'uppercase', boxShadow: '0 0 6px rgba(168,85,247,0.3)' }}>β</span>
+                    ⚡ EvaForge CI/CD <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.5rem', fontWeight: 900, padding: '1px 5px', borderRadius: '4px', background: pipelineProvider === 'evaops_native' ? 'rgba(255,255,255,0.22)' : 'rgba(168,85,247,0.18)', border: pipelineProvider === 'evaops_native' ? '1px solid rgba(255,255,255,0.55)' : '1px solid rgba(168,85,247,0.5)', color: pipelineProvider === 'evaops_native' ? '#ffffff' : '#9333ea', letterSpacing: '0.08em', textTransform: 'uppercase', boxShadow: '0 0 6px rgba(168,85,247,0.3)' }}>β</span>
                   </button>
                   <button type="button"
                     className={pipelineProvider === 'azure_devops' ? 'btn-primary' : 'btn-secondary'}
@@ -869,65 +869,65 @@ const Step1Content: React.FC<Step1ContentProps> = ({
                 })()}
               </div>
 
-          {/* Branches */}
-          {selectedRepo && (
-            <div style={{ marginBottom: '24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>Target Branches (triggers in YML)</label>
-                <button type="button" onClick={() => fetchBranches && fetchBranches(selectedRepo)} disabled={loadingBranches}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <RefreshCw size={12} className={loadingBranches ? 'spin-anim' : ''} /> Refresh
-                </button>
-              </div>
-              {loadingBranches ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', background: 'var(--input-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
-                  <RefreshCw size={14} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
-                  <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Loading repository branches...</span>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto', overflowX: 'hidden', padding: '8px', background: 'var(--input-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)', width: '100%', boxSizing: 'border-box' }}>
-                  {branches.map(b => {
-                    const isChecked = selectedBranches.includes(b.name);
-                    return (
-                      <label key={b.name} className={`branch-checkbox-item ${isChecked ? 'selected' : ''}`}>
-                        <input type="checkbox" checked={isChecked}
-                          onChange={e => {
-                            if (e.target.checked) setSelectedBranches([...selectedBranches, b.name]);
-                            else setSelectedBranches(selectedBranches.filter(x => x !== b.name));
-                          }}
-                          style={{ width: '16px', height: '16px', flexShrink: 0, marginTop: '2px', cursor: 'pointer' }} />
-                        <span style={{ minWidth: 0, wordBreak: 'break-all', whiteSpace: 'normal', lineHeight: '1.4' }}>
-                          {b.name}{b.protected ? ' 🔒' : ''}
-                        </span>
-                      </label>
-                    );
-                  })}
+              {/* Branches */}
+              {selectedRepo && (
+                <div style={{ marginBottom: '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>Target Branches (triggers in YML)</label>
+                    <button type="button" onClick={() => fetchBranches && fetchBranches(selectedRepo)} disabled={loadingBranches}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <RefreshCw size={12} className={loadingBranches ? 'spin-anim' : ''} /> Refresh
+                    </button>
+                  </div>
+                  {loadingBranches ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', background: 'var(--input-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+                      <RefreshCw size={14} className="spin-anim" style={{ color: 'var(--accent-purple)' }} />
+                      <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Loading repository branches...</span>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto', overflowX: 'hidden', padding: '8px', background: 'var(--input-bg)', borderRadius: '8px', border: '1px solid var(--glass-border)', width: '100%', boxSizing: 'border-box' }}>
+                      {branches.map(b => {
+                        const isChecked = selectedBranches.includes(b.name);
+                        return (
+                          <label key={b.name} className={`branch-checkbox-item ${isChecked ? 'selected' : ''}`}>
+                            <input type="checkbox" checked={isChecked}
+                              onChange={e => {
+                                if (e.target.checked) setSelectedBranches([...selectedBranches, b.name]);
+                                else setSelectedBranches(selectedBranches.filter(x => x !== b.name));
+                              }}
+                              style={{ width: '16px', height: '16px', flexShrink: 0, marginTop: '2px', cursor: 'pointer' }} />
+                            <span style={{ minWidth: 0, wordBreak: 'break-all', whiteSpace: 'normal', lineHeight: '1.4' }}>
+                              {b.name}{b.protected ? ' 🔒' : ''}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {selectedBranches.length > 0 && (
+                    <div style={{ marginTop: '16px' }}>
+                      <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Primary Deploy Branch</label>
+                      <RichSelect
+                        value={selectedBranch}
+                        onChange={(val) => setSelectedBranch(val)}
+                        options={selectedBranches.map(bn => ({
+                          value: bn,
+                          label: bn,
+                          icon: <GitBranch size={14} style={{ color: 'var(--accent-purple)' }} />
+                        }))}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
-              {selectedBranches.length > 0 && (
-                <div style={{ marginTop: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Primary Deploy Branch</label>
-                  <RichSelect
-                    value={selectedBranch}
-                    onChange={(val) => setSelectedBranch(val)}
-                    options={selectedBranches.map(bn => ({
-                      value: bn,
-                      label: bn,
-                      icon: <GitBranch size={14} style={{ color: 'var(--accent-purple)' }} />
-                    }))}
-                  />
-                </div>
-              )}
+            </>
+          ) : (
+            <div className="glass-panel" style={{ padding: '24px', borderColor: 'var(--accent-purple)', background: 'rgba(139, 92, 246, 0.04)', marginBottom: '24px', borderRadius: '10px' }}>
+              <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                ℹ️ <strong>Infrastructure Deployment:</strong> AKS Clusters and MySQL Database Servers are managed cloud infrastructures. No GitHub repository integration is required to provision these resources. You can proceed directly to the Azure Resource Configuration.
+              </p>
             </div>
           )}
-        </>
-      ) : (
-        <div className="glass-panel" style={{ padding: '24px', borderColor: 'var(--accent-purple)', background: 'rgba(139, 92, 246, 0.04)', marginBottom: '24px', borderRadius: '10px' }}>
-          <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-            ℹ️ <strong>Infrastructure Deployment:</strong> AKS Clusters and MySQL Database Servers are managed cloud infrastructures. No GitHub repository integration is required to provision these resources. You can proceed directly to the Azure Resource Configuration.
-          </p>
-        </div>
-      )}
 
           {/* ── Hard block: type mismatch ── */}
           {isHardBlock && primaryBranch && (
@@ -940,8 +940,8 @@ const Step1Content: React.FC<Step1ContentProps> = ({
                   </div>
                   <div style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                     <div>🔍 <strong style={{ color: 'var(--text-primary)' }}>Detected:</strong> Branch <code style={{ background: 'var(--divider)', padding: '1px 5px', borderRadius: '4px' }}>{primaryBranch}</code> is a <strong>{TYPE_LABEL[detectedType]}</strong> repository
-                      {branchIntegrity?.signals?.backendFiles?.length > 0 && <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}> ({branchIntegrity.signals.backendFiles.slice(0,3).join(', ')})</span>}
-                      {branchIntegrity?.signals?.frontendFiles?.length > 0 && <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}> ({branchIntegrity.signals.frontendFiles.slice(0,3).join(', ')})</span>}
+                      {branchIntegrity?.signals?.backendFiles?.length > 0 && <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}> ({branchIntegrity.signals.backendFiles.slice(0, 3).join(', ')})</span>}
+                      {branchIntegrity?.signals?.frontendFiles?.length > 0 && <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}> ({branchIntegrity.signals.frontendFiles.slice(0, 3).join(', ')})</span>}
                     </div>
                     <div style={{ marginTop: '4px' }}>🎯 <strong style={{ color: 'var(--text-primary)' }}>Selected:</strong> {appType === 'frontend' ? 'Frontend SWA' : 'Backend ACA Container'}</div>
                     <div style={{ marginTop: '10px', padding: '8px 12px', background: 'var(--glass-border)', borderRadius: '6px', fontSize: '0.82rem', color: 'var(--warning)' }}>
@@ -1400,25 +1400,25 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
   };
 
   // Filter managed environments to only show those that match selected location/region
-  const filteredManagedEnvironments = managedEnvironments.filter(env => 
+  const filteredManagedEnvironments = managedEnvironments.filter(env =>
     !env.location || env.location.toLowerCase().replace(/ /g, '') === newLocation.toLowerCase().replace(/ /g, '')
   );
 
   return (
-    <div style={{ 
-      display: 'grid', 
-      gridTemplateColumns: '280px 1fr', 
-      gap: '30px', 
-      maxWidth: '1200px', 
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '280px 1fr',
+      gap: '30px',
+      maxWidth: '1200px',
       margin: '0 auto',
       alignItems: 'stretch'
     }}>
-      
+
       {/* Left Column: Multi-step Vertical Stepper */}
-      <div className="glass-panel" style={{ 
-        padding: '36px 24px', 
-        display: 'flex', 
-        flexDirection: 'column', 
+      <div className="glass-panel" style={{
+        padding: '36px 24px',
+        display: 'flex',
+        flexDirection: 'column',
         gap: '0px',
         height: '100%',
         boxSizing: 'border-box',
@@ -1433,20 +1433,20 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
           if (appType === 'frontend' || appType === 'backend') {
             steps.push({ stepNum: 2, label: 'Verify Build Pipeline YML', sublabel: 'Review, modify, and commit azure-pipelines.yml configuration file' });
           }
-          steps.push({ 
-            stepNum: 4, 
-            label: appType === 'backend' 
-              ? 'Provision Azure ACA' 
+          steps.push({
+            stepNum: 4,
+            label: appType === 'backend'
+              ? 'Provision Azure ACA'
               : appType === 'cluster'
-              ? 'Provision AKS Cluster'
-              : appType === 'database'
-              ? 'Provision MySQL Server'
-              : 'Provision Azure SWA', 
+                ? 'Provision AKS Cluster'
+                : appType === 'database'
+                  ? 'Provision MySQL Server'
+                  : 'Provision Azure SWA',
             sublabel: appType === 'cluster'
               ? 'Configure Kubernetes settings, node counts, VM size, and subnet injections'
               : appType === 'database'
-              ? 'Configure MySQL database version, pricing tiers, and subnet delegation'
-              : 'Create managed container environments or static site hosts in the cloud' 
+                ? 'Configure MySQL database version, pricing tiers, and subnet delegation'
+                : 'Create managed container environments or static site hosts in the cloud'
           });
           if (appType === 'frontend' || appType === 'backend') {
             steps.push({ stepNum: 5, label: 'Bindings & Launch Sequence', sublabel: 'Register Azure DevOps build pipelines and bind GoDaddy subdomains' });
@@ -1455,9 +1455,9 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
             const isActive = provisionStep === s.stepNum;
             const isCompleted = provisionStep > s.stepNum;
             return (
-              <div key={s.stepNum} style={{ 
-                display: 'flex', 
-                gap: '16px', 
+              <div key={s.stepNum} style={{
+                display: 'flex',
+                gap: '16px',
                 opacity: isActive || isCompleted ? 1 : 0.5,
                 transition: 'opacity 0.3s ease'
               }}>
@@ -1481,74 +1481,75 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                     {isCompleted ? '✓' : idx + 1}
                   </div>
                   {idx < steps.length - 1 && (
-                    <div style={{ 
-                      width: '2px', 
+                    <div style={{
+                      width: '2px',
                       height: '38px',
-                      background: isCompleted 
-                        ? 'var(--accent-blue)' 
-                        : isActive 
-                          ? 'linear-gradient(180deg, var(--accent-purple), rgba(255,255,255,0.06))' 
-                          : 'rgba(255,255,255,0.06)', 
-                      margin: '4px 0' 
+                      background: isCompleted
+                        ? 'var(--accent-blue)'
+                        : isActive
+                          ? 'linear-gradient(180deg, var(--accent-purple), rgba(255,255,255,0.06))'
+                          : 'rgba(255,255,255,0.06)',
+                      margin: '4px 0'
                     }} />
                   )}
                 </div>
-                
+
                 {/* Label & Sublabel */}
                 <div style={{ display: 'flex', flexDirection: 'column', paddingBottom: idx < steps.length - 1 ? '26px' : '0' }}>
-                  <span style={{ 
-                    fontSize: '0.88rem', 
-                    color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)', 
+                  <span style={{
+                    fontSize: '0.88rem',
+                    color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
                     fontWeight: isActive ? 600 : 400,
                     lineHeight: '1.4'
                   }}>
                     {s.label}
                   </span>
-                  <span style={{ 
-                    fontSize: '0.72rem', 
+                  <span style={{
+                    fontSize: '0.72rem',
                     color: 'var(--text-secondary)',
                     marginTop: '4px',
                     lineHeight: '1.4'
                   }}>
                     {s.sublabel}
                   </span>
+                </div>
               </div>
-            </div>
-          );
-        })})()}
+            );
+          })
+        })()}
 
         {/* Informative text at the bottom of the sidebar */}
-        <div style={{ 
-          marginTop: 'auto', 
-          paddingTop: '24px', 
+        <div style={{
+          marginTop: 'auto',
+          paddingTop: '24px',
           borderTop: '1px solid var(--glass-border)',
           display: 'flex',
           flexDirection: 'column',
           gap: '8px'
         }}>
-          <span style={{ 
-            fontSize: '0.72rem', 
-            color: 'var(--text-secondary)', 
+          <span style={{
+            fontSize: '0.72rem',
+            color: 'var(--text-secondary)',
             fontWeight: 600,
             textTransform: 'uppercase',
             letterSpacing: '0.05em'
           }}>
             Security & Compliance
           </span>
-          <p style={{ 
-            fontSize: '0.72rem', 
-            color: 'var(--text-secondary)', 
-            lineHeight: '1.4', 
-            margin: 0 
+          <p style={{
+            fontSize: '0.72rem',
+            color: 'var(--text-secondary)',
+            lineHeight: '1.4',
+            margin: 0
           }}>
             All credentials and tokens are encrypted with AES-256-GCM keys. Generated build pipelines strictly conform to corporate DevOps security standards and automatically run dependency vulnerability checks.
           </p>
-          <div style={{ 
+          <div style={{
             marginTop: '4px',
-            fontSize: '0.72rem', 
-            color: 'var(--accent-purple)', 
-            display: 'flex', 
-            alignItems: 'center', 
+            fontSize: '0.72rem',
+            color: 'var(--accent-purple)',
+            display: 'flex',
+            alignItems: 'center',
             gap: '4px',
             fontWeight: 500
           }}>
@@ -1558,11 +1559,12 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
       </div>
 
       {/* Right Column: Active Step Content */}
-      <div className="glass-panel" style={{ padding: '36px', position: 'relative', overflow: 'hidden',
+      <div className="glass-panel" style={{
+        padding: '36px', position: 'relative', overflow: 'hidden',
         background: 'linear-gradient(145deg, rgba(139, 92, 246, 0.08) 0%, rgba(109, 40, 217, 0.12) 50%, transparent 100%)',
         borderColor: 'rgba(168, 85, 247, 0.15)',
       }}>
-        
+
         {/* Decorative top gradient border */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: 'linear-gradient(90deg, var(--accent-purple), rgba(168,85,247,0.3), var(--accent-teal))' }} />
         {/* Ambient purple glow top-right */}
@@ -1676,30 +1678,30 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>App Location</label>
-                    <input 
-                      type="text" 
-                      value={customAppLocation} 
-                      onChange={(e) => setCustomAppLocation(e.target.value)} 
+                    <input
+                      type="text"
+                      value={customAppLocation}
+                      onChange={(e) => setCustomAppLocation(e.target.value)}
                       placeholder="e.g. /"
                       style={{ fontSize: '0.8rem', height: '28px', padding: '4px 8px' }}
                     />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Api Location</label>
-                    <input 
-                      type="text" 
-                      value={customApiLocation} 
-                      onChange={(e) => setCustomApiLocation(e.target.value)} 
+                    <input
+                      type="text"
+                      value={customApiLocation}
+                      onChange={(e) => setCustomApiLocation(e.target.value)}
                       placeholder="e.g. /api"
                       style={{ fontSize: '0.8rem', height: '28px', padding: '4px 8px' }}
                     />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.74rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Output/Build Directory</label>
-                    <input 
-                      type="text" 
-                      value={customOutputLocation} 
-                      onChange={(e) => setCustomOutputLocation(e.target.value)} 
+                    <input
+                      type="text"
+                      value={customOutputLocation}
+                      onChange={(e) => setCustomOutputLocation(e.target.value)}
                       placeholder="e.g. dist"
                       style={{ fontSize: '0.8rem', height: '28px', padding: '4px 8px' }}
                     />
@@ -1737,7 +1739,7 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                       <strong style={{ color: 'var(--accent-purple)' }}>ℹ Custom pipeline template generated</strong>
                     )}
                   </span>
-                  
+
                   <button
                     type="button"
                     className="btn-secondary"
@@ -1829,18 +1831,18 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
             )}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px', borderTop: '1px solid var(--glass-border)', paddingTop: '20px' }}>
-              <button 
-                type="button" 
-                className="btn-secondary" 
+              <button
+                type="button"
+                className="btn-secondary"
                 onClick={() => setProvisionStep(1)}
                 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 <ArrowLeft size={16} /> Back
               </button>
-              
-              <button 
-                type="button" 
-                className="btn-primary" 
+
+              <button
+                type="button"
+                className="btn-primary"
                 disabled={ymlLoading || creatingYml || !ymlContent || (appType === 'backend' && dockerfileMissing) || (provisionYmlValidation?.errors && provisionYmlValidation.errors.length > 0)}
                 onClick={() => {
                   if (appType === 'backend') {
@@ -1878,22 +1880,22 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
           <div>
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
               <PlusCircle style={{ color: 'var(--accent-purple)' }} />
-              {appType === 'backend' 
-                ? 'Provision Azure Container App' 
+              {appType === 'backend'
+                ? 'Provision Azure Container App'
                 : appType === 'cluster'
-                ? 'Provision AKS Managed Cluster'
-                : appType === 'database'
-                ? 'Provision MySQL Flexible Server'
-                : 'Provision Azure SWA Resource'}
+                  ? 'Provision AKS Managed Cluster'
+                  : appType === 'database'
+                    ? 'Provision MySQL Flexible Server'
+                    : 'Provision Azure SWA Resource'}
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', marginBottom: '24px' }}>
-              {appType === 'backend' 
-                ? 'Create a secure, managed container app on Azure to host your backend services. It runs in the regional container environment.' 
+              {appType === 'backend'
+                ? 'Create a secure, managed container app on Azure to host your backend services. It runs in the regional container environment.'
                 : appType === 'cluster'
-                ? 'Deploy a production-ready Azure Kubernetes Service (AKS) cluster mapped into your virtual network topology.'
-                : appType === 'database'
-                ? 'Deploy an enterprise-grade Azure Database for MySQL Flexible Server with native VNet subnet delegation.'
-                : 'Create a high-availability Static Web App container in Azure. Azure will host the frontend bundle and supply a default hostname.'}
+                  ? 'Deploy a production-ready Azure Kubernetes Service (AKS) cluster mapped into your virtual network topology.'
+                  : appType === 'database'
+                    ? 'Deploy an enterprise-grade Azure Database for MySQL Flexible Server with native VNet subnet delegation.'
+                    : 'Create a high-availability Static Web App container in Azure. Azure will host the frontend bundle and supply a default hostname.'}
             </p>
 
             {provisionSuccess && (
@@ -1917,7 +1919,7 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                           message: provisionErrorDetail,
                           confirmLabel: 'Close',
                           type: 'danger',
-                          onConfirm: () => {}
+                          onConfirm: () => { }
                         });
                       }}
                       style={{ padding: '4px 10px', fontSize: '0.75rem', height: '26px' }}
@@ -1933,28 +1935,28 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
               <div style={{ display: 'grid', gap: '20px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                    {appType === 'backend' 
-                      ? 'Container App Name' 
+                    {appType === 'backend'
+                      ? 'Container App Name'
                       : appType === 'cluster'
-                      ? 'AKS Cluster Name'
-                      : appType === 'database'
-                      ? 'MySQL Server Name'
-                      : 'Static Web App Name'}
-                  </label>
-                  <input 
-                    type="text" 
-                    value={newName} 
-                    onChange={(e) => setNewName(e.target.value)} 
-                    placeholder={
-                      appType === 'backend' 
-                        ? 'estevia-brand-api' 
-                        : appType === 'cluster'
-                        ? 'estevia-prod-aks'
+                        ? 'AKS Cluster Name'
                         : appType === 'database'
-                        ? 'estevia-prod-mysql'
-                        : 'estevia-brand-site-swa'
-                    } 
-                    required 
+                          ? 'MySQL Server Name'
+                          : 'Static Web App Name'}
+                  </label>
+                  <input
+                    type="text"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder={
+                      appType === 'backend'
+                        ? 'estevia-brand-api'
+                        : appType === 'cluster'
+                          ? 'estevia-prod-aks'
+                          : appType === 'database'
+                            ? 'estevia-prod-mysql'
+                            : 'estevia-brand-site-swa'
+                    }
+                    required
                     disabled={provisioning}
                   />
                 </div>
@@ -1962,17 +1964,17 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                 {appType === 'backend' && (
                   <div>
                     <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Target Ingress Port</label>
-                    <input 
-                      type="number" 
-                      value={targetPort} 
-                      onChange={(e) => setTargetPort(e.target.value)} 
-                      placeholder="5005" 
-                      required 
+                    <input
+                      type="number"
+                      value={targetPort}
+                      onChange={(e) => setTargetPort(e.target.value)}
+                      placeholder="5005"
+                      required
                       disabled={provisioning}
                     />
                   </div>
                 )}
-                
+
                 {/* Subscription Selection */}
                 <div>
                   <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Azure Subscription</label>
@@ -2061,7 +2063,7 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                       Create new Resource Group
                     </label>
                   </div>
-                  
+
                   {(() => {
                     const matchedSub = subscriptionsList.find(s => (s.id || '').toLowerCase() === (selectedProvisionSubscriptionId || '').toLowerCase());
                     const existingRgsInSub = matchedSub ? (matchedSub.resourceGroups || []) : resourceGroups;
@@ -2173,11 +2175,11 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                       {loadingMetadata ? (
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Loading environments...</div>
                       ) : filteredManagedEnvironments.length === 0 ? (
-                        <div style={{ 
-                          fontSize: '0.8rem', 
-                          padding: '12px', 
-                          borderRadius: '8px', 
-                          backgroundColor: 'rgba(255,255,255,0.02)', 
+                        <div style={{
+                          fontSize: '0.8rem',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          backgroundColor: 'rgba(255,255,255,0.02)',
                           border: '1px solid var(--glass-border)',
                           color: 'var(--text-secondary)',
                           lineHeight: '1.4'
@@ -2405,16 +2407,16 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '32px', borderTop: '1px solid var(--glass-border)', paddingTop: '20px' }}>
-                <button 
-                  type="button" 
-                  className="btn-secondary" 
+                <button
+                  type="button"
+                  className="btn-secondary"
                   onClick={() => setProvisionStep(appType === 'backend' ? 3 : (appType === 'cluster' || appType === 'database') ? 1 : 2)}
                   disabled={provisioning}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
                   <ArrowLeft size={16} /> Back
                 </button>
-                
+
                 {(() => {
                   const activeSub = subscriptionsList.find(s => (s.id || '').toLowerCase() === (selectedProvisionSubscriptionId || '').toLowerCase());
                   const statusLow = (activeSub?.status || activeSub?.state || '').toLowerCase();
@@ -2444,9 +2446,9 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                           <AlertOctagon size={14} /> {disableReason}
                         </div>
                       )}
-                      <button 
-                        type="submit" 
-                        className="btn-primary" 
+                      <button
+                        type="submit"
+                        className="btn-primary"
                         disabled={isDisabled}
                         title={isDisabled ? disableReason : ''}
                         style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.5 : 1 }}
@@ -2481,7 +2483,7 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '32px' }}>
-              
+
               {/* Pipeline Registration Card */}
               <div className="glass-panel" style={{ padding: '20px', border: pipelineRegSuccess ? '1px solid rgba(34,197,94,0.3)' : '1px solid var(--glass-border)', backgroundColor: pipelineRegSuccess ? 'rgba(34,197,94,0.02)' : 'transparent' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
@@ -2508,8 +2510,8 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                 )}
 
                 {!pipelineRegSuccess ? (
-                  <button 
-                    className="btn-primary" 
+                  <button
+                    className="btn-primary"
                     onClick={handleRegisterPipeline}
                     disabled={isViewer || pipelineRegistering}
                     style={{ padding: '8px 16px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: (isViewer || pipelineRegistering) ? 'not-allowed' : 'pointer' }}
@@ -2525,7 +2527,7 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                 ) : (
                   registeredPipelineUrl && (
                     <a href={registeredPipelineUrl} target="_blank" rel="noreferrer" className="btn-secondary"
-                       style={{ padding: '8px 16px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}>
+                      style={{ padding: '8px 16px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}>
                       {pipelineProvider === 'github_actions' ? 'Open GitHub Actions' : 'Open Build Pipeline'} <ExternalLink size={12} />
                     </a>
                   )
@@ -2558,8 +2560,8 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                 )}
 
                 {!dnsBindSuccess ? (
-                  <button 
-                    className="btn-primary" 
+                  <button
+                    className="btn-primary"
                     onClick={handleDnsBind}
                     disabled={isViewer || dnsBinding}
                     style={{ padding: '8px 16px', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: (isViewer || dnsBinding) ? 'not-allowed' : 'pointer' }}
@@ -2574,7 +2576,7 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
                   </button>
                 ) : (
                   <a href={`https://${newName}.${domainInput}`} target="_blank" rel="noreferrer" className="btn-secondary"
-                     style={{ padding: '8px 16px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}>
+                    style={{ padding: '8px 16px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}>
                     Launch Custom Domain <ExternalLink size={12} />
                   </a>
                 )}
@@ -2584,8 +2586,8 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
 
             {/* SUMMARY SECTION ONCE LAUNCHED */}
             <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="btn-secondary"
                 onClick={() => {
                   // Reset all wizard states
@@ -2606,8 +2608,8 @@ export const ProvisionWizard: React.FC<ProvisionWizardProps> = ({
               >
                 Provision Another App
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="btn-primary"
                 onClick={() => {
                   // Navigate back to scan list
