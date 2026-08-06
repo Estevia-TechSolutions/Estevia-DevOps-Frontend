@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle2, XCircle, Clock, RefreshCw, Terminal, Download, Search, Copy, Check, ExternalLink, Cpu, Layers, Package, Sliders, Lock, Eye, EyeOff, GitBranch, Zap, Globe, FileText, Server, History, ChevronDown, BrickWallShield } from 'lucide-react';
+import { X, CheckCircle2, XCircle, Clock, RefreshCw, Terminal, Download, Search, Copy, Check, ExternalLink, Cpu, Layers, Package, Sliders, Lock, Eye, EyeOff, GitBranch, Zap, Globe, FileText, Server, History, ChevronDown } from 'lucide-react';
+import EvaForgeIcon from '../icons/EvaForgeIcon';
 
 interface PipelineRunDetailsViewProps {
   runId: string | null;
@@ -272,7 +273,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
                   </div>
                 ) : (
                   <span style={{ fontSize: '0.7rem', padding: '3px 8px', borderRadius: '6px', background: 'rgba(139, 92, 246, 0.1)', color: '#c084fc', border: '1px solid rgba(139, 92, 246, 0.2)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <BrickWallShield size={11} /> EvaForge CI/CD
+                    <EvaForgeIcon size={11} /> EvaForge CI/CD
                     <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.5rem', fontWeight: 900, padding: '1px 5px', borderRadius: '3px', background: 'linear-gradient(135deg, rgba(168,85,247,0.3), rgba(139,92,246,0.15))', border: '1px solid rgba(168,85,247,0.4)', color: '#9333ea', letterSpacing: '0.08em', textTransform: 'uppercase' }}>BETA</span>
                   </span>
                 )}

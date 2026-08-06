@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Database, Eye, EyeOff, GitBranch, Settings, Globe, Cloud, AlertTriangle, MessageSquare, Copy, CheckCircle, Loader, RefreshCw, ShieldCheck, CheckCircle2, XCircle, AlertCircle, ArrowRight, Zap, BrickWallShield } from 'lucide-react';
+import { Database, Eye, EyeOff, GitBranch, Settings, Globe, Cloud, AlertTriangle, MessageSquare, Copy, CheckCircle, Loader, RefreshCw, ShieldCheck, CheckCircle2, XCircle, AlertCircle, ArrowRight, Zap } from 'lucide-react';
+import EvaForgeIcon from '../components/icons/EvaForgeIcon';
 import { KeyVaultConfigurator } from '../components/credentials/KeyVaultConfigurator';
 
 interface CredentialsPageProps {
@@ -677,7 +678,7 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                     }}>
                       <div>
                         <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#c084fc', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <BrickWallShield size={15} /> EvaForge Engine License Concurrency Quotas
+                            <EvaForgeIcon size={15} /> EvaForge Engine License Concurrency Quotas
                            <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.52rem', fontWeight: 900, padding: '1px 6px', borderRadius: '4px', background: 'linear-gradient(135deg, rgba(168,85,247,0.35), rgba(139,92,246,0.22))', border: '1px solid rgba(168,85,247,0.55)', color: '#9333ea', letterSpacing: '0.07em', textTransform: 'uppercase', boxShadow: '0 0 8px rgba(168,85,247,0.3)' }}>BETA</span>
                         </div>
                         <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px' }}>

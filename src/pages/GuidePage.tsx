@@ -27,9 +27,9 @@ import {
   Compass,
   AlertTriangle,
   KeyRound,
-  Zap,
-  BrickWallShield
+  Zap
 } from 'lucide-react';
+import EvaForgeIcon from '../components/icons/EvaForgeIcon';
 
 interface GuidePageProps {
   theme?: 'dark' | 'light';
@@ -1987,7 +1987,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                   onClick={() => setGuideSubTab('evaforge-engine-native')}
                   style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px', background: isSubTabActive('evaforge-engine-native') ? 'rgba(168,85,247,0.2)' : undefined, color: isSubTabActive('evaforge-engine-native') ? '#a855f7' : undefined }}
                 >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><BrickWallShield size={12} /> EvaForge Engine (Native)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><EvaForgeIcon size={12} /> EvaForge Engine (Native)</span>
                 </button>
               </div>
               <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
@@ -2142,12 +2142,12 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                   onClick={() => setGuideSubTab('evaforge-engine-native')}
                   style={{ fontSize: '0.8rem', padding: '6px 16px', borderRadius: '6px', background: 'rgba(168,85,247,0.2)', color: '#a855f7' }}
                 >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><BrickWallShield size={12} /> EvaForge Engine (Native)</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><EvaForgeIcon size={12} /> EvaForge Engine (Native)</span>
                 </button>
               </div>
               <div style={{ borderBottom: '1px solid var(--divider)', paddingBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <BrickWallShield size={18} style={{ color: '#a855f7' }} /> EvaForge Engine: Native Autonomous CI/CD Pipeline Automation
+                  <EvaForgeIcon size={18} style={{ color: '#a855f7' }} /> EvaForge Engine: Native Autonomous CI/CD Pipeline Automation
                 </h3>
                 <p style={{ margin: '6px 0 0 0', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>
                   EvaForge is the core native autonomous CI/CD execution subset of EvaOps. It eliminates dedicated build VMs, version-controls workflows in `.evaforge/config.yml`, and deploys live to Azure ARM.
@@ -2157,7 +2157,7 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: '#a855f7', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <BrickWallShield size={16} /> In-Repo Workflow Specification (.evaforge/config.yml)
+                    <EvaForgeIcon size={16} /> In-Repo Workflow Specification (.evaforge/config.yml)
                   </h4>
                   <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
                     EvaForge workflows use standard CircleCI-style YAML syntax stored in `.evaforge/config.yml` at your repository root. Every push to <code>main</code>, <code>qa</code>, or <code>dev</code> automatically triggers ephemeral runner pods that compile code, execute unit tests, and deploy live to Azure.

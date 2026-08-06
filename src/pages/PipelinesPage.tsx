@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Play, RefreshCw, CheckCircle2, XCircle, Clock, Plus, Zap, Cpu, Server, ExternalLink, ArrowRight, Shield, ShieldAlert, Terminal, Filter, Search, Layers, GitBranch, Sparkles, Activity, Globe, Box, Check, CheckCircle, ChevronLeft, ChevronRight, Trash2, BrickWallShield } from 'lucide-react';
+import { Play, RefreshCw, CheckCircle2, XCircle, Clock, Plus, Zap, Cpu, Server, ExternalLink, ArrowRight, Shield, ShieldAlert, Terminal, Filter, Search, Layers, GitBranch, Sparkles, Activity, Globe, Box, Check, CheckCircle, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import EvaForgeIcon from '../components/icons/EvaForgeIcon';
 import { getNormalizedCodebaseName, resolveAppProvider, hasCiCdConflict, getDynamicTargetBranches } from '../utils/codebase';
 
 interface PipelineRun {
@@ -501,7 +502,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
             { id: 'all', label: 'All Pipelines', icon: <Layers size={13} />, tooltip: 'Show all CI/CD pipelines scanned in target scope' },
             { id: 'azure', label: 'Azure DevOps', icon: <Layers size={13} style={{ color: '#3b82f6' }} />, tooltip: 'Filter by active Azure DevOps Pipelines' },
             { id: 'github', label: 'GitHub Actions', icon: <GitBranch size={13} style={{ color: '#22c55e' }} />, tooltip: 'Filter by active GitHub Actions workflows' },
-            { id: 'evaforge', label: 'EvaForge CI/CD', icon: <BrickWallShield size={13} style={{ color: '#a855f7' }} />, tooltip: 'Filter by native custom EvaForge Pipelines (Beta)' },
+            { id: 'evaforge', label: 'EvaForge CI/CD', icon: <EvaForgeIcon size={13} style={{ color: '#a855f7' }} />, tooltip: 'Filter by native custom EvaForge Pipelines (Beta)' },
             { id: 'unconfigured', label: 'Unconfigured', icon: <Globe size={13} />, tooltip: 'Show resources without CI/CD configuration' }
           ].map(tab => (
             <div
@@ -650,7 +651,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                 // ── Provider icon ────────────────────────────────────────
                 const providerIcon = isAzure ? <Layers size={14} style={{ color: accentColor }} />
                   : isGithub ? <GitBranch size={14} style={{ color: accentColor }} />
-                    : isEvaForge ? <BrickWallShield size={14} style={{ color: accentColor }} />
+                    : isEvaForge ? <EvaForgeIcon size={14} style={{ color: accentColor }} />
                       : <Globe size={14} style={{ color: accentColor }} />;
 
                 const providerLabel = isAzure ? 'Azure DevOps'
@@ -772,7 +773,7 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                           <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '0.74rem', fontWeight: 700, color: '#3b82f6' }}>
                             <RefreshCw size={12} className="spin-anim" />
                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              {isEvaForge ? <BrickWallShield size={11} /> : isAzure ? <Layers size={11} /> : <GitBranch size={11} />}
+                              {isEvaForge ? <EvaForgeIcon size={11} /> : isAzure ? <Layers size={11} /> : <GitBranch size={11} />}
                               {isEvaForge ? 'EvaForge' : isAzure ? 'Azure DevOps' : 'GitHub'} Build #{r.run_number} in Progress
                             </span>
                             {isEvaForge && (
