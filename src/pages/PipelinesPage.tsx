@@ -643,6 +643,8 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                   statusPill = { label: '⏳ Queued', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', pulse: true };
                 } else if (rawResult === 'canceled' || rawResult === 'cancelled') {
                   statusPill = { label: '⊘ Canceled', color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', border: 'rgba(148,163,184,0.2)' };
+                } else if (rawResult === 'never_run' || rawStatus === 'never_run') {
+                  statusPill = { label: 'Ø Never Run', color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', border: 'rgba(148,163,184,0.2)' };
                 }
 
                 // ── Provider icon ────────────────────────────────────────
@@ -936,27 +938,34 @@ export const PipelinesPage: React.FC<PipelinesPageProps> = ({
                     }}>
                       {/* Left actions */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <button
-                          type="button"
-                          onClick={() => onOpenRunDetails(r.id, 'main', r.provider)}
-                          title="View Branch History"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            padding: '5px 10px',
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            borderRadius: '6px',
-                            background: isLight ? '#ffffff' : 'rgba(255,255,255,0.06)',
-                            border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)',
-                            color: 'var(--text-primary)',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          <Terminal size={12} /> History
-                        </button>
+                        {(() => {
+                          const hasNeverRun = !r.run_number || r.run_number <= 0 || String(r.id).startsWith('unconfigured-') || String(r.status).toLowerCase() === 'never_run';
+                          return (
+                            <button
+                              type="button"
+                              disabled={hasNeverRun}
+                              onClick={() => onOpenRunDetails(r.id, 'main', r.provider)}
+                              title={hasNeverRun ? "No history runs available yet" : "View Branch History"}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                padding: '5px 10px',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                borderRadius: '6px',
+                                background: isLight ? '#ffffff' : 'rgba(255,255,255,0.06)',
+                                border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)',
+                                color: 'var(--text-primary)',
+                                cursor: hasNeverRun ? 'not-allowed' : 'pointer',
+                                opacity: hasNeverRun ? 0.4 : 1,
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <Terminal size={12} /> History
+                            </button>
+                          );
+                        })()}
 
                         {isAzure && (
                           <a
