@@ -24,7 +24,8 @@ import {
   Server,
   Layers,
   CreditCard,
-  Network
+  Network,
+  Hammer
 } from 'lucide-react';
 import { isFixable, applyAutoFix } from '../utils/autoFixEngine';
 import { DiffViewer } from '../components/DiffViewer';
@@ -822,19 +823,19 @@ const Step1Content: React.FC<Step1ContentProps> = ({
                     className={pipelineProvider === 'evaops_native' ? 'btn-primary' : 'btn-secondary'}
                     onClick={() => setPipelineProvider('evaops_native')}
                     style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                    ⚡ EvaForge CI/CD <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.5rem', fontWeight: 900, padding: '1px 6px', borderRadius: '4px', background: pipelineProvider === 'evaops_native' ? 'rgba(255,255,255,0.22)' : 'rgba(168,85,247,0.18)', border: pipelineProvider === 'evaops_native' ? '1px solid rgba(255,255,255,0.55)' : '1px solid rgba(168,85,247,0.5)', color: pipelineProvider === 'evaops_native' ? '#ffffff' : '#9333ea', letterSpacing: '0.08em', textTransform: 'uppercase', boxShadow: '0 0 6px rgba(168,85,247,0.3)' }}>BETA</span>
+                    <Hammer size={14} /> EvaForge CI/CD <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.5rem', fontWeight: 900, padding: '1px 6px', borderRadius: '4px', background: pipelineProvider === 'evaops_native' ? 'rgba(255,255,255,0.22)' : 'rgba(168,85,247,0.18)', border: pipelineProvider === 'evaops_native' ? '1px solid rgba(255,255,255,0.55)' : '1px solid rgba(168,85,247,0.5)', color: pipelineProvider === 'evaops_native' ? '#ffffff' : '#9333ea', letterSpacing: '0.08em', textTransform: 'uppercase', boxShadow: '0 0 6px rgba(168,85,247,0.3)' }}>BETA</span>
                   </button>
                   <button type="button"
                     className={pipelineProvider === 'azure_devops' ? 'btn-primary' : 'btn-secondary'}
                     onClick={() => setPipelineProvider('azure_devops')}
-                    style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600 }}>
-                    Azure DevOps
+                    style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    <Layers size={14} /> Azure DevOps
                   </button>
                   <button type="button"
                     className={pipelineProvider === 'github_actions' ? 'btn-primary' : 'btn-secondary'}
                     onClick={() => setPipelineProvider('github_actions')}
-                    style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600 }}>
-                    GitHub Actions
+                    style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                    <GitBranch size={14} /> GitHub Actions
                   </button>
                 </div>
               </div>

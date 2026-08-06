@@ -41,7 +41,8 @@ import {
   XCircle,
   ShieldAlert,
   Layers,
-  Zap
+  Zap,
+  Hammer
 } from 'lucide-react';
 import { resolveBranchName, hasEnvSegment, branchToEnv } from '../App';
 import { resolveAppProvider, hasCiCdConflict } from '../utils/codebase';
@@ -3576,7 +3577,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                                                   if (prov === 'evaops_native') {
                                                     return (
                                                       <span style={{ fontSize: '0.62rem', padding: '2px 7px', borderRadius: '4px', background: 'linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(236,72,153,0.15) 100%)', color: '#c084fc', border: '1px solid rgba(192,132,252,0.4)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                                        <Zap size={10} /> ⚡ EvaForge
+                                                        <Hammer size={10} /> EvaForge
                                                         <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.5rem', fontWeight: 900, padding: '1px 5px', borderRadius: '3px', background: 'linear-gradient(135deg, rgba(168,85,247,0.4), rgba(139,92,246,0.25))', border: '1px solid rgba(168,85,247,0.6)', color: '#9333ea', letterSpacing: '0.08em', textTransform: 'uppercase' }}>BETA</span>
                                                       </span>
                                                     );

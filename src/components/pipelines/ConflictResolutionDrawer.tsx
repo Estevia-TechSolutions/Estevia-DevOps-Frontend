@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, AlertTriangle, ShieldAlert, CheckCircle2, ExternalLink, Zap, Trash2, ArrowRight } from 'lucide-react';
+import { X, AlertTriangle, ShieldAlert, CheckCircle2, ExternalLink, Zap, Trash2, ArrowRight, Hammer, Layers, GitBranch } from 'lucide-react';
 
 interface PipelineConflictItem {
   id: string;
@@ -150,8 +150,12 @@ export const ConflictResolutionDrawer: React.FC<ConflictResolutionDrawerProps> =
                     color: isEvaForge ? '#a855f7' : isAzure ? '#3b82f6' : '#10b981'
                   }}>
                     {isEvaForge ? (
-                      <>EvaForge Native (Suggested Primary) <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.5rem', fontWeight: 900, padding: '1px 5px', borderRadius: '3px', background: 'linear-gradient(135deg, rgba(168,85,247,0.4), rgba(139,92,246,0.25))', border: '1px solid rgba(168,85,247,0.6)', color: '#9333ea', letterSpacing: '0.08em', textTransform: 'uppercase' }}>BETA</span></>
-                    ) : isAzure ? 'Azure DevOps' : 'GitHub Actions'}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Hammer size={12} /> EvaForge Native (Suggested Primary) <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.5rem', fontWeight: 900, padding: '1px 5px', borderRadius: '3px', background: 'linear-gradient(135deg, rgba(168,85,247,0.4), rgba(139,92,246,0.25))', border: '1px solid rgba(168,85,247,0.6)', color: '#9333ea', letterSpacing: '0.08em', textTransform: 'uppercase' }}>BETA</span></span>
+                    ) : isAzure ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Layers size={12} /> Azure DevOps</span>
+                    ) : (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><GitBranch size={12} /> GitHub Actions</span>
+                    )}
                   </span>
                 </div>
 

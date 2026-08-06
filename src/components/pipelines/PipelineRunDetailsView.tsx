@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle2, XCircle, Clock, RefreshCw, Terminal, Download, Search, Copy, Check, ExternalLink, Cpu, Layers, Package, Sliders, Lock, Eye, EyeOff, GitBranch, Zap, Globe, FileText, Server, History, ChevronDown } from 'lucide-react';
+import { X, CheckCircle2, XCircle, Clock, RefreshCw, Terminal, Download, Search, Copy, Check, ExternalLink, Cpu, Layers, Package, Sliders, Lock, Eye, EyeOff, GitBranch, Zap, Globe, FileText, Server, History, ChevronDown, Hammer } from 'lucide-react';
 
 interface PipelineRunDetailsViewProps {
   runId: string | null;
@@ -95,8 +95,8 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
   const buildNumber = runDetails?.run_number
     ? `#${runDetails.run_number}`
     : selectedHistoricalRun?.run_number
-    ? `#${selectedHistoricalRun.run_number}`
-    : '#--';
+      ? `#${selectedHistoricalRun.run_number}`
+      : '#--';
   const provider = (runDetails?.provider || initialProvider || 'azure_devops').toLowerCase();
   const cnameHost = runDetails?.cname_host || `${projectName.toLowerCase()}.esteviatech.com`;
   const resourceGroup = runDetails?.resource_group || 'Estevia-Prod-RG';
@@ -133,7 +133,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
   const allJobs = runDetails?.stages?.flatMap((s: any) => s.jobs || []) || [];
   const activeJob = allJobs.find((j: any) => j.id === selectedJobId) || allJobs[0];
 
-  const fullLogsString = activeJob?.steps?.map((step: any) => `=== Step: ${step.step_name} ===\n${step.log_output}`).join('\n\n') || 
+  const fullLogsString = activeJob?.steps?.map((step: any) => `=== Step: ${step.step_name} ===\n${step.log_output}`).join('\n\n') ||
     `[INFO] Initializing Cloud Credentials for ${projectName} on branch ${activeBranch}...\n[INFO] Target Environment Scope: ${resourceGroup} (${cnameHost})\n[SUCCESS] Pipeline execution active.`;
 
   const copyLogsToClipboard = () => {
@@ -179,10 +179,10 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
           justifyContent: 'space-between'
         }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-            <div style={{ 
-              padding: '12px', 
-              borderRadius: '14px', 
-              background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.05))', 
+            <div style={{
+              padding: '12px',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.05))',
               color: 'var(--accent-purple)',
               border: '1px solid rgba(139, 92, 246, 0.25)',
               display: 'flex',
@@ -197,10 +197,10 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
                 <h2 style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
                   {projectName}
                 </h2>
-                <span style={{ 
-                  fontSize: '0.9rem', 
-                  fontWeight: 800, 
-                  color: 'var(--accent-purple)', 
+                <span style={{
+                  fontSize: '0.9rem',
+                  fontWeight: 800,
+                  color: 'var(--accent-purple)',
                   fontFamily: 'monospace',
                   background: 'rgba(139, 92, 246, 0.1)',
                   padding: '2px 8px',
@@ -272,7 +272,7 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
                   </div>
                 ) : (
                   <span style={{ fontSize: '0.7rem', padding: '3px 8px', borderRadius: '6px', background: 'rgba(139, 92, 246, 0.1)', color: '#c084fc', border: '1px solid rgba(139, 92, 246, 0.2)', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <Zap size={11} /> ⚡ EvaForge CI/CD
+                    <Hammer size={11} /> EvaForge CI/CD
                     <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.5rem', fontWeight: 900, padding: '1px 5px', borderRadius: '3px', background: 'linear-gradient(135deg, rgba(168,85,247,0.3), rgba(139,92,246,0.15))', border: '1px solid rgba(168,85,247,0.4)', color: '#9333ea', letterSpacing: '0.08em', textTransform: 'uppercase' }}>BETA</span>
                   </span>
                 )}
