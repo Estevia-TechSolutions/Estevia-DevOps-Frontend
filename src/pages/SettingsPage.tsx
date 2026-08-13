@@ -738,7 +738,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#fef3c7' }}>✦ Golden Access Active</span>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>✦ Golden Access Active</span>
                     <span style={{
                       fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.06em',
                       background: 'rgba(234,179,8,0.2)', color: '#eab308',
@@ -746,7 +746,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       padding: '1px 6px', textTransform: 'uppercase'
                     }}>SYSTEM OVERRIDE</span>
                   </div>
-                  <p style={{ margin: 0, fontSize: '0.78rem', color: '#d4a017', lineHeight: 1.5 }}>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                     Your organization has unrestricted access to all EvaOps features regardless of invoice status. 
                     This status has been granted by Estevia administration.
                   </p>

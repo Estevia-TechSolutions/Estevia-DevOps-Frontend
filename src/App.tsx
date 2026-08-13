@@ -7556,7 +7556,7 @@ function App() {
                 {/* ── BILLING BANNERS ── */}
 
                 {/* GOLDEN OVERRIDE — invoice overdue but access preserved */}
-                {isGoldenAccess && (isOrgGrace || isOrgRestricted) && (
+                {isGoldenAccess && (isOrgGrace || isOrgRestricted || isOrgDisabled) && (
                   <div style={{
                     margin: '8px 0 12px 0',
                     borderRadius: '10px',
@@ -7579,7 +7579,7 @@ function App() {
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-                          <span style={{ fontSize: '0.83rem', fontWeight: 700, color: '#fef3c7' }}>Golden Access Active</span>
+                          <span style={{ fontSize: '0.83rem', fontWeight: 700, color: 'var(--text-primary)' }}>✦ Golden Access Active</span>
                           <span style={{
                             fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.06em',
                             background: 'rgba(234,179,8,0.2)', color: '#eab308',
@@ -7587,8 +7587,8 @@ function App() {
                             padding: '1px 6px', textTransform: 'uppercase'
                           }}>OVERRIDE ON</span>
                         </div>
-                        <p style={{ margin: 0, fontSize: '0.76rem', color: '#d4a017', lineHeight: 1.5 }}>
-                          Invoice overdue by <strong style={{ color: '#fef3c7' }}>{maxOverdueDays} days</strong> — all features remain unrestricted.
+                        <p style={{ margin: 0, fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                          Invoice overdue by <strong style={{ color: 'var(--text-primary)' }}>{maxOverdueDays} days</strong> — all features remain unrestricted.
                           Billing restrictions are overridden by your Golden Access privilege.
                         </p>
                       </div>
@@ -7597,7 +7597,7 @@ function App() {
                 )}
 
                 {/* SUSPENDED — 45+ days */}
-                {isOrgDisabled && (
+                {isOrgDisabled && !isGoldenAccess && (
                   <div style={{
                     margin: '8px 0 12px 0',
                     borderRadius: '10px',
