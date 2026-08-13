@@ -42,7 +42,11 @@ import {
   Cloud,
   Mail,
   Smartphone,
-  Zap
+  Zap,
+  ShieldAlert,
+  XCircle,
+  Clock,
+  Star
 } from 'lucide-react';
 import './App.css';
 
@@ -1982,6 +1986,7 @@ function App() {
   const [isOrgDisabled, setIsOrgDisabled] = useState(false);
   const [isOrgRestricted, setIsOrgRestricted] = useState(false);
   const [isOrgGrace, setIsOrgGrace] = useState(false);
+  const [isGoldenAccess, setIsGoldenAccess] = useState(false);
   const [maxOverdueDays, setMaxOverdueDays] = useState(0);
   const [billingBannerExpanded, setBillingBannerExpanded] = useState(false);
   const [billingCurrency, setBillingCurrency] = useState('USD');
@@ -2012,6 +2017,9 @@ function App() {
         }
         if (statusData.isOrgGrace !== undefined) {
           setIsOrgGrace(statusData.isOrgGrace);
+        }
+        if (statusData.isGoldenAccess !== undefined) {
+          setIsGoldenAccess(statusData.isGoldenAccess);
         }
         if (statusData.maxOverdueDays !== undefined) {
           setMaxOverdueDays(statusData.maxOverdueDays);
@@ -7545,112 +7553,185 @@ function App() {
 
                 <div style={{ height: '1px', background: 'var(--divider)', margin: '0' }} />
 
-                {/* ── Restriction Banners (Grace, Restricted, Suspended) ── */}
-                {isOrgDisabled && (
+                {/* ── BILLING BANNERS ── */}
+
+                {/* GOLDEN OVERRIDE — invoice overdue but access preserved */}
+                {isGoldenAccess && (isOrgGrace || isOrgRestricted) && (
                   <div style={{
                     margin: '8px 0 12px 0',
-                    padding: '12px 16px',
                     borderRadius: '10px',
-                    background: 'linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(245,158,11,0.08) 100%)',
-                    border: '1px solid rgba(239,68,68,0.3)',
-                    boxShadow: '0 0 20px rgba(239,68,68,0.06), inset 0 0 20px rgba(239,68,68,0.03)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
+                    background: 'linear-gradient(135deg, rgba(234,179,8,0.15) 0%, rgba(161,138,0,0.08) 100%)',
+                    border: '1px solid rgba(234,179,8,0.4)',
+                    borderLeft: '3px solid #eab308',
+                    boxShadow: '0 0 24px rgba(234,179,8,0.12), inset 0 0 24px rgba(234,179,8,0.04)',
+                    overflow: 'hidden',
                     animation: 'fade-in-anim 0.3s ease-out'
                   }}>
-                    <AlertTriangle size={20} style={{ color: '#f87171', flexShrink: 0 }} />
-                    <div style={{ fontSize: '0.84rem', color: '#fca5a5', lineHeight: 1.5 }}>
-                      <strong style={{ color: '#f87171' }}>Account Suspended:</strong> Access is limited to Billing &amp; Licensing due to outstanding invoices overdue by more than 45 days. Please clear your balance in <strong>Licensing</strong> to restore full service.
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '11px 14px' }}>
+                      <div style={{
+                        width: 28, height: 28, borderRadius: '50%', flexShrink: 0, marginTop: 1,
+                        background: 'linear-gradient(135deg, rgba(234,179,8,0.3), rgba(234,179,8,0.1))',
+                        border: '1px solid rgba(234,179,8,0.4)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 0 10px rgba(234,179,8,0.25)'
+                      }}>
+                        <Star size={13} style={{ color: '#eab308' }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                          <span style={{ fontSize: '0.83rem', fontWeight: 700, color: '#fef3c7' }}>Golden Access Active</span>
+                          <span style={{
+                            fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.06em',
+                            background: 'rgba(234,179,8,0.2)', color: '#eab308',
+                            border: '1px solid rgba(234,179,8,0.35)', borderRadius: '4px',
+                            padding: '1px 6px', textTransform: 'uppercase'
+                          }}>OVERRIDE ON</span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.76rem', color: '#d4a017', lineHeight: 1.5 }}>
+                          Invoice overdue by <strong style={{ color: '#fef3c7' }}>{maxOverdueDays} days</strong> — all features remain unrestricted.
+                          Billing restrictions are overridden by your Golden Access privilege.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}
 
-                {isOrgRestricted && (
+                {/* SUSPENDED — 45+ days */}
+                {isOrgDisabled && (
                   <div style={{
                     margin: '8px 0 12px 0',
                     borderRadius: '10px',
-                    background: 'linear-gradient(135deg, rgba(245,158,11,0.1) 0%, rgba(239,68,68,0.06) 100%)',
-                    border: '1px solid rgba(245,158,11,0.35)',
-                    boxShadow: '0 0 20px rgba(245,158,11,0.08)',
+                    background: 'linear-gradient(135deg, rgba(239,68,68,0.14) 0%, rgba(185,28,28,0.06) 100%)',
+                    border: '1px solid rgba(239,68,68,0.3)',
+                    borderLeft: '3px solid #ef4444',
+                    boxShadow: '0 0 24px rgba(239,68,68,0.08)',
                     overflow: 'hidden',
                     animation: 'fade-in-anim 0.3s ease-out'
                   }}>
-                    {/* Accordion header — always visible */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '11px 14px' }}>
+                      <div style={{
+                        width: 28, height: 28, borderRadius: '50%', flexShrink: 0, marginTop: 1,
+                        background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}>
+                        <XCircle size={14} style={{ color: '#f87171' }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.83rem', fontWeight: 700, color: '#fecaca', marginBottom: '3px' }}>
+                          Account Suspended
+                          <span style={{ fontWeight: 400, color: '#fca5a5', marginLeft: 6 }}>· {maxOverdueDays} days overdue</span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.76rem', color: '#f87171', lineHeight: 1.5 }}>
+                          Full access is blocked. Only <strong style={{ color: '#fecaca' }}>Billing &amp; Licensing</strong> is available. Settle your invoices to restore service.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* RESTRICTED — 31–45 days, accordion */}
+                {isOrgRestricted && !isGoldenAccess && (
+                  <div style={{
+                    margin: '8px 0 12px 0',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, rgba(249,115,22,0.13) 0%, rgba(234,88,12,0.05) 100%)',
+                    border: '1px solid rgba(249,115,22,0.3)',
+                    borderLeft: '3px solid #f97316',
+                    boxShadow: '0 0 20px rgba(249,115,22,0.08)',
+                    overflow: 'hidden',
+                    animation: 'fade-in-anim 0.3s ease-out'
+                  }}>
                     <button
                       type="button"
                       onClick={() => setBillingBannerExpanded(p => !p)}
                       style={{
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        padding: '10px 14px',
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        textAlign: 'left',
+                        width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
+                        padding: '11px 14px', background: 'transparent', border: 'none',
+                        cursor: 'pointer', textAlign: 'left',
                       }}
                     >
-                      <AlertTriangle size={16} style={{ color: '#f59e0b', flexShrink: 0 }} />
-                      <span style={{ flex: 1, fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                        <span style={{ color: '#f59e0b' }}>Write Operations Restricted</span>
-                        {' — invoice overdue by '}
-                        <strong>{maxOverdueDays} days</strong>
-                      </span>
+                      <div style={{
+                        width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                        background: 'rgba(249,115,22,0.15)', border: '1px solid rgba(249,115,22,0.3)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}>
+                        <ShieldAlert size={13} style={{ color: '#fb923c' }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.83rem', fontWeight: 700, color: '#fed7aa' }}>
+                          Write Operations Restricted
+                          <span style={{ fontWeight: 400, color: '#fdba74', marginLeft: 6 }}>· {maxOverdueDays} days overdue</span>
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#fb923c', marginTop: '1px' }}>Tap to see what's affected</div>
+                      </div>
                       <span style={{
-                        color: '#f59e0b',
-                        fontSize: '0.7rem',
+                        color: '#fb923c', fontSize: '0.68rem',
                         transform: billingBannerExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
-                        transition: 'transform 0.2s ease',
-                        display: 'inline-block'
+                        transition: 'transform 0.2s ease', display: 'inline-block', flexShrink: 0
                       }}>&#9660;</span>
                     </button>
 
-                    {/* Accordion body — feature list */}
                     {billingBannerExpanded && (
                       <div style={{
-                        padding: '2px 14px 12px 40px',
-                        borderTop: '1px solid rgba(245,158,11,0.2)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '5px',
+                        padding: '0 14px 12px 52px',
+                        borderTop: '1px solid rgba(249,115,22,0.18)',
                       }}>
-                        <p style={{ margin: '8px 0 6px', fontSize: '0.76rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>The following features are blocked:</p>
-                        {[
-                          { icon: '🔗', text: 'Saving & testing credentials (GitHub, Azure DevOps, Azure, GoDaddy)' },
-                          { icon: '🗄️', text: 'Execute Query, Deploy Database, Schema & Data Migrations (DbHub)' },
-                          { icon: '🚀', text: 'App provisioning, re-deploys, pipeline creation, app start/stop/restart' },
-                          { icon: '🛡️', text: 'Cost remediations, compliance fixes, DNS swaps, environment cloning' },
-                          { icon: '⚙️', text: 'Org settings, team roles, Key Vault mappings, scheduler rules, Dockerfile edits' },
-                        ].map((item, i) => (
-                          <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                            <span style={{ fontSize: '0.78rem', flexShrink: 0 }}>{item.icon}</span>
-                            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{item.text}</span>
-                          </div>
-                        ))}
-                        <p style={{ margin: '6px 0 0', fontSize: '0.74rem', color: '#64748b' }}>Full account suspension begins after 45 days overdue. Settle your balance in <strong>Licensing</strong>.</p>
+                        <p style={{ margin: '8px 0 7px', fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Blocked features</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                          {[
+                            { label: 'Credentials', detail: 'Saving & testing GitHub, Azure DevOps, Azure, GoDaddy' },
+                            { label: 'DbHub', detail: 'Execute Query, Deploy DB, Schema & Data Migrations' },
+                            { label: 'Deployments', detail: 'App provisioning, re-deploys, pipeline creation, start/stop' },
+                            { label: 'Remediations', detail: 'Cost & compliance fixes, DNS swaps, environment cloning' },
+                            { label: 'Admin', detail: 'Org settings, Key Vault, team roles, scheduler, Dockerfile' },
+                          ].map((item, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                              <span style={{
+                                flexShrink: 0, fontSize: '0.65rem', fontWeight: 700,
+                                background: 'rgba(249,115,22,0.15)', color: '#fb923c',
+                                border: '1px solid rgba(249,115,22,0.25)', borderRadius: '4px',
+                                padding: '1px 6px', marginTop: '1px', minWidth: 74, textAlign: 'center'
+                              }}>{item.label}</span>
+                              <span style={{ fontSize: '0.74rem', color: '#e2e8f0', lineHeight: 1.5 }}>{item.detail}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <p style={{ margin: '8px 0 0', fontSize: '0.71rem', color: '#64748b', lineHeight: 1.4 }}>
+                          Suspension triggers after 45 days. Settle your balance in <strong style={{ color: '#94a3b8' }}>Licensing</strong>.
+                        </p>
                       </div>
                     )}
                   </div>
                 )}
 
-                {isOrgGrace && (
+                {/* GRACE — 1–30 days */}
+                {isOrgGrace && !isOrgRestricted && !isGoldenAccess && (
                   <div style={{
                     margin: '8px 0 12px 0',
-                    padding: '12px 16px',
                     borderRadius: '10px',
-                    background: 'linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(245,158,11,0.04) 100%)',
-                    border: '1px solid rgba(245,158,11,0.3)',
-                    boxShadow: '0 0 20px rgba(245,158,11,0.06), inset 0 0 20px rgba(245,158,11,0.03)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
+                    background: 'linear-gradient(135deg, rgba(245,158,11,0.11) 0%, rgba(217,119,6,0.04) 100%)',
+                    border: '1px solid rgba(245,158,11,0.28)',
+                    borderLeft: '3px solid #f59e0b',
+                    boxShadow: '0 0 18px rgba(245,158,11,0.07)',
                     animation: 'fade-in-anim 0.3s ease-out'
                   }}>
-                    <Info size={20} style={{ color: '#f59e0b', flexShrink: 0 }} />
-                    <div style={{ fontSize: '0.84rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
-                      <strong style={{ color: '#f59e0b' }}>Billing Grace Period:</strong> You have an unpaid invoice overdue by <strong>{maxOverdueDays} days</strong>. Access is currently active, but write operations will be restricted after 30 days. Please clear your balance in <strong>Licensing</strong>.
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '11px 14px' }}>
+                      <div style={{
+                        width: 28, height: 28, borderRadius: '50%', flexShrink: 0, marginTop: 1,
+                        background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}>
+                        <Clock size={13} style={{ color: '#fbbf24' }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.83rem', fontWeight: 700, color: '#fef3c7', marginBottom: '3px' }}>
+                          Grace Period
+                          <span style={{ fontWeight: 400, color: '#fde68a', marginLeft: 6 }}>· {maxOverdueDays} of 30 days</span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.76rem', color: '#fbbf24', lineHeight: 1.5 }}>
+                          All features active. Write restrictions begin after <strong style={{ color: '#fef3c7' }}>{30 - maxOverdueDays} more days</strong>. Settle your balance in <strong style={{ color: '#fef3c7' }}>Licensing</strong>.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -8727,6 +8808,7 @@ function App() {
                   isOrgRestricted={isOrgRestricted}
                   isOrgDisabled={isOrgDisabled}
                   maxOverdueDays={maxOverdueDays}
+                  isGoldenAccess={isGoldenAccess}
                 />
               )}
 
@@ -8840,6 +8922,7 @@ function App() {
                     isOrgRestricted={isOrgRestricted}
                     isOrgDisabled={isOrgDisabled}
                     maxOverdueDays={maxOverdueDays}
+                    isGoldenAccess={isGoldenAccess}
                   />
                 </div>
               )}
@@ -8927,6 +9010,7 @@ function App() {
                   setSubPackageObservability={setSubPackageObservability}
                   invoices={invoices}
                   onPayInvoice={handlePayInvoice}
+                  isGoldenAccess={isGoldenAccess}
                 />
               )}
 

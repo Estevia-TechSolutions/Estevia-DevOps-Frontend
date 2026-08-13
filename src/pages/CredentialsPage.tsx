@@ -109,6 +109,7 @@ interface CredentialsPageProps {
   isOrgRestricted?: boolean;
   isOrgDisabled?: boolean;
   maxOverdueDays?: number;
+  isGoldenAccess?: boolean;
 }
 
 type CredTab = 'summary' | 'github' | 'godaddy' | 'azure' | 'keyvault' | 'teams';
@@ -255,12 +256,13 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
   decryptedAzureClientId, decryptedAzureClientSecret, decryptedAzureTenantId,
   showToast, handleDiscoverAzureEnvCredentials,
   isOrgRestricted = false, isOrgDisabled = false, maxOverdueDays = 0,
+  isGoldenAccess = false,
 }) => {
   const [activeTab, setActiveTab] = useState<CredTab>('summary');
   const [azureSubTab, setAzureSubTab] = useState<'auth' | 'scope' | 'pipelines'>('auth');
   const [discoveringWorkspace, setDiscoveringWorkspace] = useState(false);
   const [runningAll, setRunningAll] = useState(false);
-  const billingBlocked = isOrgRestricted || isOrgDisabled;
+  const billingBlocked = (isOrgRestricted || isOrgDisabled) && !isGoldenAccess;
   const billingTip = billingBlocked ? `Blocked: invoice overdue ${maxOverdueDays} day${maxOverdueDays !== 1 ? 's' : ''}` : undefined;
 
   const [githubExpiresAt, setGithubExpiresAt] = useState('');

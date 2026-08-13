@@ -1,7 +1,7 @@
 import React from 'react';
 import { redirectToEvaPayCheckout } from '../services/evaPayService';
 import { EvaPayModal } from '../components/shared/EvaPayModal';
-import { Crown, ShieldAlert, AlertTriangle, Check, ShieldCheck, Zap, CreditCard, ChevronDown, ChevronUp, AlertCircle, ArrowRight, Info, TrendingUp, CheckCircle2, Copy, X, Printer, Mail } from 'lucide-react';
+import { Crown, ShieldAlert, AlertTriangle, Check, ShieldCheck, Zap, CreditCard, ChevronDown, ChevronUp, AlertCircle, ArrowRight, Info, TrendingUp, CheckCircle2, Copy, X, Printer, Mail, Star } from 'lucide-react';
 
 interface SettingsPageProps {
   azureSubscriptionId: string;
@@ -60,6 +60,7 @@ interface SettingsPageProps {
   setSubPackageSecurity?: (val: boolean) => void;
   subPackageObservability?: boolean;
   setSubPackageObservability?: (val: boolean) => void;
+  isGoldenAccess?: boolean;
 }
 
 // ── Primary color family aligned with app design tokens ──────────────────────
@@ -107,6 +108,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   setSubPackageSecurity,
   subPackageObservability = false,
   setSubPackageObservability,
+  isGoldenAccess = false,
 }) => {
   const isOwnerOrAdmin = userRole === 'owner' || userRole === 'admin';
 
@@ -711,6 +713,46 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
           {activeSubTab === 'licensing' && (
             <form onSubmit={handleSaveSettings}>
+
+            {isGoldenAccess && (
+              <div style={{
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, rgba(234,179,8,0.12) 0%, rgba(161,138,0,0.06) 100%)',
+                border: '1px solid rgba(234,179,8,0.3)',
+                borderLeft: '4px solid #eab308',
+                padding: '16px',
+                marginBottom: '20px',
+                boxShadow: '0 4px 20px rgba(234,179,8,0.08)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '12px'
+              }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                  background: 'linear-gradient(135deg, rgba(234,179,8,0.25), rgba(234,179,8,0.05))',
+                  border: '1px solid rgba(234,179,8,0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 0 10px rgba(234,179,8,0.2)'
+                }}>
+                  <Star size={15} style={{ color: '#eab308' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#fef3c7' }}>✦ Golden Access Active</span>
+                    <span style={{
+                      fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.06em',
+                      background: 'rgba(234,179,8,0.2)', color: '#eab308',
+                      border: '1px solid rgba(234,179,8,0.35)', borderRadius: '4px',
+                      padding: '1px 6px', textTransform: 'uppercase'
+                    }}>SYSTEM OVERRIDE</span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: '#d4a017', lineHeight: 1.5 }}>
+                    Your organization has unrestricted access to all EvaOps features regardless of invoice status. 
+                    This status has been granted by Estevia administration.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* ── TIER SELECTION CARDS (Accordion) ── */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '20px' }}>

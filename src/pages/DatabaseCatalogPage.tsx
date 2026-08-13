@@ -79,6 +79,7 @@ interface DatabaseCatalogPageProps {
   isOrgRestricted?: boolean;
   isOrgDisabled?: boolean;
   maxOverdueDays?: number;
+  isGoldenAccess?: boolean;
 
   // Handlers
   handleDeployDb: (e: React.FormEvent) => void;
@@ -162,6 +163,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
   isOrgRestricted = false,
   isOrgDisabled = false,
   maxOverdueDays = 0,
+  isGoldenAccess = false,
 }) => {
   const scopeFilteredDbServers = dbServers.filter(srv => {
     if (!selectedControlResourceGroup) return true;
@@ -177,7 +179,7 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
   const isViewer = currentUser?.role === 'viewer';
   const isLight = theme === 'light';
   // Billing block shadows subscription-inactive so all 30+ disabled checks cover both
-  const billingBlocked = isOrgRestricted || isOrgDisabled;
+  const billingBlocked = (isOrgRestricted || isOrgDisabled) && !isGoldenAccess;
   const isSubscriptionInactive = isSubscriptionInactiveProp || billingBlocked;
   const billingBlockMsg = billingBlocked
     ? `Blocked: invoice overdue ${maxOverdueDays} day${maxOverdueDays !== 1 ? 's' : ''}`
