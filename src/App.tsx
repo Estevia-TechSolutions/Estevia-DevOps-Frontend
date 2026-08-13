@@ -1989,6 +1989,7 @@ function App() {
   const [isGoldenAccess, setIsGoldenAccess] = useState(false);
   const [maxOverdueDays, setMaxOverdueDays] = useState(0);
   const [billingBannerExpanded, setBillingBannerExpanded] = useState(false);
+  const [goldenBannerExpanded, setGoldenBannerExpanded] = useState(false);
   const [billingCurrency, setBillingCurrency] = useState('USD');
   const [subPackageDevops, setSubPackageDevops] = useState(false);
   const [subPackageDeveloper, setSubPackageDeveloper] = useState(false);
@@ -7567,9 +7568,17 @@ function App() {
                     overflow: 'hidden',
                     animation: 'fade-in-anim 0.3s ease-out'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '11px 14px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setGoldenBannerExpanded(p => !p)}
+                      style={{
+                        width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
+                        padding: '11px 14px', background: 'transparent', border: 'none',
+                        cursor: 'pointer', textAlign: 'left',
+                      }}
+                    >
                       <div style={{
-                        width: 28, height: 28, borderRadius: '50%', flexShrink: 0, marginTop: 1,
+                        width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
                         background: 'linear-gradient(135deg, rgba(234,179,8,0.3), rgba(234,179,8,0.1))',
                         border: '1px solid rgba(234,179,8,0.4)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -7578,7 +7587,7 @@ function App() {
                         <Star size={13} style={{ color: '#eab308' }} />
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span style={{ fontSize: '0.83rem', fontWeight: 700, color: 'var(--text-primary)' }}>✦ Golden Access Active</span>
                           <span style={{
                             fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.06em',
@@ -7587,12 +7596,49 @@ function App() {
                             padding: '1px 6px', textTransform: 'uppercase'
                           }}>OVERRIDE ON</span>
                         </div>
-                        <p style={{ margin: 0, fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                          Invoice overdue by <strong style={{ color: 'var(--text-primary)' }}>{maxOverdueDays} days</strong> — all features remain unrestricted.
-                          Billing restrictions are overridden by your Golden Access privilege.
+                        <div style={{ fontSize: '0.72rem', color: '#eab308', marginTop: '1px' }}>
+                          Invoice overdue by <strong>{maxOverdueDays} days</strong>. Tap to view bypassed restrictions.
+                        </div>
+                      </div>
+                      <span style={{
+                        color: '#eab308', fontSize: '0.68rem',
+                        transform: goldenBannerExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                        transition: 'transform 0.2s ease', display: 'inline-block', flexShrink: 0
+                      }}>&#9660;</span>
+                    </button>
+
+                    {goldenBannerExpanded && (
+                      <div style={{
+                        padding: '0 14px 12px 52px',
+                        borderTop: '1px solid rgba(234,179,8,0.25)',
+                      }}>
+                        <p style={{ margin: '8px 0 7px', fontSize: '0.7rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          Normally Blocked Features (Overridden):
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                          {[
+                            { label: 'Credentials', detail: 'Saving & testing GitHub, Azure DevOps, Azure, GoDaddy' },
+                            { label: 'DbHub', detail: 'Execute Query, Deploy DB, Schema & Data Migrations' },
+                            { label: 'Deployments', detail: 'App provisioning, re-deploys, pipeline creation, start/stop' },
+                            { label: 'Remediations', detail: 'Cost & compliance fixes, DNS swaps, environment cloning' },
+                            { label: 'Admin', detail: 'Org settings, Key Vault, team roles, scheduler, Dockerfile' },
+                          ].map((item, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                              <span style={{
+                                flexShrink: 0, fontSize: '0.65rem', fontWeight: 700,
+                                background: 'rgba(234,179,8,0.15)', color: '#fbbf24',
+                                border: '1px solid rgba(234,179,8,0.25)', borderRadius: '4px',
+                                padding: '1px 6px', marginTop: '1px', minWidth: 74, textAlign: 'center'
+                              }}>{item.label}</span>
+                              <span style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{item.detail}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <p style={{ margin: '8px 0 0', fontSize: '0.71rem', color: '#64748b', lineHeight: 1.4 }}>
+                          Without Golden Access, all write features would be restricted due to unpaid invoices.
                         </p>
                       </div>
-                    </div>
+                    )}
                   </div>
                 )}
 
