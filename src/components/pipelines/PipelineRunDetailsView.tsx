@@ -34,6 +34,8 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
   const [copiedLog, setCopiedLog] = useState<boolean>(false);
   const [showSecrets, setShowSecrets] = useState<boolean>(false);
   const [expandedStageId, setExpandedStageId] = useState<string | null>('stg-0');
+  const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set([0]));
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const isLight = theme === 'light';
 
@@ -141,6 +143,152 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
     navigator.clipboard.writeText(fullLogsString);
     setCopiedLog(true);
     setTimeout(() => setCopiedLog(false), 2000);
+  };
+
+  // ─── Log-line type classifier ───────────────────────────────────────────────
+  type LogBlock =
+    | { type: 'section'; text: string }
+    | { type: 'group'; title: string; lines: string[]; key: string }
+    | { type: 'warning'; text: string }
+    | { type: 'error'; text: string }
+    | { type: 'command'; text: string }
+    | { type: 'plain'; text: string }
+    | { type: 'spacer' };
+
+  /** Strip residual ISO timestamp prefix (e.g. "2026-07-30T07:46:28.986Z ") */
+  const stripTs = (line: string) => line.replace(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z\s*/, '');
+
+  /** Parse a flat log string into typed blocks, collapsing ##[group]…##[endgroup] */
+  const parseLogIntoBlocks = (raw: string): LogBlock[] => {
+    const lines = raw.split('\n');
+    const blocks: LogBlock[] = [];
+    let groupBuf: string[] | null = null;
+    let groupTitle = '';
+    let groupIdx = 0;
+
+    for (const rawLine of lines) {
+      const line = stripTs(rawLine);
+      if (line.startsWith('##[group]')) {
+        groupTitle = line.replace('##[group]', '').trim();
+        groupBuf = [];
+        continue;
+      }
+      if (line.startsWith('##[endgroup]')) {
+        if (groupBuf !== null) {
+          blocks.push({ type: 'group', title: groupTitle, lines: groupBuf, key: `grp-${groupIdx++}` });
+          groupBuf = null;
+        }
+        continue;
+      }
+      if (groupBuf !== null) {
+        groupBuf.push(line);
+        continue;
+      }
+      if (line.startsWith('##[section]')) {
+        blocks.push({ type: 'section', text: line.replace('##[section]', '').trim() });
+      } else if (line.startsWith('##[warning]')) {
+        blocks.push({ type: 'warning', text: line.replace('##[warning]', '').trim() });
+      } else if (line.startsWith('##[error]')) {
+        blocks.push({ type: 'error', text: line.replace('##[error]', '').trim() });
+      } else if (line.startsWith('##[command]')) {
+        blocks.push({ type: 'command', text: line.replace('##[command]', '').trim() });
+      } else if (line.trim() === '') {
+        blocks.push({ type: 'spacer' });
+      } else {
+        blocks.push({ type: 'plain', text: line });
+      }
+    }
+    // flush unclosed group
+    if (groupBuf !== null && groupBuf.length > 0) {
+      blocks.push({ type: 'group', title: groupTitle, lines: groupBuf, key: `grp-${groupIdx++}` });
+    }
+    return blocks;
+  };
+
+  /** Render a single parsed block as a JSX element */
+  const renderBlock = (block: LogBlock, idx: number, stepIdx: number): React.ReactNode => {
+    if (block.type === 'spacer') return <div key={idx} style={{ height: '6px' }} />;
+
+    if (block.type === 'section') {
+      return (
+        <div key={idx} style={{
+          display: 'flex', alignItems: 'center', gap: '8px',
+          margin: '10px 0 4px 0',
+          paddingBottom: '4px',
+          borderBottom: '1px solid rgba(56, 189, 248, 0.25)'
+        }}>
+          <span style={{ color: '#38bdf8', fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>▶ {block.text}</span>
+        </div>
+      );
+    }
+
+    if (block.type === 'warning') {
+      return (
+        <div key={idx} style={{ display: 'flex', gap: '6px', alignItems: 'flex-start', padding: '2px 0' }}>
+          <span style={{ color: '#f59e0b', fontWeight: 700, flexShrink: 0, fontSize: '0.76rem' }}>⚠</span>
+          <span style={{ color: '#fbbf24', fontSize: '0.8rem', lineHeight: '1.5' }}>{block.text}</span>
+        </div>
+      );
+    }
+
+    if (block.type === 'error') {
+      return (
+        <div key={idx} style={{ display: 'flex', gap: '6px', alignItems: 'flex-start', padding: '2px 0' }}>
+          <span style={{ color: '#ef4444', fontWeight: 700, flexShrink: 0, fontSize: '0.76rem' }}>✕</span>
+          <span style={{ color: '#fca5a5', fontWeight: 700, fontSize: '0.8rem', lineHeight: '1.5' }}>{block.text}</span>
+        </div>
+      );
+    }
+
+    if (block.type === 'command') {
+      return (
+        <div key={idx} style={{ display: 'flex', gap: '6px', alignItems: 'flex-start', padding: '2px 0' }}>
+          <span style={{ color: '#22d3ee', fontWeight: 700, flexShrink: 0, fontSize: '0.76rem' }}>$</span>
+          <span style={{ color: '#67e8f9', fontFamily: 'monospace', fontSize: '0.8rem', lineHeight: '1.5', wordBreak: 'break-all' }}>{block.text}</span>
+        </div>
+      );
+    }
+
+    if (block.type === 'group') {
+      const groupKey = `${stepIdx}-${block.key}`;
+      const isOpen = expandedGroups.has(groupKey);
+      return (
+        <div key={idx} style={{ margin: '4px 0', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+          <button
+            type="button"
+            onClick={() => {
+              setExpandedGroups(prev => {
+                const next = new Set(prev);
+                isOpen ? next.delete(groupKey) : next.add(groupKey);
+                return next;
+              });
+            }}
+            style={{
+              width: '100%', background: 'rgba(255,255,255,0.03)', border: 'none',
+              padding: '5px 10px', display: 'flex', alignItems: 'center', gap: '6px',
+              cursor: 'pointer', textAlign: 'left'
+            }}
+          >
+            <span style={{ color: '#94a3b8', fontSize: '0.7rem', transition: 'transform 0.2s', display: 'inline-block', transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▼</span>
+            <span style={{ color: '#cbd5e1', fontSize: '0.78rem', fontWeight: 600 }}>{block.title}</span>
+          </button>
+          {isOpen && (
+            <div style={{ padding: '6px 12px 8px 20px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+              {block.lines.map((l, li) => (
+                <span key={li} style={{ color: '#64748b', fontSize: '0.78rem', lineHeight: '1.5', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{l || '\u00a0'}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // plain
+    return (
+      <div key={idx} style={{ color: '#94a3b8', fontSize: '0.8rem', lineHeight: '1.6', whiteSpace: 'pre-wrap', wordBreak: 'break-all', padding: '1px 0' }}>
+        {block.text || '\u00a0'}
+      </div>
+    );
   };
 
   return (
@@ -590,23 +738,128 @@ export const PipelineRunDetailsView: React.FC<PipelineRunDetailsViewProps> = ({
                     </button>
                   </div>
 
-                  {/* Terminal Log Console */}
+
+                  {/* Structured Log Console */}
                   <div style={{
                     flex: 1,
                     background: '#090d16',
                     borderRadius: '12px',
                     border: '1px solid #1e293b',
-                    padding: '16px',
-                    fontFamily: 'Consolas, Monaco, "Andale Mono", monospace',
-                    fontSize: '0.82rem',
-                    color: '#38bdf8',
                     overflowY: 'auto',
-                    whiteSpace: 'pre-wrap',
-                    lineHeight: '1.6'
+                    fontFamily: 'Consolas, Monaco, "Andale Mono", monospace',
                   }}>
-                    {fullLogsString}
+                    {/* Terminal top bar */}
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                      padding: '8px 14px',
+                      borderBottom: '1px solid #1e293b',
+                      background: 'rgba(255,255,255,0.02)'
+                    }}>
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                      <span style={{ marginLeft: '8px', fontSize: '0.72rem', color: '#475569', fontFamily: 'sans-serif' }}>
+                        {provider.includes('github') ? 'GitHub Actions' : 'Azure DevOps'} — Execution Log
+                      </span>
+                      {activeJob?.steps?.length > 0 && (
+                        <span style={{ marginLeft: 'auto', fontSize: '0.68rem', color: '#475569', fontFamily: 'sans-serif' }}>
+                          {activeJob.steps.length} step{activeJob.steps.length !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Per-step cards */}
+                    <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {activeJob?.steps?.length > 0 ? (
+                        activeJob.steps.map((step: any, si: number) => {
+                          const isStepOpen = expandedSteps.has(si);
+                          const blocks = parseLogIntoBlocks(step.log_output || '');
+                          const stepStatus: string = step.status || 'unknown';
+                          const statusColour = stepStatus === 'success' ? '#10b981'
+                            : stepStatus === 'failed' ? '#ef4444'
+                            : stepStatus === 'skipped' ? '#64748b'
+                            : '#a855f7';
+                          const statusIcon = stepStatus === 'success' ? '✔'
+                            : stepStatus === 'failed' ? '✕'
+                            : stepStatus === 'skipped' ? '—'
+                            : '…';
+
+                          return (
+                            <div key={si} style={{
+                              borderRadius: '8px',
+                              border: `1px solid ${isStepOpen ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                              overflow: 'hidden',
+                              transition: 'border-color 0.15s ease'
+                            }}>
+                              {/* Step header */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setExpandedSteps(prev => {
+                                    const next = new Set(prev);
+                                    isStepOpen ? next.delete(si) : next.add(si);
+                                    return next;
+                                  });
+                                }}
+                                style={{
+                                  width: '100%',
+                                  background: isStepOpen ? 'rgba(139,92,246,0.07)' : 'rgba(255,255,255,0.02)',
+                                  border: 'none',
+                                  padding: '9px 14px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '10px',
+                                  cursor: 'pointer',
+                                  textAlign: 'left',
+                                  transition: 'background 0.15s ease'
+                                }}
+                              >
+                                <span style={{
+                                  width: 18, height: 18, borderRadius: '50%',
+                                  background: `${statusColour}22`,
+                                  border: `1px solid ${statusColour}55`,
+                                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                  color: statusColour, fontSize: '0.62rem', fontWeight: 800, flexShrink: 0
+                                }}>{statusIcon}</span>
+                                <span style={{ color: '#e2e8f0', fontSize: '0.82rem', fontWeight: 600, flex: 1 }}>
+                                  {step.step_name || `Step ${si + 1}`}
+                                </span>
+                                <span style={{
+                                  fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase',
+                                  color: statusColour, fontFamily: 'sans-serif', letterSpacing: '0.04em'
+                                }}>{stepStatus}</span>
+                                <span style={{
+                                  color: '#475569', fontSize: '0.72rem',
+                                  transform: isStepOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
+                                  transition: 'transform 0.2s ease', display: 'inline-block'
+                                }}>▼</span>
+                              </button>
+
+                              {/* Step log body */}
+                              {isStepOpen && (
+                                <div style={{
+                                  padding: '10px 14px 14px 14px',
+                                  borderTop: '1px solid rgba(255,255,255,0.05)',
+                                  display: 'flex', flexDirection: 'column', gap: '0'
+                                }}>
+                                  {blocks.length > 0
+                                    ? blocks.map((block, bi) => renderBlock(block, bi, si))
+                                    : <span style={{ color: '#475569', fontSize: '0.78rem' }}>No log output for this step.</span>
+                                  }
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div style={{ padding: '32px', textAlign: 'center', color: '#475569', fontSize: '0.82rem', fontFamily: 'sans-serif' }}>
+                          No log data available for this job.
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
+
               )}
 
               {/* TAB 2: RUN SUMMARY */}
