@@ -106,6 +106,9 @@ interface CredentialsPageProps {
   decryptedAzureTenantId: string;
   showToast: (title: string, message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
   handleDiscoverAzureEnvCredentials: () => Promise<void>;
+  isOrgRestricted?: boolean;
+  isOrgDisabled?: boolean;
+  maxOverdueDays?: number;
 }
 
 type CredTab = 'summary' | 'github' | 'godaddy' | 'azure' | 'keyvault' | 'teams';
@@ -251,11 +254,14 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
   showAzureClientId, setShowAzureClientId, showAzureClientSecret, setShowAzureClientSecret, showAzureTenantId, setShowAzureTenantId,
   decryptedAzureClientId, decryptedAzureClientSecret, decryptedAzureTenantId,
   showToast, handleDiscoverAzureEnvCredentials,
+  isOrgRestricted = false, isOrgDisabled = false, maxOverdueDays = 0,
 }) => {
   const [activeTab, setActiveTab] = useState<CredTab>('summary');
   const [azureSubTab, setAzureSubTab] = useState<'auth' | 'scope' | 'pipelines'>('auth');
   const [discoveringWorkspace, setDiscoveringWorkspace] = useState(false);
   const [runningAll, setRunningAll] = useState(false);
+  const billingBlocked = isOrgRestricted || isOrgDisabled;
+  const billingTip = billingBlocked ? `Blocked: invoice overdue ${maxOverdueDays} day${maxOverdueDays !== 1 ? 's' : ''}` : undefined;
 
   const [githubExpiresAt, setGithubExpiresAt] = useState('');
   const [devopsExpiresAt, setDevopsExpiresAt] = useState('');
@@ -957,8 +963,9 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                           const savedGhDate = savedGh?.expires_at ? new Date(savedGh.expires_at).toISOString().split('T')[0] : '';
                           const dateChanged = githubExpiresAt !== savedGhDate;
                           const tokenChanged = githubToken !== '' && githubToken !== '••••••••••••••••••••' && githubToken !== decryptedGithubToken;
-                          return !canEdit || savingCredentials === 'github' || !githubToken || (!tokenChanged && !dateChanged);
+                          return !canEdit || billingBlocked || savingCredentials === 'github' || !githubToken || (!tokenChanged && !dateChanged);
                         })()}
+                        title={billingBlocked ? billingTip : undefined}
                       >
                         {savingCredentials === 'github' ? 'Saving...' : 'Save'}
                       </button>
@@ -981,10 +988,11 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                               border: '1px solid var(--glass-border)',
                               background: 'rgba(255,255,255,0.02)',
                               color: 'var(--text-primary)',
-                              cursor: testingCredential === 'github' ? 'not-allowed' : 'pointer'
+                              cursor: (testingCredential === 'github' || billingBlocked) ? 'not-allowed' : 'pointer'
                             }}
                             onClick={() => handleValidateCredential('github')}
-                            disabled={testingCredential === 'github'}
+                            disabled={testingCredential === 'github' || billingBlocked}
+                            title={billingBlocked ? billingTip : undefined}
                           >
                             {testingCredential === 'github' ? (
                               <>
@@ -1089,7 +1097,8 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                     </div>
                     <button className="btn-primary" style={{ width: '100%', marginBottom: '12px' }}
                       onClick={() => handleSaveCredential('godaddy', { apiKey: godaddyKey, apiSecret: godaddySecret }, 'GoDaddy Domain API Keys')}
-                      disabled={!canEdit || savingCredentials === 'godaddy' || !godaddyKey || !godaddySecret || godaddyKey === '••••••••••••••••••••' || godaddySecret === '••••••••••••••••••••' || (!!decryptedGodaddyKey && godaddyKey === decryptedGodaddyKey && godaddySecret === decryptedGodaddySecret)}
+                      disabled={!canEdit || billingBlocked || savingCredentials === 'godaddy' || !godaddyKey || !godaddySecret || godaddyKey === '••••••••••••••••••••' || godaddySecret === '••••••••••••••••••••' || (!!decryptedGodaddyKey && godaddyKey === decryptedGodaddyKey && godaddySecret === decryptedGodaddySecret)}
+                      title={billingBlocked ? billingTip : undefined}
                     >
                       {savingCredentials === 'godaddy' ? 'Saving GoDaddy API Keys...' : 'Save GoDaddy Keys'}
                     </button>
@@ -1112,10 +1121,11 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                             border: '1px solid var(--glass-border)',
                             background: 'rgba(255,255,255,0.02)',
                             color: 'var(--text-primary)',
-                            cursor: testingCredential === 'godaddy' ? 'not-allowed' : 'pointer'
+                            cursor: (testingCredential === 'godaddy' || billingBlocked) ? 'not-allowed' : 'pointer'
                           }}
                           onClick={() => handleValidateCredential('godaddy')}
-                          disabled={testingCredential === 'godaddy'}
+                          disabled={testingCredential === 'godaddy' || billingBlocked}
+                          title={billingBlocked ? billingTip : undefined}
                         >
                           {testingCredential === 'godaddy' ? (
                             <>
@@ -1288,8 +1298,9 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                             const savedDevopsDate = savedDevops?.expires_at ? new Date(savedDevops.expires_at).toISOString().split('T')[0] : '';
                             const dateChanged = devopsExpiresAt !== savedDevopsDate;
                             const patChanged = devopsPat !== '' && devopsPat !== '••••••••••••••••••••' && devopsPat !== decryptedDevopsPat;
-                            return !canEdit || savingCredentials === 'azure_devops' || !devopsPat || (!patChanged && !dateChanged);
+                            return !canEdit || billingBlocked || savingCredentials === 'azure_devops' || !devopsPat || (!patChanged && !dateChanged);
                           })()}
+                          title={billingBlocked ? billingTip : undefined}
                         >
                           {savingCredentials === 'azure_devops' ? 'Saving...' : 'Save'}
                         </button>
@@ -1312,10 +1323,11 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                                 border: '1px solid var(--glass-border)',
                                 background: 'rgba(255,255,255,0.02)',
                                 color: 'var(--text-primary)',
-                                cursor: testingCredential === 'azure_devops' ? 'not-allowed' : 'pointer'
+                                cursor: (testingCredential === 'azure_devops' || billingBlocked) ? 'not-allowed' : 'pointer'
                               }}
                               onClick={() => handleValidateCredential('azure_devops')}
-                              disabled={testingCredential === 'azure_devops'}
+                              disabled={testingCredential === 'azure_devops' || billingBlocked}
+                              title={billingBlocked ? billingTip : undefined}
                             >
                               {testingCredential === 'azure_devops' ? (
                                 <>
@@ -1429,11 +1441,12 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                               (azureClientId !== '' && azureClientId !== '••••••••••••••••••••' && azureClientId !== decryptedAzureClientId) || 
                               (azureClientSecret !== '' && azureClientSecret !== '••••••••••••••••••••' && azureClientSecret !== decryptedAzureClientSecret) || 
                               (azureTenantId !== '' && azureTenantId !== '••••••••••••••••••••' && azureTenantId !== decryptedAzureTenantId);
-                            return !canEdit || 
+                            return !canEdit || billingBlocked ||
                               savingCredentials === 'azure' || 
                               !azureClientId || !azureClientSecret || !azureTenantId || 
                               (!secretsChanged && !dateChanged);
                           })()}
+                          title={billingBlocked ? billingTip : undefined}
                         >
                           {savingCredentials === 'azure' ? 'Saving...' : 'Save Azure Credentials'}
                         </button>
@@ -1515,7 +1528,8 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                                 cursor: testingCredential === 'azure' ? 'not-allowed' : 'pointer'
                               }}
                               onClick={() => handleValidateCredential('azure')}
-                              disabled={testingCredential === 'azure'}
+                              disabled={testingCredential === 'azure' || billingBlocked}
+                              title={billingBlocked ? billingTip : undefined}
                             >
                               {testingCredential === 'azure' ? (
                                 <>

@@ -76,6 +76,9 @@ interface DatabaseCatalogPageProps {
   currentUser?: { role: string; name?: string; email?: string } | null;
   theme: 'dark' | 'light';
   isSubscriptionInactive?: boolean;
+  isOrgRestricted?: boolean;
+  isOrgDisabled?: boolean;
+  maxOverdueDays?: number;
 
   // Handlers
   handleDeployDb: (e: React.FormEvent) => void;
@@ -155,7 +158,10 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
   leftColHeight,
   currentUser,
   theme,
-  isSubscriptionInactive = false
+  isSubscriptionInactive: isSubscriptionInactiveProp = false,
+  isOrgRestricted = false,
+  isOrgDisabled = false,
+  maxOverdueDays = 0,
 }) => {
   const scopeFilteredDbServers = dbServers.filter(srv => {
     if (!selectedControlResourceGroup) return true;
@@ -170,6 +176,12 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
 
   const isViewer = currentUser?.role === 'viewer';
   const isLight = theme === 'light';
+  // Billing block shadows subscription-inactive so all 30+ disabled checks cover both
+  const billingBlocked = isOrgRestricted || isOrgDisabled;
+  const isSubscriptionInactive = isSubscriptionInactiveProp || billingBlocked;
+  const billingBlockMsg = billingBlocked
+    ? `Blocked: invoice overdue ${maxOverdueDays} day${maxOverdueDays !== 1 ? 's' : ''}`
+    : null;
   const [isResultsExpanded, setIsResultsExpanded] = React.useState(false);
   const [isErdExpanded, setIsErdExpanded] = React.useState(false);
   const [backingUp, setBackingUp] = React.useState(false);
@@ -545,7 +557,9 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                   marginBottom: '10px',
                   lineHeight: '1.4'
                 }}>
-                  ⚠️ Schema provisioning is disabled because the subscription is inactive.
+                  {billingBlockMsg
+                    ? `⚠️ Schema provisioning is blocked — ${billingBlockMsg}.`
+                    : '⚠️ Schema provisioning is disabled because the subscription is inactive.'}
                 </div>
               )}
               {deployDbSuccess && <div style={{ fontSize: '0.75rem', color: 'var(--success)', marginBottom: '8px' }}>{deployDbSuccess}</div>}
@@ -957,7 +971,9 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                       fontWeight: 500,
                       lineHeight: '1.4'
                     }}>
-                      ⚠️ Query execution is disabled because the subscription is inactive.
+                      {billingBlockMsg
+                        ? `⚠️ Query execution is blocked — ${billingBlockMsg}.`
+                        : '⚠️ Query execution is disabled because the subscription is inactive.'}
                     </div>
                   )}
                   {/* Console SQL editor */}
@@ -1345,7 +1361,9 @@ export const DatabaseCatalogPage: React.FC<DatabaseCatalogPageProps> = ({
                       marginBottom: '20px',
                       lineHeight: '1.5'
                     }}>
-                      ⚠️ Table creation is disabled because the subscription is inactive.
+                      {billingBlockMsg
+                        ? `⚠️ Table creation is blocked — ${billingBlockMsg}.`
+                        : '⚠️ Table creation is disabled because the subscription is inactive.'}
                     </div>
                   )}
                   {createTableError && <div style={{ color: 'var(--error)', background: 'rgba(239, 68, 68, 0.08)', padding: '12px', borderRadius: '6px', fontSize: '0.8rem', marginBottom: '12px' }}>❌ {createTableError}</div>}

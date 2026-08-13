@@ -1983,6 +1983,7 @@ function App() {
   const [isOrgRestricted, setIsOrgRestricted] = useState(false);
   const [isOrgGrace, setIsOrgGrace] = useState(false);
   const [maxOverdueDays, setMaxOverdueDays] = useState(0);
+  const [billingBannerExpanded, setBillingBannerExpanded] = useState(false);
   const [billingCurrency, setBillingCurrency] = useState('USD');
   const [subPackageDevops, setSubPackageDevops] = useState(false);
   const [subPackageDeveloper, setSubPackageDeveloper] = useState(false);
@@ -3319,6 +3320,11 @@ function App() {
   // Refetch database servers and cost data whenever target scope changes
   useEffect(() => {
     if (token && selectedSubscriptionId && selectedControlResourceGroup) {
+      // Clear stale DB state immediately so old scope data doesn't linger
+      setSelectedDbServer(null);
+      setDatabases([]);
+      setSelectedDatabase(null);
+      setDatabaseSchema([]);
       fetchCostData(selectedSubscriptionId, selectedControlResourceGroup);
       fetchDbServers(selectedSubscriptionId, selectedControlResourceGroup);
     }
@@ -7563,20 +7569,69 @@ function App() {
                 {isOrgRestricted && (
                   <div style={{
                     margin: '8px 0 12px 0',
-                    padding: '12px 16px',
                     borderRadius: '10px',
                     background: 'linear-gradient(135deg, rgba(245,158,11,0.1) 0%, rgba(239,68,68,0.06) 100%)',
                     border: '1px solid rgba(245,158,11,0.35)',
-                    boxShadow: '0 0 20px rgba(245,158,11,0.08), inset 0 0 20px rgba(245,158,11,0.04)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
+                    boxShadow: '0 0 20px rgba(245,158,11,0.08)',
+                    overflow: 'hidden',
                     animation: 'fade-in-anim 0.3s ease-out'
                   }}>
-                    <AlertTriangle size={20} style={{ color: '#f59e0b', flexShrink: 0 }} />
-                    <div style={{ fontSize: '0.84rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
-                      <strong style={{ color: '#f59e0b' }}>Write Operations Restricted:</strong> Your account is restricted because an invoice is overdue by <strong>{maxOverdueDays} days</strong> (grace period expired). Full access block will trigger after 45 days. Please settle your balance in <strong>Licensing</strong>.
-                    </div>
+                    {/* Accordion header — always visible */}
+                    <button
+                      type="button"
+                      onClick={() => setBillingBannerExpanded(p => !p)}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '10px 14px',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <AlertTriangle size={16} style={{ color: '#f59e0b', flexShrink: 0 }} />
+                      <span style={{ flex: 1, fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                        <span style={{ color: '#f59e0b' }}>Write Operations Restricted</span>
+                        {' — invoice overdue by '}
+                        <strong>{maxOverdueDays} days</strong>
+                      </span>
+                      <span style={{
+                        color: '#f59e0b',
+                        fontSize: '0.7rem',
+                        transform: billingBannerExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                        transition: 'transform 0.2s ease',
+                        display: 'inline-block'
+                      }}>&#9660;</span>
+                    </button>
+
+                    {/* Accordion body — feature list */}
+                    {billingBannerExpanded && (
+                      <div style={{
+                        padding: '2px 14px 12px 40px',
+                        borderTop: '1px solid rgba(245,158,11,0.2)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '5px',
+                      }}>
+                        <p style={{ margin: '8px 0 6px', fontSize: '0.76rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>The following features are blocked:</p>
+                        {[
+                          { icon: '🔗', text: 'Saving & testing credentials (GitHub, Azure DevOps, Azure, GoDaddy)' },
+                          { icon: '🗄️', text: 'Execute Query, Deploy Database, Schema & Data Migrations (DbHub)' },
+                          { icon: '🚀', text: 'App provisioning, re-deploys, pipeline creation, app start/stop/restart' },
+                          { icon: '🛡️', text: 'Cost remediations, compliance fixes, DNS swaps, environment cloning' },
+                          { icon: '⚙️', text: 'Org settings, team roles, Key Vault mappings, scheduler rules, Dockerfile edits' },
+                        ].map((item, i) => (
+                          <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                            <span style={{ fontSize: '0.78rem', flexShrink: 0 }}>{item.icon}</span>
+                            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{item.text}</span>
+                          </div>
+                        ))}
+                        <p style={{ margin: '6px 0 0', fontSize: '0.74rem', color: '#64748b' }}>Full account suspension begins after 45 days overdue. Settle your balance in <strong>Licensing</strong>.</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -8669,6 +8724,9 @@ function App() {
                   handleValidateCredential={handleValidateCredential}
                   showToast={showToast}
                   handleDiscoverAzureEnvCredentials={handleDiscoverAzureEnvCredentials}
+                  isOrgRestricted={isOrgRestricted}
+                  isOrgDisabled={isOrgDisabled}
+                  maxOverdueDays={maxOverdueDays}
                 />
               )}
 
@@ -8779,6 +8837,9 @@ function App() {
                     currentUser={user}
                     theme={theme}
                     isSubscriptionInactive={isCurrentSubscriptionInactive}
+                    isOrgRestricted={isOrgRestricted}
+                    isOrgDisabled={isOrgDisabled}
+                    maxOverdueDays={maxOverdueDays}
                   />
                 </div>
               )}
