@@ -18,6 +18,7 @@ import {
   Edit3,
   Check,
   Save,
+  Star,
   Loader,
   Search,
   DollarSign,
@@ -477,6 +478,22 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
       setSelectedClient((prev: any) => ({ ...prev, is_disabled: nextDisabledState }));
     } catch (err) {
       alert('Failed to update client status.');
+    }
+  };
+
+  const handleToggleGoldenAccess = async () => {
+    if (!selectedClient) return;
+    const nextGoldenState = !selectedClient.golden_access;
+    try {
+      await crmRequest(`/clients/${selectedClient.id}/golden-access`, {
+        method: 'PUT',
+        body: JSON.stringify({ golden_access: nextGoldenState })
+      });
+      // Update local state
+      setClients(prev => prev.map(c => c.id === selectedClient.id ? { ...c, golden_access: nextGoldenState } : c));
+      setSelectedClient((prev: any) => ({ ...prev, golden_access: nextGoldenState }));
+    } catch (err) {
+      alert('Failed to update Golden Access override.');
     }
   };
 
@@ -1535,9 +1552,28 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px', marginBottom: '24px' }}>
                 <div>
-                  <h3 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, var(--text-primary) 20%, var(--accent-purple) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                    {selectedClient.name}
-                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                    <h3 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, var(--text-primary) 20%, var(--accent-purple) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                      {selectedClient.name}
+                    </h3>
+                    {selectedClient.golden_access ? (
+                      <span style={{
+                        background: 'linear-gradient(135deg, #fef08a 0%, #facc15 100%)',
+                        color: '#1e293b',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        fontSize: '0.62rem',
+                        fontWeight: 900,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                        boxShadow: '0 2px 8px rgba(250,204,21,0.3)',
+                        display: 'inline-block',
+                        verticalAlign: 'middle'
+                      }}>
+                        ✦ Golden Access
+                      </span>
+                    ) : null}
+                  </div>
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
                     Org Key: <code style={{ color: 'var(--text-primary)', background: 'var(--input-bg)', padding: '2px 5px', borderRadius: '4px', border: '1px solid var(--glass-border)' }}>{selectedClient.id}</code>
                     
@@ -1593,7 +1629,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                   <button
                     onClick={handleImpersonateClient}
                     style={{
@@ -1615,6 +1651,35 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                   >
                     <Globe size={14} style={{ color: 'var(--accent-purple)' }} />
                     Launch Client DevOps Portal {crmUser?.role === 'admin' ? '(as Admin)' : '(as Viewer)'}
+                  </button>
+
+                  <button
+                    onClick={handleToggleGoldenAccess}
+                    style={{
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: selectedClient.golden_access ? 'linear-gradient(135deg, #d97706 0%, #b45309 100%)' : 'var(--glass-bg)',
+                      border: selectedClient.golden_access ? 'none' : '1px solid var(--glass-border)',
+                      color: selectedClient.golden_access ? '#ffffff' : 'var(--text-primary)',
+                      fontSize: '0.84rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: selectedClient.golden_access ? '0 4px 14px rgba(217,119,6,0.2)' : 'none',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={e => {
+                      if (!selectedClient.golden_access) e.currentTarget.style.background = 'var(--divider)';
+                    }}
+                    onMouseLeave={e => {
+                      if (!selectedClient.golden_access) e.currentTarget.style.background = 'var(--glass-bg)';
+                    }}
+                  >
+                    <Star size={14} style={{ color: selectedClient.golden_access ? '#fef08a' : 'var(--text-secondary)' }} />
+                    {selectedClient.golden_access ? 'Revoke Golden Access' : 'Grant Golden Access Override'}
                   </button>
 
                   <button
