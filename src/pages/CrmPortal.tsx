@@ -281,6 +281,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
     setSsoLoading(true);
     setLoginError(null);
     try {
+      localStorage.setItem('evaops_crm_sso_pending', 'true');
       const redirectUriParam = window.location.origin + window.location.pathname;
       const res = await fetch(`${API_BASE}/crm/auth/login-url?redirectUri=${encodeURIComponent(redirectUriParam)}`);
       if (res.ok) {
@@ -294,6 +295,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
         throw new Error('Failed to retrieve login URL from server');
       }
     } catch (err: any) {
+      localStorage.removeItem('evaops_crm_sso_pending');
       setLoginError(err.message || 'Failed to initiate Microsoft login.');
       setSsoLoading(false);
     }
@@ -304,6 +306,7 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
     const code = params.get('code');
     const errorParam = params.get('error');
     if (errorParam) {
+      localStorage.removeItem('evaops_crm_sso_pending');
       setLoginError(`Microsoft SSO Login failed: ${errorParam}`);
       window.history.replaceState({}, document.title, window.location.pathname);
       return;
@@ -324,19 +327,23 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
         });
         const data = await response.json();
         if (response.ok && data.token) {
+          localStorage.removeItem('evaops_crm_sso_pending');
           localStorage.setItem('evaops_crm_token', data.token);
           localStorage.setItem('evaops_crm_user', JSON.stringify(data.user));
           setCrmToken(data.token);
           setCrmUser(data.user);
-          window.history.replaceState({}, document.title, window.location.pathname);
+          // Set hash to '#crm' for clean routing state
+          window.history.replaceState({}, document.title, window.location.pathname + '#crm');
         } else {
           throw new Error(data.error || data.message || 'Failed to authenticate via Microsoft Entra ID');
         }
       } catch (err: any) {
+        localStorage.removeItem('evaops_crm_sso_pending');
         console.error('[CRM Auth] Microsoft callback login failed:', err);
         setLoginError(err.message || 'Failed to complete Microsoft authentication.');
         window.history.replaceState({}, document.title, window.location.pathname);
       } finally {
+        localStorage.removeItem('evaops_crm_sso_pending');
         setSsoLoading(false);
       }
     };

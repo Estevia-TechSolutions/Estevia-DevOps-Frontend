@@ -1981,8 +1981,11 @@ function App() {
   }>({ azure: false, github: false, azureDevops: false, godaddy: false });
   const [credentialAlerts, setCredentialAlerts] = useState<any[]>([]);
   const [credentialsList, setCredentialsList] = useState<any[]>([]);
-  // ── CRM Portal & Suspension Gate States ────────────────────────────────────
-  const [showCrm, setShowCrm] = useState(() => window.location.hash === '#crm' || window.location.hostname === 'evaops-crm.esteviatech.com');
+  const [showCrm, setShowCrm] = useState(() => 
+    window.location.hash === '#crm' || 
+    window.location.hostname === 'evaops-crm.esteviatech.com' ||
+    localStorage.getItem('evaops_crm_sso_pending') === 'true'
+  );
   const [isOrgDisabled, setIsOrgDisabled] = useState(false);
   const [isOrgRestricted, setIsOrgRestricted] = useState(false);
   const [isOrgGrace, setIsOrgGrace] = useState(false);
@@ -3250,6 +3253,9 @@ function App() {
     const resetToken = urlParams.get('mfa_reset_token');
 
     if (code) {
+      if (localStorage.getItem('evaops_crm_sso_pending') === 'true') {
+        return;
+      }
       window.history.replaceState({}, document.title, window.location.pathname);
       handleMicrosoftCallback(code);
     } else if (resetToken) {
