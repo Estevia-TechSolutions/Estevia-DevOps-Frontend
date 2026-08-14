@@ -511,10 +511,14 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
       const data = await res.json();
       if (res.ok && data.token) {
         let targetHost = window.location.origin;
-        if (targetHost.includes('-crm.esteviatech.com')) {
-          targetHost = targetHost.replace('-crm.esteviatech.com', '.esteviatech.com');
+        if (targetHost.includes('dev-crm.esteviatech.com')) {
+          targetHost = targetHost.replace('dev-crm.esteviatech.com', 'dev-devops.esteviatech.com');
+        } else if (targetHost.includes('qa-crm.esteviatech.com')) {
+          targetHost = targetHost.replace('qa-crm.esteviatech.com', 'qa-devops.esteviatech.com');
+        } else if (targetHost.includes('evaops-crm.esteviatech.com')) {
+          targetHost = targetHost.replace('evaops-crm.esteviatech.com', 'evaops.esteviatech.com');
         } else if (targetHost.includes('crm.esteviatech.com')) {
-          targetHost = targetHost.replace('crm.esteviatech.com', 'evaops.esteviatech.com');
+          targetHost = targetHost.replace('crm.esteviatech.com', 'devops.esteviatech.com');
         }
 
         const queryParams = new URLSearchParams();

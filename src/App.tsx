@@ -1983,7 +1983,7 @@ function App() {
   const [credentialsList, setCredentialsList] = useState<any[]>([]);
   const [showCrm, setShowCrm] = useState(() => 
     window.location.hash === '#crm' || 
-    window.location.hostname === 'evaops-crm.esteviatech.com' ||
+    window.location.hostname.includes('crm.esteviatech.com') ||
     localStorage.getItem('evaops_crm_sso_pending') === 'true'
   );
   const [isOrgDisabled, setIsOrgDisabled] = useState(false);
@@ -2002,7 +2002,7 @@ function App() {
   // ── End License / Credential Gate States ──────────────────────────────────
 
   const checkCredentialGateStatus = async (authTokenToCheck?: string) => {
-    if (window.location.hostname === 'evaops-crm.esteviatech.com') return;
+    if (window.location.hostname.includes('crm.esteviatech.com')) return;
     const activeToken = authTokenToCheck || token || localStorage.getItem('devops_token');
     if (!activeToken) return;
     try {
@@ -2048,7 +2048,7 @@ function App() {
   // ── CRM Hash Routing ───────────────────────────────────────────────────────
   useEffect(() => {
     const checkHash = () => {
-      setShowCrm(window.location.hash === '#crm' || window.location.hostname === 'evaops-crm.esteviatech.com');
+      setShowCrm(window.location.hash === '#crm' || window.location.hostname.includes('crm.esteviatech.com'));
     };
     checkHash();
     window.addEventListener('hashchange', checkHash);
