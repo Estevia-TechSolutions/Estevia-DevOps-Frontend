@@ -675,6 +675,37 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Handle Microsoft 365 OAuth callback redirect params: ?m365_connected=true or ?m365_error=...
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const m365Connected = params.get('m365_connected');
+    const m365Error = params.get('m365_error');
+    if (m365Connected === 'true') {
+      const tenant = params.get('tenant');
+      // Clean up URL
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+      // Navigate to credentials tab and refresh status
+      setActiveTab('credentials');
+      setTimeout(async () => {
+        await fetchCredentialStatus();
+        await checkCredentialGateStatus();
+        await handleLoadSavedCredential('m365');
+        showToast(
+          '✅ Microsoft 365 Connected',
+          `Your Microsoft 365 tenant${tenant ? ' (' + tenant + ')' : ''} has been successfully linked to EvaOps.`,
+          'success'
+        );
+      }, 800);
+    } else if (m365Error) {
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+      setActiveTab('credentials');
+      showToast('Microsoft 365 Connection Failed', decodeURIComponent(m365Error), 'error');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Custom authenticated fetch wrapper (shadows standard fetch)
   const authFetch = async (url: RequestInfo | URL, options: RequestInit = {}) => {
     const activeToken = localStorage.getItem('devops_token');
@@ -4518,37 +4549,29 @@ function App() {
     }
   };
 
-  const handleDiscoverM365EnvCredentials = async () => {
+  const handleConnectM365 = async () => {
     setDiscoveringM365(true);
     try {
       const activeToken = token || localStorage.getItem('devops_token');
-      const res = await fetch(`${API_BASE}/credentials/discover-m365-env?organizationId=${organizationId}`, {
+      const res = await fetch(`${API_BASE}/m365/auth/initiate?organizationId=${organizationId}`, {
         headers: { Authorization: `Bearer ${activeToken}` }
       });
       const data = await res.json();
-      if (res.ok && data.success && data.secrets) {
-        setM365TenantId(data.secrets.tenantId || '');
-        setM365ClientId(data.secrets.clientId || '');
-        setM365ClientSecret(data.secrets.clientSecret || '');
-        setDecryptedM365TenantId(data.secrets.tenantId || '');
-        setDecryptedM365ClientId(data.secrets.clientId || '');
-        setDecryptedM365ClientSecret(data.secrets.clientSecret || '');
-        setShowM365TenantId(true);
-        setShowM365ClientId(true);
-        setShowM365ClientSecret(true);
-        setCredentialStatus(prev => ({ ...prev, m365: true }));
-        await fetchCredentialStatus();
-        await checkCredentialGateStatus();
-        showToast('Credentials Discovered', 'M365 Graph API credentials auto-discovered from server environment successfully!', 'success');
+      if (res.ok && data.success && data.url) {
+        // Redirect the browser to Microsoft admin consent page
+        window.location.href = data.url;
       } else {
-        showToast('Discovery Failed', data.message || 'No M365 environment variables found on server.', 'error');
+        showToast('M365 Connection Failed', data.message || 'Could not generate Microsoft consent URL.', 'error');
       }
     } catch (e: any) {
-      showToast('Discovery Error', e.message || 'Error occurred while discovering server credentials.', 'error');
+      showToast('M365 Connection Error', e.message || 'Error initiating Microsoft 365 connection.', 'error');
     } finally {
       setDiscoveringM365(false);
     }
   };
+
+  // Keep legacy discover for backwards compat (now unused — replaced by handleConnectM365)
+  const handleDiscoverM365EnvCredentials = handleConnectM365;
 
   const fetchBranches = async (repoFullName: string, targetBranch?: string) => {
     setLoadingBranches(true);

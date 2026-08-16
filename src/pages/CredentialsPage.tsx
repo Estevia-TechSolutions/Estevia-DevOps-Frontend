@@ -293,6 +293,7 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
   const [rotatingSecret, setRotatingSecret] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [m365Domain, setM365Domain] = useState<string | null>(null);
+  const [showM365Manual, setShowM365Manual] = useState(false);
 
   React.useEffect(() => {
     const fetchOrgSettings = async () => {
@@ -1281,46 +1282,105 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                     }}
                     disabledReveal={!canEdit}
                   >
-                    <div style={{ display: 'grid', gap: '10px', marginBottom: '12px' }}>
-                      <PasswordInput value={m365TenantId} onChange={setM365TenantId}
-                        show={showM365TenantId} onToggle={() => setShowM365TenantId(!showM365TenantId)}
-                        placeholder="Microsoft 365 Tenant ID" disabled={!canEdit} />
-                      <PasswordInput value={m365ClientId} onChange={setM365ClientId}
-                        show={showM365ClientId} onToggle={() => setShowM365ClientId(!showM365ClientId)}
-                        placeholder="Azure AD Application (Client) ID" disabled={!canEdit} />
-                      <PasswordInput value={m365ClientSecret} onChange={setM365ClientSecret}
-                        show={showM365ClientSecret} onToggle={() => setShowM365ClientSecret(!showM365ClientSecret)}
-                        placeholder="Azure AD Client Secret Key" disabled={!canEdit} />
-                    </div>
-                    {canEdit && (
-                      <button
-                        type="button"
-                        onClick={handleDiscoverM365EnvCredentials}
-                        disabled={discoveringM365 || billingBlocked}
-                        style={{
-                          width: '100%', marginBottom: '10px',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                          padding: '9px 16px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600,
-                          background: 'linear-gradient(135deg, rgba(56,189,248,0.12), rgba(99,102,241,0.08))',
-                          border: '1px solid rgba(56,189,248,0.3)',
-                          color: discoveringM365 ? 'var(--text-muted)' : '#38bdf8',
-                          cursor: (discoveringM365 || billingBlocked) ? 'not-allowed' : 'pointer',
-                          transition: 'all 0.2s',
-                        }}
-                      >
-                        {discoveringM365 ? (
-                          <><Loader size={13} className="spin-anim" /> Auto-Detecting from Server...</>
+                    {!showM365Manual ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '14px' }}>
+                        {credentialStatus.m365 ? (
+                          <div style={{
+                            padding: '12px 14px',
+                            borderRadius: '8px',
+                            background: 'rgba(34, 197, 94, 0.08)',
+                            border: '1px solid rgba(34, 197, 94, 0.2)',
+                            color: '#4ade80',
+                            fontSize: '0.82rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                          }}>
+                            <CheckCircle2 size={16} />
+                            <span>Linked to Microsoft 365 Tenant via OAuth.</span>
+                          </div>
                         ) : (
-                          <><Zap size={13} /> Auto-Detect M365 Credentials</>
+                          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                            Grant EvaOps access to audit license seats, sync users, and auto-configure DNS records under your M365 tenant using the official secure Microsoft OAuth integration flow.
+                          </div>
                         )}
-                      </button>
+
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={handleDiscoverM365EnvCredentials}
+                            disabled={discoveringM365 || billingBlocked}
+                            style={{
+                              width: '100%',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                              padding: '11px 18px', borderRadius: '8px', fontSize: '0.84rem', fontWeight: 600,
+                              background: 'linear-gradient(135deg, #0078d4, #005a9e)',
+                              border: 'none',
+                              color: '#fff',
+                              boxShadow: '0 2px 8px rgba(0, 120, 212, 0.25)',
+                              cursor: (discoveringM365 || billingBlocked) ? 'not-allowed' : 'pointer',
+                              transition: 'all 0.2s ease-in-out',
+                            }}
+                            onMouseOver={(e) => { if (!discoveringM365 && !billingBlocked) e.currentTarget.style.filter = 'brightness(1.1)'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.filter = 'none'; }}
+                          >
+                            {discoveringM365 ? (
+                              <><Loader size={14} className="spin-anim" /> Redirecting to Microsoft...</>
+                            ) : credentialStatus.m365 ? (
+                              <><RefreshCw size={14} /> Reconnect Microsoft 365 Account</>
+                            ) : (
+                              <><Cloud size={14} /> Connect with Microsoft 365</>
+                            )}
+                          </button>
+                        )}
+                        
+                        <div style={{ textAlign: 'center', marginTop: '4px' }}>
+                          <button
+                            type="button"
+                            onClick={() => setShowM365Manual(true)}
+                            style={{
+                              background: 'none', border: 'none', color: '#38bdf8', fontSize: '0.72rem',
+                              cursor: 'pointer', textDecoration: 'underline', padding: '4px 8px'
+                            }}
+                          >
+                            Need manual custom app override settings?
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
+                        <div style={{ display: 'grid', gap: '10px' }}>
+                          <PasswordInput value={m365TenantId} onChange={setM365TenantId}
+                            show={showM365TenantId} onToggle={() => setShowM365TenantId(!showM365TenantId)}
+                            placeholder="Microsoft 365 Tenant ID" disabled={!canEdit} />
+                          <PasswordInput value={m365ClientId} onChange={setM365ClientId}
+                            show={showM365ClientId} onToggle={() => setShowM365ClientId(!showM365ClientId)}
+                            placeholder="Azure AD Application (Client) ID" disabled={!canEdit} />
+                          <PasswordInput value={m365ClientSecret} onChange={setM365ClientSecret}
+                            show={showM365ClientSecret} onToggle={() => setShowM365ClientSecret(!showM365ClientSecret)}
+                            placeholder="Azure AD Client Secret Key" disabled={!canEdit} />
+                        </div>
+                        <button className="btn-primary" style={{ width: '100%', marginTop: '6px' }}
+                          onClick={() => handleSaveCredential('m365', { tenantId: m365TenantId, clientId: m365ClientId, clientSecret: m365ClientSecret }, 'Microsoft 365 Graph Credentials')}
+                          disabled={!canEdit || billingBlocked || savingCredentials === 'm365' || !m365TenantId || !m365ClientId || !m365ClientSecret || m365TenantId === '••••••••••••••••••••' || m365ClientId === '••••••••••••••••••••' || m365ClientSecret === '••••••••••••••••••••' || (!!decryptedM365TenantId && m365TenantId === decryptedM365TenantId && m365ClientId === decryptedM365ClientId && m365ClientSecret === decryptedM365ClientSecret)}
+                        >
+                          {savingCredentials === 'm365' ? 'Saving Microsoft 365 Keys...' : 'Save Microsoft 365 Keys'}
+                        </button>
+                        <div style={{ textAlign: 'center', marginTop: '4px' }}>
+                          <button
+                            type="button"
+                            onClick={() => setShowM365Manual(false)}
+                            style={{
+                              background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '0.72rem',
+                              cursor: 'pointer', textDecoration: 'underline', padding: '4px 8px'
+                            }}
+                          >
+                            ← Back to standard OAuth connection
+                          </button>
+                        </div>
+                      </div>
                     )}
-                    <button className="btn-primary" style={{ width: '100%', marginBottom: '12px' }}
-                      onClick={() => handleSaveCredential('m365', { tenantId: m365TenantId, clientId: m365ClientId, clientSecret: m365ClientSecret }, 'Microsoft 365 Graph Credentials')}
-                      disabled={!canEdit || billingBlocked || savingCredentials === 'm365' || !m365TenantId || !m365ClientId || !m365ClientSecret || m365TenantId === '••••••••••••••••••••' || m365ClientId === '••••••••••••••••••••' || m365ClientSecret === '••••••••••••••••••••' || (!!decryptedM365TenantId && m365TenantId === decryptedM365TenantId && m365ClientId === decryptedM365ClientId && m365ClientSecret === decryptedM365ClientSecret)}
-                    >
-                      {savingCredentials === 'm365' ? 'Saving Microsoft 365 Keys...' : 'Save Microsoft 365 Keys'}
-                    </button>
+
                     {credentialStatus.m365 && (
                       <button
                         className="btn-outline"
@@ -1338,6 +1398,7 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                       >
                         {testingCredential === 'm365' ? (
                           <><Loader size={12} className="spin-anim" /> Verifying Connection...</>
+
                         ) : 'Verify Connection Health'}
                       </button>
                     )}
