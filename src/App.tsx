@@ -909,9 +909,11 @@ function App() {
         setActiveTab('provision');
       }
     } else if (category === 'MONITOR') {
-      setActiveTab('events');
+      setActiveTab('logs-doc');
+      setLogsDocSubTab('events');
     } else {
-      setActiveTab('events');
+      setActiveTab('logs-doc');
+      setLogsDocSubTab('events');
     }
   }, []);
 

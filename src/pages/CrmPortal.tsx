@@ -1662,7 +1662,6 @@ export const CrmPortal: React.FC<CrmPortalProps> = ({ API_BASE, theme, onBackToA
                     style={{
                       padding: '10px 16px',
                       borderRadius: '8px',
-                      border: 'none',
                       background: selectedClient.golden_access ? 'linear-gradient(135deg, #d97706 0%, #b45309 100%)' : 'var(--glass-bg)',
                       border: selectedClient.golden_access ? 'none' : '1px solid var(--glass-border)',
                       color: selectedClient.golden_access ? '#ffffff' : 'var(--text-primary)',
