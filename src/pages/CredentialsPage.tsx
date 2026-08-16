@@ -121,6 +121,8 @@ interface CredentialsPageProps {
   decryptedAzureTenantId: string;
   showToast: (title: string, message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
   handleDiscoverAzureEnvCredentials: () => Promise<void>;
+  discoveringM365: boolean;
+  handleDiscoverM365EnvCredentials: () => Promise<void>;
   isOrgRestricted?: boolean;
   isOrgDisabled?: boolean;
   maxOverdueDays?: number;
@@ -274,6 +276,7 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
   showM365TenantId, setShowM365TenantId, showM365ClientId, setShowM365ClientId, showM365ClientSecret, setShowM365ClientSecret,
   decryptedM365TenantId, decryptedM365ClientId, decryptedM365ClientSecret,
   showToast, handleDiscoverAzureEnvCredentials,
+  discoveringM365, handleDiscoverM365EnvCredentials,
   isOrgRestricted = false, isOrgDisabled = false, maxOverdueDays = 0,
   isGoldenAccess = false,
 }) => {
@@ -289,6 +292,27 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
   const [azureExpiresAt, setAzureExpiresAt] = useState('');
   const [rotatingSecret, setRotatingSecret] = useState(false);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const [m365Domain, setM365Domain] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const fetchOrgSettings = async () => {
+      try {
+        const activeToken = localStorage.getItem('devops_token');
+        const res = await fetch(`${API_BASE}/org/status`, {
+          headers: { Authorization: `Bearer ${activeToken}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.organization && data.organization.m365_domain) {
+            setM365Domain(data.organization.m365_domain);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch organization settings:', err);
+      }
+    };
+    fetchOrgSettings();
+  }, [API_BASE]);
 
   // Sync saved expiration dates from list
   React.useEffect(() => {
@@ -772,6 +796,18 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                               <span style={{ fontSize: '18px', flexShrink: 0 }}>{cred.icon}</span>
                               <div style={{ minWidth: 0 }}>
                                 <div style={{ fontWeight: 600, fontSize: '0.86rem', color: 'var(--text-primary)' }}>{cred.label}</div>
+                                {cred.key === 'm365' && m365Domain && (
+                                  <div style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                    fontSize: '0.71rem', marginTop: '3px',
+                                    color: '#38bdf8',
+                                    background: 'rgba(56,189,248,0.07)',
+                                    border: '1px solid rgba(56,189,248,0.2)',
+                                    borderRadius: '12px', padding: '1px 8px',
+                                  }}>
+                                    🌐 {m365Domain}
+                                  </div>
+                                )}
                                 {expiryLabel && (
                                   <div style={{
                                     fontSize: '0.72rem', marginTop: '2px',
@@ -1256,6 +1292,29 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                         show={showM365ClientSecret} onToggle={() => setShowM365ClientSecret(!showM365ClientSecret)}
                         placeholder="Azure AD Client Secret Key" disabled={!canEdit} />
                     </div>
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={handleDiscoverM365EnvCredentials}
+                        disabled={discoveringM365 || billingBlocked}
+                        style={{
+                          width: '100%', marginBottom: '10px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                          padding: '9px 16px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600,
+                          background: 'linear-gradient(135deg, rgba(56,189,248,0.12), rgba(99,102,241,0.08))',
+                          border: '1px solid rgba(56,189,248,0.3)',
+                          color: discoveringM365 ? 'var(--text-muted)' : '#38bdf8',
+                          cursor: (discoveringM365 || billingBlocked) ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.2s',
+                        }}
+                      >
+                        {discoveringM365 ? (
+                          <><Loader size={13} className="spin-anim" /> Auto-Detecting from Server...</>
+                        ) : (
+                          <><Zap size={13} /> Auto-Detect M365 Credentials</>
+                        )}
+                      </button>
+                    )}
                     <button className="btn-primary" style={{ width: '100%', marginBottom: '12px' }}
                       onClick={() => handleSaveCredential('m365', { tenantId: m365TenantId, clientId: m365ClientId, clientSecret: m365ClientSecret }, 'Microsoft 365 Graph Credentials')}
                       disabled={!canEdit || billingBlocked || savingCredentials === 'm365' || !m365TenantId || !m365ClientId || !m365ClientSecret || m365TenantId === '••••••••••••••••••••' || m365ClientId === '••••••••••••••••••••' || m365ClientSecret === '••••••••••••••••••••' || (!!decryptedM365TenantId && m365TenantId === decryptedM365TenantId && m365ClientId === decryptedM365ClientId && m365ClientSecret === decryptedM365ClientSecret)}
@@ -1343,7 +1402,7 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                         <span style={{ color: 'var(--text-secondary)' }}>GoDaddy DNS Integration:</span>
                         {credentialsList.some(c => c.provider === 'godaddy') ? (
                           <span style={{ color: 'var(--success)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            🟢 Connected (Active Domain)
+                            🟢 Connected{m365Domain ? ` — Active Domain: ${m365Domain}` : ' (Active Domain)'}
                           </span>
                         ) : (
                           <span style={{ color: 'var(--warning)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>

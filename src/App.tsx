@@ -1218,6 +1218,7 @@ function App() {
   const [decryptedM365TenantId, setDecryptedM365TenantId] = useState('');
   const [decryptedM365ClientId, setDecryptedM365ClientId] = useState('');
   const [decryptedM365ClientSecret, setDecryptedM365ClientSecret] = useState('');
+  const [discoveringM365, setDiscoveringM365] = useState(false);
   const [credentialStatus, setCredentialStatus] = useState<Record<string, boolean>>({});
   const [savingCredentials, setSavingCredentials] = useState<string | null>(null);
   const [credMsg, setCredMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -4514,6 +4515,38 @@ function App() {
       }
     } catch (e: any) {
       showToast('Discovery Error', e.message || 'Error occurred while discovering server credentials.', 'error');
+    }
+  };
+
+  const handleDiscoverM365EnvCredentials = async () => {
+    setDiscoveringM365(true);
+    try {
+      const activeToken = token || localStorage.getItem('devops_token');
+      const res = await fetch(`${API_BASE}/credentials/discover-m365-env?organizationId=${organizationId}`, {
+        headers: { Authorization: `Bearer ${activeToken}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.secrets) {
+        setM365TenantId(data.secrets.tenantId || '');
+        setM365ClientId(data.secrets.clientId || '');
+        setM365ClientSecret(data.secrets.clientSecret || '');
+        setDecryptedM365TenantId(data.secrets.tenantId || '');
+        setDecryptedM365ClientId(data.secrets.clientId || '');
+        setDecryptedM365ClientSecret(data.secrets.clientSecret || '');
+        setShowM365TenantId(true);
+        setShowM365ClientId(true);
+        setShowM365ClientSecret(true);
+        setCredentialStatus(prev => ({ ...prev, m365: true }));
+        await fetchCredentialStatus();
+        await checkCredentialGateStatus();
+        showToast('Credentials Discovered', 'M365 Graph API credentials auto-discovered from server environment successfully!', 'success');
+      } else {
+        showToast('Discovery Failed', data.message || 'No M365 environment variables found on server.', 'error');
+      }
+    } catch (e: any) {
+      showToast('Discovery Error', e.message || 'Error occurred while discovering server credentials.', 'error');
+    } finally {
+      setDiscoveringM365(false);
     }
   };
 
@@ -8906,6 +8939,8 @@ function App() {
                   decryptedM365TenantId={decryptedM365TenantId}
                   decryptedM365ClientId={decryptedM365ClientId}
                   decryptedM365ClientSecret={decryptedM365ClientSecret}
+                  discoveringM365={discoveringM365}
+                  handleDiscoverM365EnvCredentials={handleDiscoverM365EnvCredentials}
                   isOrgRestricted={isOrgRestricted}
                   isOrgDisabled={isOrgDisabled}
                   maxOverdueDays={maxOverdueDays}
