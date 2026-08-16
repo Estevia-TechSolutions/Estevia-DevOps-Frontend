@@ -7657,7 +7657,8 @@ function App() {
                         </p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                           {[
-                            { label: 'Credentials', detail: 'Saving & testing GitHub, Azure DevOps, Azure, GoDaddy' },
+                            { label: 'Credentials', detail: 'Saving & testing GitHub, Azure DevOps, Azure, GoDaddy, Microsoft 365' },
+                            { label: 'M365 Control', detail: 'Audit subscription seats, toggle licenses, GoDaddy DNS mappings' },
                             { label: 'DbHub', detail: 'Execute Query, Deploy DB, Schema & Data Migrations' },
                             { label: 'Deployments', detail: 'App provisioning, re-deploys, pipeline creation, start/stop' },
                             { label: 'Remediations', detail: 'Cost & compliance fixes, DNS swaps, environment cloning' },
@@ -8145,6 +8146,44 @@ function App() {
                       <div className="menu-hover-card-desc">Browse and manage your connected database catalog — schemas, tables, and connection health at a glance.</div>
                     </div>
                   </button>
+                  <button
+                    className={`premium-tab-btn ${activeTab === 'm365' ? 'active' : ''}`}
+                    onClick={() => {
+                      if (!subPackageDeveloper) {
+                        setUpgradePackageModal('Developer');
+                      } else {
+                        setActiveTab('m365');
+                      }
+                    }}
+                    disabled={requiresCredentialSetup || isOrgDisabled}
+                  >
+                    <Mail size={16} />
+                    <span>Microsoft 365</span>
+                    {!subPackageDeveloper && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '-8px',
+                        right: '8px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                        border: '1px solid rgba(239, 68, 68, 0.4)',
+                        color: '#ef4444',
+                        boxShadow: '0 0 8px rgba(239, 68, 68, 0.25)',
+                        boxSizing: 'border-box'
+                      }}>
+                        <Lock size={9} />
+                      </div>
+                    )}
+                    <div className="menu-hover-card">
+                      <div className="menu-hover-card-title"><Mail size={12} /> Microsoft 365 {!subPackageDeveloper && '🔒'}</div>
+                      <div className="menu-hover-card-desc">Audit M365 subscriptions, optimize license seats cost, and link GoDaddy domains.</div>
+                    </div>
+                  </button>
                   <button className={`premium-tab-btn ${activeTab === 'credentials' ? 'active' : ''}`} onClick={() => setActiveTab('credentials')}>
                     <ShieldCheck size={16} />
                     <span>Credentials</span>
@@ -8190,19 +8229,6 @@ function App() {
                     <div className="menu-hover-card">
                       <div className="menu-hover-card-title"><Activity size={12} /> Logs & Docs</div>
                       <div className="menu-hover-card-desc">System audit logs, event feeds, and step-by-step user documentation.</div>
-                    </div>
-                  </button>
-
-                  <button
-                    className={`premium-tab-btn ${activeTab === 'm365' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('m365')}
-                    disabled={requiresCredentialSetup || isOrgDisabled}
-                  >
-                    <Mail size={16} />
-                    <span>Microsoft 365</span>
-                    <div className="menu-hover-card menu-hover-card-right">
-                      <div className="menu-hover-card-title"><Mail size={12} /> Microsoft 365</div>
-                      <div className="menu-hover-card-desc">Audit M365 subscriptions, optimize license seats cost, and link GoDaddy domains.</div>
                     </div>
                   </button>
                 </div>
@@ -11323,10 +11349,11 @@ function App() {
                       <span>{f}</span>
                     </div>
                   ))}
-                  {upgradePackageModal === 'Developer' && [
+                   {upgradePackageModal === 'Developer' && [
                     'Register Database Servers',
                     'Provision PostgreSQL/MySQL DBs',
                     'Execute SQL Queries in DB Catalog explorer',
+                    'Manage M365 Licenses & GoDaddy Domain Bindings',
                     'Edit and Validate Dockerfiles & YMLs'
                   ].map((f, idx) => (
                     <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>

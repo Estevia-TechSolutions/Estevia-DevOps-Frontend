@@ -23,6 +23,7 @@ import {
   Search,
   Database,
   Activity,
+  Mail,
   PlusCircle,
   Compass,
   AlertTriangle,
@@ -58,6 +59,7 @@ const renderScopeIcon = (iconName?: string, isCapability?: boolean) => {
     case 'search': return <Search size={size} style={{ color }} />;
     case 'file-code': return <FileCode size={size} style={{ color }} />;
     case 'layout': return <Layout size={size} style={{ color }} />;
+    case 'mail': return <Mail size={size} style={{ color }} />;
     default: return isCapability ? <CheckCircle2 size={size} style={{ color }} /> : <XCircle size={size} style={{ color }} />;
   }
 };
@@ -317,6 +319,22 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
         isCapability: false,
         title: 'DNS Propagation',
         text: 'Subject to GoDaddy API and global DNS TTL replication delays, typically 2–10 minutes.',
+        icon: 'globe'
+      },
+      {
+        category: 'operations',
+        categoryLabel: 'Operations & Control',
+        isCapability: true,
+        title: 'Microsoft 365 Integration',
+        text: 'Syncs active seats from Microsoft Graph, audits unassigned/inactive operator licenses, and estimates monthly billing run-rates.',
+        icon: 'mail'
+      },
+      {
+        category: 'operations',
+        categoryLabel: 'Operations & Control',
+        isCapability: true,
+        title: 'GoDaddy M365 DNS Wizard',
+        text: 'Automates custom domain MX, SPF, and CNAME bindings directly on GoDaddy DNS from the M365 dashboard.',
         icon: 'globe'
       },
 
@@ -833,14 +851,47 @@ export const GuidePage: React.FC<GuidePageProps> = () => {
                     }}>
                       4
                     </div>
+                    <div style={{ width: '2px', flex: 1, background: 'var(--divider)', minHeight: '40px', margin: '4px 0' }} />
                   </div>
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, paddingBottom: '12px' }}>
                     <h4 style={{ margin: '0 0 6px 0', fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       Set Up CI/CD Pipelines
                       <GitBranch size={14} style={{ color: 'var(--accent-teal)', opacity: 0.8 }} />
                     </h4>
                     <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
                       Click <strong>Setup CI/CD</strong> on any environment card. Verify repository settings, customize the YAML code inside the interactive editor, and click <strong>Commit & Create Pipeline</strong>. The system commits the config to your repo and registers the pipeline in Azure DevOps.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step 5 */}
+                <div style={{ display: 'flex', gap: '20px', position: 'relative' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      background: 'var(--badge-bg)',
+                      border: '2px solid var(--accent-purple)',
+                      color: 'var(--text-primary)',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 2,
+                      boxShadow: '0 0 10px var(--accent-purple-glow)'
+                    }}>
+                      5
+                    </div>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ margin: '0 0 6px 0', fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      Manage Microsoft 365 &amp; Mail Ingress
+                      <Mail size={14} style={{ color: 'var(--accent-purple)', opacity: 0.8 }} />
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                      Go to the <strong>Microsoft 365</strong> tab. Connect your M365 tenant using credentials or Admin Consent, link custom GoDaddy domains, run automated DNS configuration checks (MX, SPF records), and audit seat capacity limits.
                     </p>
                   </div>
                 </div>

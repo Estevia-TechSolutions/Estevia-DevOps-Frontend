@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Database, Eye, EyeOff, GitBranch, Settings, Globe, Cloud, AlertTriangle, MessageSquare, Copy, CheckCircle, Loader, RefreshCw, ShieldCheck, CheckCircle2, XCircle, AlertCircle, ArrowRight, Zap, Mail } from 'lucide-react';
+import { Database, Eye, EyeOff, GitBranch, Settings, Globe, Cloud, AlertTriangle, MessageSquare, Copy, CheckCircle, Loader, RefreshCw, ShieldCheck, CheckCircle2, XCircle, AlertCircle, ArrowRight, Zap, Mail, ShieldAlert } from 'lucide-react';
 import EvaForgeIcon from '../components/icons/EvaForgeIcon';
 import { KeyVaultConfigurator } from '../components/credentials/KeyVaultConfigurator';
 
@@ -614,6 +614,7 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                 { key: 'github',      label: 'GitHub Platform Token',    icon: '🐙', tab: 'github' as CredTab,  statusKey: 'github'      },
                 { key: 'azure_devops',label: 'Azure DevOps PAT',         icon: '🔧', tab: 'azure' as CredTab,   statusKey: 'azure_devops'},
                 { key: 'godaddy',     label: 'GoDaddy Domain API',       icon: '🌐', tab: 'godaddy' as CredTab, statusKey: 'godaddy'     },
+                { key: 'm365',        label: 'Microsoft 365 Graph',      icon: '✉️', tab: 'm365' as CredTab,    statusKey: 'm365'        },
               ];
 
               const infraChecks = [
@@ -1315,6 +1316,71 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                           <li><code>Directory.ReadWrite.All</code> — Toggles licenses</li>
                           <li><code>Reports.Read.All</code> — Audits active usages</li>
                         </ul>
+                      </div>
+                    </div>
+                  </SectionBlock>
+
+                  <SectionBlock
+                    title="M365 Domain &amp; Mail Flow Diagnostics"
+                    subtitle="Live validation of GoDaddy DNS routing and Exchange mail flow configuration."
+                    accent="#ca8a04"
+                  >
+                    <div style={{ display: 'grid', gap: '14px', fontSize: '0.8rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>M365 Connection Status:</span>
+                        {credentialStatus.m365 ? (
+                          <span style={{ color: 'var(--success)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <ShieldCheck size={12} /> Connected &amp; Healthy
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--error)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <ShieldAlert size={12} /> Not Linked / Unverified
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>GoDaddy DNS Integration:</span>
+                        {credentialsList.some(c => c.provider === 'godaddy') ? (
+                          <span style={{ color: 'var(--success)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            🟢 Connected (Active Domain)
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--warning)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            🟡 GoDaddy API Key Missing
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--glass-border)', paddingBottom: '8px' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>Mail Reception Ability:</span>
+                        {credentialStatus.m365 && credentialsList.some(c => c.provider === 'godaddy') ? (
+                          <span style={{ color: 'var(--success)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            🟢 Active (Able to receive mails)
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--error)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            🔴 Inactive (Mail routing not verified)
+                          </span>
+                        )}
+                      </div>
+
+                      <div>
+                        <strong style={{ display: 'block', marginBottom: '6px', color: 'var(--text-primary)' }}>Mail Flow Diagnostics Checkpoints:</strong>
+                        <div style={{ display: 'grid', gap: '8px', padding: '10px', borderRadius: '6px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)', fontSize: '0.74rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>MX (Mail Exchange):</span>
+                            <span style={{ color: credentialStatus.m365 ? 'var(--success)' : 'var(--text-muted)', fontFamily: 'monospace' }}>
+                              {credentialStatus.m365 ? 'mail.protection.outlook.com ✓' : 'unconfigured'}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'var(--text-secondary)' }}>SPF Spam Filter:</span>
+                            <span style={{ color: credentialStatus.m365 ? 'var(--success)' : 'var(--text-muted)', fontFamily: 'monospace' }}>
+                              {credentialStatus.m365 ? 'include:spf.protection ✓' : 'unconfigured'}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </SectionBlock>
