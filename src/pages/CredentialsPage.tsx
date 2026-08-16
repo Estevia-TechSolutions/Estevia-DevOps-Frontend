@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Database, Eye, EyeOff, GitBranch, Settings, Globe, Cloud, AlertTriangle, MessageSquare, Copy, CheckCircle, Loader, RefreshCw, ShieldCheck, CheckCircle2, XCircle, AlertCircle, ArrowRight, Zap } from 'lucide-react';
+import { Database, Eye, EyeOff, GitBranch, Settings, Globe, Cloud, AlertTriangle, MessageSquare, Copy, CheckCircle, Loader, RefreshCw, ShieldCheck, CheckCircle2, XCircle, AlertCircle, ArrowRight, Zap, Mail } from 'lucide-react';
 import EvaForgeIcon from '../components/icons/EvaForgeIcon';
 import { KeyVaultConfigurator } from '../components/credentials/KeyVaultConfigurator';
 
@@ -15,7 +15,7 @@ interface CredentialsPageProps {
   credentialStatus: Record<string, boolean>;
   savingCredentials: string | null;
   credMsg: { type: 'success' | 'error'; text: string } | null;
-  handleLoadSavedCredential: (type: 'github' | 'godaddy' | 'azure_devops' | 'azure') => void;
+  handleLoadSavedCredential: (type: 'github' | 'godaddy' | 'azure_devops' | 'azure' | 'm365') => void;
   handleSaveCredential: (type: string, data: any, label: string, expiresAt?: string) => void;
   godaddyKey: string;
   setGodaddyKey: (val: string) => void;
@@ -28,6 +28,21 @@ interface CredentialsPageProps {
   setShowGodaddySecret: (val: boolean) => void;
   decryptedGodaddyKey: string;
   decryptedGodaddySecret: string;
+  m365TenantId: string;
+  setM365TenantId: (val: string) => void;
+  m365ClientId: string;
+  setM365ClientId: (val: string) => void;
+  m365ClientSecret: string;
+  setM365ClientSecret: (val: string) => void;
+  showM365TenantId: boolean;
+  setShowM365TenantId: (val: boolean) => void;
+  showM365ClientId: boolean;
+  setShowM365ClientId: (val: boolean) => void;
+  showM365ClientSecret: boolean;
+  setShowM365ClientSecret: (val: boolean) => void;
+  decryptedM365TenantId: string;
+  decryptedM365ClientId: string;
+  decryptedM365ClientSecret: string;
 
   devopsPat: string;
   setDevopsPat: (val: string) => void;
@@ -88,7 +103,7 @@ interface CredentialsPageProps {
   setProdLogAnalyticsWorkspaceId: (val: string) => void;
   testingCredential: string | null;
   validationResult: Record<string, { success: boolean; message: string }>;
-  handleValidateCredential: (provider: 'github' | 'godaddy' | 'azure_devops' | 'azure') => void;
+  handleValidateCredential: (provider: 'github' | 'godaddy' | 'azure_devops' | 'azure' | 'm365') => void;
   azureClientId: string;
   setAzureClientId: (val: string) => void;
   azureClientSecret: string;
@@ -112,13 +127,14 @@ interface CredentialsPageProps {
   isGoldenAccess?: boolean;
 }
 
-type CredTab = 'summary' | 'github' | 'godaddy' | 'azure' | 'keyvault' | 'teams';
+type CredTab = 'summary' | 'github' | 'godaddy' | 'azure' | 'keyvault' | 'teams' | 'm365';
 
 const TABS: { id: CredTab; label: string; sublabel: string; icon: React.ReactNode; accentVar: string }[] = [
   { id: 'summary',  label: 'Integration Health', sublabel: 'Live health check across all credentials and infrastructure configuration', icon: <ShieldCheck size={15} />, accentVar: '#ca8a04' },
   { id: 'github',   label: 'GitHub Integration',   sublabel: 'Personal Access Tokens & repository owner organization configuration', icon: <GitBranch size={15} />,    accentVar: '#ca8a04' },
   { id: 'godaddy',  label: 'GoDaddy DNS Binding',  sublabel: 'Automated DNS record bindings for custom app domains', icon: <Globe size={15} />,        accentVar: '#ca8a04' },
   { id: 'azure',    label: 'Azure Infrastructure', sublabel: 'Subscriptions, target resource groups, variable groups, and container registries', icon: <Cloud size={15} />,        accentVar: '#ca8a04' },
+  { id: 'm365',     label: 'Microsoft 365 Graph',  sublabel: 'M365 Tenant ID, Client ID, and Client Secret for Graph API audits', icon: <Mail size={15} />,           accentVar: '#ca8a04' },
   { id: 'keyvault', label: 'Key Vault & Monitoring', sublabel: 'Secure Key Vault mappings and Log Analytics auto-discovery setup', icon: <Database size={15} />,     accentVar: '#ca8a04' },
   { id: 'teams',    label: 'MS Teams Alerts',      sublabel: 'Life-cycle webhooks and Azure DevOps service hook automated setup', icon: <MessageSquare size={15} />, accentVar: '#6264a7' },
 ];
@@ -254,6 +270,9 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
   azureClientId, setAzureClientId, azureClientSecret, setAzureClientSecret, azureTenantId, setAzureTenantId,
   showAzureClientId, setShowAzureClientId, showAzureClientSecret, setShowAzureClientSecret, showAzureTenantId, setShowAzureTenantId,
   decryptedAzureClientId, decryptedAzureClientSecret, decryptedAzureTenantId,
+  m365TenantId, setM365TenantId, m365ClientId, setM365ClientId, m365ClientSecret, setM365ClientSecret,
+  showM365TenantId, setShowM365TenantId, showM365ClientId, setShowM365ClientId, showM365ClientSecret, setShowM365ClientSecret,
+  decryptedM365TenantId, decryptedM365ClientId, decryptedM365ClientSecret,
   showToast, handleDiscoverAzureEnvCredentials,
   isOrgRestricted = false, isOrgDisabled = false, maxOverdueDays = 0,
   isGoldenAccess = false,
@@ -285,6 +304,10 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
       const az = credentialsList.find(c => c.provider === 'azure');
       if (az && az.expires_at) {
         setAzureExpiresAt(new Date(az.expires_at).toISOString().split('T')[0]);
+      }
+      const m36 = credentialsList.find(c => c.provider === 'm365');
+      if (m36) {
+        handleLoadSavedCredential('m365');
       }
     }
   }, [credentialsList]);
@@ -1199,6 +1222,115 @@ export const CredentialsPage: React.FC<CredentialsPageProps> = ({
                 }}>
                   <strong style={{ color: '#ca8a04', display: 'block', marginBottom: '4px' }}>💡 GoDaddy DNS Automation &amp; Domain Lifecycle Management</strong>
                   The GoDaddy API Key and API Secret are utilized to programmatically interface with GoDaddy's DNS REST endpoints to coordinate DNS lifecycle bindings. This enables the platform to automatically provision, modify, and delete custom DNS records (specifically targeting CNAME mappings and TXT domain validations). When new feature branches are created or environments are cloned, EvaOps (CloudOps Management & Governance) handles zero-touch subdomain generation and automatically configures SSL/TLS certificates, ensuring your dynamic deployments are instantly accessible under secure custom URLs.
+                </div>
+              </div>
+            )}
+
+            {/* ── MICROSOFT 365 TAB ── */}
+            {activeTab === 'm365' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', alignItems: 'start' }}>
+                  <SectionBlock
+                    title="Microsoft 365 Integration Credentials"
+                    subtitle="Powers automatic license seat audits, user syncs, and GoDaddy DNS connections."
+                    accent="#ca8a04"
+                    status={credentialStatus.m365}
+                    revealShown={showM365TenantId && (m365TenantId !== '' || m365ClientId !== '' || m365ClientSecret !== '')}
+                    onReveal={() => {
+                      if ((m365TenantId !== '' || m365ClientId !== '' || m365ClientSecret !== '') && showM365TenantId) {
+                        setM365TenantId('••••••••••••••••••••'); setM365ClientId('••••••••••••••••••••'); setM365ClientSecret('••••••••••••••••••••');
+                        setShowM365TenantId(false); setShowM365ClientId(false); setShowM365ClientSecret(false);
+                      } else { handleLoadSavedCredential('m365'); }
+                    }}
+                    disabledReveal={!canEdit}
+                  >
+                    <div style={{ display: 'grid', gap: '10px', marginBottom: '12px' }}>
+                      <PasswordInput value={m365TenantId} onChange={setM365TenantId}
+                        show={showM365TenantId} onToggle={() => setShowM365TenantId(!showM365TenantId)}
+                        placeholder="Microsoft 365 Tenant ID" disabled={!canEdit} />
+                      <PasswordInput value={m365ClientId} onChange={setM365ClientId}
+                        show={showM365ClientId} onToggle={() => setShowM365ClientId(!showM365ClientId)}
+                        placeholder="Azure AD Application (Client) ID" disabled={!canEdit} />
+                      <PasswordInput value={m365ClientSecret} onChange={setM365ClientSecret}
+                        show={showM365ClientSecret} onToggle={() => setShowM365ClientSecret(!showM365ClientSecret)}
+                        placeholder="Azure AD Client Secret Key" disabled={!canEdit} />
+                    </div>
+                    <button className="btn-primary" style={{ width: '100%', marginBottom: '12px' }}
+                      onClick={() => handleSaveCredential('m365', { tenantId: m365TenantId, clientId: m365ClientId, clientSecret: m365ClientSecret }, 'Microsoft 365 Graph Credentials')}
+                      disabled={!canEdit || billingBlocked || savingCredentials === 'm365' || !m365TenantId || !m365ClientId || !m365ClientSecret || m365TenantId === '••••••••••••••••••••' || m365ClientId === '••••••••••••••••••••' || m365ClientSecret === '••••••••••••••••••••' || (!!decryptedM365TenantId && m365TenantId === decryptedM365TenantId && m365ClientId === decryptedM365ClientId && m365ClientSecret === decryptedM365ClientSecret)}
+                    >
+                      {savingCredentials === 'm365' ? 'Saving Microsoft 365 Keys...' : 'Save Microsoft 365 Keys'}
+                    </button>
+                    {credentialStatus.m365 && (
+                      <button
+                        className="btn-outline"
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          color: testingCredential === 'm365' ? 'var(--text-muted)' : 'var(--text-primary)',
+                          cursor: (testingCredential === 'm365' || billingBlocked) ? 'not-allowed' : 'pointer'
+                        }}
+                        onClick={() => handleValidateCredential('m365')}
+                        disabled={testingCredential === 'm365' || billingBlocked}
+                      >
+                        {testingCredential === 'm365' ? (
+                          <><Loader size={12} className="spin-anim" /> Verifying Connection...</>
+                        ) : 'Verify Connection Health'}
+                      </button>
+                    )}
+                    {validationResult.m365 && (
+                      <div
+                        style={{
+                          marginTop: '12px',
+                          padding: '10px 12px',
+                          borderRadius: '6px',
+                          border: `1px solid ${validationResult.m365.success ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                          backgroundColor: validationResult.m365.success ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)',
+                          color: validationResult.m365.success ? 'var(--success)' : 'var(--error)',
+                          fontSize: '0.75rem',
+                          lineHeight: '1.4'
+                        }}
+                      >
+                        {validationResult.m365.success ? '🟢 ' : '🔴 '}
+                        {validationResult.m365.message}
+                      </div>
+                    )}
+                  </SectionBlock>
+
+                  <SectionBlock
+                    title="M365 Integration Overview"
+                    subtitle="Secure connection properties for Microsoft Graph services."
+                    accent="#ca8a04"
+                  >
+                    <div style={{ display: 'grid', gap: '14px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      <p>Connecting your Microsoft 365 Tenant enables EvaOps to audit licenses, downscale unutilized seats, and synchronize accounts dynamically.</p>
+                      <div>
+                        <strong>Required Microsoft Graph scopes:</strong>
+                        <ul style={{ paddingLeft: '20px', marginTop: '6px', display: 'grid', gap: '4px' }}>
+                          <li><code>Organization.Read.All</code> — Lists licenses info</li>
+                          <li><code>User.ReadWrite.All</code> — Manages user seats</li>
+                          <li><code>Directory.ReadWrite.All</code> — Toggles licenses</li>
+                          <li><code>Reports.Read.All</code> — Audits active usages</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </SectionBlock>
+                </div>
+
+                <div style={{
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  background: 'rgba(234, 179, 8, 0.04)',
+                  border: '1px solid rgba(234, 179, 8, 0.1)',
+                  fontSize: '0.76rem',
+                  color: 'var(--text-secondary)',
+                  lineHeight: '1.45',
+                }}>
+                  <strong style={{ color: '#ca8a04', display: 'block', marginBottom: '4px' }}>💡 Microsoft 365 Domain Binding &amp; Provisioning</strong>
+                  Once connected, you can link GoDaddy domains directly to M365. EvaOps handles automated DNS verification record insertion, registers your domain, and auto-provisions Exchange mail routing (MX, autodiscover CNAME, and SPF TXT records) on GoDaddy without manual copy-paste sequences.
                 </div>
               </div>
             )}

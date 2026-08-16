@@ -57,6 +57,7 @@ import { BuildHistoryDrawer } from './components/BuildHistoryDrawer';
 import { EsteviaLoginBadge } from './components/shared/EsteviaLoginBadge';
 import { PWAUpdateManager } from './components/shared/PWAUpdateManager';
 import { EmailTemplatesPage } from './pages/EmailTemplatesPage';
+import { M365ManagementPage } from './pages/M365ManagementPage';
 import { AppStartLoader } from './components/shared/AppStartLoader';
 import { PipelinesPage } from './pages/PipelinesPage';
 import { PipelineCreatorDrawer } from './components/pipelines/PipelineCreatorDrawer';
@@ -707,8 +708,9 @@ function App() {
 
   const fetch = authFetch;
 
-  const [activeTab, setActiveTab] = useState<'scan' | 'provision' | 'credentials' | 'cost' | 'optimization' | 'databases' | 'guide' | 'users' | 'events' | 'emails' | 'settings'>('scan');
+  const [activeTab, setActiveTab] = useState<'scan' | 'provision' | 'credentials' | 'cost' | 'optimization' | 'databases' | 'logs-doc' | 'users' | 'emails' | 'settings' | 'm365'>('scan');
   const [scanSubTab, setScanSubTab] = useState<'discovery' | 'compliance' | 'observability' | 'incidents'>('discovery');
+  const [logsDocSubTab, setLogsDocSubTab] = useState<'events' | 'guide'>('events');
   const [userMenuPermissions, setUserMenuPermissions] = useState<Record<string, boolean>>({});
   const [organizationId, setOrganizationId] = useState<string>(() => {
     return localStorage.getItem('devops_organization_id') || new URLSearchParams(window.location.search).get('org') || 'estevia';
@@ -1205,6 +1207,15 @@ function App() {
   const [decryptedAzureClientId, setDecryptedAzureClientId] = useState('');
   const [decryptedAzureClientSecret, setDecryptedAzureClientSecret] = useState('');
   const [decryptedAzureTenantId, setDecryptedAzureTenantId] = useState('');
+  const [m365TenantId, setM365TenantId] = useState('');
+  const [m365ClientId, setM365ClientId] = useState('');
+  const [m365ClientSecret, setM365ClientSecret] = useState('');
+  const [showM365TenantId, setShowM365TenantId] = useState(false);
+  const [showM365ClientId, setShowM365ClientId] = useState(false);
+  const [showM365ClientSecret, setShowM365ClientSecret] = useState(false);
+  const [decryptedM365TenantId, setDecryptedM365TenantId] = useState('');
+  const [decryptedM365ClientId, setDecryptedM365ClientId] = useState('');
+  const [decryptedM365ClientSecret, setDecryptedM365ClientSecret] = useState('');
   const [credentialStatus, setCredentialStatus] = useState<Record<string, boolean>>({});
   const [savingCredentials, setSavingCredentials] = useState<string | null>(null);
   const [credMsg, setCredMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -1214,7 +1225,7 @@ function App() {
   const [testingCredential, setTestingCredential] = useState<string | null>(null);
   const [validationResult, setValidationResult] = useState<Record<string, { success: boolean; message: string }>>({});
 
-  const handleValidateCredential = async (provider: 'github' | 'godaddy' | 'azure_devops' | 'azure') => {
+  const handleValidateCredential = async (provider: 'github' | 'godaddy' | 'azure_devops' | 'azure' | 'm365') => {
     setTestingCredential(provider);
     setValidationResult(prev => {
       const copy = { ...prev };
@@ -1925,10 +1936,10 @@ function App() {
   }, [API_BASE]);
 
   useEffect(() => {
-    if (activeTab === 'events') {
+    if (activeTab === 'logs-doc' && logsDocSubTab === 'events') {
       fetchAuditLogsForEvents();
     }
-  }, [activeTab, fetchAuditLogsForEvents]);
+  }, [activeTab, logsDocSubTab, fetchAuditLogsForEvents]);
 
   // Confirmation Modal and sync timer states
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -2099,7 +2110,7 @@ function App() {
 
   // ── Force settings tab when org is disabled (Allow admin tabs) ─────────────
   useEffect(() => {
-    if (isOrgDisabled && !['settings', 'users', 'credentials', 'licensing', 'guide'].includes(activeTab)) {
+    if (isOrgDisabled && !['settings', 'users', 'credentials', 'licensing', 'logs-doc'].includes(activeTab)) {
       setActiveTab('settings');
     }
   }, [isOrgDisabled, activeTab]);
@@ -3790,6 +3801,9 @@ function App() {
         if (statusMap.azure) {
           handleLoadSavedCredential('azure');
         }
+        if (statusMap.m365) {
+          handleLoadSavedCredential('m365');
+        }
       }
     } catch (e) {
       console.error('Failed to load credential status:', e);
@@ -4396,6 +4410,14 @@ function App() {
           setDecryptedAzureClientSecret('');
           setDecryptedAzureTenantId('');
         }
+        if (provider === 'm365') {
+          setM365TenantId('');
+          setM365ClientId('');
+          setM365ClientSecret('');
+          setDecryptedM365TenantId('');
+          setDecryptedM365ClientId('');
+          setDecryptedM365ClientSecret('');
+        }
         await fetchCredentialStatus();
         await checkCredentialGateStatus();
       } else {
@@ -4443,6 +4465,16 @@ function App() {
             setShowAzureClientId(true);
             setShowAzureClientSecret(true);
             setShowAzureTenantId(true);
+          } else if (provider === 'm365') {
+            setM365TenantId(data.secrets.tenantId || '');
+            setM365ClientId(data.secrets.clientId || '');
+            setM365ClientSecret(data.secrets.clientSecret || '');
+            setDecryptedM365TenantId(data.secrets.tenantId || '');
+            setDecryptedM365ClientId(data.secrets.clientId || '');
+            setDecryptedM365ClientSecret(data.secrets.clientSecret || '');
+            setShowM365TenantId(true);
+            setShowM365ClientId(true);
+            setShowM365ClientSecret(true);
           }
         } else {
           showToast('Load Credentials Failed', data.message || 'Failed to decrypt credentials.', 'error');
@@ -8144,57 +8176,31 @@ function App() {
                   )}
 
                   <button
-                    className={`premium-tab-btn ${activeTab === 'events' ? 'active' : ''}`}
-                    onClick={() => {
-                      if (!subPackageDevops) {
-                        setUpgradePackageModal('DevOps');
-                      } else {
-                        setActiveTab('events');
-                      }
-                    }}
-                    disabled={requiresCredentialSetup || isOrgDisabled}
+                    className={`premium-tab-btn ${activeTab === 'logs-doc' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('logs-doc')}
+                    disabled={requiresCredentialSetup}
                   >
                     <Activity size={16} />
-                    <span>Events Feed</span>
-                    {!subPackageDevops && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '-8px',
-                        right: '8px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '16px',
-                        height: '16px',
-                        borderRadius: '50%',
-                        backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                        border: '1px solid rgba(239, 68, 68, 0.4)',
-                        color: '#ef4444',
-                        boxShadow: '0 0 8px rgba(239, 68, 68, 0.25)',
-                        boxSizing: 'border-box'
-                      }}>
-                        <Lock size={9} />
-                      </div>
-                    )}
+                    <span>Logs & Docs</span>
                     {tabLoadingMap.events && (
                       <span className="tab-loading-spin" title="Loading events..." />
                     )}
-                    {activeBuildsCount > 0 && (
-                      <span className="premium-build-badge" title={`${activeBuildsCount} build(s) in progress`}>
-                        {activeBuildsCount}
-                      </span>
-                    )}
                     <div className="menu-hover-card">
-                      <div className="menu-hover-card-title"><Activity size={12} /> Events Feed {!subPackageDevops && '🔒'}</div>
-                      <div className="menu-hover-card-desc">Real-time stream of build triggers, power actions, scans, and credential changes across the platform.</div>
+                      <div className="menu-hover-card-title"><Activity size={12} /> Logs & Docs</div>
+                      <div className="menu-hover-card-desc">System audit logs, event feeds, and step-by-step user documentation.</div>
                     </div>
                   </button>
-                  <button className={`premium-tab-btn ${activeTab === 'guide' ? 'active' : ''}`} onClick={() => setActiveTab('guide')} disabled={requiresCredentialSetup}>
-                    <Info size={16} />
-                    <span>User Guide</span>
+
+                  <button
+                    className={`premium-tab-btn ${activeTab === 'm365' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('m365')}
+                    disabled={requiresCredentialSetup || isOrgDisabled}
+                  >
+                    <Mail size={16} />
+                    <span>Microsoft 365</span>
                     <div className="menu-hover-card menu-hover-card-right">
-                      <div className="menu-hover-card-title"><Info size={12} /> User Guide</div>
-                      <div className="menu-hover-card-desc">Step-by-step documentation, onboarding checklists, and quick-start guides for all DevOps Control Centre features.</div>
+                      <div className="menu-hover-card-title"><Mail size={12} /> Microsoft 365</div>
+                      <div className="menu-hover-card-desc">Audit M365 subscriptions, optimize license seats cost, and link GoDaddy domains.</div>
                     </div>
                   </button>
                 </div>
@@ -8259,7 +8265,7 @@ function App() {
             <main style={{ paddingBottom: '80px', position: 'relative' }}>
 
               {/* Full-Page Translucent Glassmorphism Overlay when Target Scope is Restricted (Operational Tabs Only) */}
-              {(isOrgDisabled || isCurrentSubscriptionInactive) && !['settings', 'users', 'credentials', 'licensing', 'guide'].includes(activeTab) && (
+              {(isOrgDisabled || isCurrentSubscriptionInactive) && !['settings', 'users', 'credentials', 'licensing', 'logs-doc'].includes(activeTab) && (
                 <div style={{
                   position: 'absolute',
                   top: 0,
@@ -8857,15 +8863,39 @@ function App() {
                   handleValidateCredential={handleValidateCredential}
                   showToast={showToast}
                   handleDiscoverAzureEnvCredentials={handleDiscoverAzureEnvCredentials}
+                  m365TenantId={m365TenantId}
+                  setM365TenantId={setM365TenantId}
+                  m365ClientId={m365ClientId}
+                  setM365ClientId={setM365ClientId}
+                  m365ClientSecret={m365ClientSecret}
+                  setM365ClientSecret={setM365ClientSecret}
+                  showM365TenantId={showM365TenantId}
+                  setShowM365TenantId={setShowM365TenantId}
+                  showM365ClientId={showM365ClientId}
+                  setShowM365ClientId={setShowM365ClientId}
+                  showM365ClientSecret={showM365ClientSecret}
+                  setShowM365ClientSecret={setShowM365ClientSecret}
+                  decryptedM365TenantId={decryptedM365TenantId}
+                  decryptedM365ClientId={decryptedM365ClientId}
+                  decryptedM365ClientSecret={decryptedM365ClientSecret}
                   isOrgRestricted={isOrgRestricted}
                   isOrgDisabled={isOrgDisabled}
                   maxOverdueDays={maxOverdueDays}
                   isGoldenAccess={isGoldenAccess}
                 />
               )}
-
-
-
+              {/* TAB 9: MICROSOFT 365 SUBSCRIPTIONS */}
+              {activeTab === 'm365' && (
+                <M365ManagementPage
+                  organizationId={organizationId}
+                  currentUser={user}
+                  isOrgDisabled={isOrgDisabled}
+                  credentialsList={credentialsList}
+                  API_BASE={API_BASE}
+                  setActiveTab={setActiveTab}
+                  showToast={showToast}
+                />
+              )}
               {/* TAB 4: COST MANAGEMENT & OPTIMIZATION */}
               {activeTab === 'cost' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -9066,17 +9096,51 @@ function App() {
                 />
               )}
 
-              {/* TAB 6: USER GUIDE */}
-              {activeTab === 'guide' && (
-                <GuidePage theme={theme} />
-              )}
+
 
               {activeTab === 'emails' && (
                 <EmailTemplatesPage />
               )}
 
               {/* TAB 8: PERSISTENT EVENTS STREAM */}
-              {activeTab === 'events' && (() => {
+              {activeTab === 'logs-doc' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '10px' }}>
+                    <button
+                      className={`btn-subtab ${logsDocSubTab === 'events' ? 'active' : ''}`}
+                      onClick={() => setLogsDocSubTab('events')}
+                      style={{
+                        padding: '8px 16px',
+                        border: 'none',
+                        borderRadius: '6px',
+                        background: logsDocSubTab === 'events' ? 'var(--accent-purple)' : 'transparent',
+                        color: logsDocSubTab === 'events' ? '#fff' : 'var(--text-secondary)',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      System Audit Logs
+                    </button>
+                    <button
+                      className={`btn-subtab ${logsDocSubTab === 'guide' ? 'active' : ''}`}
+                      onClick={() => setLogsDocSubTab('guide')}
+                      style={{
+                        padding: '8px 16px',
+                        border: 'none',
+                        borderRadius: '6px',
+                        background: logsDocSubTab === 'guide' ? 'var(--accent-purple)' : 'transparent',
+                        color: logsDocSubTab === 'guide' ? '#fff' : 'var(--text-secondary)',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      User Guide & Docs
+                    </button>
+                  </div>
+
+                  {logsDocSubTab === 'guide' ? (
+                    <GuidePage theme={theme} />
+                  ) : (() => {
                 const filteredEvents = unifiedEvents.filter(e => {
                   const matchesCategory = selectedEventCategories.includes(e.type);
                   const matchesStatus = selectedEventStatuses.includes(e.status);
@@ -10205,7 +10269,9 @@ function App() {
                     </div>
                   </div>
                 );
-              })()}
+                  })()}
+                </div>
+              )}
 
             </main>
 
