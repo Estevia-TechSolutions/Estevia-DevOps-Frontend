@@ -34,6 +34,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
     const [loadingData, setLoadingData] = useState(false);
+    const [connectionError, setConnectionError] = useState<string | null>(null);
     const [licenseActionUserId, setLicenseActionUserId] = useState<string | null>(null);
 
     const [activeSection, setActiveSection] = useState<'overview' | 'domain' | 'billing'>('overview');
@@ -41,11 +42,20 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
     const fetchM365Data = async () => {
         if (!isM365Connected) return;
         setLoadingData(true);
+        setConnectionError(null);
         try {
             const token = localStorage.getItem('devops_token');
             const subRes = await fetch(`${API_BASE}/m365/subscriptions?organizationId=${organizationId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
+            
+            if (subRes.status === 400) {
+                const subData = await subRes.json();
+                setConnectionError(subData.message || 'Failed to authenticate with Microsoft Graph API.');
+                setLoadingData(false);
+                return;
+            }
+            
             const subData = await subRes.json();
             if (subData.success) {
                 setSubscriptions(subData.subscriptions || []);
@@ -54,12 +64,21 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
             const userRes = await fetch(`${API_BASE}/m365/users?organizationId=${organizationId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
+            
+            if (userRes.status === 400) {
+                const userData = await userRes.json();
+                setConnectionError(userData.message || 'Failed to authenticate with Microsoft Graph API.');
+                setLoadingData(false);
+                return;
+            }
+            
             const userData = await userRes.json();
             if (userData.success) {
                 setUsers(userData.users || []);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error fetching M365 data:', err);
+            setConnectionError(err.message || 'Connection failed.');
         } finally {
             setLoadingData(false);
         }
@@ -195,36 +214,17 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                         Connect your organization's Microsoft 365 Tenant to enable centralized operator seat audits, automated onboarding configurations, and GoDaddy DNS mail integrations.
                     </p>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', textAlign: 'left', marginBottom: '32px' }}>
-                        {/* Option A Card */}
+                    <div style={{ maxWidth: '500px', margin: '0 auto 32px auto', textAlign: 'left' }}>
                         <div style={{
                             padding: '24px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)',
-                            border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+                            border: '1px solid var(--glass-border)'
                         }}>
-                            <div>
-                                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Option A: One-Click Connection</h3>
-                                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: '20px' }}>
-                                    Connect automatically using global App Consent. Sign in with your M365 Global Administrator account and grant directory delegation in one click.
-                                </p>
-                            </div>
-                            <button className="btn-primary" onClick={handleOneClickConnect} disabled={connectingM365} style={{ width: '100%' }}>
-                                {connectingM365 ? <><Loader size={13} className="spin-anim" /> Connecting...</> : 'Connect via M365 Admin Consent'}
-                            </button>
-                        </div>
-
-                        {/* Option B Card */}
-                        <div style={{
-                            padding: '24px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)',
-                            border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
-                        }}>
-                            <div>
-                                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Option B: Custom Credentials</h3>
-                                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: '20px' }}>
-                                    Manually configure private App Registrations in your Azure Active Directory portal. Enter your Client ID, Tenant ID, and Secret key securely.
-                                </p>
-                            </div>
-                            <button className="btn-outline" onClick={() => setActiveTab('credentials')} style={{ width: '100%' }}>
-                                Setup M365 in Credentials Tab <ArrowRight size={13} style={{ marginLeft: '4px' }} />
+                            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Setup M365 Connection Credentials</h3>
+                            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.45, marginBottom: '20px' }}>
+                                Configure an App Registration in your Azure Active Directory portal, assign the required Graph API permissions (Organization, User, Directory, Reports), and input your Client ID, Tenant ID, and Secret Key inside the secure Credentials Vault.
+                            </p>
+                            <button className="btn-primary" onClick={() => setActiveTab('credentials')} style={{ width: '100%' }}>
+                                Configure M365 in Credentials Tab <ArrowRight size={13} style={{ marginLeft: '4px' }} />
                             </button>
                         </div>
                     </div>
@@ -234,7 +234,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                         border: '1px solid var(--glass-border)', display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: 'var(--text-secondary)'
                     }}>
                         <HelpCircle size={14} style={{ color: 'var(--accent-purple)' }} />
-                        <span>Requires M365 Global Administrator roles to grant Graph API permission scopes.</span>
+                        <span>Requires M365 Global Administrator roles to grant Graph API permission scopes in Azure.</span>
                     </div>
                 </div>
             </div>
@@ -295,6 +295,32 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
             {/* OVERVIEW SECTION */}
             {activeSection === 'overview' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {connectionError && (
+                        <div className="glass-panel" style={{
+                            padding: '16px 20px',
+                            borderRadius: '10px',
+                            background: 'rgba(239, 68, 68, 0.06)',
+                            border: '1px solid rgba(239, 68, 68, 0.25)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '16px',
+                            fontSize: '0.82rem',
+                            color: 'var(--text-primary)',
+                            boxShadow: '0 0 12px rgba(239, 68, 68, 0.1)'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <ShieldAlert size={18} style={{ color: '#ef4444', flexShrink: 0 }} />
+                                <span>
+                                    <strong style={{ color: '#ef4444' }}>Microsoft 365 Integration Error:</strong> {connectionError} Please navigate to the Credentials tab to configure or update your tenant Application keys.
+                                </span>
+                            </div>
+                            <button className="btn-outline" onClick={() => setActiveTab('credentials')} style={{ padding: '6px 12px', fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
+                                Vault Settings
+                            </button>
+                        </div>
+                    )}
+
                     {/* Metrics row */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
                         <div className="glass-panel" style={{ padding: '20px', borderLeft: '3px solid var(--accent-purple)' }}>
