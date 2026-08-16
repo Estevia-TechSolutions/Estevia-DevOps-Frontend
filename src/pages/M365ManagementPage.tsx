@@ -72,12 +72,16 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
     // One-Click Admin Consent Flow Simulation
     const handleOneClickConnect = () => {
         setConnectingM365(true);
+        const token = localStorage.getItem('devops_token');
         setTimeout(() => {
             setConnectingM365(false);
             // Simulate saving M365 mock credentials in DB
             fetch(`${API_BASE}/credentials`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     organizationId,
                     provider: 'm365',
