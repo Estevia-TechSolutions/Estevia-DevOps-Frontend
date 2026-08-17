@@ -234,9 +234,15 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
     };
 
     // Calculations
-    const totalSubSeats = subscriptions.reduce((acc, sub) => acc + sub.totalSeats, 0);
-    const assignedSubSeats = subscriptions.reduce((acc, sub) => acc + sub.assignedSeats, 0);
-    const totalM365Cost = subscriptions.reduce((acc, sub) => acc + (sub.assignedSeats * sub.pricePerSeat), 0);
+    // Filter out free/trial/viral subscriptions from core seat calculations and grid views
+    const paidSubscriptions = subscriptions.filter(sub => {
+        const skuPart = (sub.skuPartNumber || '').toUpperCase();
+        return !(skuPart.includes('FREE') || skuPart.includes('TRIAL') || skuPart.includes('TEAMS_EXPLORATORY') || skuPart.includes('STUDENT') || skuPart.includes('VIRAL') || sub.pricePerSeat === 0);
+    });
+
+    const totalSubSeats = paidSubscriptions.reduce((acc, sub) => acc + sub.totalSeats, 0);
+    const assignedSubSeats = paidSubscriptions.reduce((acc, sub) => acc + sub.assignedSeats, 0);
+    const totalM365Cost = paidSubscriptions.reduce((acc, sub) => acc + (sub.assignedSeats * sub.pricePerSeat), 0);
     const inactiveUsers = users.filter(u => u.status === 'inactive');
 
     // Dynamic Billing URL & Next Billing Date calculation (removes hardcoding)
@@ -251,7 +257,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
     const billingUrl = `https://admin.microsoft.com/Adminportal/Home${tenantParam}#/billing/bills-and-payments`;
 
     // Dynamic License Seat Allocation scanning (removes hardcoding of E3)
-    const assignableSubscription = subscriptions.find(sub => sub.assignedSeats < sub.totalSeats);
+    const assignableSubscription = paidSubscriptions.find(sub => sub.assignedSeats < sub.totalSeats);
     const hasAvailableLicense = !!assignableSubscription;
 
     // ONBOARDING WIZARD VIEW (When M365 is not connected)
@@ -388,9 +394,9 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                     {/* Metrics row */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
                         <div className="glass-panel" style={{ padding: '20px', borderLeft: '3px solid var(--accent-purple)' }}>
-                            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Active License Cost (Monthly)</div>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Estimated License Cost (Monthly)</div>
                             <div style={{ fontSize: '2rem', fontWeight: 800, marginTop: '8px', color: 'var(--text-primary)' }}>${totalM365Cost.toFixed(2)}</div>
-                            <div style={{ fontSize: '0.74rem', color: 'var(--success)', marginTop: '6px' }}>Based on {assignedSubSeats} assigned seats</div>
+                            <div style={{ fontSize: '0.74rem', color: 'var(--success)', marginTop: '6px' }}>Based on {assignedSubSeats} paid seats. (Excludes free/trial plans)</div>
                         </div>
 
                         <div className="glass-panel" style={{ padding: '20px', borderLeft: '3px solid var(--accent-blue)' }}>
@@ -408,7 +414,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
 
                     {/* Subscription SKUs Grid */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-                        {subscriptions.map(sub => {
+                        {paidSubscriptions.map(sub => {
                             const pct = Math.round((sub.assignedSeats / sub.totalSeats) * 100) || 0;
                             return (
                                 <div key={sub.skuId} className="glass-panel" style={{ padding: '24px', display: 'flex', gap: '20px', alignItems: 'center' }}>
@@ -437,10 +443,27 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
 
                     {/* Users list */}
                     <div className="glass-panel" style={{ padding: '24px' }}>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Users size={18} style={{ color: 'var(--accent-purple)' }} />
-                            M365 User Licenses & Seat Allocations
-                        </h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Users size={18} style={{ color: 'var(--accent-purple)' }} />
+                                M365 User Licenses & Seat Allocations
+                            </h3>
+                            <a
+                                href={`https://admin.microsoft.com/Adminportal/Home${tenantParam}#/users`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn-outline"
+                                style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem',
+                                    height: '32px', padding: '0 12px', borderColor: 'var(--accent-purple)', color: 'var(--accent-purple)',
+                                    textDecoration: 'none', fontWeight: 600, borderRadius: '8px'
+                                }}
+                            >
+                                <Users size={12} />
+                                ➕ Add/Manage Users on Microsoft 365
+                                <ExternalLink size={12} style={{ marginLeft: '2px' }} />
+                            </a>
+                        </div>
 
                         {loadingData ? (
                             <div style={{ padding: '40px 0', textAlign: 'center' }}>
@@ -538,76 +561,76 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                         GoDaddy Custom Domain DNS Bindings
                     </h3>
 
-                    {!isGoDaddyConnected ? (
-                        <div style={{ padding: '30px 20px', textAlign: 'center', background: 'rgba(255,255,255,0.01)', border: '1px dashed var(--glass-border)', borderRadius: '8px' }}>
-                            <ShieldAlert size={36} style={{ color: 'var(--warning)', marginBottom: '12px' }} />
-                            <h4 style={{ margin: 0, fontSize: '0.94rem', color: 'var(--text-primary)' }}>GoDaddy Credentials Missing</h4>
-                            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px', maxWidth: '400px', margin: '4px auto 16px auto' }}>
-                                To enable automated DNS record bindings, please configure your GoDaddy Developer API key inside the Vault.
-                            </p>
-                            <button className="btn-outline" onClick={() => setActiveTab('credentials')}>
-                                Configure GoDaddy Keys
-                            </button>
-                        </div>
-                    ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                            <div style={{ display: 'flex', gap: '10px', maxWidth: '500px' }}>
-                                <input
-                                    type="text"
-                                    value={customDomain}
-                                    onChange={e => setCustomDomain(e.target.value)}
-                                    placeholder="e.g. companydomain.com"
-                                    style={{ flex: 1 }}
-                                    disabled={verifyingDomain}
-                                />
-                                <button className="btn-primary" onClick={handleLinkGoDaddy} disabled={verifyingDomain || !customDomain}>
-                                    {verifyingDomain ? <><Loader size={12} className="spin-anim" /> Configuring...</> : 'Link & Auto-Verify'}
-                                </button>
-                            </div>
-
-                            {/* Active connection topology map */}
-                            <div style={{
-                                padding: '20px', borderRadius: '12px', background: 'rgba(255,255,255,0.01)',
-                                border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '24px', flexWrap: 'wrap'
-                            }}>
-                                <div style={{ padding: '10px 16px', borderRadius: '8px', background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', textAlign: 'center' }}>
-                                    <div style={{ fontSize: '0.64rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Microsoft Tenant</div>
-                                    <strong style={{ color: 'var(--text-primary)', fontSize: '0.84rem' }}>M365 Mailboxes</strong>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--success)', fontSize: '0.74rem', fontWeight: 600 }}>
-                                    ──────── (Active Routing) ────────➔
-                                </div>
-                                <div style={{ padding: '10px 16px', borderRadius: '8px', background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', textAlign: 'center' }}>
-                                    <div style={{ fontSize: '0.64rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>GoDaddy Registrar</div>
-                                    <strong style={{ color: 'var(--text-primary)', fontSize: '0.84rem' }}>{customDomain || 'No Domain Linked'}</strong>
-                                </div>
-                            </div>
-
-                            {/* Check records grid */}
-                            {dnsCheckResult && (
-                                <div style={{ marginTop: '10px' }}>
-                                    <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '10px' }}>Active DNS Configuration Check Result</h4>
-                                    <div style={{ display: 'grid', gap: '8px' }}>
-                                        {dnsCheckResult.map((record, index) => (
-                                            <div key={index} style={{
-                                                padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)',
-                                                border: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem'
-                                            }}>
-                                                <div>
-                                                    <span style={{ fontWeight: 700, color: 'var(--accent-purple)', marginRight: '8px' }}>[{record.type}]</span>
-                                                    <span style={{ color: 'var(--text-secondary)', marginRight: '6px' }}>{record.name}</span>
-                                                    <span style={{ color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '0.74rem' }}>➔ {record.value}</span>
-                                                </div>
-                                                <span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: '20px', background: 'rgba(34,197,94,0.12)', color: 'var(--success)', fontWeight: 600 }}>
-                                                    ✓ Verified Active
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                    {!isGoDaddyConnected && (
+                        <div style={{
+                            padding: '16px', borderRadius: '10px', background: 'rgba(234, 179, 8, 0.05)',
+                            border: '1px solid rgba(234, 179, 8, 0.25)', display: 'flex', alignItems: 'center', gap: '12px',
+                            fontSize: '0.8rem', color: 'var(--text-primary)', marginBottom: '20px'
+                        }}>
+                            <ShieldAlert size={18} style={{ color: 'var(--warning)', flexShrink: 0 }} />
+                            <span>
+                                <strong>GoDaddy Vault Keys Missing:</strong> Automated DNS record synchronization is disabled. You can still link your domain below and perform manual verification checks.
+                            </span>
                         </div>
                     )}
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        <div style={{ display: 'flex', gap: '10px', maxWidth: '500px' }}>
+                            <input
+                                type="text"
+                                value={customDomain}
+                                onChange={e => setCustomDomain(e.target.value)}
+                                placeholder="e.g. companydomain.com"
+                                style={{ flex: 1 }}
+                                disabled={verifyingDomain}
+                            />
+                            <button className="btn-primary" onClick={handleLinkGoDaddy} disabled={verifyingDomain || !customDomain}>
+                                {verifyingDomain ? <><Loader size={12} className="spin-anim" /> Configuring...</> : 'Link & Auto-Verify'}
+                            </button>
+                        </div>
+
+                        {/* Active connection topology map */}
+                        <div style={{
+                            padding: '20px', borderRadius: '12px', background: 'rgba(255,255,255,0.01)',
+                            border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '24px', flexWrap: 'wrap'
+                        }}>
+                            <div style={{ padding: '10px 16px', borderRadius: '8px', background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', textAlign: 'center' }}>
+                                <div style={{ fontSize: '0.64rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Microsoft Tenant</div>
+                                <strong style={{ color: 'var(--text-primary)', fontSize: '0.84rem' }}>M365 Mailboxes</strong>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--success)', fontSize: '0.74rem', fontWeight: 600 }}>
+                                ──────── (Active Routing) ────────➔
+                            </div>
+                            <div style={{ padding: '10px 16px', borderRadius: '8px', background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', textAlign: 'center' }}>
+                                <div style={{ fontSize: '0.64rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>GoDaddy Registrar</div>
+                                <strong style={{ color: 'var(--text-primary)', fontSize: '0.84rem' }}>{customDomain || 'No Domain Linked'}</strong>
+                            </div>
+                        </div>
+
+                        {/* Check records grid */}
+                        {dnsCheckResult && (
+                            <div style={{ marginTop: '10px' }}>
+                                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '10px' }}>Active DNS Configuration Check Result</h4>
+                                <div style={{ display: 'grid', gap: '8px' }}>
+                                    {dnsCheckResult.map((record, index) => (
+                                        <div key={index} style={{
+                                            padding: '10px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.01)',
+                                            border: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem'
+                                        }}>
+                                            <div>
+                                                <span style={{ fontWeight: 700, color: 'var(--accent-purple)', marginRight: '8px' }}>[{record.type}]</span>
+                                                <span style={{ color: 'var(--text-secondary)', marginRight: '6px' }}>{record.name}</span>
+                                                <span style={{ color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '0.74rem' }}>➔ {record.value || record.data}</span>
+                                            </div>
+                                            <span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: '20px', background: 'rgba(34,197,94,0.12)', color: 'var(--success)', fontWeight: 600 }}>
+                                                ✓ Verified Active
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 
