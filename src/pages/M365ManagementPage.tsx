@@ -35,6 +35,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
     // Dashboard data states
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
     const [invoices, setInvoices] = useState<any[]>([]);
+    const [billingSyncStatus, setBillingSyncStatus] = useState<string>('Unauthorized');
     const [users, setUsers] = useState<any[]>([]);
     const [loadingData, setLoadingData] = useState(false);
     const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -103,6 +104,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
             if (subData.success) {
                 setSubscriptions(subData.subscriptions || []);
                 setInvoices(subData.invoices || []);
+                setBillingSyncStatus(subData.billingSyncStatus || 'Unauthorized');
                 if (subData.nextBillingDate) {
                     setBillingRenewalDate(subData.nextBillingDate);
                 }
@@ -997,13 +999,23 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                         </h4>
 
                         {invoices.length === 0 ? (
-                            <div style={{
-                                padding: '16px 20px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.02)',
-                                border: '1px dashed rgba(239, 68, 68, 0.25)', color: 'var(--text-secondary)', fontSize: '0.82rem',
-                                display: 'flex', alignItems: 'center', gap: '10px'
-                            }}>
-                                <span>⚠️ No verified Microsoft 365 billing invoices found. To sync billing records automatically, grant your Azure Service Principal the <strong>Billing Account Reader</strong> role in the Azure Portal.</span>
-                            </div>
+                            billingSyncStatus === 'Authorized' ? (
+                                <div style={{
+                                    padding: '16px 20px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.02)',
+                                    border: '1px dashed rgba(16, 185, 129, 0.25)', color: 'var(--text-secondary)', fontSize: '0.82rem',
+                                    display: 'flex', alignItems: 'center', gap: '10px'
+                                }}>
+                                    <span>✓ Microsoft Billing Access Verified: No historical invoices were returned by Microsoft for this billing account.</span>
+                                </div>
+                            ) : (
+                                <div style={{
+                                    padding: '16px 20px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.02)',
+                                    border: '1px dashed rgba(239, 68, 68, 0.25)', color: 'var(--text-secondary)', fontSize: '0.82rem',
+                                    display: 'flex', alignItems: 'center', gap: '10px'
+                                }}>
+                                    <span>⚠️ No verified Microsoft 365 billing invoices found. To sync billing records automatically, grant your Azure Service Principal the <strong>Billing Account Reader</strong> role in the Azure Portal.</span>
+                                </div>
+                            )
                         ) : (
                             <div style={{ display: 'grid', gap: '16px' }}>
                                 {subscriptions.map(sub => (
