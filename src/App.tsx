@@ -4282,7 +4282,19 @@ function App() {
         if (appsCount === 0 && !buildsOnly) {
           console.warn(`[DevOps Scan] [WARN] Scan returned 0 active resources. Organization: "${organizationId}" | Selected SubID: "${activeSub || 'All'}" | Selected ResourceGroup: "${activeRg || 'All'}" | Scan URL: "${scanUrl}". Check Azure subscription permissions or resource group filters.`);
         }
-        setApps(data.apps || []);
+        if (activeRg) {
+          setApps(prevApps => {
+            const otherRgApps = prevApps.filter(app => {
+              const resId = app.resourceId || '';
+              const rgMatch = resId.match(/\/resourceGroups\/([^\/]+)/i);
+              const rg = rgMatch ? rgMatch[1] : '';
+              return rg.toLowerCase() !== activeRg.toLowerCase();
+            });
+            return [...otherRgApps, ...(data.apps || [])];
+          });
+        } else {
+          setApps(data.apps || []);
+        }
         const newlyGrouped = groupApps(data.apps || []);
         if (!skipHealthChecks && !buildsOnly) {
           // Stagger the health checks by 1.5 seconds to allow cost query to dispatch first, avoiding browser socket contention
@@ -8980,6 +8992,7 @@ function App() {
                   API_BASE={API_BASE}
                   setActiveTab={setActiveTab}
                   showToast={showToast}
+                  m365TenantId={m365TenantId}
                 />
               )}
               {/* TAB 4: COST MANAGEMENT & OPTIMIZATION */}

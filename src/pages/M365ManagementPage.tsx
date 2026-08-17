@@ -9,6 +9,7 @@ interface M365ManagementPageProps {
     API_BASE: string;
     setActiveTab: (tab: any) => void;
     showToast: (title: string, message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
+    m365TenantId?: string;
 }
 
 export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
@@ -18,7 +19,8 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
     credentialsList,
     API_BASE,
     setActiveTab,
-    showToast
+    showToast,
+    m365TenantId
 }) => {
     const isM365Connected = credentialsList.some(c => c.provider === 'm365');
     const isGoDaddyConnected = credentialsList.some(c => c.provider === 'godaddy');
@@ -84,8 +86,55 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
         }
     };
 
+    const verifyDomainDns = (domainName: string) => {
+        if (!domainName.trim()) return;
+        setVerifyingDomain(true);
+        const token = localStorage.getItem('devops_token');
+        fetch(`${API_BASE}/m365/verify-godaddy`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+                organizationId,
+                domainName: domainName.trim()
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                setDnsCheckResult(data.dnsRecords || []);
+            }
+        })
+        .catch(err => {
+            console.error('DNS verification check failed:', err);
+        })
+        .finally(() => {
+            setVerifyingDomain(false);
+        });
+    };
+
     useEffect(() => {
         fetchM365Data();
+
+        // Fetch organization settings to pre-populate and verify custom domain
+        const fetchOrgSettings = async () => {
+            try {
+                const activeToken = localStorage.getItem('devops_token');
+                const res = await fetch(`${API_BASE}/org/status`, {
+                    headers: { Authorization: `Bearer ${activeToken}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.organization && data.organization.m365_domain) {
+                        const savedDomain = data.organization.m365_domain;
+                        setCustomDomain(savedDomain);
+                        verifyDomainDns(savedDomain);
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to fetch organization settings in M365ManagementPage:', err);
+            }
+        };
+        fetchOrgSettings();
     }, [isM365Connected]);
 
     // One-Click Admin Consent Flow Simulation
@@ -189,6 +238,21 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
     const assignedSubSeats = subscriptions.reduce((acc, sub) => acc + sub.assignedSeats, 0);
     const totalM365Cost = subscriptions.reduce((acc, sub) => acc + (sub.assignedSeats * sub.pricePerSeat), 0);
     const inactiveUsers = users.filter(u => u.status === 'inactive');
+
+    // Dynamic Billing URL & Next Billing Date calculation (removes hardcoding)
+    const getNextBillingDate = () => {
+        const d = new Date();
+        d.setMonth(d.getMonth() + 1);
+        d.setDate(1);
+        return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    };
+    const nextBillingDate = getNextBillingDate();
+    const tenantParam = m365TenantId && m365TenantId !== '••••••••••••••••••••' ? `?tid=${m365TenantId}` : '';
+    const billingUrl = `https://admin.microsoft.com/Adminportal/Home${tenantParam}#/billing/bills-and-payments`;
+
+    // Dynamic License Seat Allocation scanning (removes hardcoding of E3)
+    const assignableSubscription = subscriptions.find(sub => sub.assignedSeats < sub.totalSeats);
+    const hasAvailableLicense = !!assignableSubscription;
 
     // ONBOARDING WIZARD VIEW (When M365 is not connected)
     if (!isM365Connected) {
@@ -434,7 +498,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                                                     borderColor: isInactive ? 'rgba(239, 68, 68, 0.4)' : 'var(--glass-border)',
                                                                     color: isInactive ? '#ef4444' : 'var(--text-secondary)'
                                                                 }}
-                                                                onClick={() => handleToggleLicense(user.id, 'ENTERPRISEPACK', 'revoke')}
+                                                                onClick={() => handleToggleLicense(user.id, user.skuPartNumber, 'revoke')}
                                                                 disabled={licenseActionUserId === user.id}
                                                             >
                                                                 {licenseActionUserId === user.id ? 'Reclaiming...' : isInactive ? 'Reclaim Seat & Savings' : 'Revoke License'}
@@ -443,10 +507,15 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                                             <button
                                                                 className="btn-outline"
                                                                 style={{ padding: '4px 10px', fontSize: '0.74rem', height: '28px' }}
-                                                                onClick={() => handleToggleLicense(user.id, 'ENTERPRISEPACK', 'assign')}
-                                                                disabled={licenseActionUserId === user.id}
+                                                                onClick={() => handleToggleLicense(user.id, assignableSubscription?.skuPartNumber || '', 'assign')}
+                                                                disabled={licenseActionUserId === user.id || !hasAvailableLicense}
                                                             >
-                                                                {licenseActionUserId === user.id ? 'Assigning...' : 'Assign E3 License'}
+                                                                {licenseActionUserId === user.id 
+                                                                    ? 'Assigning...' 
+                                                                    : hasAvailableLicense 
+                                                                        ? `Assign ${assignableSubscription.skuPartNumber.replace('O365_', '').replace(/_/g, ' ')}` 
+                                                                        : 'No seats available'
+                                                                }
                                                             </button>
                                                         )}
                                                     </td>
@@ -557,7 +626,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                 border: '1px solid var(--glass-border)'
                             }}>
                                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>M365 Next Billing Date</div>
-                                <strong style={{ fontSize: '1.3rem', color: 'var(--text-primary)', display: 'block', marginTop: '6px' }}>September 1, 2026</strong>
+                                <strong style={{ fontSize: '1.3rem', color: 'var(--text-primary)', display: 'block', marginTop: '6px' }}>{nextBillingDate}</strong>
                                 <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>Renewal Cycle: Monthly Automatic Billing</span>
                             </div>
 
@@ -581,7 +650,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                 Microsoft 365 licensing bills are securely processed directly on official Microsoft portals. Click the button below to navigate to your M365 admin center to pay invoices or adjust credit card configurations.
                             </p>
                             <a
-                                href="https://admin.microsoft.com/Adminportal/Home#/billing/bills-and-payments"
+                                href={billingUrl}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="btn-primary"

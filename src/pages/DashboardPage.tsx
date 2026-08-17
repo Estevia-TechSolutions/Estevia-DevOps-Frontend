@@ -1497,11 +1497,46 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       const matchingBackend = allBackends.find(b => {
         const bHost = b.hostname || b.azureResourceDetails?.hostname || '';
         const bDns = b.dnsDetails?.fqdn || '';
-        return (
-          bHost.toLowerCase().includes(host.toLowerCase()) ||
-          bDns.toLowerCase().includes(host.toLowerCase()) ||
-          host.toLowerCase().includes(b.name.toLowerCase())
-        );
+        
+        // 1. Exact match of hostnames/domains
+        if (bHost.toLowerCase() === host.toLowerCase() || bDns.toLowerCase() === host.toLowerCase()) {
+          return true;
+        }
+
+        // 2. Exact match of custom DNS aliases if present
+        if (b.dnsDetails?.fqdns) {
+          const fqdnsArray = Array.isArray(b.dnsDetails.fqdns)
+            ? b.dnsDetails.fqdns
+            : typeof b.dnsDetails.fqdns === 'string'
+              ? [b.dnsDetails.fqdns]
+              : [];
+          if (fqdnsArray.some(f => f.toLowerCase() === host.toLowerCase())) {
+            return true;
+          }
+        }
+
+        // 3. Match by name prefix and environment tag (excluding loose global substrings)
+        const cleanFrontName = item.name.toLowerCase()
+          .replace(/-swa$/, '')
+          .replace(/-frontend$/, '')
+          .replace(/-dev$/, '')
+          .replace(/-qa$/, '')
+          .replace(/-prod$/, '');
+
+        const cleanBackName = b.name.toLowerCase()
+          .replace(/-backend$/, '')
+          .replace(/-dev$/, '')
+          .replace(/-qa$/, '')
+          .replace(/-prod$/, '');
+
+        const frontEnv = getEnvTag(item).label;
+        const backEnv = getEnvTag(b).label;
+
+        if ((cleanFrontName.includes(cleanBackName) || cleanBackName.includes(cleanFrontName)) && frontEnv === backEnv) {
+          return true;
+        }
+
+        return false;
       });
 
       if (matchingBackend) {
@@ -1542,10 +1577,23 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         // Mismatch check by string matching
         const isDevUrl = host.includes('dev') || host.includes('localhost') || host.includes('127.0.0.1');
         const isQaUrl = host.includes('qa') || host.includes('staging') || host.includes('test');
+        const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
 
         let urlEnv: 'DEV' | 'QA' | 'PROD' = 'PROD';
         if (isDevUrl) urlEnv = 'DEV';
         else if (isQaUrl) urlEnv = 'QA';
+
+        if (isLocalhost) {
+          // Since this SWA is deployed to Azure, pointing to localhost is a configuration error!
+          return {
+            status: 'warning',
+            message: 'Localhost Binding',
+            detail: `Network Warning: SWA is deployed in the cloud but is configured to connect to loopback target '${host}'. Connect to a cloud backend instead.`,
+            sourceFile: item.azureResourceDetails?.scrapedSourceFile,
+            sourceContent: item.azureResourceDetails?.scrapedSourceContent,
+            sourceAppName: item.name
+          };
+        }
 
         if (themeEnv !== urlEnv) {
           return {
