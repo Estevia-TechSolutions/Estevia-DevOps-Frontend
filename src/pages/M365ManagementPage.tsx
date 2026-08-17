@@ -34,6 +34,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
 
     // Dashboard data states
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
+    const [invoices, setInvoices] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
     const [loadingData, setLoadingData] = useState(false);
     const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -43,6 +44,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
     const [editPrice, setEditPrice] = useState<number>(0);
     const [editCurrency, setEditCurrency] = useState<string>('USD');
     const [editDisplayName, setEditDisplayName] = useState<string>('');
+    const [activeDropdownUserId, setActiveDropdownUserId] = useState<string | null>(null);
     const [updatingPricing, setUpdatingPricing] = useState(false);
 
     const [activeSection, setActiveSection] = useState<'overview' | 'domain' | 'billing'>('overview');
@@ -100,6 +102,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
             const subData = await subRes.json();
             if (subData.success) {
                 setSubscriptions(subData.subscriptions || []);
+                setInvoices(subData.invoices || []);
                 if (subData.nextBillingDate) {
                     setBillingRenewalDate(subData.nextBillingDate);
                 }
@@ -177,6 +180,12 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
             }
         };
         fetchOrgSettings();
+
+        const handleOutsideClick = () => setActiveDropdownUserId(null);
+        window.addEventListener('click', handleOutsideClick);
+        return () => {
+            window.removeEventListener('click', handleOutsideClick);
+        };
     }, [isM365Connected]);
 
     // One-Click Admin Consent Flow Simulation
@@ -606,6 +615,14 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                                 </button>
                                             </div>
                                         )}
+                                        {sub.priceMismatch && (
+                                            <div style={{
+                                                marginTop: '6px', fontSize: '0.72rem', color: '#f59e0b',
+                                                display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600
+                                            }}>
+                                                ⚠️ Rate Mismatch: DB has {sub.currency === 'INR' ? '₹' : (sub.currency || '$')}{sub.pricePerSeat.toFixed(2)}, but Microsoft invoice shows {sub.currency === 'INR' ? '₹' : (sub.currency || '$')}{sub.actualInvoiceRate?.toFixed(2)}/seat
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             );
@@ -724,7 +741,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                                             );
                                                         })()}
                                                      </td>
-                                                    <td style={{ padding: '12px 8px', textAlign: 'right' }}>
+                                                    <td style={{ padding: '12px 8px', textAlign: 'right', position: 'relative' }}>
                                                         {(() => {
                                                             const userSkus = user.skuPartNumber && user.skuPartNumber !== 'NONE'
                                                                 ? user.skuPartNumber.split(',').map((s: string) => s.trim()).filter(Boolean)
@@ -739,47 +756,90 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                                             });
 
                                                             return (
-                                                                <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: '6px' }}>
-                                                                    {userSkus.map((skuCode: string, idx: number) => {
-                                                                        const displayName = userNames[idx] || skuCode.replace(/_/g, ' ');
-                                                                        return (
-                                                                            <button
-                                                                                key={skuCode}
-                                                                                className="btn-outline"
-                                                                                style={{
-                                                                                    padding: '3px 8px', fontSize: '0.7rem', height: '24px',
-                                                                                    background: 'rgba(239, 68, 68, 0.05)',
-                                                                                    borderColor: 'rgba(239, 68, 68, 0.25)',
-                                                                                    color: '#ef4444',
-                                                                                    fontWeight: 600
-                                                                                }}
-                                                                                onClick={() => handleToggleLicense(user.id, skuCode, 'revoke')}
-                                                                                disabled={licenseActionUserId === user.id}
-                                                                            >
-                                                                                {licenseActionUserId === user.id ? 'Reclaiming...' : `${isInactive ? 'Reclaim' : 'Revoke'} ${displayName}`}
-                                                                            </button>
-                                                                        );
-                                                                    })}
-                                                                    
-                                                                    {assignableToUser.map(sub => (
-                                                                        <button
-                                                                            key={sub.skuId}
-                                                                            className="btn-outline"
-                                                                            style={{
-                                                                                padding: '3px 8px', fontSize: '0.7rem', height: '24px',
-                                                                                borderColor: 'var(--accent-purple)',
-                                                                                color: 'var(--accent-purple)',
-                                                                                fontWeight: 600
-                                                                            }}
-                                                                            onClick={() => handleToggleLicense(user.id, sub.skuPartNumber, 'assign')}
-                                                                            disabled={licenseActionUserId === user.id}
-                                                                        >
-                                                                            {licenseActionUserId === user.id ? 'Assigning...' : `Assign ${sub.displayName || sub.skuPartNumber.replace(/_/g, ' ')}`}
-                                                                        </button>
-                                                                    ))}
-                                                                    
-                                                                    {userSkus.length === 0 && assignableToUser.length === 0 && (
-                                                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.74rem' }}>No seats available</span>
+                                                                <div style={{ display: 'inline-block' }}>
+                                                                    <button
+                                                                        className="btn-outline"
+                                                                        style={{
+                                                                            padding: '4px 10px', fontSize: '0.74rem', height: '26px',
+                                                                            display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                                                            borderColor: activeDropdownUserId === user.id ? 'var(--accent-purple)' : 'var(--glass-border)',
+                                                                            color: activeDropdownUserId === user.id ? 'var(--accent-purple)' : 'var(--text-secondary)'
+                                                                        }}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setActiveDropdownUserId(activeDropdownUserId === user.id ? null : user.id);
+                                                                        }}
+                                                                        disabled={licenseActionUserId === user.id}
+                                                                    >
+                                                                        {licenseActionUserId === user.id ? 'Processing...' : '⚙️ Actions'}
+                                                                    </button>
+                                                                    {activeDropdownUserId === user.id && (
+                                                                        <div style={{
+                                                                            position: 'absolute', right: '8px', top: '32px', zIndex: 100,
+                                                                            minWidth: '220px', background: 'rgba(20, 20, 25, 0.98)',
+                                                                            backdropFilter: 'blur(10px)',
+                                                                            border: '1px solid var(--glass-border)', borderRadius: '8px',
+                                                                            boxShadow: '0 8px 32px rgba(0,0,0,0.5)', padding: '6px 0',
+                                                                            textAlign: 'left'
+                                                                        }}>
+                                                                            {userSkus.length > 0 && (
+                                                                                <>
+                                                                                    <div style={{ fontSize: '0.64rem', textTransform: 'uppercase', color: 'var(--text-muted)', padding: '4px 12px', fontWeight: 700, letterSpacing: '0.05em' }}>Revoke License</div>
+                                                                                    {userSkus.map((skuCode: string, idx: number) => {
+                                                                                        const displayName = userNames[idx] || skuCode.replace(/_/g, ' ');
+                                                                                        return (
+                                                                                            <button
+                                                                                                key={skuCode}
+                                                                                                style={{
+                                                                                                    width: '100%', padding: '6px 12px', fontSize: '0.74rem',
+                                                                                                    background: 'none', border: 'none', color: '#ef4444',
+                                                                                                    textAlign: 'left', cursor: 'pointer', fontWeight: 600,
+                                                                                                    display: 'block'
+                                                                                                }}
+                                                                                                onClick={(e) => {
+                                                                                                    e.stopPropagation();
+                                                                                                    setActiveDropdownUserId(null);
+                                                                                                    handleToggleLicense(user.id, skuCode, 'revoke');
+                                                                                                }}
+                                                                                            >
+                                                                                                Revoke {displayName}
+                                                                                            </button>
+                                                                                        );
+                                                                                    })}
+                                                                                </>
+                                                                            )}
+                                                                            
+                                                                            {assignableToUser.length > 0 && (
+                                                                                <>
+                                                                                    {userSkus.length > 0 && <div style={{ borderTop: '1px solid var(--glass-border)', margin: '4px 0' }} />}
+                                                                                    <div style={{ fontSize: '0.64rem', textTransform: 'uppercase', color: 'var(--text-muted)', padding: '4px 12px', fontWeight: 700, letterSpacing: '0.05em' }}>Assign License</div>
+                                                                                    {assignableToUser.map(sub => (
+                                                                                        <button
+                                                                                            key={sub.skuId}
+                                                                                            style={{
+                                                                                                width: '100%', padding: '6px 12px', fontSize: '0.74rem',
+                                                                                                background: 'none', border: 'none', color: 'var(--accent-purple)',
+                                                                                                textAlign: 'left', cursor: 'pointer', fontWeight: 600,
+                                                                                                display: 'block'
+                                                                                            }}
+                                                                                            onClick={(e) => {
+                                                                                                e.stopPropagation();
+                                                                                                setActiveDropdownUserId(null);
+                                                                                                handleToggleLicense(user.id, sub.skuPartNumber, 'assign');
+                                                                                            }}
+                                                                                        >
+                                                                                            Assign {sub.displayName || sub.skuPartNumber.replace(/_/g, ' ')}
+                                                                                        </button>
+                                                                                    ))}
+                                                                                </>
+                                                                            )}
+
+                                                                            {userSkus.length === 0 && assignableToUser.length === 0 && (
+                                                                                <div style={{ padding: '8px 12px', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                                                                                    No actions available
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
                                                                     )}
                                                                 </div>
                                                             );
@@ -929,6 +989,101 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                 <ExternalLink size={14} />
                             </a>
                         </div>
+                    </div>
+
+                    <div style={{ marginTop: '24px', borderTop: '1px solid var(--glass-border)', paddingTop: '20px' }}>
+                        <h4 style={{ margin: '0 0 16px 0', fontSize: '1rem', color: 'var(--text-primary)', fontWeight: 700 }}>
+                            📋 Microsoft 365 Invoices & Subscription Status
+                        </h4>
+
+                        {invoices.length === 0 ? (
+                            <div style={{
+                                padding: '16px 20px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.02)',
+                                border: '1px dashed rgba(239, 68, 68, 0.25)', color: 'var(--text-secondary)', fontSize: '0.82rem',
+                                display: 'flex', alignItems: 'center', gap: '10px'
+                            }}>
+                                <span>⚠️ No verified Microsoft 365 billing invoices found. To sync billing records automatically, grant your Azure Service Principal the <strong>Billing Account Reader</strong> role in the Azure Portal.</span>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'grid', gap: '16px' }}>
+                                {subscriptions.map(sub => (
+                                    <div key={sub.skuId} style={{
+                                        padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.01)',
+                                        border: '1px solid var(--glass-border)'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                            <div>
+                                                <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>{sub.displayName}</strong>
+                                                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
+                                                    {sub.totalSeats} seats allocated • Rate: {sub.currency === 'INR' ? '₹' : (sub.currency || '$')}{sub.pricePerSeat.toFixed(2)}/seat/mo
+                                                </span>
+                                            </div>
+                                            <span style={{
+                                                fontSize: '0.7rem', padding: '3px 8px', borderRadius: '12px', fontWeight: 700,
+                                                background: sub.totalSeats > 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                                color: sub.totalSeats > 0 ? '#10b981' : '#ef4444',
+                                                border: `1px solid ${sub.totalSeats > 0 ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`
+                                            }}>
+                                                {sub.totalSeats > 0 ? '🟢 Active' : '🔴 Inactive'}
+                                            </span>
+                                        </div>
+
+                                        {(() => {
+                                            const subInvoices = invoices.filter(inv => inv.currency === sub.currency);
+                                            if (subInvoices.length === 0) {
+                                                return (
+                                                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '8px 0 0 0', borderTop: '1px dashed var(--glass-border)' }}>
+                                                        No invoice history synced for this subscription.
+                                                    </div>
+                                                );
+                                            }
+                                            return (
+                                                <div style={{ overflowX: 'auto', marginTop: '8px', borderTop: '1px solid var(--glass-border)', paddingTop: '8px' }}>
+                                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.74rem' }}>
+                                                        <thead>
+                                                            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                                                                <th style={{ padding: '6px 4px' }}>Invoice No</th>
+                                                                <th style={{ padding: '6px 4px' }}>Issue Date</th>
+                                                                <th style={{ padding: '6px 4px' }}>Due Date</th>
+                                                                <th style={{ padding: '6px 4px', textAlign: 'right' }}>Amount</th>
+                                                                <th style={{ padding: '6px 4px', textAlign: 'right' }}>Status</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {subInvoices.map(inv => (
+                                                                <tr key={inv.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                                                                    <td style={{ padding: '6px 4px', fontWeight: 500 }}>
+                                                                        {inv.documentUrl ? (
+                                                                            <a href={inv.documentUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-purple)', textDecoration: 'none' }}>
+                                                                                {inv.invoiceNumber} ↗
+                                                                            </a>
+                                                                        ) : (
+                                                                            inv.invoiceNumber
+                                                                        )}
+                                                                    </td>
+                                                                    <td style={{ padding: '6px 4px', color: 'var(--text-secondary)' }}>{inv.issueDate ? new Date(inv.issueDate).toLocaleDateString() : 'N/A'}</td>
+                                                                    <td style={{ padding: '6px 4px', color: 'var(--text-secondary)' }}>{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'N/A'}</td>
+                                                                    <td style={{ padding: '6px 4px', textAlign: 'right', fontWeight: 600 }}>{inv.currency === 'INR' ? '₹' : (inv.currency || '$')}{inv.amount.toLocaleString()}</td>
+                                                                    <td style={{ padding: '6px 4px', textAlign: 'right' }}>
+                                                                        <span style={{
+                                                                            padding: '2px 6px', borderRadius: '4px', fontSize: '0.66rem', fontWeight: 600,
+                                                                            background: inv.status === 'Paid' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                                                            color: inv.status === 'Paid' ? '#10b981' : '#ef4444'
+                                                                        }}>
+                                                                            {inv.status}
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
