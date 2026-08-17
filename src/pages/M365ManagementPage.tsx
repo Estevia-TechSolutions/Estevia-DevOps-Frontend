@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Globe, Users, ShieldAlert, CheckCircle2, ArrowRight, Loader, ExternalLink, ShieldCheck, HelpCircle, RefreshCw } from 'lucide-react';
+import { Mail, Globe, Users, ShieldAlert, CheckCircle2, ArrowRight, Loader, ExternalLink, ShieldCheck, HelpCircle, RefreshCw, Edit2, Check, X } from 'lucide-react';
 
 interface M365ManagementPageProps {
     organizationId: string;
@@ -38,8 +38,45 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
     const [loadingData, setLoadingData] = useState(false);
     const [connectionError, setConnectionError] = useState<string | null>(null);
     const [licenseActionUserId, setLicenseActionUserId] = useState<string | null>(null);
+    const [billingRenewalDate, setBillingRenewalDate] = useState<string | null>(null);
+    const [editingSku, setEditingSku] = useState<string | null>(null);
+    const [editPrice, setEditPrice] = useState<number>(0);
+    const [editCurrency, setEditCurrency] = useState<string>('USD');
+    const [updatingPricing, setUpdatingPricing] = useState(false);
 
     const [activeSection, setActiveSection] = useState<'overview' | 'domain' | 'billing'>('overview');
+
+    const handleSavePricing = async (skuPartNumber: string) => {
+        setUpdatingPricing(true);
+        try {
+            const token = localStorage.getItem('devops_token');
+            const res = await fetch(`${API_BASE}/m365/pricing`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    organizationId,
+                    skuPartNumber,
+                    pricePerSeat: editPrice,
+                    currency: editCurrency
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setEditingSku(null);
+                showToast('Success', 'Pricing updated successfully.', 'success');
+                fetchM365Data();
+            } else {
+                showToast('Error', data.message || 'Failed to update pricing.', 'error');
+            }
+        } catch (err: any) {
+            showToast('Error', 'Error updating pricing: ' + err.message, 'error');
+        } finally {
+            setUpdatingPricing(false);
+        }
+    };
 
     const fetchM365Data = async () => {
         if (!isM365Connected) return;
@@ -61,6 +98,9 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
             const subData = await subRes.json();
             if (subData.success) {
                 setSubscriptions(subData.subscriptions || []);
+                if (subData.nextBillingDate) {
+                    setBillingRenewalDate(subData.nextBillingDate);
+                }
             }
 
             const userRes = await fetch(`${API_BASE}/m365/users?organizationId=${organizationId}`, {
@@ -242,11 +282,54 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
 
     const totalSubSeats = paidSubscriptions.reduce((acc, sub) => acc + sub.totalSeats, 0);
     const assignedSubSeats = paidSubscriptions.reduce((acc, sub) => acc + sub.assignedSeats, 0);
-    const totalM365Cost = paidSubscriptions.reduce((acc, sub) => acc + (sub.assignedSeats * sub.pricePerSeat), 0);
+    const totalM365Cost = paidSubscriptions.reduce((acc, sub) => acc + (sub.totalSeats * sub.pricePerSeat), 0);
     const inactiveUsers = users.filter(u => u.status === 'inactive');
+
+    // Group subscriptions by currency to provide formatted aggregated costs
+    const currencyTotals = paidSubscriptions.reduce((acc, sub) => {
+        const cur = sub.currency || 'USD';
+        if (!acc[cur]) acc[cur] = { total: 0, assigned: 0, unassigned: 0 };
+        acc[cur].total += sub.totalSeats * sub.pricePerSeat;
+        acc[cur].assigned += sub.assignedSeats * sub.pricePerSeat;
+        acc[cur].unassigned += Math.max(0, sub.totalSeats - sub.assignedSeats) * sub.pricePerSeat;
+        return acc;
+    }, {} as Record<string, { total: number, assigned: number, unassigned: number }>);
+
+    const getFormattedTotal = (type: 'total' | 'assigned' | 'unassigned') => {
+        const parts = Object.entries(currencyTotals).map(([cur, vals]: [string, any]) => {
+            const symbol = cur === 'INR' ? '₹' : (cur === 'USD' ? '$' : cur + ' ');
+            return `${symbol}${vals[type].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        });
+        return parts.length > 0 ? parts.join(' + ') : '$0.00';
+    };
+
+    // Calculate dynamic reclaim opportunity from actual active rates of inactive users
+    const reclaimTotals = inactiveUsers.reduce((acc, user) => {
+        const userLicenses = (user.skuPartNumber || '').split(',');
+        userLicenses.forEach((lic: string) => {
+            const matchedSub = paidSubscriptions.find(sub => sub.skuPartNumber.toUpperCase() === lic.trim().toUpperCase());
+            if (matchedSub) {
+                const cur = matchedSub.currency || 'USD';
+                acc[cur] = (acc[cur] || 0) + matchedSub.pricePerSeat;
+            }
+        });
+        return acc;
+    }, {} as Record<string, number>);
+
+    const getFormattedReclaim = () => {
+        const parts = Object.entries(reclaimTotals).map(([cur, val]: [string, any]) => {
+            const symbol = cur === 'INR' ? '₹' : (cur === 'USD' ? '$' : cur + ' ');
+            return `${symbol}${val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        });
+        return parts.length > 0 ? parts.join(' + ') : '$0.00';
+    };
 
     // Dynamic Billing URL & Next Billing Date calculation (removes hardcoding)
     const getNextBillingDate = () => {
+        if (billingRenewalDate) {
+            const d = new Date(billingRenewalDate);
+            return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        }
         const d = new Date();
         d.setMonth(d.getMonth() + 1);
         d.setDate(1);
@@ -395,8 +478,8 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
                         <div className="glass-panel" style={{ padding: '20px', borderLeft: '3px solid var(--accent-purple)' }}>
                             <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Estimated License Cost (Monthly)</div>
-                            <div style={{ fontSize: '2rem', fontWeight: 800, marginTop: '8px', color: 'var(--text-primary)' }}>${totalM365Cost.toFixed(2)}</div>
-                            <div style={{ fontSize: '0.74rem', color: 'var(--success)', marginTop: '6px' }}>Based on {assignedSubSeats} paid seats. (Excludes free/trial plans)</div>
+                            <div style={{ fontSize: '2rem', fontWeight: 800, marginTop: '8px', color: 'var(--text-primary)' }}>{getFormattedTotal('total')}</div>
+                            <div style={{ fontSize: '0.74rem', color: 'var(--success)', marginTop: '6px' }}>Based on {totalSubSeats} paid seats. (Excludes free/trial plans)</div>
                         </div>
 
                         <div className="glass-panel" style={{ padding: '20px', borderLeft: '3px solid var(--accent-blue)' }}>
@@ -408,7 +491,39 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                         <div className="glass-panel" style={{ padding: '20px', borderLeft: '3px solid var(--warning)' }}>
                             <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Inactive M365 Seats</div>
                             <div style={{ fontSize: '2rem', fontWeight: 800, marginTop: '8px', color: 'var(--warning)' }}>{inactiveUsers.length}</div>
-                            <div style={{ fontSize: '0.74rem', color: 'var(--warning)', marginTop: '6px' }}>⚠️ Reclaim opportunity: saving ${(inactiveUsers.length * 23.00).toFixed(2)}/mo</div>
+                            <div style={{ fontSize: '0.74rem', color: 'var(--warning)', marginTop: '6px' }}>⚠️ Reclaim opportunity: saving {getFormattedReclaim()}/mo</div>
+                        </div>
+                    </div>
+
+                    {/* License Cost & Allocation Breakdown Card */}
+                    <div className="glass-panel" style={{ padding: '24px', position: 'relative', overflow: 'hidden' }}>
+                        <div style={{
+                            position: 'absolute', top: 0, left: 0, right: 0, height: '4px',
+                            background: 'linear-gradient(90deg, var(--accent-purple) 0%, var(--accent-blue) 100%)'
+                        }} />
+                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <HelpCircle size={18} style={{ color: 'var(--accent-purple)' }} />
+                            License Cost & Allocation Breakdown
+                        </h4>
+                        <p style={{ margin: '6px 0 20px 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                            Breakdown of subscription spend based on prepaid licenses vs. active user seat assignments.
+                        </p>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+                            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+                                <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Total Prepaid Cost</div>
+                                <div style={{ fontSize: '1.4rem', fontWeight: 800, marginTop: '6px', color: 'var(--text-primary)' }}>{getFormattedTotal('total')}</div>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Total cost of all purchased seats</span>
+                            </div>
+                            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+                                <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Active Assigned Cost</div>
+                                <div style={{ fontSize: '1.4rem', fontWeight: 800, marginTop: '6px', color: 'var(--success)' }}>{getFormattedTotal('assigned')}</div>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Cost of actively allocated seats</span>
+                            </div>
+                            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+                                <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Unassigned Waste</div>
+                                <div style={{ fontSize: '1.4rem', fontWeight: 800, marginTop: '6px', color: '#f59e0b' }}>{getFormattedTotal('unassigned')}</div>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Potential savings from unassigned seats</span>
+                            </div>
                         </div>
                     </div>
 
@@ -434,7 +549,52 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                         <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                                             {sub.assignedSeats} assigned of {sub.totalSeats} seats
                                         </p>
-                                        <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>Rate: ${sub.pricePerSeat.toFixed(2)}/seat/mo</span>
+                                        {editingSku === sub.skuPartNumber ? (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                                                <input
+                                                    type="text"
+                                                    value={editCurrency}
+                                                    onChange={e => setEditCurrency(e.target.value)}
+                                                    style={{ width: '45px', padding: '2px 4px', fontSize: '0.75rem', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', borderRadius: '4px' }}
+                                                />
+                                                <input
+                                                    type="number"
+                                                    value={editPrice}
+                                                    step="0.01"
+                                                    onChange={e => setEditPrice(parseFloat(e.target.value) || 0)}
+                                                    style={{ width: '60px', padding: '2px 4px', fontSize: '0.75rem', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', borderRadius: '4px' }}
+                                                />
+                                                <button
+                                                    onClick={() => handleSavePricing(sub.skuPartNumber)}
+                                                    disabled={updatingPricing}
+                                                    style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', display: 'flex', padding: 0 }}
+                                                >
+                                                    <Check size={14} />
+                                                </button>
+                                                <button
+                                                    onClick={() => setEditingSku(null)}
+                                                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', padding: 0 }}
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                                                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                                                    Rate: {sub.currency === 'INR' ? '₹' : (sub.currency || '$')}{sub.pricePerSeat.toFixed(2)}/seat/mo
+                                                </span>
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingSku(sub.skuPartNumber);
+                                                        setEditPrice(sub.pricePerSeat);
+                                                        setEditCurrency(sub.currency || 'USD');
+                                                    }}
+                                                    style={{ background: 'none', border: 'none', color: 'var(--accent-purple)', cursor: 'pointer', display: 'inline-flex', padding: '2px' }}
+                                                >
+                                                    <Edit2 size={11} />
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             );
@@ -491,26 +651,60 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                                         <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>{user.email}</div>
                                                     </td>
                                                     <td style={{ padding: '12px 8px' }}>
-                                                        <span style={{
-                                                            fontSize: '0.74rem', padding: '3px 8px', borderRadius: '4px',
-                                                            background: user.skuPartNumber === 'NONE' ? 'rgba(255,255,255,0.03)' : 'rgba(139, 92, 246, 0.08)',
-                                                            border: '1px solid ' + (user.skuPartNumber === 'NONE' ? 'var(--glass-border)' : 'rgba(139, 92, 246, 0.25)'),
-                                                            color: user.skuPartNumber === 'NONE' ? 'var(--text-muted)' : 'var(--text-primary)'
-                                                        }}>
-                                                            {user.skuPartNumber.replace(/_/g, ' ')}
-                                                        </span>
+                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                                            {(user.skuPartNumber || 'NONE').split(',').map((license: string) => {
+                                                                const trimmed = license.trim();
+                                                                const isNone = trimmed === 'NONE';
+                                                                return (
+                                                                    <span key={trimmed} style={{
+                                                                        fontSize: '0.72rem', padding: '2px 6px', borderRadius: '4px',
+                                                                        background: isNone ? 'rgba(255,255,255,0.03)' : 'rgba(139, 92, 246, 0.08)',
+                                                                        border: '1px solid ' + (isNone ? 'var(--glass-border)' : 'rgba(139, 92, 246, 0.25)'),
+                                                                        color: isNone ? 'var(--text-muted)' : 'var(--text-primary)',
+                                                                        fontWeight: isNone ? 400 : 600
+                                                                    }}>
+                                                                        {trimmed.replace(/_/g, ' ')}
+                                                                    </span>
+                                                                );
+                                                            })}
+                                                        </div>
                                                     </td>
                                                     <td style={{ padding: '12px 8px' }}>
-                                                        {isInactive ? (
-                                                            <span style={{ color: 'var(--warning)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                                                ⚠️ Inactive ({user.lastActiveDays} days idle)
-                                                            </span>
-                                                        ) : user.status === 'unassigned' ? (
-                                                            <span style={{ color: 'var(--text-muted)' }}>No seat license</span>
-                                                        ) : (
-                                                            <span style={{ color: 'var(--success)' }}>🟢 Active today</span>
-                                                        )}
-                                                    </td>
+                                                        {(() => {
+                                                            if (user.skuPartNumber === 'NONE') {
+                                                                 return <span style={{ color: 'var(--text-muted)' }}>No seat license</span>;
+                                                            }
+                                                            const lastActiveDays = typeof user.lastActiveDays === 'number' ? user.lastActiveDays : null;
+                                                            const formattedDate = user.lastActiveDate
+                                                                 ? new Date(user.lastActiveDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                                                                 : 'None recorded';
+
+                                                            let badgeStyle = { color: 'var(--success)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' };
+                                                            let labelText = '🟢 Active today';
+
+                                                            if (lastActiveDays !== null) {
+                                                                 if (lastActiveDays >= 30) {
+                                                                     badgeStyle = { color: '#ef4444', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' };
+                                                                     labelText = `🔴 Inactive (${lastActiveDays} days idle)`;
+                                                                 } else if (lastActiveDays >= 15) {
+                                                                     badgeStyle = { color: '#f97316', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' };
+                                                                     labelText = `🟠 Idle (${lastActiveDays} days idle)`;
+                                                                 } else if (lastActiveDays >= 7) {
+                                                                     badgeStyle = { color: '#eab308', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' };
+                                                                     labelText = `🟡 Idle (${lastActiveDays} days idle)`;
+                                                                 }
+                                                             }
+
+                                                             return (
+                                                                 <div>
+                                                                     <span style={badgeStyle}>{labelText}</span>
+                                                                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                                                         Last Active: {formattedDate}
+                                                                     </div>
+                                                                 </div>
+                                                             );
+                                                         })()}
+                                                     </td>
                                                     <td style={{ padding: '12px 8px', textAlign: 'right' }}>
                                                         {user.skuPartNumber !== 'NONE' ? (
                                                             <button
@@ -658,7 +852,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                 border: '1px solid var(--glass-border)'
                             }}>
                                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Estimated Total Invoice</div>
-                                <strong style={{ fontSize: '1.3rem', color: 'var(--text-primary)', display: 'block', marginTop: '6px' }}>${totalM365Cost.toFixed(2)}</strong>
+                                <strong style={{ fontSize: '1.3rem', color: 'var(--text-primary)', display: 'block', marginTop: '6px' }}>{getFormattedTotal('total')}</strong>
                                 <span style={{ fontSize: '0.74rem', color: 'var(--success)', display: 'block', marginTop: '4px' }}>✓ M365 Payment Status: Healthy / Paid</span>
                             </div>
                         </div>

@@ -2642,9 +2642,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                   }
                 ];
 
-                const visibleCategories = allCategories.filter(c => c.groups.length > 0);
-                // Default to first visible tab if activeDashboardTab not visible
-                const activeTab = visibleCategories.find(c => c.key === activeDashboardTab) ? activeDashboardTab : (visibleCategories[0]?.key ?? 'swa');
+                const visibleCategories = allCategories;
+                // Default to activeDashboardTab or swa if not found
+                const activeTab = visibleCategories.find(c => c.key === activeDashboardTab) ? activeDashboardTab : 'swa';
                 const activeCategory = visibleCategories.find(c => c.key === activeTab);
 
                 return (
@@ -2832,8 +2832,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                       </div>
                     )}
                     {/* ── Active Tab Groups ── */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                      {(activeCategory?.groups ?? []).map((group) => {
+                    {activeCategory && activeCategory.groups.length === 0 ? (
+                      <div className="glass-panel" style={{ padding: '60px 40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginTop: '10px' }}>
+                        <Globe size={48} style={{ color: activeCategory.color, opacity: 0.6 }} />
+                        <div>
+                          <h3 style={{ margin: 0 }}>No {activeCategory.label} Discovered</h3>
+                          <p style={{ color: 'var(--text-secondary)', marginTop: '8px', marginBottom: 0, maxWidth: '450px', lineHeight: 1.5 }}>
+                            No active {activeCategory.label.toLowerCase()} resources were found under the selected resource group and filters.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        {(activeCategory?.groups ?? []).map((group) => {
                         const accentColor = group.type === 'vm' ? '#f59e0b' : (group.type === 'frontend' ? 'var(--accent-purple)' : 'var(--accent-teal)');
                         const accentBg = group.type === 'vm' ? 'rgba(245,158,11,0.1)' : (group.type === 'frontend' ? 'rgba(139,92,246,0.1)' : 'rgba(20,184,166,0.1)');
                         const accentGlow = group.type === 'vm' ? '0 0 10px rgba(245,158,11,0.4)' : (group.type === 'frontend' ? '0 0 10px var(--accent-purple-glow)' : '0 0 10px var(--accent-teal-glow)');
@@ -5896,7 +5907,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
                           </div>
                         );
                       })}
-                    </div>
+                      </div>
+                    )}
                   </>
                 );
               })()}
