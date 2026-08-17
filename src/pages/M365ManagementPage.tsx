@@ -410,6 +410,43 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
     // MAIN DASHBOARD VIEW (When M365 is connected)
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <style>{`
+                .tooltip-container {
+                    position: relative;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                    cursor: help;
+                }
+                .tooltip-content {
+                    visibility: hidden;
+                    position: absolute;
+                    bottom: 125%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: rgba(15, 12, 30, 0.95);
+                    backdrop-filter: blur(12px);
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    color: var(--text-primary);
+                    padding: 10px 14px;
+                    border-radius: 8px;
+                    width: max-content;
+                    max-width: 250px;
+                    font-size: 0.74rem;
+                    line-height: 1.4;
+                    white-space: pre-line;
+                    z-index: 100;
+                    opacity: 0;
+                    transition: opacity 0.2s, visibility 0.2s;
+                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+                    font-weight: 500;
+                    text-align: left;
+                }
+                .tooltip-container:hover .tooltip-content {
+                    visibility: visible;
+                    opacity: 1;
+                }
+            `}</style>
             {/* Top Toolbar Navigation */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
@@ -667,7 +704,18 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                         <tr style={{ borderBottom: '1px solid var(--glass-border)', textAlign: 'left' }}>
                                             <th style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>User Details</th>
                                             <th style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>License Assigned</th>
-                                            <th style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>Activity Audits</th>
+                                            <th style={{ padding: '10px 8px', color: 'var(--text-secondary)', position: 'relative' }}>
+                                                <div className="tooltip-container">
+                                                    Activity Audits ℹ️
+                                                    <span className="tooltip-content" style={{ bottom: '135%' }}>
+                                                        Activity Thresholds:
+                                                        {"\n"}• Active: &lt; 7 days idle
+                                                        {"\n"}• Mild Idle: 7-14 days idle
+                                                        {"\n"}• Moderate Idle: 15-29 days idle
+                                                        {"\n"}• Inactive: &ge; 30 days idle
+                                                    </span>
+                                                </div>
+                                            </th>
                                             <th style={{ padding: '10px 8px', color: 'var(--text-secondary)', textAlign: 'right' }}>Actions</th>
                                         </tr>
                                     </thead>
@@ -731,11 +779,18 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                                                 labelText = `🔴 Inactive (no activity records)`;
                                                             }
 
-                                                            const tooltipText = "Activity Thresholds:\n• Active: < 7 days idle\n• Mild Idle: 7-14 days idle\n• Moderate Idle: 15-29 days idle\n• Inactive: >= 30 days idle";
-
                                                             return (
                                                                 <div>
-                                                                    <span style={badgeStyle} title={tooltipText}>{labelText}</span>
+                                                                    <div className="tooltip-container">
+                                                                        <span style={badgeStyle}>{labelText}</span>
+                                                                        <span className="tooltip-content" style={{ bottom: '150%' }}>
+                                                                            Activity Thresholds:
+                                                                            {"\n"}• Active: &lt; 7 days idle
+                                                                            {"\n"}• Mild Idle: 7-14 days idle
+                                                                            {"\n"}• Moderate Idle: 15-29 days idle
+                                                                            {"\n"}• Inactive: &ge; 30 days idle
+                                                                        </span>
+                                                                    </div>
                                                                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                                                                         Last Active: {formattedDate}
                                                                     </div>
@@ -887,12 +942,27 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                 onChange={e => setCustomDomain(e.target.value)}
                                 placeholder="e.g. companydomain.com"
                                 style={{ flex: 1 }}
-                                disabled={verifyingDomain}
+                                disabled={verifyingDomain || isGoDaddyConnected}
                             />
-                            <button className="btn-primary" onClick={handleLinkGoDaddy} disabled={verifyingDomain || !customDomain}>
+                            <button 
+                                className="btn-primary" 
+                                onClick={handleLinkGoDaddy} 
+                                disabled={verifyingDomain || !customDomain || isGoDaddyConnected}
+                                style={isGoDaddyConnected ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
+                            >
                                 {verifyingDomain ? <><Loader size={12} className="spin-anim" /> Configuring...</> : 'Link & Auto-Verify'}
                             </button>
                         </div>
+
+                        {isGoDaddyConnected && (
+                            <div style={{
+                                padding: '12px 16px', borderRadius: '8px', background: 'rgba(34, 197, 94, 0.04)',
+                                border: '1px solid rgba(34, 197, 94, 0.2)', fontSize: '0.8rem', color: '#10b981',
+                                display: 'inline-flex', alignItems: 'center', gap: '8px', width: 'fit-content'
+                            }}>
+                                <span>✓ <strong>Auto-Managed:</strong> GoDaddy Vault connection is active. Custom DNS bindings are automatically synchronized and managed.</span>
+                            </div>
+                        )}
 
                         {/* Active connection topology map */}
                         <div style={{
@@ -940,165 +1010,191 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
             )}
 
             {/* BILLING SECTION */}
-            {activeSection === 'billing' && (
-                <div className="glass-panel" style={{ padding: '24px' }}>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        💳 Microsoft 365 Billing & Pay Portal Routing
-                    </h3>
+            {activeSection === 'billing' && (() => {
+                const totalPaid = invoices
+                    .filter(inv => inv.status?.toLowerCase() === 'paid')
+                    .reduce((sum, inv) => sum + inv.amount, 0);
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', alignItems: 'start' }}>
-                        {/* Cost card details */}
-                        <div style={{ display: 'grid', gap: '16px' }}>
-                            <div style={{
-                                padding: '20px', borderRadius: '12px', background: 'rgba(255,255,255,0.01)',
-                                border: '1px solid var(--glass-border)'
-                            }}>
-                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>M365 Next Billing Date</div>
-                                <strong style={{ fontSize: '1.3rem', color: 'var(--text-primary)', display: 'block', marginTop: '6px' }}>{nextBillingDate}</strong>
-                                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>Renewal Cycle: Monthly Automatic Billing</span>
-                            </div>
+                const totalOverdue = invoices
+                    .filter(inv => inv.status?.toLowerCase() === 'overdue')
+                    .reduce((sum, inv) => sum + inv.amount, 0);
 
-                            <div style={{
-                                padding: '20px', borderRadius: '12px', background: 'rgba(255,255,255,0.01)',
-                                border: '1px solid var(--glass-border)'
-                            }}>
-                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Estimated Total Invoice</div>
-                                <strong style={{ fontSize: '1.3rem', color: 'var(--text-primary)', display: 'block', marginTop: '6px' }}>{getFormattedTotal('total')}</strong>
-                                <span style={{ fontSize: '0.74rem', color: 'var(--success)', display: 'block', marginTop: '4px' }}>✓ M365 Payment Status: Healthy / Paid</span>
-                            </div>
-                        </div>
+                const currency = invoices[0]?.currency || 'INR';
 
-                        {/* Direct Pay Card */}
-                        <div style={{
-                            padding: '20px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)',
-                            border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '14px'
-                        }}>
-                            <h4 style={{ margin: 0, fontSize: '0.94rem', color: 'var(--text-primary)', fontWeight: 700 }}>Manage Billing & Payment Methods</h4>
-                            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-                                Microsoft 365 licensing bills are securely processed directly on official Microsoft portals. Click the button below to navigate to your M365 admin center to pay invoices or adjust credit card configurations.
-                            </p>
-                            <a
-                                href={billingUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="btn-primary"
-                                style={{
-                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                                    textDecoration: 'none', height: '40px', fontWeight: 650
-                                }}
-                            >
-                                💳 Pay / Manage on Microsoft Admin Center
-                                <ExternalLink size={14} />
-                            </a>
-                        </div>
-                    </div>
+                const formatAmount = (val: number) => {
+                    const symbol = currency === 'INR' ? '₹' : (currency || '$');
+                    return `${symbol}${val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                };
 
-                    <div style={{ marginTop: '24px', borderTop: '1px solid var(--glass-border)', paddingTop: '20px' }}>
-                        <h4 style={{ margin: '0 0 16px 0', fontSize: '1rem', color: 'var(--text-primary)', fontWeight: 700 }}>
-                            📋 Microsoft 365 Invoices & Subscription Status
-                        </h4>
+                return (
+                    <div className="glass-panel" style={{ padding: '24px' }}>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            💳 Microsoft 365 Billing & Pay Portal Routing
+                        </h3>
 
-                        {invoices.length === 0 ? (
-                            billingSyncStatus === 'Authorized' ? (
-                                <div style={{
-                                    padding: '16px 20px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.02)',
-                                    border: '1px dashed rgba(16, 185, 129, 0.25)', color: 'var(--text-secondary)', fontSize: '0.82rem',
-                                    display: 'flex', alignItems: 'center', gap: '10px'
-                                }}>
-                                    <span>✓ Microsoft Billing Access Verified: No historical invoices were returned by Microsoft for this billing account.</span>
-                                </div>
-                            ) : (
-                                <div style={{
-                                    padding: '16px 20px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.02)',
-                                    border: '1px dashed rgba(239, 68, 68, 0.25)', color: 'var(--text-secondary)', fontSize: '0.82rem',
-                                    display: 'flex', alignItems: 'center', gap: '10px'
-                                }}>
-                                    <span>⚠️ No verified Microsoft 365 billing invoices found. To sync billing records automatically, grant your Azure Service Principal the <strong>Billing Account Reader</strong> role in the Azure Portal.</span>
-                                </div>
-                            )
-                        ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', alignItems: 'start' }}>
+                            {/* Cost card details */}
                             <div style={{ display: 'grid', gap: '16px' }}>
-                                {subscriptions.map(sub => (
-                                    <div key={sub.skuId} style={{
-                                        padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.01)',
-                                        border: '1px solid var(--glass-border)'
+                                <div style={{
+                                    padding: '20px', borderRadius: '12px', background: 'rgba(255,255,255,0.01)',
+                                    border: '1px solid var(--glass-border)'
+                                }}>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>M365 Next Billing Date</div>
+                                    <strong style={{ fontSize: '1.3rem', color: 'var(--text-primary)', display: 'block', marginTop: '6px' }}>{nextBillingDate}</strong>
+                                    <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>Renewal Cycle: Monthly Automatic Billing</span>
+                                </div>
+
+                                <div style={{
+                                    padding: '20px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.02)',
+                                    border: '1px solid rgba(16, 185, 129, 0.2)'
+                                }}>
+                                    <div style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600 }}>Total Paid Invoices</div>
+                                    <strong style={{ fontSize: '1.3rem', color: '#10b981', display: 'block', marginTop: '6px' }}>{formatAmount(totalPaid)}</strong>
+                                    <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>From successfully processed payments</span>
+                                </div>
+
+                                <div style={{
+                                    padding: '20px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.02)',
+                                    border: '1px solid rgba(239, 68, 68, 0.2)'
+                                }}>
+                                    <div style={{ fontSize: '0.8rem', color: '#ef4444', fontWeight: 600 }}>Total Overdue Invoices</div>
+                                    <strong style={{ fontSize: '1.3rem', color: '#ef4444', display: 'block', marginTop: '6px' }}>{formatAmount(totalOverdue)}</strong>
+                                    <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>Requires urgent attention / settlement</span>
+                                </div>
+                            </div>
+
+                            {/* Direct Pay Card */}
+                            <div style={{
+                                padding: '20px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)',
+                                border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '14px'
+                            }}>
+                                <h4 style={{ margin: 0, fontSize: '0.94rem', color: 'var(--text-primary)', fontWeight: 700 }}>Manage Billing & Payment Methods</h4>
+                                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                                    Microsoft 365 licensing bills are securely processed directly on official Microsoft portals. Click the button below to navigate to your M365 admin center to pay invoices or adjust credit card configurations.
+                                </p>
+                                <a
+                                    href={billingUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="btn-primary"
+                                    style={{
+                                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                        textDecoration: 'none', height: '40px', fontWeight: 650
+                                    }}
+                                >
+                                    💳 Pay / Manage on Microsoft Admin Center
+                                    <ExternalLink size={14} />
+                                </a>
+                            </div>
+                        </div>
+
+                        <div style={{ marginTop: '24px', borderTop: '1px solid var(--glass-border)', paddingTop: '20px' }}>
+                            <h4 style={{ margin: '0 0 16px 0', fontSize: '1rem', color: 'var(--text-primary)', fontWeight: 700 }}>
+                                📋 Microsoft 365 Invoices & Subscription Status
+                            </h4>
+
+                            {invoices.length === 0 ? (
+                                billingSyncStatus === 'Authorized' ? (
+                                    <div style={{
+                                        padding: '16px 20px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.02)',
+                                        border: '1px dashed rgba(16, 185, 129, 0.25)', color: 'var(--text-secondary)', fontSize: '0.82rem',
+                                        display: 'flex', alignItems: 'center', gap: '10px'
                                     }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                            <div>
-                                                <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>{sub.displayName}</strong>
-                                                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
-                                                    {sub.totalSeats} seats allocated • Rate: {sub.currency === 'INR' ? '₹' : (sub.currency || '$')}{sub.pricePerSeat.toFixed(2)}/seat/mo
+                                        <span>✓ Microsoft Billing Access Verified: No historical invoices were returned by Microsoft for this billing account.</span>
+                                    </div>
+                                ) : (
+                                    <div style={{
+                                        padding: '16px 20px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.02)',
+                                        border: '1px dashed rgba(239, 68, 68, 0.25)', color: 'var(--text-secondary)', fontSize: '0.82rem',
+                                        display: 'flex', alignItems: 'center', gap: '10px'
+                                    }}>
+                                        <span>⚠️ No verified Microsoft 365 billing invoices found. To sync billing records automatically, grant your Azure Service Principal the <strong>Billing Account Reader</strong> role in the Azure Portal.</span>
+                                    </div>
+                                )
+                            ) : (
+                                <div style={{ display: 'grid', gap: '16px' }}>
+                                    {subscriptions.map(sub => (
+                                        <div key={sub.skuId} style={{
+                                            padding: '16px', borderRadius: '12px', background: 'rgba(255,255,255,0.01)',
+                                            border: '1px solid var(--glass-border)'
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                                <div>
+                                                    <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>{sub.displayName}</strong>
+                                                    <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
+                                                        {sub.totalSeats} seats allocated • Rate: {sub.currency === 'INR' ? '₹' : (sub.currency || '$')}{sub.pricePerSeat.toFixed(2)}/seat/mo
+                                                    </span>
+                                                </div>
+                                                <span style={{
+                                                    fontSize: '0.7rem', padding: '3px 8px', borderRadius: '12px', fontWeight: 700,
+                                                    background: sub.totalSeats > 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                                    color: sub.totalSeats > 0 ? '#10b981' : '#ef4444',
+                                                    border: `1px solid ${sub.totalSeats > 0 ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`
+                                                }}>
+                                                    {sub.totalSeats > 0 ? '🟢 Active' : '🔴 Inactive'}
                                                 </span>
                                             </div>
-                                            <span style={{
-                                                fontSize: '0.7rem', padding: '3px 8px', borderRadius: '12px', fontWeight: 700,
-                                                background: sub.totalSeats > 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                                color: sub.totalSeats > 0 ? '#10b981' : '#ef4444',
-                                                border: `1px solid ${sub.totalSeats > 0 ? 'rgba(16, 185, 129, 0.25)' : 'rgba(239, 68, 68, 0.25)'}`
-                                            }}>
-                                                {sub.totalSeats > 0 ? '🟢 Active' : '🔴 Inactive'}
-                                            </span>
-                                        </div>
 
-                                        {(() => {
-                                            const subInvoices = invoices.filter(inv => inv.currency === sub.currency);
-                                            if (subInvoices.length === 0) {
+                                            {(() => {
+                                                const subInvoices = invoices.filter(inv => inv.currency === sub.currency);
+                                                if (subInvoices.length === 0) {
+                                                    return (
+                                                        <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '8px 0 0 0', borderTop: '1px dashed var(--glass-border)' }}>
+                                                            No invoice history synced for this subscription.
+                                                        </div>
+                                                    );
+                                                }
                                                 return (
-                                                    <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '8px 0 0 0', borderTop: '1px dashed var(--glass-border)' }}>
-                                                        No invoice history synced for this subscription.
+                                                    <div style={{ overflowX: 'auto', marginTop: '8px', borderTop: '1px solid var(--glass-border)', paddingTop: '8px' }}>
+                                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.74rem' }}>
+                                                            <thead>
+                                                                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                                                                    <th style={{ padding: '6px 4px' }}>Invoice No</th>
+                                                                    <th style={{ padding: '6px 4px' }}>Issue Date</th>
+                                                                    <th style={{ padding: '6px 4px' }}>Due Date</th>
+                                                                    <th style={{ padding: '6px 4px', textAlign: 'right' }}>Amount</th>
+                                                                    <th style={{ padding: '6px 4px', textAlign: 'right' }}>Status</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {subInvoices.map(inv => (
+                                                                    <tr key={inv.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                                                                        <td style={{ padding: '6px 4px', fontWeight: 500 }}>
+                                                                            {inv.documentUrl ? (
+                                                                                <a href={inv.documentUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-purple)', textDecoration: 'none' }}>
+                                                                                    {inv.invoiceNumber} ↗
+                                                                                </a>
+                                                                            ) : (
+                                                                                inv.invoiceNumber
+                                                                            )}
+                                                                        </td>
+                                                                        <td style={{ padding: '6px 4px', color: 'var(--text-secondary)' }}>{inv.issueDate ? new Date(inv.issueDate).toLocaleDateString() : 'N/A'}</td>
+                                                                        <td style={{ padding: '6px 4px', color: 'var(--text-secondary)' }}>{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'N/A'}</td>
+                                                                        <td style={{ padding: '6px 4px', textAlign: 'right', fontWeight: 600 }}>{inv.currency === 'INR' ? '₹' : (inv.currency || '$')}{inv.amount.toLocaleString()}</td>
+                                                                        <td style={{ padding: '6px 4px', textAlign: 'right' }}>
+                                                                            <span style={{
+                                                                                padding: '2px 6px', borderRadius: '4px', fontSize: '0.66rem', fontWeight: 600,
+                                                                                background: inv.status === 'Paid' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                                                                color: inv.status === 'Paid' ? '#10b981' : '#ef4444'
+                                                                            }}>
+                                                                                {inv.status}
+                                                                            </span>
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
                                                     </div>
                                                 );
-                                            }
-                                            return (
-                                                <div style={{ overflowX: 'auto', marginTop: '8px', borderTop: '1px solid var(--glass-border)', paddingTop: '8px' }}>
-                                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.74rem' }}>
-                                                        <thead>
-                                                            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', textAlign: 'left', color: 'var(--text-muted)' }}>
-                                                                <th style={{ padding: '6px 4px' }}>Invoice No</th>
-                                                                <th style={{ padding: '6px 4px' }}>Issue Date</th>
-                                                                <th style={{ padding: '6px 4px' }}>Due Date</th>
-                                                                <th style={{ padding: '6px 4px', textAlign: 'right' }}>Amount</th>
-                                                                <th style={{ padding: '6px 4px', textAlign: 'right' }}>Status</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {subInvoices.map(inv => (
-                                                                <tr key={inv.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
-                                                                    <td style={{ padding: '6px 4px', fontWeight: 500 }}>
-                                                                        {inv.documentUrl ? (
-                                                                            <a href={inv.documentUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-purple)', textDecoration: 'none' }}>
-                                                                                {inv.invoiceNumber} ↗
-                                                                            </a>
-                                                                        ) : (
-                                                                            inv.invoiceNumber
-                                                                        )}
-                                                                    </td>
-                                                                    <td style={{ padding: '6px 4px', color: 'var(--text-secondary)' }}>{inv.issueDate ? new Date(inv.issueDate).toLocaleDateString() : 'N/A'}</td>
-                                                                    <td style={{ padding: '6px 4px', color: 'var(--text-secondary)' }}>{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : 'N/A'}</td>
-                                                                    <td style={{ padding: '6px 4px', textAlign: 'right', fontWeight: 600 }}>{inv.currency === 'INR' ? '₹' : (inv.currency || '$')}{inv.amount.toLocaleString()}</td>
-                                                                    <td style={{ padding: '6px 4px', textAlign: 'right' }}>
-                                                                        <span style={{
-                                                                            padding: '2px 6px', borderRadius: '4px', fontSize: '0.66rem', fontWeight: 600,
-                                                                            background: inv.status === 'Paid' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                                                            color: inv.status === 'Paid' ? '#10b981' : '#ef4444'
-                                                                        }}>
-                                                                            {inv.status}
-                                                                        </span>
-                                                                    </td>
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            );
-                                        })()}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                                            })()}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
         </div>
     );
 };
