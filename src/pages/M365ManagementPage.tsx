@@ -42,6 +42,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
     const [editingSku, setEditingSku] = useState<string | null>(null);
     const [editPrice, setEditPrice] = useState<number>(0);
     const [editCurrency, setEditCurrency] = useState<string>('USD');
+    const [editDisplayName, setEditDisplayName] = useState<string>('');
     const [updatingPricing, setUpdatingPricing] = useState(false);
 
     const [activeSection, setActiveSection] = useState<'overview' | 'domain' | 'billing'>('overview');
@@ -60,7 +61,8 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                     organizationId,
                     skuPartNumber,
                     pricePerSeat: editPrice,
-                    currency: editCurrency
+                    currency: editCurrency,
+                    displayName: editDisplayName
                 })
             });
             const data = await res.json();
@@ -545,15 +547,23 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                     </div>
 
                                     <div style={{ flex: 1 }}>
-                                        <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: 'var(--text-primary)' }}>{sub.skuPartNumber.replace(/_/g, ' ')}</h4>
+                                        <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: 'var(--text-primary)' }}>{sub.displayName || sub.skuPartNumber.replace(/_/g, ' ')}</h4>
                                         <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                                             {sub.assignedSeats} assigned of {sub.totalSeats} seats
                                         </p>
                                         {editingSku === sub.skuPartNumber ? (
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                                                <input
+                                                    type="text"
+                                                    value={editDisplayName}
+                                                    placeholder="License Name"
+                                                    onChange={e => setEditDisplayName(e.target.value)}
+                                                    style={{ width: '130px', padding: '2px 4px', fontSize: '0.75rem', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', borderRadius: '4px' }}
+                                                />
                                                 <input
                                                     type="text"
                                                     value={editCurrency}
+                                                    placeholder="Cur"
                                                     onChange={e => setEditCurrency(e.target.value)}
                                                     style={{ width: '45px', padding: '2px 4px', fontSize: '0.75rem', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)', borderRadius: '4px' }}
                                                 />
@@ -588,6 +598,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                                         setEditingSku(sub.skuPartNumber);
                                                         setEditPrice(sub.pricePerSeat);
                                                         setEditCurrency(sub.currency || 'USD');
+                                                        setEditDisplayName(sub.displayName || '');
                                                     }}
                                                     style={{ background: 'none', border: 'none', color: 'var(--accent-purple)', cursor: 'pointer', display: 'inline-flex', padding: '2px' }}
                                                 >
@@ -652,18 +663,18 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                                     </td>
                                                     <td style={{ padding: '12px 8px' }}>
                                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                                            {(user.skuPartNumber || 'NONE').split(',').map((license: string) => {
+                                                            {(user.skuDisplayName || 'No seat license').split(',').map((license: string, idx: number) => {
                                                                 const trimmed = license.trim();
-                                                                const isNone = trimmed === 'NONE';
+                                                                const isNone = trimmed === 'No seat license' || trimmed === 'NONE';
                                                                 return (
-                                                                    <span key={trimmed} style={{
+                                                                    <span key={idx} style={{
                                                                         fontSize: '0.72rem', padding: '2px 6px', borderRadius: '4px',
                                                                         background: isNone ? 'rgba(255,255,255,0.03)' : 'rgba(139, 92, 246, 0.08)',
                                                                         border: '1px solid ' + (isNone ? 'var(--glass-border)' : 'rgba(139, 92, 246, 0.25)'),
                                                                         color: isNone ? 'var(--text-muted)' : 'var(--text-primary)',
                                                                         fontWeight: isNone ? 400 : 600
                                                                     }}>
-                                                                        {trimmed.replace(/_/g, ' ')}
+                                                                        {trimmed}
                                                                     </span>
                                                                 );
                                                             })}
@@ -679,62 +690,100 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                                                  ? new Date(user.lastActiveDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                                                                  : 'None recorded';
 
-                                                            let badgeStyle = { color: 'var(--success)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' };
-                                                            let labelText = '🟢 Active today';
+                                                            let badgeStyle = { color: 'var(--success)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'help' };
+                                                            let labelText = '🟢 Active today (0 days idle)';
 
                                                             if (lastActiveDays !== null) {
-                                                                 if (lastActiveDays >= 30) {
-                                                                     badgeStyle = { color: '#ef4444', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' };
-                                                                     labelText = `🔴 Inactive (${lastActiveDays} days idle)`;
-                                                                 } else if (lastActiveDays >= 15) {
-                                                                     badgeStyle = { color: '#f97316', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' };
-                                                                     labelText = `🟠 Idle (${lastActiveDays} days idle)`;
-                                                                 } else if (lastActiveDays >= 7) {
-                                                                     badgeStyle = { color: '#eab308', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' };
-                                                                     labelText = `🟡 Idle (${lastActiveDays} days idle)`;
-                                                                 }
-                                                             }
+                                                                if (lastActiveDays >= 30) {
+                                                                    badgeStyle = { color: '#ef4444', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'help' };
+                                                                    labelText = `🔴 Inactive (${lastActiveDays} days idle)`;
+                                                                } else if (lastActiveDays >= 15) {
+                                                                    badgeStyle = { color: '#f97316', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'help' };
+                                                                    labelText = `🟠 Idle (${lastActiveDays} days idle)`;
+                                                                } else if (lastActiveDays >= 7) {
+                                                                    badgeStyle = { color: '#eab308', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'help' };
+                                                                    labelText = `🟡 Idle (${lastActiveDays} days idle)`;
+                                                                } else if (lastActiveDays > 0) {
+                                                                    badgeStyle = { color: 'var(--success)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'help' };
+                                                                    labelText = `🟢 Active (${lastActiveDays} days idle)`;
+                                                                }
+                                                            } else {
+                                                                badgeStyle = { color: '#ef4444', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'help' };
+                                                                labelText = `🔴 Inactive (no activity records)`;
+                                                            }
 
-                                                             return (
-                                                                 <div>
-                                                                     <span style={badgeStyle}>{labelText}</span>
-                                                                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                                                         Last Active: {formattedDate}
-                                                                     </div>
-                                                                 </div>
-                                                             );
-                                                         })()}
+                                                            const tooltipText = "Activity Thresholds:\n• Active: < 7 days idle\n• Mild Idle: 7-14 days idle\n• Moderate Idle: 15-29 days idle\n• Inactive: >= 30 days idle";
+
+                                                            return (
+                                                                <div>
+                                                                    <span style={badgeStyle} title={tooltipText}>{labelText}</span>
+                                                                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                                                        Last Active: {formattedDate}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })()}
                                                      </td>
                                                     <td style={{ padding: '12px 8px', textAlign: 'right' }}>
-                                                        {user.skuPartNumber !== 'NONE' ? (
-                                                            <button
-                                                                className={isInactive ? 'btn-primary' : 'btn-outline'}
-                                                                style={{
-                                                                    padding: '4px 10px', fontSize: '0.74rem', height: '28px',
-                                                                    background: isInactive ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
-                                                                    borderColor: isInactive ? 'rgba(239, 68, 68, 0.4)' : 'var(--glass-border)',
-                                                                    color: isInactive ? '#ef4444' : 'var(--text-secondary)'
-                                                                }}
-                                                                onClick={() => handleToggleLicense(user.id, user.skuPartNumber, 'revoke')}
-                                                                disabled={licenseActionUserId === user.id}
-                                                            >
-                                                                {licenseActionUserId === user.id ? 'Reclaiming...' : isInactive ? 'Reclaim Seat & Savings' : 'Revoke License'}
-                                                            </button>
-                                                        ) : (
-                                                            <button
-                                                                className="btn-outline"
-                                                                style={{ padding: '4px 10px', fontSize: '0.74rem', height: '28px' }}
-                                                                onClick={() => handleToggleLicense(user.id, assignableSubscription?.skuPartNumber || '', 'assign')}
-                                                                disabled={licenseActionUserId === user.id || !hasAvailableLicense}
-                                                            >
-                                                                {licenseActionUserId === user.id 
-                                                                    ? 'Assigning...' 
-                                                                    : hasAvailableLicense 
-                                                                        ? `Assign ${assignableSubscription.skuPartNumber.replace('O365_', '').replace(/_/g, ' ')}` 
-                                                                        : 'No seats available'
-                                                                }
-                                                            </button>
-                                                        )}
+                                                        {(() => {
+                                                            const userSkus = user.skuPartNumber && user.skuPartNumber !== 'NONE'
+                                                                ? user.skuPartNumber.split(',').map((s: string) => s.trim()).filter(Boolean)
+                                                                : [];
+                                                            const userNames = user.skuDisplayName && user.skuDisplayName !== 'No seat license'
+                                                                ? user.skuDisplayName.split(',').map((s: string) => s.trim()).filter(Boolean)
+                                                                : [];
+                                                            
+                                                            const assignableToUser = paidSubscriptions.filter(sub => {
+                                                                const alreadyHas = userSkus.includes(sub.skuPartNumber);
+                                                                return !alreadyHas && sub.assignedSeats < sub.totalSeats;
+                                                            });
+
+                                                            return (
+                                                                <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: '6px' }}>
+                                                                    {userSkus.map((skuCode: string, idx: number) => {
+                                                                        const displayName = userNames[idx] || skuCode.replace(/_/g, ' ');
+                                                                        return (
+                                                                            <button
+                                                                                key={skuCode}
+                                                                                className="btn-outline"
+                                                                                style={{
+                                                                                    padding: '3px 8px', fontSize: '0.7rem', height: '24px',
+                                                                                    background: 'rgba(239, 68, 68, 0.05)',
+                                                                                    borderColor: 'rgba(239, 68, 68, 0.25)',
+                                                                                    color: '#ef4444',
+                                                                                    fontWeight: 600
+                                                                                }}
+                                                                                onClick={() => handleToggleLicense(user.id, skuCode, 'revoke')}
+                                                                                disabled={licenseActionUserId === user.id}
+                                                                            >
+                                                                                {licenseActionUserId === user.id ? 'Reclaiming...' : `${isInactive ? 'Reclaim' : 'Revoke'} ${displayName}`}
+                                                                            </button>
+                                                                        );
+                                                                    })}
+                                                                    
+                                                                    {assignableToUser.map(sub => (
+                                                                        <button
+                                                                            key={sub.skuId}
+                                                                            className="btn-outline"
+                                                                            style={{
+                                                                                padding: '3px 8px', fontSize: '0.7rem', height: '24px',
+                                                                                borderColor: 'var(--accent-purple)',
+                                                                                color: 'var(--accent-purple)',
+                                                                                fontWeight: 600
+                                                                            }}
+                                                                            onClick={() => handleToggleLicense(user.id, sub.skuPartNumber, 'assign')}
+                                                                            disabled={licenseActionUserId === user.id}
+                                                                        >
+                                                                            {licenseActionUserId === user.id ? 'Assigning...' : `Assign ${sub.displayName || sub.skuPartNumber.replace(/_/g, ' ')}`}
+                                                                        </button>
+                                                                    ))}
+                                                                    
+                                                                    {userSkus.length === 0 && assignableToUser.length === 0 && (
+                                                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.74rem' }}>No seats available</span>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })()}
                                                     </td>
                                                 </tr>
                                             );
