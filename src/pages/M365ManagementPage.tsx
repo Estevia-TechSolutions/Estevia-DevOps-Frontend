@@ -1032,46 +1032,28 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                             💳 Microsoft 365 Billing & Pay Portal Routing
                         </h3>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', alignItems: 'start' }}>
-                            {/* Cost card details */}
-                            <div style={{ display: 'grid', gap: '16px' }}>
-                                <div style={{
-                                    padding: '20px', borderRadius: '12px', background: 'rgba(255,255,255,0.01)',
-                                    border: '1px solid var(--glass-border)'
-                                }}>
-                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>M365 Next Billing Date</div>
-                                    <strong style={{ fontSize: '1.3rem', color: 'var(--text-primary)', display: 'block', marginTop: '6px' }}>{nextBillingDate}</strong>
-                                    <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>Renewal Cycle: Monthly Automatic Billing</span>
-                                </div>
-
-                                <div style={{
-                                    padding: '20px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.02)',
-                                    border: '1px solid rgba(16, 185, 129, 0.2)'
-                                }}>
-                                    <div style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600 }}>Total Paid Invoices</div>
-                                    <strong style={{ fontSize: '1.3rem', color: '#10b981', display: 'block', marginTop: '6px' }}>{formatAmount(totalPaid)}</strong>
-                                    <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>From successfully processed payments</span>
-                                </div>
-
-                                <div style={{
-                                    padding: '20px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.02)',
-                                    border: '1px solid rgba(239, 68, 68, 0.2)'
-                                }}>
-                                    <div style={{ fontSize: '0.8rem', color: '#ef4444', fontWeight: 600 }}>Total Overdue Invoices</div>
-                                    <strong style={{ fontSize: '1.3rem', color: '#ef4444', display: 'block', marginTop: '6px' }}>{formatAmount(totalOverdue)}</strong>
-                                    <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>Requires urgent attention / settlement</span>
-                                </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', alignItems: 'stretch' }}>
+                            {/* Card 1: M365 Next Billing Date */}
+                            <div style={{
+                                padding: '20px', borderRadius: '12px', background: 'rgba(255,255,255,0.01)',
+                                border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', justifyContent: 'center'
+                            }}>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>M365 Next Billing Date</div>
+                                <strong style={{ fontSize: '1.3rem', color: 'var(--text-primary)', display: 'block', marginTop: '6px' }}>{nextBillingDate}</strong>
+                                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>Renewal Cycle: Monthly Automatic Billing</span>
                             </div>
 
-                            {/* Direct Pay Card */}
+                            {/* Card 2: Manage Billing & Direct Pay */}
                             <div style={{
                                 padding: '20px', borderRadius: '12px', background: 'rgba(255,255,255,0.02)',
-                                border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '14px'
+                                border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: '14px', justifyContent: 'space-between'
                             }}>
-                                <h4 style={{ margin: 0, fontSize: '0.94rem', color: 'var(--text-primary)', fontWeight: 700 }}>Manage Billing & Payment Methods</h4>
-                                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-                                    Microsoft 365 licensing bills are securely processed directly on official Microsoft portals. Click the button below to navigate to your M365 admin center to pay invoices or adjust credit card configurations.
-                                </p>
+                                <div>
+                                    <h4 style={{ margin: 0, fontSize: '0.94rem', color: 'var(--text-primary)', fontWeight: 700 }}>Manage Billing & Payment Methods</h4>
+                                    <p style={{ margin: '6px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                                        Microsoft 365 licensing bills are securely processed directly on official Microsoft portals.
+                                    </p>
+                                </div>
                                 <a
                                     href={billingUrl}
                                     target="_blank"
@@ -1085,6 +1067,26 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                     💳 Pay / Manage on Microsoft Admin Center
                                     <ExternalLink size={14} />
                                 </a>
+                            </div>
+
+                            {/* Card 3: Total Paid Invoices */}
+                            <div style={{
+                                padding: '20px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.02)',
+                                border: '1px solid rgba(16, 185, 129, 0.2)'
+                            }}>
+                                <div style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600 }}>Total Paid Invoices</div>
+                                <strong style={{ fontSize: '1.3rem', color: '#10b981', display: 'block', marginTop: '6px' }}>{formatAmount(totalPaid)}</strong>
+                                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>From successfully processed payments</span>
+                            </div>
+
+                            {/* Card 4: Total Overdue Invoices */}
+                            <div style={{
+                                padding: '20px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.02)',
+                                border: '1px solid rgba(239, 68, 68, 0.2)'
+                            }}>
+                                <div style={{ fontSize: '0.8rem', color: '#ef4444', fontWeight: 600 }}>Total Overdue Invoices</div>
+                                <strong style={{ fontSize: '1.3rem', color: '#ef4444', display: 'block', marginTop: '6px' }}>{formatAmount(totalOverdue)}</strong>
+                                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginTop: '4px' }}>Requires urgent attention / settlement</span>
                             </div>
                         </div>
 
