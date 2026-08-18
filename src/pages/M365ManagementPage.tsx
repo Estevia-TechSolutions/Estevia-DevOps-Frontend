@@ -447,6 +447,9 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                     bottom: auto;
                     top: 125%;
                 }
+                .tooltip-container:hover {
+                    z-index: 999999 !important;
+                }
                 .tooltip-container:hover .tooltip-content {
                     visibility: visible;
                     opacity: 1;
@@ -732,7 +735,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                             <th style={{ padding: '10px 8px', color: 'var(--text-secondary)', position: 'relative' }}>
                                                 <div className="tooltip-container">
                                                     Activity Audits ℹ️
-                                                    <span className="tooltip-content" style={{ bottom: '135%' }}>
+                                                    <span className="tooltip-content">
                                                         Activity Thresholds:
                                                         {"\n"}• Active: &lt; 7 days idle
                                                         {"\n"}• Mild Idle: 7-14 days idle
@@ -808,7 +811,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                                                 <div>
                                                                     <div className="tooltip-container">
                                                                         <span style={badgeStyle}>{labelText}</span>
-                                                                        <span className="tooltip-content" style={{ bottom: '150%' }}>
+                                                                        <span className="tooltip-content">
                                                                             Activity Thresholds:
                                                                             {"\n"}• Active: &lt; 7 days idle
                                                                             {"\n"}• Mild Idle: 7-14 days idle
