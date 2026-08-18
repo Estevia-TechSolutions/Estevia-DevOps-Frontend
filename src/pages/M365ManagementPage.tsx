@@ -446,6 +446,17 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                     visibility: visible;
                     opacity: 1;
                 }
+                .billing-grid {
+                    display: grid;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 20px;
+                    align-items: stretch;
+                }
+                @media (max-width: 768px) {
+                    .billing-grid {
+                        grid-template-columns: 1fr;
+                    }
+                }
             `}</style>
             {/* Top Toolbar Navigation */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
@@ -1032,7 +1043,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                             💳 Microsoft 365 Billing & Pay Portal Routing
                         </h3>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px', alignItems: 'stretch' }}>
+                        <div className="billing-grid">
                             {/* Card 1: M365 Next Billing Date */}
                             <div style={{
                                 padding: '20px', borderRadius: '12px', background: 'rgba(255,255,255,0.01)',
@@ -1064,7 +1075,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                         textDecoration: 'none', height: '40px', fontWeight: 650
                                     }}
                                 >
-                                    💳 Pay / Manage on Microsoft Admin Center
+                                    💳 Pay & Manage Bills
                                     <ExternalLink size={14} />
                                 </a>
                             </div>
