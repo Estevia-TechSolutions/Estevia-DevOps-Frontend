@@ -416,7 +416,9 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                     display: inline-flex;
                     align-items: center;
                     gap: 4px;
-                         .tooltip-content {
+                    cursor: help;
+                }
+                .tooltip-content {
                     visibility: hidden;
                     position: absolute;
                     bottom: 125%;
