@@ -748,7 +748,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {users.map(user => {
+                                        {users.map((user, index) => {
                                             const isInactive = user.status === 'inactive';
                                             return (
                                                 <tr key={user.id} style={{ borderBottom: '1px solid var(--glass-border)' }}>
@@ -811,7 +811,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                                                 <div>
                                                                     <div className="tooltip-container">
                                                                         <span style={badgeStyle}>{labelText}</span>
-                                                                        <span className="tooltip-content">
+                                                                        <span className="tooltip-content" style={index === 0 ? { bottom: 'auto', top: '125%' } : undefined}>
                                                                             Activity Thresholds:
                                                                             {"\n"}• Active: &lt; 7 days idle
                                                                             {"\n"}• Mild Idle: 7-14 days idle
