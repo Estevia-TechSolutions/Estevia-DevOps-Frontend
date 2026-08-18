@@ -416,9 +416,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                     display: inline-flex;
                     align-items: center;
                     gap: 4px;
-                    cursor: help;
-                }
-                .tooltip-content {
+                         .tooltip-content {
                     visibility: hidden;
                     position: absolute;
                     bottom: 125%;
@@ -427,7 +425,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                     background: rgba(15, 12, 30, 0.95);
                     backdrop-filter: blur(12px);
                     border: 1px solid rgba(255, 255, 255, 0.15);
-                    color: var(--text-primary);
+                    color: #ffffff !important; /* Force white text for visibility in light mode */
                     padding: 10px 14px;
                     border-radius: 8px;
                     width: max-content;
@@ -435,16 +433,30 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                     font-size: 0.74rem;
                     line-height: 1.4;
                     white-space: pre-line;
-                    z-index: 100;
+                    z-index: 99999 !important; /* Force on top */
                     opacity: 0;
                     transition: opacity 0.2s, visibility 0.2s;
                     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
                     font-weight: 500;
                     text-align: left;
                 }
+                /* Show header tooltip below the header to avoid clipping at the top boundary */
+                th .tooltip-content {
+                    bottom: auto;
+                    top: 125%;
+                }
                 .tooltip-container:hover .tooltip-content {
                     visibility: visible;
                     opacity: 1;
+                }
+                /* Elevate z-index of the hovered table row/header cell so the tooltip draws on top */
+                tr:hover {
+                    position: relative;
+                    z-index: 50;
+                }
+                thead th:hover {
+                    position: relative;
+                    z-index: 60;
                 }
                 .billing-grid {
                     display: grid;
