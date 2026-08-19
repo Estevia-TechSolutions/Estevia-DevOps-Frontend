@@ -2967,7 +2967,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                             backgroundColor: badgeColor.bg,
                             border: `1px solid ${badgeColor.border}`
                           }}>
-                            {isRunning ? '⚡ Running' : (bill.status || 'Paid')}
+                            {isRunning ? 'Running' : (bill.status || 'Paid')}
                           </span>
                         </td>
                       </tr>
