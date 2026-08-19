@@ -2563,6 +2563,14 @@ export const CostPage: React.FC<CostPageProps> = ({
                             {sortedAzureBills[0]?.azure_subscription_id || 'sub-estevia-devops-prod-01'}
                           </span>
                         </div>
+                        {billingAccountName && (
+                          <div style={{ borderLeft: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)', paddingLeft: '24px' }}>
+                            <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: isLight ? '#64748b' : 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Billing Account</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#3b82f6' }}>
+                              {billingAccountName}
+                            </span>
+                          </div>
+                        )}
                         <div style={{ borderLeft: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)', paddingLeft: '24px' }}>
                           <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: isLight ? '#64748b' : 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Average Monthly Run-Rate</span>
                           <span style={{ fontSize: '0.95rem', fontWeight: 700, fontFamily: 'monospace', color: 'var(--success)' }}>
