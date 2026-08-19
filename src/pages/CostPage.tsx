@@ -2774,6 +2774,9 @@ export const CostPage: React.FC<CostPageProps> = ({
           <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <FileText size={20} style={{ color: '#3b82f6' }} /> Azure Subscription Invoices & Consumption Billing History
           </h3>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '-12px', marginBottom: '20px', lineHeight: '1.5' }}>
+            Note: Azure issues official invoices at the combined Billing Profile / Billing Account scope. Below is the monthly consumption spend for this specific subscription, aggregated directly from live Azure Cost Management APIs.
+          </p>
           {!azureBills || azureBills.length === 0 ? (
             <div style={{ color: 'var(--text-secondary)', padding: '20px 0' }}>No Azure subscription billing records found.</div>
           ) : (
@@ -2816,18 +2819,31 @@ export const CostPage: React.FC<CostPageProps> = ({
                         </td>
                         <td style={{ padding: '14px 16px' }}>
                           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', fontSize: '0.7rem' }}>
-                            <span style={{ padding: '2px 6px', borderRadius: '4px', background: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6', fontWeight: 600 }}>
-                              ACA: {currSym}{Number(bill.aca_compute_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                            </span>
-                            <span style={{ padding: '2px 6px', borderRadius: '4px', background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', fontWeight: 600 }}>
-                              MySQL: {currSym}{Number(bill.mysql_db_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                            </span>
-                            <span style={{ padding: '2px 6px', borderRadius: '4px', background: 'rgba(6, 182, 212, 0.15)', color: '#06b6d4', fontWeight: 600 }}>
-                              SWA: {currSym}{Number(bill.swa_cdn_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                            </span>
-                            <span style={{ padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontWeight: 600 }}>
-                              Storage/VM: {currSym}{Number(bill.storage_vm_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                            </span>
+                            {Number(bill.aca_compute_amount || 0) > 0 && (
+                              <span style={{ padding: '2px 6px', borderRadius: '4px', background: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6', fontWeight: 600 }}>
+                                ACA: {currSym}{Number(bill.aca_compute_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                              </span>
+                            )}
+                            {Number(bill.mysql_db_amount || 0) > 0 && (
+                              <span style={{ padding: '2px 6px', borderRadius: '4px', background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', fontWeight: 600 }}>
+                                MySQL: {currSym}{Number(bill.mysql_db_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                              </span>
+                            )}
+                            {Number(bill.swa_cdn_amount || 0) > 0 && (
+                              <span style={{ padding: '2px 6px', borderRadius: '4px', background: 'rgba(6, 182, 212, 0.15)', color: '#06b6d4', fontWeight: 600 }}>
+                                SWA: {currSym}{Number(bill.swa_cdn_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                              </span>
+                            )}
+                            {Number(bill.storage_vm_amount || 0) > 0 && (
+                              <span style={{ padding: '2px 6px', borderRadius: '4px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontWeight: 600 }}>
+                                Storage/VM: {currSym}{Number(bill.storage_vm_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                              </span>
+                            )}
+                            {Number(bill.network_egress_amount || 0) > 0 && (
+                              <span style={{ padding: '2px 6px', borderRadius: '4px', background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1', fontWeight: 600 }}>
+                                Other / DevOps: {currSym}{Number(bill.network_egress_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td style={{ padding: '14px 16px', fontWeight: 800, color: '#10b981', fontFamily: 'monospace', fontSize: '0.95rem' }}>
