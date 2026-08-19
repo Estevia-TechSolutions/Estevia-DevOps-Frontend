@@ -2886,7 +2886,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                     const isRunning = status === 'running';
 
                     return (
-                      <tr key={bill.id || bill.invoice_number} style={{ 
+                      <tr key={bill.id || bill.billing_period} style={{ 
                         borderBottom: '1px solid var(--divider)', 
                         fontSize: '0.86rem',
                         background: isRunning ? 'rgba(6, 182, 212, 0.015)' : 'transparent'
@@ -2899,10 +2899,12 @@ export const CostPage: React.FC<CostPageProps> = ({
                               <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', fontWeight: 500, marginTop: '2px' }}>
                                 {isRunning ? (
                                   <span>Draft / MTD</span>
-                                ) : (
+                                ) : bill.invoice_number ? (
                                   <span>Ref: <span style={{ fontFamily: 'monospace', padding: '1px 6px', borderRadius: '4px', background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.06)' }}>#{bill.invoice_number}</span></span>
+                                ) : (
+                                  <span style={{ color: 'var(--warning)', fontSize: '0.7rem' }}>⏳ Invoice ref pending confirmation</span>
                                 )}
-                                 | Sub: <span style={{ fontFamily: 'monospace' }}>{bill.azure_subscription_id || 'sub-estevia-devops-prod-01'}</span>
+                                 | Sub: <span style={{ fontFamily: 'monospace' }}>{(bill.azure_subscription_id || '').slice(0, 8)}...</span>
                               </div>
                             </div>
                           </div>
