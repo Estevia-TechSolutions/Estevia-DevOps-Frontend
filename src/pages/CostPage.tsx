@@ -2370,13 +2370,13 @@ export const CostPage: React.FC<CostPageProps> = ({
                       position: 'relative',
                       overflowX: 'auto',
                       scrollbarWidth: 'thin',
-                      paddingTop: '160px'
+                      paddingTop: '20px'
                     }}>
                       <div style={{ 
                         display: 'flex', 
                         gap: '28px', 
                         alignItems: 'flex-end', 
-                        height: '230px', 
+                        height: '370px', 
                         position: 'relative',
                         whiteSpace: 'nowrap'
                       }}>
@@ -2547,10 +2547,13 @@ export const CostPage: React.FC<CostPageProps> = ({
                       
                       <h5 style={{ margin: '4px 0 0 0', fontSize: '1.1rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
                         Total Historical Azure Spend: <span style={{ color: '#3b82f6' }}>${sortedAzureBills.reduce((sum, b) => sum + Number(b.total_amount || 0), 0).toFixed(2)} USD</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--text-muted)', marginLeft: '8px', verticalAlign: 'middle' }}>
+                          (includes active running month MTD)
+                        </span>
                       </h5>
                       
                       <p style={{ margin: 0, fontSize: '0.82rem', color: isLight ? '#475569' : 'var(--text-secondary)', lineHeight: '1.5' }}>
-                        This represents actual Azure Subscription cloud infrastructure consumption across <strong>{sortedAzureBills.length} monthly billing periods</strong> (Container Apps, MySQL Flexible Servers, Static Web Apps CDN, Storage, and Egress Bandwidth).
+                        This represents actual Azure Subscription cloud infrastructure consumption across <strong>{sortedAzureBills.length} monthly billing periods</strong> (Container Apps, MySQL Flexible Servers, Static Web Apps CDN, Storage, and Egress Bandwidth), including active draft month-to-date estimates.
                       </p>
                       
                       <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', marginTop: '6px', borderTop: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)', paddingTop: '12px' }}>
