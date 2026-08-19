@@ -1044,10 +1044,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                     .reduce((sum, inv) => sum + inv.amount, 0);
 
                 const totalOverdue = invoices
-                    .filter(inv => {
-                        const s = inv.status?.toLowerCase();
-                        return s === 'overdue' || s === 'locked' || s === 'unknown';
-                    })
+                    .filter(inv => inv.status?.toLowerCase() === 'overdue')
                     .reduce((sum, inv) => sum + inv.amount, 0);
 
                 const currency = invoices[0]?.currency || 'INR';
