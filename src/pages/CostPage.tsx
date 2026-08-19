@@ -2414,7 +2414,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                                   position: 'absolute',
                                   bottom: '50px',
                                   top: 'auto',
-                                  left: isFirst ? '0px' : (isLast ? 'auto' : '50%'),
+                                  left: isFirst ? '200px' : (isLast ? '200px' : '50%'),
                                   right: isLast ? '0px' : '200px',
                                   transform: (isFirst || isLast) ? 'none' : 'translateX(-50%)',
                                   background: isLight ? 'rgba(255, 255, 255, 0.98)' : 'rgba(15, 23, 42, 0.98)',
