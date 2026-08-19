@@ -160,6 +160,7 @@ interface CostPageProps {
   fetchCostData?: () => void;
   selectedSubscriptionId?: string;
   selectedControlResourceGroup?: string;
+  setActiveTab?: (tab: any) => void;
 }
 
 export const CostPage: React.FC<CostPageProps> = ({
@@ -189,7 +190,8 @@ export const CostPage: React.FC<CostPageProps> = ({
   fetchCostData,
   mode: propMode = 'optimization',
   selectedSubscriptionId = '',
-  selectedControlResourceGroup = ''
+  selectedControlResourceGroup = '',
+  setActiveTab
 }) => {
 
   const mode = (costTab === 'breakdown' || costTab === 'billing') ? 'cost' : 'optimization';
@@ -448,6 +450,8 @@ export const CostPage: React.FC<CostPageProps> = ({
   const [isCumulative, setIsCumulative] = useState<boolean>(false);
   const [chartViewMode, setChartViewMode] = useState<'forecast' | 'historical'>('forecast');
   const [expandedCostChart, setExpandedCostChart] = useState<{ title: string; type: string } | null>(null);
+  const [billingAccountName, setBillingAccountName] = useState<string>('');
+  const [billingAccountId, setBillingAccountId] = useState<string>('');
 
   // Fetch Azure Infrastructure Cloud Bills
   React.useEffect(() => {
@@ -473,6 +477,8 @@ export const CostPage: React.FC<CostPageProps> = ({
             if (data.azureBills && data.azureBills.length > 0) {
               console.log(`[BillingFetch] Set ${data.azureBills.length} Azure bills to frontend state:`, data.azureBills);
               setAzureBills(data.azureBills);
+              setBillingAccountName(data.billingAccountName || '');
+              setBillingAccountId(data.billingAccountId || '');
               return;
             } else {
               console.warn(`[BillingFetch] Mapped 'azureBills' array is empty.`);
@@ -485,6 +491,8 @@ export const CostPage: React.FC<CostPageProps> = ({
         // Fallback Azure Cloud Bills data
         console.log(`[BillingFetch] Defaulting to empty fallback array.`);
         setAzureBills([]);
+        setBillingAccountName('');
+        setBillingAccountId('');
       } catch (err) {
         console.error('[BillingFetch] Unexpected error parsing Azure bills:', err);
       } finally {
@@ -2771,6 +2779,76 @@ export const CostPage: React.FC<CostPageProps> = ({
             )}
           </div>
 
+          {billingAccountName && (
+            <div className="glass-panel" style={{
+              padding: '16px 20px', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.03)',
+              border: '1px solid rgba(59, 130, 246, 0.2)', marginBottom: '20px', display: 'flex',
+              justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px'
+            }}>
+              <div>
+                <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--accent-purple)', fontWeight: 700, letterSpacing: '0.05em' }}>
+                  Connected Billing Account
+                </div>
+                <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)', display: 'block', marginTop: '2px' }}>
+                  {billingAccountName}
+                </strong>
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                  ID: {billingAccountId}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <button 
+                  onClick={() => {
+                    if (setActiveTab) {
+                      setActiveTab('m365');
+                      setTimeout(() => {
+                        const subtab = document.querySelector('[data-subtab="billing"]') as HTMLButtonElement;
+                        if (subtab) subtab.click();
+                      }, 150);
+                    }
+                  }}
+                  style={{
+                    padding: '8px 14px', borderRadius: '8px', background: 'rgba(139, 92, 246, 0.1)',
+                    border: '1px solid rgba(139, 92, 246, 0.3)', color: '#a78bfa', fontSize: '0.78rem',
+                    fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(139, 92, 246, 0.18)';
+                    e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.5)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(139, 92, 246, 0.1)';
+                    e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.3)';
+                  }}
+                >
+                  💳 M365 Bills & Pay Portal
+                </button>
+                <a 
+                  href={`https://portal.azure.com/#blade/Microsoft_Azure_Billing/BillingProfilesBlade/billingAccountId/${billingAccountId}`}
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{
+                    padding: '8px 14px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.1)',
+                    border: '1px solid rgba(59, 130, 246, 0.3)', color: '#60a5fa', fontSize: '0.78rem',
+                    fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                    textDecoration: 'none', transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(59, 130, 246, 0.18)';
+                    e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)';
+                    e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+                  }}
+                >
+                  ↗ Azure Billing Portal
+                </a>
+              </div>
+            </div>
+          )}
+
           <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <FileText size={20} style={{ color: '#3b82f6' }} /> Azure Subscription Invoices & Consumption Billing History
           </h3>
@@ -2799,20 +2877,32 @@ export const CostPage: React.FC<CostPageProps> = ({
                       ? { color: 'var(--success)', bg: isLight ? 'rgba(34,197,94,0.1)' : 'rgba(34,197,94,0.15)', border: 'rgba(34,197,94,0.2)' }
                       : status === 'overdue'
                       ? { color: 'var(--error)', bg: isLight ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.2)' }
+                      : status === 'running'
+                      ? { color: '#06b6d4', bg: isLight ? 'rgba(6,182,212,0.1)' : 'rgba(6,182,212,0.15)', border: 'rgba(6,182,212,0.2)' }
                       : { color: 'var(--warning)', bg: isLight ? 'rgba(245,158,11,0.1)' : 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.2)' };
 
                     const currSym = getCurrencySymbol(bill.currency);
                     const currCode = (bill.currency || 'INR').toUpperCase();
+                    const isRunning = status === 'running';
 
                     return (
-                      <tr key={bill.id || bill.invoice_number} style={{ borderBottom: '1px solid var(--divider)', fontSize: '0.86rem' }}>
+                      <tr key={bill.id || bill.invoice_number} style={{ 
+                        borderBottom: '1px solid var(--divider)', 
+                        fontSize: '0.86rem',
+                        background: isRunning ? 'rgba(6, 182, 212, 0.015)' : 'transparent'
+                      }}>
                         <td style={{ padding: '14px 16px', fontWeight: 600, color: 'var(--text-primary)' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <FileText size={18} style={{ color: '#3b82f6', flexShrink: 0 }} />
+                            <FileText size={18} style={{ color: isRunning ? '#06b6d4' : '#3b82f6', flexShrink: 0 }} />
                             <div>
-                              <div style={{ fontWeight: 700 }}>Period: {bill.billing_period}</div>
+                              <div style={{ fontWeight: 700 }}>Period: {bill.billing_period} {isRunning && ' (MTD)'}</div>
                               <div style={{ fontSize: '0.72rem', color: isLight ? '#64748b' : 'var(--text-secondary)', fontWeight: 500, marginTop: '2px' }}>
-                                Ref: <span style={{ fontFamily: 'monospace', padding: '1px 6px', borderRadius: '4px', background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.06)' }}>#{bill.invoice_number}</span> | Sub: <span style={{ fontFamily: 'monospace' }}>{bill.azure_subscription_id || 'sub-estevia-devops-prod-01'}</span>
+                                {isRunning ? (
+                                  <span>Draft / MTD</span>
+                                ) : (
+                                  <span>Ref: <span style={{ fontFamily: 'monospace', padding: '1px 6px', borderRadius: '4px', background: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.06)' }}>#{bill.invoice_number}</span></span>
+                                )}
+                                 | Sub: <span style={{ fontFamily: 'monospace' }}>{bill.azure_subscription_id || 'sub-estevia-devops-prod-01'}</span>
                               </div>
                             </div>
                           </div>
@@ -2846,11 +2936,20 @@ export const CostPage: React.FC<CostPageProps> = ({
                             )}
                           </div>
                         </td>
-                        <td style={{ padding: '14px 16px', fontWeight: 800, color: '#10b981', fontFamily: 'monospace', fontSize: '0.95rem' }}>
-                          {currSym}{Number(bill.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currCode}
+                        <td style={{ padding: '14px 16px', fontWeight: 800, color: isRunning ? '#06b6d4' : '#10b981', fontFamily: 'monospace', fontSize: '0.95rem' }}>
+                          <div>{currSym}{Number(bill.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currCode}</div>
+                          {isRunning && <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontWeight: 500, marginTop: '2px' }}>(Estimated MTD)</div>}
                         </td>
-                        <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{bill.issue_date}</td>
-                        <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{bill.due_date}</td>
+                        <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>
+                          {isRunning ? <em style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Accruing</em> : bill.issue_date}
+                        </td>
+                        <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>
+                          {isRunning ? (
+                            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Expected: {bill.due_date}</span>
+                          ) : (
+                            bill.due_date
+                          )}
+                        </td>
                         <td style={{ padding: '14px 16px' }}>
                           <span style={{
                             fontSize: '0.72rem',
@@ -2862,7 +2961,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                             backgroundColor: badgeColor.bg,
                             border: `1px solid ${badgeColor.border}`
                           }}>
-                            {bill.status || 'Paid'}
+                            {isRunning ? '⚡ Running' : (bill.status || 'Paid')}
                           </span>
                         </td>
                       </tr>

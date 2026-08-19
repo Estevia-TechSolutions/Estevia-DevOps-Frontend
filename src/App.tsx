@@ -9027,6 +9027,7 @@ function App() {
                     mode={(costTab === 'breakdown' || costTab === 'billing') ? 'cost' : 'optimization'}
                     selectedSubscriptionId={selectedSubscriptionId}
                     selectedControlResourceGroup={selectedControlResourceGroup}
+                    setActiveTab={setActiveTab}
                   />
                 </div>
               )}
