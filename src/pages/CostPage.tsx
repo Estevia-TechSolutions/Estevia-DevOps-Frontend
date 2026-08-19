@@ -2779,75 +2779,77 @@ export const CostPage: React.FC<CostPageProps> = ({
             )}
           </div>
 
-          {billingAccountName && (
-            <div className="glass-panel" style={{
-              padding: '16px 20px', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.03)',
-              border: '1px solid rgba(59, 130, 246, 0.2)', marginBottom: '20px', display: 'flex',
-              justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px'
-            }}>
-              <div>
-                <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--accent-purple)', fontWeight: 700, letterSpacing: '0.05em' }}>
-                  Connected Billing Account
-                </div>
-                <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)', display: 'block', marginTop: '2px' }}>
-                  {billingAccountName}
-                </strong>
+          <div className="glass-panel" style={{
+            padding: '16px 20px', borderRadius: '12px', background: 'rgba(59, 130, 246, 0.03)',
+            border: '1px solid rgba(59, 130, 246, 0.2)', marginBottom: '20px', display: 'flex',
+            justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--accent-purple)', fontWeight: 700, letterSpacing: '0.05em' }}>
+                Connected Billing Account
+              </div>
+              <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)', display: 'block', marginTop: '2px' }}>
+                {billingAccountName || 'Azure Billing Account'}
+              </strong>
+              {billingAccountId && (
                 <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
                   ID: {billingAccountId}
                 </span>
-              </div>
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <button 
-                  onClick={() => {
-                    if (setActiveTab) {
-                      setActiveTab('m365');
-                      setTimeout(() => {
-                        const subtab = document.querySelector('[data-subtab="billing"]') as HTMLButtonElement;
-                        if (subtab) subtab.click();
-                      }, 150);
-                    }
-                  }}
-                  style={{
-                    padding: '8px 14px', borderRadius: '8px', background: 'rgba(139, 92, 246, 0.1)',
-                    border: '1px solid rgba(139, 92, 246, 0.3)', color: '#a78bfa', fontSize: '0.78rem',
-                    fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(139, 92, 246, 0.18)';
-                    e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.5)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(139, 92, 246, 0.1)';
-                    e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.3)';
-                  }}
-                >
-                  💳 M365 Bills & Pay Portal
-                </button>
-                <a 
-                  href={`https://portal.azure.com/#blade/Microsoft_Azure_Billing/BillingProfilesBlade/billingAccountId/${billingAccountId}`}
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  style={{
-                    padding: '8px 14px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.1)',
-                    border: '1px solid rgba(59, 130, 246, 0.3)', color: '#60a5fa', fontSize: '0.78rem',
-                    fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-                    textDecoration: 'none', transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(59, 130, 246, 0.18)';
-                    e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.5)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)';
-                    e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.3)';
-                  }}
-                >
-                  ↗ Azure Billing Portal
-                </a>
-              </div>
+              )}
             </div>
-          )}
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <button 
+                onClick={() => {
+                  if (setActiveTab) {
+                    setActiveTab('m365');
+                    setTimeout(() => {
+                      const subtab = document.querySelector('[data-subtab="billing"]') as HTMLButtonElement;
+                      if (subtab) subtab.click();
+                    }, 150);
+                  }
+                }}
+                style={{
+                  padding: '8px 14px', borderRadius: '8px', background: 'rgba(139, 92, 246, 0.1)',
+                  border: '1px solid rgba(139, 92, 246, 0.3)', color: '#a78bfa', fontSize: '0.78rem',
+                  fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(139, 92, 246, 0.18)';
+                  e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(139, 92, 246, 0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.3)';
+                }}
+              >
+                💳 M365 Bills & Pay Portal
+              </button>
+              <a 
+                href={billingAccountId
+                  ? `https://portal.azure.com/#view/Microsoft_Azure_Billing/InvoicesV2Blade/billingAccountId/${encodeURIComponent(billingAccountId)}`
+                  : 'https://portal.azure.com/#view/Microsoft_Azure_Billing/InvoicesV2Blade'}
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{
+                  padding: '8px 14px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.1)',
+                  border: '1px solid rgba(59, 130, 246, 0.3)', color: '#60a5fa', fontSize: '0.78rem',
+                  fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                  textDecoration: 'none', transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(59, 130, 246, 0.18)';
+                  e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+                }}
+              >
+                ↗ Bills & Payments
+              </a>
+            </div>
+          </div>
 
           <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <FileText size={20} style={{ color: '#3b82f6' }} /> Azure Subscription Invoices & Consumption Billing History
@@ -2904,7 +2906,9 @@ export const CostPage: React.FC<CostPageProps> = ({
                                 ) : (
                                   <span style={{ color: 'var(--warning)', fontSize: '0.7rem' }}>⏳ Invoice ref pending confirmation</span>
                                 )}
-                                 | Sub: <span style={{ fontFamily: 'monospace' }}>{(bill.azure_subscription_id || '').slice(0, 8)}...</span>
+                                {billingAccountName && (
+                                  <> | Billing Acct: <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{billingAccountName}</span></>
+                                )}
                               </div>
                             </div>
                           </div>
