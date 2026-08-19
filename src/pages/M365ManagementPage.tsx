@@ -1210,7 +1210,7 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                                                                 background: inv.status === 'Paid' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
                                                                                 color: inv.status === 'Paid' ? '#10b981' : '#ef4444'
                                                                             }}>
-                                                                                {inv.status === 'Unknown' || inv.status === 'Locked' ? 'Locked / Unpaid' : inv.status}
+                                                                                {inv.status === 'Unknown' || inv.status === 'Locked' ? 'Locked' : inv.status}
                                                                             </span>
                                                                         </td>
                                                                     </tr>
