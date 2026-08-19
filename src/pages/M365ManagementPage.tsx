@@ -1207,8 +1207,15 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
                                                                         <td style={{ padding: '6px 4px', textAlign: 'right' }}>
                                                                             <span style={{
                                                                                 padding: '2px 6px', borderRadius: '4px', fontSize: '0.66rem', fontWeight: 600,
-                                                                                background: inv.status === 'Paid' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                                                                                color: inv.status === 'Paid' ? '#10b981' : '#ef4444'
+                                                                                background: inv.status === 'Paid' 
+                                                                                    ? 'rgba(16, 185, 129, 0.1)' 
+                                                                                    : (inv.status === 'Unknown' || inv.status === 'Locked' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(239, 68, 68, 0.1)'),
+                                                                                color: inv.status === 'Paid' 
+                                                                                    ? '#10b981' 
+                                                                                    : (inv.status === 'Unknown' || inv.status === 'Locked' ? 'var(--text-muted)' : '#ef4444'),
+                                                                                border: inv.status === 'Paid'
+                                                                                    ? '1px solid rgba(16, 185, 129, 0.25)'
+                                                                                    : (inv.status === 'Unknown' || inv.status === 'Locked' ? '1px solid var(--glass-border)' : '1px solid rgba(239, 68, 68, 0.25)')
                                                                             }}>
                                                                                 {inv.status === 'Unknown' || inv.status === 'Locked' ? 'Locked' : inv.status}
                                                                             </span>
