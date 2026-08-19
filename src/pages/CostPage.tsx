@@ -2917,9 +2917,6 @@ export const CostPage: React.FC<CostPageProps> = ({
                                   ) : (
                                     <span style={{ color: 'var(--warning)', fontSize: '0.7rem' }}>⏳ Invoice ref pending confirmation</span>
                                   )}
-                                  {billingAccountName && (
-                                    <> | Billing Acct: <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{billingAccountName}</span></>
-                                  )}
                                 </div>
                               </div>
                             </div>
