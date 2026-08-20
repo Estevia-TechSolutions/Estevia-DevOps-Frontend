@@ -502,16 +502,59 @@ export const CostPage: React.FC<CostPageProps> = ({
     fetchAzureBills();
   }, [API_BASE, organizationId, selectedSubscriptionId]);
 
-  // Compute Forecast strictly from Azure Cloud Bills baseline
+  // Fetch Forecast from Azure Cost Management / API
   React.useEffect(() => {
-    if (activeTabToShow === 'billing') {
-      console.log(`[BillingForecast] Recalculating forecast. Input bills payload count: ${azureBills ? azureBills.length : 0}`);
+    const fetchForecast = async () => {
+      if (activeTabToShow !== 'billing') return;
+      const url = `${API_BASE}/apps/cost/azure-forecast?organizationId=${organizationId}&subscriptionId=${selectedSubscriptionId}`;
+      console.log(`[ForecastFetch] Starting Azure Forecast fetch request. URL: ${url}`);
+      setLoadingForecast(true);
+      try {
+        const token = localStorage.getItem('evaops_token') || localStorage.getItem('devops_token');
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        let res = await fetch(url, { headers }).catch((err) => {
+          console.error(`[ForecastFetch] API request connection failed:`, err);
+          return null;
+        });
+
+        if (res && res.ok) {
+          const data = await res.json();
+          console.log(`[ForecastFetch] Successfully parsed response JSON:`, data);
+          if (data && data.success && data.points) {
+            setForecastData(data);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('[ForecastFetch] Unexpected error fetching Azure forecast:', err);
+      } finally {
+        setLoadingForecast(false);
+      }
+
+      // Local Fallback if API fails or returns error
+      console.log(`[ForecastFetch] API failed or not allowed. Computing local fallback forecast.`);
       const baseRunRate = (azureBills && azureBills.length > 0)
         ? (azureBills.reduce((sum: number, b: any) => sum + Number(b.total_amount || 0), 0) / azureBills.length)
         : (costSummary ? (costSummary.totalCost || 480) : 480);
 
-      const monthlySavings = Math.round(baseRunRate * 0.22); // ~22% optimization savings
-      console.log(`[BillingForecast] Computed Baseline Run-Rate: $${baseRunRate.toFixed(2)} | Projected Savings: $${monthlySavings.toFixed(2)}`);
+      const monthlySavings = Math.round(baseRunRate * 0.22);
+      
+      const fallbackPoints: any[] = [];
+      const today = new Date();
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
+        const label = d.toLocaleString('en-US', { month: 'short', year: '2-digit' });
+        const fluctuation = 1 + (Math.sin(i) * 0.04);
+        const baseVal = Number((baseRunRate * fluctuation).toFixed(2));
+        fallbackPoints.push({
+          monthLabel: label,
+          baseline: baseVal,
+          optimized: Number((baseVal * 0.78).toFixed(2)),
+          currency: 'USD'
+        });
+      }
 
       setForecastData({
         success: true,
@@ -522,10 +565,13 @@ export const CostPage: React.FC<CostPageProps> = ({
           3: { baselineTotal: Math.round(baseRunRate * 3), optimizedTotal: Math.round((baseRunRate - monthlySavings) * 3), periodSavings: Math.round(monthlySavings * 3) },
           6: { baselineTotal: Math.round(baseRunRate * 6), optimizedTotal: Math.round((baseRunRate - monthlySavings) * 6), periodSavings: Math.round(monthlySavings * 6) },
           12: { baselineTotal: Math.round(baseRunRate * 12), optimizedTotal: Math.round((baseRunRate - monthlySavings) * 12), periodSavings: Math.round(monthlySavings * 12) }
-        }
+        },
+        points: fallbackPoints
       });
-    }
-  }, [activeTabToShow, azureBills, costSummary]);
+    };
+
+    fetchForecast();
+  }, [activeTabToShow, azureBills, costSummary, API_BASE, organizationId, selectedSubscriptionId]);
 
   const isLight = theme === 'light';
   const isViewer = currentUser?.role === 'viewer';
@@ -2588,6 +2634,11 @@ export const CostPage: React.FC<CostPageProps> = ({
                     </div>
                   );
                 })()
+              ) : loadingForecast ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', color: 'var(--text-secondary)', padding: '40px 0', height: '210px' }}>
+                  <RefreshCw size={20} className="spin-anim" />
+                  <span>Loading Azure forecast projections...</span>
+                </div>
               ) : forecastData ? (
                 (() => {
                   const forecastObj = forecastData.forecast[selectedMonths] || { baselineTotal: 1440, optimizedTotal: 1123, periodSavings: 317 };
@@ -2595,15 +2646,28 @@ export const CostPage: React.FC<CostPageProps> = ({
                   const optimized = forecastObj.optimizedTotal;
                   const savings = forecastObj.periodSavings;
 
-                  const monthsArray = Array.from({ length: selectedMonths }, (_, i) => i + 1);
-                  const maxVal = isCumulative ? (forecastData.monthlyBaselineRunRate * selectedMonths) : forecastData.monthlyBaselineRunRate;
-                  const baseMaxHeight = 140;
-                  const today = new Date();
+                  const pointsToRender = (forecastData.points || []).slice(0, selectedMonths);
+                  
+                  const renderedPoints = pointsToRender.map((p: any, idx: number) => {
+                    if (isCumulative) {
+                      const baselineCumulative = pointsToRender.slice(0, idx + 1).reduce((sum: number, pt: any) => sum + Number(pt.baseline || 0), 0);
+                      const optimizedCumulative = pointsToRender.slice(0, idx + 1).reduce((sum: number, pt: any) => sum + Number(pt.optimized || 0), 0);
+                      return {
+                        monthLabel: p.monthLabel,
+                        baselineVal: Math.round(baselineCumulative),
+                        optimizedVal: Math.round(optimizedCumulative)
+                      };
+                    } else {
+                      return {
+                        monthLabel: p.monthLabel,
+                        baselineVal: Math.round(p.baseline),
+                        optimizedVal: Math.round(p.optimized)
+                      };
+                    }
+                  });
 
-                  const getMonthLabel = (m: number) => {
-                    const d = new Date(today.getFullYear(), today.getMonth() + m, 1);
-                    return d.toLocaleString('default', { month: 'short', year: '2-digit' });
-                  };
+                  const maxVal = Math.max(...renderedPoints.map((p: any) => p.baselineVal), 1);
+                  const baseMaxHeight = 140;
 
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '24px' }}>
@@ -2634,18 +2698,12 @@ export const CostPage: React.FC<CostPageProps> = ({
                         whiteSpace: 'nowrap',
                         scrollbarWidth: 'thin'
                       }}>
-                        {monthsArray.map((m) => {
-                          const baselineVal = isCumulative
-                            ? Math.round(forecastData.monthlyBaselineRunRate * m)
-                            : Math.round(forecastData.monthlyBaselineRunRate);
-                          const optimizedVal = isCumulative
-                            ? Math.round((forecastData.monthlyBaselineRunRate - forecastData.monthlySavings) * m)
-                            : Math.round(forecastData.monthlyBaselineRunRate - forecastData.monthlySavings);
-                          const baselineHeight = Math.max(15, (baselineVal / (maxVal || 1)) * baseMaxHeight);
-                          const optimizedHeight = Math.max(15, (optimizedVal / (maxVal || 1)) * baseMaxHeight);
+                        {renderedPoints.map((p: any, idx: number) => {
+                          const baselineHeight = Math.max(15, (p.baselineVal / maxVal) * baseMaxHeight);
+                          const optimizedHeight = Math.max(15, (p.optimizedVal / maxVal) * baseMaxHeight);
 
                           return (
-                            <div key={m} style={{
+                            <div key={idx} style={{
                               display: 'flex',
                               flexDirection: 'column',
                               alignItems: 'center',
@@ -2680,7 +2738,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                                       fontFamily: 'monospace',
                                       color: isLight ? '#475569' : 'var(--text-secondary)'
                                     }}>
-                                      ${baselineVal}
+                                      ${p.baselineVal}
                                     </span>
                                   </div>
                                 </div>
@@ -2704,7 +2762,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                                       fontFamily: 'monospace',
                                       color: '#10b981'
                                     }}>
-                                      ${optimizedVal}
+                                      ${p.optimizedVal}
                                     </span>
                                   </div>
                                 </div>
@@ -2716,7 +2774,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                                 color: isLight ? '#475569' : 'var(--text-secondary)',
                                 textTransform: 'uppercase'
                               }}>
-                                {getMonthLabel(m)}
+                                {p.monthLabel}
                               </span>
                             </div>
                           );
