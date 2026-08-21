@@ -31,7 +31,8 @@ import {
   Zap,
   Maximize2,
   FileText,
-  DollarSign
+  DollarSign,
+  BarChart3
 } from 'lucide-react';
 import { SleepScheduler } from '../components/cost/SleepScheduler';
 
@@ -452,6 +453,7 @@ export const CostPage: React.FC<CostPageProps> = ({
   const [expandedCostChart, setExpandedCostChart] = useState<{ title: string; type: string } | null>(null);
   const [billingAccountName, setBillingAccountName] = useState<string>('');
   const [billingAccountId, setBillingAccountId] = useState<string>('');
+  const [hoveredForecastIdx, setHoveredForecastIdx] = useState<number | null>(null);
 
   // Fetch Azure Infrastructure Cloud Bills
   React.useEffect(() => {
@@ -538,10 +540,11 @@ export const CostPage: React.FC<CostPageProps> = ({
       const resolvedCurrency = (azureBills && azureBills.length > 0 && azureBills[0].currency) || 'INR';
       const runningBill = (azureBills || []).find(b => b.status === 'Running');
       const completedBills = (azureBills || []).filter(b => b.status !== 'Running');
+      const runningAmount = Number(runningBill?.total_amount || 0);
 
       let baseRunRate = 5000;
-      if (runningBill && Number(runningBill.total_amount || 0) > 0) {
-        baseRunRate = Number(runningBill.total_amount || 0);
+      if (runningBill && runningAmount > 0) {
+        baseRunRate = runningAmount;
       } else if (completedBills.length > 0) {
         baseRunRate = completedBills.reduce((sum: number, b: any) => sum + Number(b.total_amount || 0), 0) / completedBills.length;
       } else if (azureBills && azureBills.length > 0) {
@@ -558,9 +561,15 @@ export const CostPage: React.FC<CostPageProps> = ({
         const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
         const label = d.toLocaleString('en-US', { month: 'short', year: '2-digit' });
         const baseVal = Number(baseRunRate.toFixed(2));
+        const isCurrent = i === 0;
+        const actualCostVal = isCurrent ? runningAmount : 0;
+        const forecastCostVal = isCurrent ? Math.max(0, baseVal - actualCostVal) : baseVal;
+
         fallbackPoints.push({
           monthLabel: label,
-          baseline: baseVal,
+          baseline: isCurrent ? Number((actualCostVal + forecastCostVal).toFixed(2)) : baseVal,
+          actualCost: Number(actualCostVal.toFixed(2)),
+          forecastCost: Number(forecastCostVal.toFixed(2)),
           optimized: Number((baseVal * 0.78).toFixed(2)),
           currency: resolvedCurrency
         });
@@ -2670,16 +2679,22 @@ export const CostPage: React.FC<CostPageProps> = ({
                     if (isCumulative) {
                       const baselineCumulative = pointsToRender.slice(0, idx + 1).reduce((sum: number, pt: any) => sum + Number(pt.baseline || 0), 0);
                       const optimizedCumulative = pointsToRender.slice(0, idx + 1).reduce((sum: number, pt: any) => sum + Number(pt.optimized || 0), 0);
+                      const actualCumulative = pointsToRender.slice(0, idx + 1).reduce((sum: number, pt: any) => sum + Number(pt.actualCost || 0), 0);
+                      const forecastCumulative = pointsToRender.slice(0, idx + 1).reduce((sum: number, pt: any) => sum + Number(pt.forecastCost || 0), 0);
                       return {
                         monthLabel: p.monthLabel,
                         baselineVal: Math.round(baselineCumulative),
-                        optimizedVal: Math.round(optimizedCumulative)
+                        optimizedVal: Math.round(optimizedCumulative),
+                        actualCost: Math.round(actualCumulative),
+                        forecastCost: Math.round(forecastCumulative)
                       };
                     } else {
                       return {
                         monthLabel: p.monthLabel,
                         baselineVal: Math.round(p.baseline),
-                        optimizedVal: Math.round(p.optimized)
+                        optimizedVal: Math.round(p.optimized),
+                        actualCost: Number(p.actualCost || 0),
+                        forecastCost: Number(p.forecastCost || 0)
                       };
                     }
                   });
@@ -2690,14 +2705,18 @@ export const CostPage: React.FC<CostPageProps> = ({
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '24px' }}>
                       {/* Graph Legend */}
-                      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'linear-gradient(180deg, #64748b 0%, #334155 100%)' }} />
-                          <span style={{ fontSize: '0.74rem', color: isLight ? '#475569' : 'var(--text-secondary)', fontWeight: 500 }}>Baseline Azure Cloud Spend</span>
+                          <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)' }} />
+                          <span style={{ fontSize: '0.74rem', color: isLight ? '#1e40af' : '#93c5fd', fontWeight: 600 }}>🔵 Actual Spent (MTD)</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'repeating-linear-gradient(45deg, #8b5cf6, #8b5cf6 3px, #7c3aed 3px, #7c3aed 6px)' }} />
+                          <span style={{ fontSize: '0.74rem', color: isLight ? '#6d28d9' : '#c4b5fd', fontWeight: 600 }}>🟣 Projected Azure Forecast</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'linear-gradient(180deg, #34d399 0%, #10b981 100%)' }} />
-                          <span style={{ fontSize: '0.74rem', color: '#10b981', fontWeight: 600 }}>Optimized Net Azure Spend</span>
+                          <span style={{ fontSize: '0.74rem', color: '#10b981', fontWeight: 600 }}>🟢 Optimized Target (22% Savings)</span>
                         </div>
                       </div>
 
@@ -2706,10 +2725,10 @@ export const CostPage: React.FC<CostPageProps> = ({
                         display: 'flex',
                         gap: '24px',
                         alignItems: 'flex-end',
-                        height: '210px',
-                        padding: '16px 20px',
+                        height: '225px',
+                        padding: '24px 20px 16px 20px',
                         backgroundColor: isLight ? '#f8fafc' : 'rgba(0,0,0,0.15)',
-                        borderRadius: '10px',
+                        borderRadius: '12px',
                         border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
                         overflowX: 'auto',
                         position: 'relative',
@@ -2717,18 +2736,79 @@ export const CostPage: React.FC<CostPageProps> = ({
                         scrollbarWidth: 'thin'
                       }}>
                         {renderedPoints.map((p: any, idx: number) => {
-                          const baselineHeight = Math.max(15, (p.baselineVal / maxVal) * baseMaxHeight);
+                          const isSplit = !isCumulative && (p.actualCost > 0 && p.forecastCost > 0);
+                          const actualH = isSplit ? Math.max(12, (p.actualCost / maxVal) * baseMaxHeight) : 0;
+                          const forecastH = isSplit ? Math.max(12, (p.forecastCost / maxVal) * baseMaxHeight) : 0;
+                          const totalH = Math.max(15, (p.baselineVal / maxVal) * baseMaxHeight);
                           const optimizedHeight = Math.max(15, (p.optimizedVal / maxVal) * baseMaxHeight);
 
                           return (
-                            <div key={idx} style={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              gap: '10px',
-                              minWidth: '96px',
-                              flexShrink: 0
-                            }}>
+                            <div 
+                              key={idx} 
+                              onMouseEnter={() => setHoveredForecastIdx(idx)}
+                              onMouseLeave={() => setHoveredForecastIdx(null)}
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: '10px',
+                                minWidth: '104px',
+                                flexShrink: 0,
+                                position: 'relative',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {/* Hover Floating Tooltip */}
+                              {hoveredForecastIdx === idx && (
+                                <div style={{
+                                  position: 'absolute',
+                                  bottom: `${baseMaxHeight + 40}px`,
+                                  left: '50%',
+                                  transform: 'translateX(-50%)',
+                                  zIndex: 100,
+                                  backgroundColor: isLight ? '#ffffff' : '#0f172a',
+                                  border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(139,92,246,0.4)',
+                                  borderRadius: '10px',
+                                  padding: '10px 14px',
+                                  boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
+                                  minWidth: '200px',
+                                  pointerEvents: 'none',
+                                  fontSize: '0.74rem',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '5px'
+                                }}>
+                                  <div style={{ fontWeight: 800, fontSize: '0.82rem', color: isLight ? '#0f172a' : '#fff', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)', paddingBottom: '4px', display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>{p.monthLabel}</span>
+                                    <span style={{ color: '#8b5cf6', fontSize: '0.7rem' }}>{isCumulative ? 'Cumulative' : 'Monthly'}</span>
+                                  </div>
+                                  {p.actualCost > 0 && !isCumulative && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#3b82f6', fontWeight: 600 }}>
+                                      <span>🔵 Actual Spent (MTD):</span>
+                                      <span>{currSym}{Number(p.actualCost).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                    </div>
+                                  )}
+                                  {p.forecastCost > 0 && !isCumulative && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8b5cf6', fontWeight: 600 }}>
+                                      <span>🟣 Remaining Forecast:</span>
+                                      <span>{currSym}{Number(p.forecastCost).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                    </div>
+                                  )}
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#334155' : '#cbd5e1', fontWeight: 700, borderTop: isLight ? '1px dashed #e2e8f0' : '1px dashed rgba(255,255,255,0.1)', paddingTop: '3px' }}>
+                                    <span>Total Baseline:</span>
+                                    <span>{currSym}{Number(p.baselineVal).toLocaleString('en-IN')}</span>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981', fontWeight: 700 }}>
+                                    <span>Target Optimized:</span>
+                                    <span>{currSym}{Number(p.optimizedVal).toLocaleString('en-IN')}</span>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981', fontSize: '0.7rem', fontWeight: 600 }}>
+                                    <span>Projected Savings:</span>
+                                    <span>{currSym}{Number(p.baselineVal - p.optimizedVal).toLocaleString('en-IN')} (22%)</span>
+                                  </div>
+                                </div>
+                              )}
+
                               <div style={{
                                 display: 'flex',
                                 alignItems: 'flex-end',
@@ -2737,45 +2817,83 @@ export const CostPage: React.FC<CostPageProps> = ({
                                 position: 'relative',
                                 paddingBottom: '2px'
                               }}>
-                                {/* Baseline Bar */}
+                                {/* Baseline Bar (Segmented if both Actual & Forecast exist) */}
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                  <div style={{
-                                    width: '34px',
-                                    height: `${baselineHeight}px`,
-                                    background: 'linear-gradient(180deg, #64748b 0%, #334155 100%)',
-                                    borderRadius: '4px 4px 0 0',
-                                    position: 'relative'
-                                  }}>
-                                    <span style={{
-                                      position: 'absolute',
-                                      top: '-18px',
-                                      left: '50%',
-                                      transform: 'translateX(-50%)',
-                                      fontSize: '0.68rem',
-                                      fontWeight: 700,
-                                      fontFamily: 'monospace',
-                                      color: isLight ? '#475569' : 'var(--text-secondary)'
+                                  {isSplit ? (
+                                    <div style={{
+                                      width: '36px',
+                                      height: `${actualH + forecastH}px`,
+                                      display: 'flex',
+                                      flexDirection: 'column-reverse',
+                                      borderRadius: '4px 4px 0 0',
+                                      overflow: 'hidden',
+                                      position: 'relative',
+                                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                                     }}>
-                                      {currSym}{p.baselineVal.toLocaleString('en-IN')}
-                                    </span>
-                                  </div>
+                                      {/* Bottom: Actual MTD */}
+                                      <div style={{
+                                        height: `${(actualH / (actualH + forecastH)) * 100}%`,
+                                        background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)'
+                                      }} />
+                                      {/* Top: Remaining Forecast */}
+                                      <div style={{
+                                        height: `${(forecastH / (actualH + forecastH)) * 100}%`,
+                                        background: 'repeating-linear-gradient(45deg, #8b5cf6, #8b5cf6 3px, #7c3aed 3px, #7c3aed 6px)'
+                                      }} />
+                                      <span style={{
+                                        position: 'absolute',
+                                        top: '-18px',
+                                        left: '50%',
+                                        transform: 'translateX(-50%)',
+                                        fontSize: '0.66rem',
+                                        fontWeight: 700,
+                                        fontFamily: 'monospace',
+                                        color: isLight ? '#3b82f6' : '#93c5fd'
+                                      }}>
+                                        {currSym}{p.baselineVal.toLocaleString('en-IN')}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div style={{
+                                      width: '36px',
+                                      height: `${totalH}px`,
+                                      background: 'repeating-linear-gradient(45deg, #8b5cf6, #8b5cf6 4px, #7c3aed 4px, #7c3aed 8px)',
+                                      borderRadius: '4px 4px 0 0',
+                                      position: 'relative',
+                                      boxShadow: '0 4px 12px rgba(139,92,246,0.15)'
+                                    }}>
+                                      <span style={{
+                                        position: 'absolute',
+                                        top: '-18px',
+                                        left: '50%',
+                                        transform: 'translateX(-50%)',
+                                        fontSize: '0.66rem',
+                                        fontWeight: 700,
+                                        fontFamily: 'monospace',
+                                        color: isLight ? '#6d28d9' : '#c4b5fd'
+                                      }}>
+                                        {currSym}{p.baselineVal.toLocaleString('en-IN')}
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Optimized Bar */}
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                   <div style={{
-                                    width: '34px',
+                                    width: '36px',
                                     height: `${optimizedHeight}px`,
                                     background: 'linear-gradient(180deg, #34d399 0%, #10b981 100%)',
                                     borderRadius: '4px 4px 0 0',
-                                    position: 'relative'
+                                    position: 'relative',
+                                    boxShadow: '0 4px 12px rgba(16,185,129,0.2)'
                                   }}>
                                     <span style={{
                                       position: 'absolute',
                                       top: '-18px',
                                       left: '50%',
                                       transform: 'translateX(-50%)',
-                                      fontSize: '0.68rem',
+                                      fontSize: '0.66rem',
                                       fontWeight: 700,
                                       fontFamily: 'monospace',
                                       color: '#10b981'
@@ -3841,13 +3959,14 @@ export const CostPage: React.FC<CostPageProps> = ({
         </div>
       )}
 
-      {/* Modal: Fullscreen Expanded Cost Chart View */}
+      {/* Modal: Fullscreen Expanded Cost Studio (Forecast or Historical) */}
       {expandedCostChart && (
         <div style={{
           position: 'fixed',
           top: 0, left: 0, right: 0, bottom: 0,
           background: isLight ? 'rgba(15, 23, 42, 0.75)' : 'rgba(2, 6, 23, 0.85)',
-          backdropFilter: 'blur(10px)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
           zIndex: 99999,
           display: 'flex',
           alignItems: 'center',
@@ -3855,8 +3974,9 @@ export const CostPage: React.FC<CostPageProps> = ({
           padding: '24px'
         }}>
           <div className="glass-panel" style={{
-            width: '90%',
-            maxWidth: '1000px',
+            width: '95%',
+            maxWidth: '1200px',
+            maxHeight: '90vh',
             borderRadius: '20px',
             background: isLight ? '#ffffff' : '#0f172a',
             border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(139, 92, 246, 0.3)',
@@ -3865,80 +3985,566 @@ export const CostPage: React.FC<CostPageProps> = ({
             flexDirection: 'column',
             overflow: 'hidden'
           }}>
-            <div style={{ padding: '20px 24px', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: isLight ? '#0f172a' : '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <PieChart size={20} style={{ color: '#8b5cf6' }} /> {expandedCostChart.title}
-              </h3>
-              <button type="button" onClick={() => setExpandedCostChart(null)} style={{ background: 'none', border: 'none', color: isLight ? '#64748b' : '#94a3b8', cursor: 'pointer' }}>
-                <X size={22} />
+            {/* Modal Header */}
+            <div style={{
+              padding: '20px 28px',
+              borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: isLight ? '#f8fafc' : 'rgba(255,255,255,0.02)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '10px',
+                  background: 'rgba(139, 92, 246, 0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#8b5cf6'
+                }}>
+                  {expandedCostChart.type === 'forecast' ? <TrendingUp size={22} /> : <BarChart3 size={22} />}
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: isLight ? '#0f172a' : '#fff' }}>
+                    {expandedCostChart.type === 'forecast' ? 'Azure Cost Projections & Forecast Studio' : 'Historical Azure Consumption & Invoices Studio'}
+                  </h3>
+                  <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                    Subscription: <strong style={{ fontFamily: 'monospace', color: isLight ? '#334155' : '#cbd5e1' }}>{selectedSubscriptionId}</strong>
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setExpandedCostChart(null)}
+                style={{
+                  background: isLight ? '#e2e8f0' : 'rgba(255,255,255,0.06)',
+                  border: 'none',
+                  color: isLight ? '#64748b' : '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '8px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <X size={20} />
               </button>
             </div>
-            <div style={{ padding: '32px', height: '400px', display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto' }}>
-              {azureBills && azureBills.length > 0 ? (
-                (() => {
-                  const maxBillVal = Math.max(...azureBills.map((b: any) => Number(b.total_amount || 0)), 1);
-                  return (
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      {/* Category Legend */}
-                      <div style={{ display: 'flex', gap: '16px', fontSize: '0.8rem', fontWeight: 700 }}>
-                        <span style={{ color: '#8b5cf6', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#8b5cf6' }} /> 🟣 ACA Compute
-                        </span>
-                        <span style={{ color: '#3b82f6', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#3b82f6' }} /> 🔵 MySQL DB
-                        </span>
-                        <span style={{ color: '#06b6d4', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#06b6d4' }} /> 🩵 SWA CDN
-                        </span>
-                        <span style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#10b981' }} /> 🟢 Storage & VMs
-                        </span>
-                        <span style={{ color: '#6366f1', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#6366f1' }} /> 🟣 Egress Bandwidth
-                        </span>
-                      </div>
 
-                      <div style={{ flex: 1, display: 'flex', gap: '20px', alignItems: 'flex-end', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)', paddingBottom: '16px' }}>
-                        {azureBills.map((bill: any, idx: number) => {
-                          const totalVal = Number(bill.total_amount || 0);
-                          const acaVal = Number(bill.aca_compute_amount || totalVal * 0.38);
-                          const mysqlVal = Number(bill.mysql_db_amount || totalVal * 0.30);
-                          const swaVal = Number(bill.swa_cdn_amount || totalVal * 0.14);
-                          const storageVal = Number(bill.storage_vm_amount || totalVal * 0.10);
-                          const egressVal = Number(bill.network_egress_amount || totalVal * 0.08);
+            {/* Modal Body Container */}
+            <div style={{ padding: '24px 28px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              
+              {/* MODE 1: FORECAST STUDIO */}
+              {expandedCostChart.type === 'forecast' ? (
+                forecastData ? (
+                  (() => {
+                    const currSym = getCurrencySymbol(forecastData?.currency || (azureBills && azureBills[0]?.currency) || 'INR');
+                    const currCode = (forecastData?.currency || (azureBills && azureBills[0]?.currency) || 'INR').toUpperCase();
+                    const pointsToRender = (forecastData.points || []).slice(0, selectedMonths);
+                    
+                    const fallbackBaseline = pointsToRender.reduce((sum: number, pt: any) => sum + Number(pt.baseline || 0), 0);
+                    const fallbackOptimized = pointsToRender.reduce((sum: number, pt: any) => sum + Number(pt.optimized || 0), 0);
+                    const forecastObj = (forecastData.forecast && forecastData.forecast[selectedMonths]) || {
+                      baselineTotal: Math.round(fallbackBaseline),
+                      optimizedTotal: Math.round(fallbackOptimized),
+                      periodSavings: Math.round(fallbackBaseline - fallbackOptimized)
+                    };
+                    const baseline = forecastObj.baselineTotal;
+                    const optimized = forecastObj.optimizedTotal;
+                    const savings = forecastObj.periodSavings;
 
-                          const currSym = getCurrencySymbol(bill.currency);
+                    const renderedPoints = pointsToRender.map((p: any, idx: number) => {
+                      if (isCumulative) {
+                        const baselineCumulative = pointsToRender.slice(0, idx + 1).reduce((sum: number, pt: any) => sum + Number(pt.baseline || 0), 0);
+                        const optimizedCumulative = pointsToRender.slice(0, idx + 1).reduce((sum: number, pt: any) => sum + Number(pt.optimized || 0), 0);
+                        const actualCumulative = pointsToRender.slice(0, idx + 1).reduce((sum: number, pt: any) => sum + Number(pt.actualCost || 0), 0);
+                        const forecastCumulative = pointsToRender.slice(0, idx + 1).reduce((sum: number, pt: any) => sum + Number(pt.forecastCost || 0), 0);
+                        return {
+                          monthLabel: p.monthLabel,
+                          baselineVal: Math.round(baselineCumulative),
+                          optimizedVal: Math.round(optimizedCumulative),
+                          actualCost: Math.round(actualCumulative),
+                          forecastCost: Math.round(forecastCumulative)
+                        };
+                      } else {
+                        return {
+                          monthLabel: p.monthLabel,
+                          baselineVal: Math.round(p.baseline),
+                          optimizedVal: Math.round(p.optimized),
+                          actualCost: Number(p.actualCost || 0),
+                          forecastCost: Number(p.forecastCost || 0)
+                        };
+                      }
+                    });
 
-                          return (
-                            <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', height: '100%', justifyContent: 'flex-end' }}>
-                              <div style={{
-                                width: '100%',
-                                height: `${Math.min(100, Math.max(15, (totalVal / maxBillVal) * 100))}%`,
-                                display: 'flex',
-                                flexDirection: 'column-reverse',
+                    const maxVal = Math.max(...renderedPoints.map((p: any) => p.baselineVal), 1);
+                    const modalMaxHeight = 180;
+
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                        {/* Interactive Controls & Legend Bar */}
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '16px',
+                          padding: '12px 18px',
+                          borderRadius: '12px',
+                          backgroundColor: isLight ? '#f8fafc' : 'rgba(0,0,0,0.2)',
+                          border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)'
+                        }}>
+                          {/* Time window selection */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '0.76rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Period:</span>
+                            {([3, 6, 12] as const).map((m) => (
+                              <button
+                                key={m}
+                                type="button"
+                                onClick={() => setSelectedMonths(m)}
+                                style={{
+                                  padding: '5px 12px',
+                                  fontSize: '0.75rem',
+                                  fontWeight: selectedMonths === m ? 700 : 500,
+                                  borderRadius: '6px',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  backgroundColor: selectedMonths === m ? '#8b5cf6' : (isLight ? '#e2e8f0' : 'rgba(255,255,255,0.06)'),
+                                  color: selectedMonths === m ? '#fff' : 'var(--text-secondary)'
+                                }}
+                              >
+                                {m} Months
+                              </button>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => setIsCumulative(!isCumulative)}
+                              style={{
+                                marginLeft: '8px',
+                                padding: '5px 12px',
+                                fontSize: '0.75rem',
+                                fontWeight: isCumulative ? 700 : 500,
                                 borderRadius: '6px',
-                                overflow: 'hidden',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                              }} title={`Period: ${bill.billing_period} | Total: ${currSym}${totalVal.toLocaleString('en-IN')}`}>
-                                <div style={{ height: `${(acaVal / totalVal) * 100}%`, background: '#8b5cf6' }} title={`ACA: ${currSym}${acaVal.toFixed(2)}`} />
-                                <div style={{ height: `${(mysqlVal / totalVal) * 100}%`, background: '#3b82f6' }} title={`MySQL: ${currSym}${mysqlVal.toFixed(2)}`} />
-                                <div style={{ height: `${(swaVal / totalVal) * 100}%`, background: '#06b6d4' }} title={`SWA: ${currSym}${swaVal.toFixed(2)}`} />
-                                <div style={{ height: `${(storageVal / totalVal) * 100}%`, background: '#10b981' }} title={`Storage: ${currSym}${storageVal.toFixed(2)}`} />
-                                <div style={{ height: `${(egressVal / totalVal) * 100}%`, background: '#6366f1' }} title={`Egress: ${currSym}${egressVal.toFixed(2)}`} />
-                              </div>
-                              <span style={{ fontSize: '0.74rem', color: isLight ? '#0f172a' : '#fff', fontWeight: 700 }}>{currSym}{totalVal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                              <span style={{ fontSize: '0.66rem', color: isLight ? '#64748b' : '#94a3b8', fontWeight: 600 }}>{bill.billing_period}</span>
+                                border: 'none',
+                                cursor: 'pointer',
+                                backgroundColor: isCumulative ? 'rgba(59, 130, 246, 0.15)' : (isLight ? '#e2e8f0' : 'rgba(255,255,255,0.06)'),
+                                color: isCumulative ? '#3b82f6' : 'var(--text-secondary)'
+                              }}
+                            >
+                              {isCumulative ? '📈 Cumulative' : '📊 Monthly'}
+                            </button>
+                          </div>
+
+                          {/* Legend */}
+                          <div style={{ display: 'flex', gap: '16px', alignItems: 'center', fontSize: '0.76rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)' }} />
+                              <span style={{ color: isLight ? '#1e40af' : '#93c5fd', fontWeight: 600 }}>🔵 Actual Spent (MTD)</span>
                             </div>
-                          );
-                        })}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'repeating-linear-gradient(45deg, #8b5cf6, #8b5cf6 3px, #7c3aed 3px, #7c3aed 6px)' }} />
+                              <span style={{ color: isLight ? '#6d28d9' : '#c4b5fd', fontWeight: 600 }}>🟣 Projected Forecast</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'linear-gradient(180deg, #34d399 0%, #10b981 100%)' }} />
+                              <span style={{ color: '#10b981', fontWeight: 600 }}>🟢 Target Optimized</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* High-Resolution Bar Chart */}
+                        <div style={{
+                          display: 'flex',
+                          gap: '28px',
+                          alignItems: 'flex-end',
+                          height: '270px',
+                          padding: '24px 24px 16px 24px',
+                          backgroundColor: isLight ? '#f8fafc' : 'rgba(0,0,0,0.2)',
+                          borderRadius: '14px',
+                          border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                          overflowX: 'auto',
+                          position: 'relative',
+                          whiteSpace: 'nowrap',
+                          scrollbarWidth: 'thin'
+                        }}>
+                          {renderedPoints.map((p: any, idx: number) => {
+                            const isSplit = !isCumulative && (p.actualCost > 0 && p.forecastCost > 0);
+                            const actualH = isSplit ? Math.max(14, (p.actualCost / maxVal) * modalMaxHeight) : 0;
+                            const forecastH = isSplit ? Math.max(14, (p.forecastCost / maxVal) * modalMaxHeight) : 0;
+                            const totalH = Math.max(18, (p.baselineVal / maxVal) * modalMaxHeight);
+                            const optimizedHeight = Math.max(18, (p.optimizedVal / maxVal) * modalMaxHeight);
+
+                            return (
+                              <div key={idx} style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: '10px',
+                                minWidth: '110px',
+                                flexShrink: 0
+                              }}>
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'flex-end',
+                                  gap: '10px',
+                                  height: `${modalMaxHeight + 30}px`,
+                                  position: 'relative',
+                                  paddingBottom: '2px'
+                                }}>
+                                  {/* Baseline Bar */}
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                    {isSplit ? (
+                                      <div style={{
+                                        width: '42px',
+                                        height: `${actualH + forecastH}px`,
+                                        display: 'flex',
+                                        flexDirection: 'column-reverse',
+                                        borderRadius: '5px 5px 0 0',
+                                        overflow: 'hidden',
+                                        position: 'relative',
+                                        boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
+                                      }}>
+                                        <div style={{
+                                          height: `${(actualH / (actualH + forecastH)) * 100}%`,
+                                          background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)'
+                                        }} />
+                                        <div style={{
+                                          height: `${(forecastH / (actualH + forecastH)) * 100}%`,
+                                          background: 'repeating-linear-gradient(45deg, #8b5cf6, #8b5cf6 3px, #7c3aed 3px, #7c3aed 6px)'
+                                        }} />
+                                        <span style={{
+                                          position: 'absolute',
+                                          top: '-20px',
+                                          left: '50%',
+                                          transform: 'translateX(-50%)',
+                                          fontSize: '0.7rem',
+                                          fontWeight: 700,
+                                          fontFamily: 'monospace',
+                                          color: isLight ? '#3b82f6' : '#93c5fd'
+                                        }}>
+                                          {currSym}{p.baselineVal.toLocaleString('en-IN')}
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <div style={{
+                                        width: '42px',
+                                        height: `${totalH}px`,
+                                        background: 'repeating-linear-gradient(45deg, #8b5cf6, #8b5cf6 4px, #7c3aed 4px, #7c3aed 8px)',
+                                        borderRadius: '5px 5px 0 0',
+                                        position: 'relative',
+                                        boxShadow: '0 4px 14px rgba(139,92,246,0.2)'
+                                      }}>
+                                        <span style={{
+                                          position: 'absolute',
+                                          top: '-20px',
+                                          left: '50%',
+                                          transform: 'translateX(-50%)',
+                                          fontSize: '0.7rem',
+                                          fontWeight: 700,
+                                          fontFamily: 'monospace',
+                                          color: isLight ? '#6d28d9' : '#c4b5fd'
+                                        }}>
+                                          {currSym}{p.baselineVal.toLocaleString('en-IN')}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Optimized Bar */}
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                    <div style={{
+                                      width: '42px',
+                                      height: `${optimizedHeight}px`,
+                                      background: 'linear-gradient(180deg, #34d399 0%, #10b981 100%)',
+                                      borderRadius: '5px 5px 0 0',
+                                      position: 'relative',
+                                      boxShadow: '0 4px 14px rgba(16,185,129,0.25)'
+                                    }}>
+                                      <span style={{
+                                        position: 'absolute',
+                                        top: '-20px',
+                                        left: '50%',
+                                        transform: 'translateX(-50%)',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 700,
+                                        fontFamily: 'monospace',
+                                        color: '#10b981'
+                                      }}>
+                                        {currSym}{p.optimizedVal.toLocaleString('en-IN')}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <span style={{
+                                  fontSize: '0.76rem',
+                                  fontWeight: 700,
+                                  color: isLight ? '#334155' : 'var(--text-secondary)',
+                                  textTransform: 'uppercase'
+                                }}>
+                                  {p.monthLabel}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Key Financial Projection KPI Cards */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                          <div className="glass-panel" style={{ padding: '16px', borderRadius: '12px', border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)' }}>
+                            <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Monthly Baseline Run-Rate</span>
+                            <span style={{ fontSize: '1.25rem', fontWeight: 800, fontFamily: 'monospace', color: isLight ? '#0f172a' : '#fff' }}>
+                              {currSym}{Number(forecastData.monthlyBaselineRunRate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo
+                            </span>
+                          </div>
+                          <div className="glass-panel" style={{ padding: '16px', borderRadius: '12px', border: '1px solid rgba(16,185,129,0.3)', backgroundColor: 'rgba(16,185,129,0.04)' }}>
+                            <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#10b981', display: 'block', marginBottom: '4px' }}>Monthly Target Savings</span>
+                            <span style={{ fontSize: '1.25rem', fontWeight: 800, fontFamily: 'monospace', color: '#10b981' }}>
+                              -{currSym}{Number(forecastData.monthlySavings || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo
+                            </span>
+                          </div>
+                          <div className="glass-panel" style={{ padding: '16px', borderRadius: '12px', border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)' }}>
+                            <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Total {selectedMonths}-Month Baseline</span>
+                            <span style={{ fontSize: '1.25rem', fontWeight: 800, fontFamily: 'monospace', color: isLight ? '#0f172a' : '#fff' }}>
+                              {currSym}{Number(baseline).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                          <div className="glass-panel" style={{ padding: '16px', borderRadius: '12px', border: '1px solid rgba(59,130,246,0.3)', backgroundColor: 'rgba(59,130,246,0.04)' }}>
+                            <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#3b82f6', display: 'block', marginBottom: '4px' }}>Total {selectedMonths}-Month Optimized</span>
+                            <span style={{ fontSize: '1.25rem', fontWeight: 800, fontFamily: 'monospace', color: '#3b82f6' }}>
+                              {currSym}{Number(optimized).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Detailed Month-by-Month Projection Data Table */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: isLight ? '#0f172a' : '#fff' }}>
+                            📊 Month-by-Month Financial Projection Breakdown
+                          </h4>
+                          <div style={{ overflowX: 'auto', borderRadius: '10px', border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
+                              <thead>
+                                <tr style={{ backgroundColor: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.04)', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)' }}>
+                                  <th style={{ padding: '10px 14px' }}>Billing Month</th>
+                                  <th style={{ padding: '10px 14px' }}>🔵 Actual Incurred (MTD)</th>
+                                  <th style={{ padding: '10px 14px' }}>🟣 Projected Forecast</th>
+                                  <th style={{ padding: '10px 14px' }}>Total Baseline</th>
+                                  <th style={{ padding: '10px 14px' }}>Target Optimized (22% Off)</th>
+                                  <th style={{ padding: '10px 14px' }}>Projected Savings</th>
+                                  <th style={{ padding: '10px 14px' }}>Data Type</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {pointsToRender.map((p: any, idx: number) => {
+                                  const actualVal = Number(p.actualCost || 0);
+                                  const forecastVal = Number(p.forecastCost || 0);
+                                  const baseVal = Number(p.baseline || 0);
+                                  const optVal = Number(p.optimized || (baseVal * 0.78));
+                                  const savVal = baseVal - optVal;
+                                  const isCurrent = actualVal > 0;
+
+                                  return (
+                                    <tr key={idx} style={{
+                                      borderBottom: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.02)',
+                                      backgroundColor: isCurrent ? (isLight ? 'rgba(59, 130, 246, 0.04)' : 'rgba(59, 130, 246, 0.08)') : 'transparent'
+                                    }}>
+                                      <td style={{ padding: '10px 14px', fontWeight: 700 }}>{p.monthLabel}</td>
+                                      <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: actualVal > 0 ? '#3b82f6' : 'var(--text-secondary)' }}>
+                                        {actualVal > 0 ? `${currSym}${actualVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}
+                                      </td>
+                                      <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#8b5cf6' }}>
+                                        {currSym}{forecastVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                      </td>
+                                      <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontWeight: 700, color: isLight ? '#0f172a' : '#fff' }}>
+                                        {currSym}{baseVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                      </td>
+                                      <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontWeight: 700, color: '#10b981' }}>
+                                        {currSym}{optVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                      </td>
+                                      <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#10b981' }}>
+                                        +{currSym}{savVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                      </td>
+                                      <td style={{ padding: '10px 14px' }}>
+                                        <span style={{
+                                          padding: '2px 8px',
+                                          borderRadius: '12px',
+                                          fontSize: '0.7rem',
+                                          fontWeight: 600,
+                                          backgroundColor: isCurrent ? 'rgba(59,130,246,0.15)' : 'rgba(139,92,246,0.15)',
+                                          color: isCurrent ? '#3b82f6' : '#8b5cf6'
+                                        }}>
+                                          {isCurrent ? '⚡ Active (Actual + MTD)' : '🤖 Azure ML Forecast'}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })()
+                    );
+                  })()
+                ) : (
+                  <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    No forecast projection dataset available.
+                  </div>
+                )
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: isLight ? '#64748b' : '#94a3b8' }}>
-                  Expanded High-Resolution Azure Cloud Infrastructure Analytics View
-                </div>
+                /* MODE 2: HISTORICAL STUDIO */
+                azureBills && azureBills.length > 0 ? (
+                  (() => {
+                    const maxBillVal = Math.max(...azureBills.map((b: any) => Number(b.total_amount || 0)), 1);
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                        {/* Category Legend */}
+                        <div style={{
+                          display: 'flex',
+                          gap: '16px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          padding: '12px 18px',
+                          borderRadius: '12px',
+                          backgroundColor: isLight ? '#f8fafc' : 'rgba(0,0,0,0.2)',
+                          border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)'
+                        }}>
+                          <span style={{ color: '#8b5cf6', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#8b5cf6' }} /> 🟣 ACA Compute
+                          </span>
+                          <span style={{ color: '#3b82f6', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#3b82f6' }} /> 🔵 MySQL DB
+                          </span>
+                          <span style={{ color: '#06b6d4', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#06b6d4' }} /> 🩵 SWA CDN
+                          </span>
+                          <span style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#10b981' }} /> 🟢 Storage & VMs
+                          </span>
+                          <span style={{ color: '#6366f1', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#6366f1' }} /> 🟣 Egress Bandwidth
+                          </span>
+                        </div>
+
+                        {/* High-Resolution Itemized Bar Chart */}
+                        <div style={{
+                          display: 'flex',
+                          gap: '24px',
+                          alignItems: 'flex-end',
+                          height: '270px',
+                          padding: '24px 24px 16px 24px',
+                          backgroundColor: isLight ? '#f8fafc' : 'rgba(0,0,0,0.2)',
+                          borderRadius: '14px',
+                          border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                          overflowX: 'auto',
+                          position: 'relative',
+                          whiteSpace: 'nowrap',
+                          scrollbarWidth: 'thin'
+                        }}>
+                          {azureBills.map((bill: any, idx: number) => {
+                            const totalVal = Number(bill.total_amount || 0);
+                            const acaVal = Number(bill.aca_compute_amount || totalVal * 0.38);
+                            const mysqlVal = Number(bill.mysql_db_amount || totalVal * 0.30);
+                            const swaVal = Number(bill.swa_cdn_amount || totalVal * 0.14);
+                            const storageVal = Number(bill.storage_vm_amount || totalVal * 0.10);
+                            const egressVal = Number(bill.network_egress_amount || totalVal * 0.08);
+                            const currSym = getCurrencySymbol(bill.currency);
+
+                            return (
+                              <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', height: '100%', justifyContent: 'flex-end', minWidth: '100px' }}>
+                                <div style={{
+                                  width: '100%',
+                                  height: `${Math.min(100, Math.max(15, (totalVal / maxBillVal) * 100))}%`,
+                                  display: 'flex',
+                                  flexDirection: 'column-reverse',
+                                  borderRadius: '6px',
+                                  overflow: 'hidden',
+                                  boxShadow: '0 4px 14px rgba(0,0,0,0.25)'
+                                }} title={`Period: ${bill.billing_period} | Total: ${currSym}${totalVal.toLocaleString('en-IN')}`}>
+                                  <div style={{ height: `${(acaVal / totalVal) * 100}%`, background: '#8b5cf6' }} title={`ACA: ${currSym}${acaVal.toFixed(2)}`} />
+                                  <div style={{ height: `${(mysqlVal / totalVal) * 100}%`, background: '#3b82f6' }} title={`MySQL: ${currSym}${mysqlVal.toFixed(2)}`} />
+                                  <div style={{ height: `${(swaVal / totalVal) * 100}%`, background: '#06b6d4' }} title={`SWA: ${currSym}${swaVal.toFixed(2)}`} />
+                                  <div style={{ height: `${(storageVal / totalVal) * 100}%`, background: '#10b981' }} title={`Storage: ${currSym}${storageVal.toFixed(2)}`} />
+                                  <div style={{ height: `${(egressVal / totalVal) * 100}%`, background: '#6366f1' }} title={`Egress: ${currSym}${egressVal.toFixed(2)}`} />
+                                </div>
+                                <span style={{ fontSize: '0.76rem', color: isLight ? '#0f172a' : '#fff', fontWeight: 700 }}>{currSym}{totalVal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                                <span style={{ fontSize: '0.68rem', color: isLight ? '#64748b' : '#94a3b8', fontWeight: 600 }}>{bill.billing_period}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Historical Bills Table */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: isLight ? '#0f172a' : '#fff' }}>
+                            📑 Historical Azure Consumption Records
+                          </h4>
+                          <div style={{ overflowX: 'auto', borderRadius: '10px', border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
+                              <thead>
+                                <tr style={{ backgroundColor: isLight ? '#f1f5f9' : 'rgba(255,255,255,0.04)', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)' }}>
+                                  <th style={{ padding: '10px 14px' }}>Billing Period</th>
+                                  <th style={{ padding: '10px 14px' }}>Total Invoiced</th>
+                                  <th style={{ padding: '10px 14px' }}>ACA Compute</th>
+                                  <th style={{ padding: '10px 14px' }}>MySQL DB</th>
+                                  <th style={{ padding: '10px 14px' }}>SWA CDN</th>
+                                  <th style={{ padding: '10px 14px' }}>Storage & VMs</th>
+                                  <th style={{ padding: '10px 14px' }}>Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {azureBills.map((b: any, idx: number) => {
+                                  const currSym = getCurrencySymbol(b.currency);
+                                  return (
+                                    <tr key={idx} style={{ borderBottom: isLight ? '1px solid #f1f5f9' : '1px solid rgba(255,255,255,0.02)' }}>
+                                      <td style={{ padding: '10px 14px', fontWeight: 700 }}>{b.billing_period}</td>
+                                      <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontWeight: 700, color: isLight ? '#0f172a' : '#fff' }}>
+                                        {currSym}{Number(b.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                      </td>
+                                      <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#8b5cf6' }}>
+                                        {currSym}{Number(b.aca_compute_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                      </td>
+                                      <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#3b82f6' }}>
+                                        {currSym}{Number(b.mysql_db_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                      </td>
+                                      <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#06b6d4' }}>
+                                        {currSym}{Number(b.swa_cdn_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                      </td>
+                                      <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#10b981' }}>
+                                        {currSym}{Number(b.storage_vm_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                      </td>
+                                      <td style={{ padding: '10px 14px' }}>
+                                        <span style={{
+                                          padding: '2px 8px',
+                                          borderRadius: '12px',
+                                          fontSize: '0.7rem',
+                                          fontWeight: 600,
+                                          backgroundColor: b.status === 'Paid' ? 'rgba(16,185,129,0.15)' : (b.status === 'Running' ? 'rgba(59,130,246,0.15)' : 'rgba(245,158,11,0.15)'),
+                                          color: b.status === 'Paid' ? '#10b981' : (b.status === 'Running' ? '#3b82f6' : '#f59e0b')
+                                        }}>
+                                          {b.status || 'Pending'}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    No historical Azure consumption bills recorded yet.
+                  </div>
+                )
               )}
             </div>
           </div>
