@@ -535,9 +535,20 @@ export const CostPage: React.FC<CostPageProps> = ({
 
       // Local Fallback if API fails or returns error
       console.log(`[ForecastFetch] API failed or not allowed. Computing local fallback forecast.`);
-      const baseRunRate = (azureBills && azureBills.length > 0)
-        ? (azureBills.reduce((sum: number, b: any) => sum + Number(b.total_amount || 0), 0) / azureBills.length)
-        : (costSummary ? (costSummary.totalCost || 480) : 480);
+      const resolvedCurrency = (azureBills && azureBills.length > 0 && azureBills[0].currency) || 'INR';
+      const runningBill = (azureBills || []).find(b => b.status === 'Running');
+      const completedBills = (azureBills || []).filter(b => b.status !== 'Running');
+
+      let baseRunRate = 5000;
+      if (runningBill && Number(runningBill.total_amount || 0) > 0) {
+        baseRunRate = Number(runningBill.total_amount || 0);
+      } else if (completedBills.length > 0) {
+        baseRunRate = completedBills.reduce((sum: number, b: any) => sum + Number(b.total_amount || 0), 0) / completedBills.length;
+      } else if (azureBills && azureBills.length > 0) {
+        baseRunRate = azureBills.reduce((sum: number, b: any) => sum + Number(b.total_amount || 0), 0) / azureBills.length;
+      } else if (costSummary && costSummary.totalCost) {
+        baseRunRate = costSummary.totalCost;
+      }
 
       const monthlySavings = Math.round(baseRunRate * 0.22);
       
@@ -546,13 +557,12 @@ export const CostPage: React.FC<CostPageProps> = ({
       for (let i = 0; i < 12; i++) {
         const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
         const label = d.toLocaleString('en-US', { month: 'short', year: '2-digit' });
-        const fluctuation = 1 + (Math.sin(i) * 0.04);
-        const baseVal = Number((baseRunRate * fluctuation).toFixed(2));
+        const baseVal = Number(baseRunRate.toFixed(2));
         fallbackPoints.push({
           monthLabel: label,
           baseline: baseVal,
           optimized: Number((baseVal * 0.78).toFixed(2)),
-          currency: 'USD'
+          currency: resolvedCurrency
         });
       }
 
@@ -560,7 +570,7 @@ export const CostPage: React.FC<CostPageProps> = ({
         success: true,
         monthlyBaselineRunRate: Number(baseRunRate.toFixed(2)),
         monthlySavings,
-        currency: 'USD',
+        currency: resolvedCurrency,
         forecast: {
           3: { baselineTotal: Math.round(baseRunRate * 3), optimizedTotal: Math.round((baseRunRate - monthlySavings) * 3), periodSavings: Math.round(monthlySavings * 3) },
           6: { baselineTotal: Math.round(baseRunRate * 6), optimizedTotal: Math.round((baseRunRate - monthlySavings) * 6), periodSavings: Math.round(monthlySavings * 6) },
@@ -2641,12 +2651,20 @@ export const CostPage: React.FC<CostPageProps> = ({
                 </div>
               ) : forecastData ? (
                 (() => {
-                  const forecastObj = forecastData.forecast[selectedMonths] || { baselineTotal: 1440, optimizedTotal: 1123, periodSavings: 317 };
+                  const currSym = getCurrencySymbol(forecastData?.currency || (azureBills && azureBills[0]?.currency) || 'INR');
+                  const currCode = (forecastData?.currency || (azureBills && azureBills[0]?.currency) || 'INR').toUpperCase();
+                  const pointsToRender = (forecastData.points || []).slice(0, selectedMonths);
+                  
+                  const fallbackBaseline = pointsToRender.reduce((sum: number, pt: any) => sum + Number(pt.baseline || 0), 0);
+                  const fallbackOptimized = pointsToRender.reduce((sum: number, pt: any) => sum + Number(pt.optimized || 0), 0);
+                  const forecastObj = (forecastData.forecast && forecastData.forecast[selectedMonths]) || {
+                    baselineTotal: Math.round(fallbackBaseline),
+                    optimizedTotal: Math.round(fallbackOptimized),
+                    periodSavings: Math.round(fallbackBaseline - fallbackOptimized)
+                  };
                   const baseline = forecastObj.baselineTotal;
                   const optimized = forecastObj.optimizedTotal;
                   const savings = forecastObj.periodSavings;
-
-                  const pointsToRender = (forecastData.points || []).slice(0, selectedMonths);
                   
                   const renderedPoints = pointsToRender.map((p: any, idx: number) => {
                     if (isCumulative) {
@@ -2738,7 +2756,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                                       fontFamily: 'monospace',
                                       color: isLight ? '#475569' : 'var(--text-secondary)'
                                     }}>
-                                      ${p.baselineVal}
+                                      {currSym}{p.baselineVal.toLocaleString('en-IN')}
                                     </span>
                                   </div>
                                 </div>
@@ -2762,7 +2780,7 @@ export const CostPage: React.FC<CostPageProps> = ({
                                       fontFamily: 'monospace',
                                       color: '#10b981'
                                     }}>
-                                      ${p.optimizedVal}
+                                      {currSym}{p.optimizedVal.toLocaleString('en-IN')}
                                     </span>
                                   </div>
                                 </div>
@@ -2801,41 +2819,41 @@ export const CostPage: React.FC<CostPageProps> = ({
                             borderRadius: '20px',
                             border: '1px solid rgba(16,185,129,0.2)'
                           }}>
-                            Saves ${savings} USD ({((savings / (baseline || 1)) * 100).toFixed(0)}% lower run-rate)
+                            Saves {currSym}{Number(savings).toLocaleString('en-IN')} {currCode} ({((savings / (baseline || 1)) * 100).toFixed(0)}% lower run-rate)
                           </span>
                         </div>
 
                         <h5 style={{ margin: '4px 0 0 0', fontSize: '1.1rem', fontWeight: 700, color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
-                          Projected Savings: <span style={{ color: '#10b981' }}>${savings} USD</span>
+                          Projected Savings: <span style={{ color: '#10b981' }}>{currSym}{Number(savings).toLocaleString('en-IN')} {currCode}</span>
                         </h5>
 
                         <p style={{ margin: 0, fontSize: '0.82rem', color: isLight ? '#475569' : 'var(--text-secondary)', lineHeight: '1.5' }}>
-                          Over the next <strong>{selectedMonths} months</strong>, executing scheduled hibernation policies on dev sandbox VMs and scaling down idle ACAs can reduce your overall cloud spending from <strong style={{ textDecoration: 'line-through' }}>${baseline}</strong> down to <strong>${optimized}</strong>.
+                          Over the next <strong>{selectedMonths} months</strong>, executing scheduled hibernation policies on dev sandbox VMs and scaling down idle ACAs can reduce your overall cloud spending from <strong style={{ textDecoration: 'line-through' }}>{currSym}{Number(baseline).toLocaleString('en-IN')}</strong> down to <strong>{currSym}{Number(optimized).toLocaleString('en-IN')}</strong>.
                         </p>
 
                         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '6px', borderTop: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)', paddingTop: '12px' }}>
                           <div>
                             <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: isLight ? '#64748b' : 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Monthly Baseline</span>
                             <span style={{ fontSize: '0.95rem', fontWeight: 700, fontFamily: 'monospace', color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
-                              ${forecastData.monthlyBaselineRunRate?.toFixed(2)}/mo
+                              {currSym}{Number(forecastData.monthlyBaselineRunRate || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo
                             </span>
                           </div>
                           <div style={{ borderLeft: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)', paddingLeft: '20px' }}>
                             <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: isLight ? '#64748b' : 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Projected Savings</span>
                             <span style={{ fontSize: '0.95rem', fontWeight: 700, fontFamily: 'monospace', color: '#10b981' }}>
-                              -${forecastData.monthlySavings?.toFixed(2)}/mo
+                              -{currSym}{Number(forecastData.monthlySavings || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo
                             </span>
                           </div>
                           <div style={{ borderLeft: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)', paddingLeft: '20px' }}>
                             <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: isLight ? '#64748b' : 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Total Period Cost (Without Savings)</span>
                             <span style={{ fontSize: '0.95rem', fontWeight: 700, fontFamily: 'monospace', color: isLight ? '#0f172a' : 'var(--text-primary)' }}>
-                              ${Number(baseline).toFixed(2)}
+                              {currSym}{Number(baseline).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           </div>
                           <div style={{ borderLeft: isLight ? '1px solid #cbd5e1' : '1px solid var(--glass-border)', paddingLeft: '20px' }}>
                             <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: isLight ? '#64748b' : 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>Total Period Cost (With Savings)</span>
                             <span style={{ fontSize: '0.95rem', fontWeight: 700, fontFamily: 'monospace', color: '#10b981' }}>
-                              ${Number(optimized).toFixed(2)}
+                              {currSym}{Number(optimized).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           </div>
                         </div>
@@ -3857,61 +3875,66 @@ export const CostPage: React.FC<CostPageProps> = ({
             </div>
             <div style={{ padding: '32px', height: '400px', display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto' }}>
               {azureBills && azureBills.length > 0 ? (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {/* Category Legend */}
-                  <div style={{ display: 'flex', gap: '16px', fontSize: '0.8rem', fontWeight: 700 }}>
-                    <span style={{ color: '#8b5cf6', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#8b5cf6' }} /> 🟣 ACA Compute
-                    </span>
-                    <span style={{ color: '#3b82f6', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#3b82f6' }} /> 🔵 MySQL DB
-                    </span>
-                    <span style={{ color: '#06b6d4', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#06b6d4' }} /> 🩵 SWA CDN
-                    </span>
-                    <span style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#10b981' }} /> 🟢 Storage & VMs
-                    </span>
-                    <span style={{ color: '#6366f1', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#6366f1' }} /> 🟣 Egress Bandwidth
-                    </span>
-                  </div>
+                (() => {
+                  const maxBillVal = Math.max(...azureBills.map((b: any) => Number(b.total_amount || 0)), 1);
+                  return (
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      {/* Category Legend */}
+                      <div style={{ display: 'flex', gap: '16px', fontSize: '0.8rem', fontWeight: 700 }}>
+                        <span style={{ color: '#8b5cf6', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#8b5cf6' }} /> 🟣 ACA Compute
+                        </span>
+                        <span style={{ color: '#3b82f6', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#3b82f6' }} /> 🔵 MySQL DB
+                        </span>
+                        <span style={{ color: '#06b6d4', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#06b6d4' }} /> 🩵 SWA CDN
+                        </span>
+                        <span style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#10b981' }} /> 🟢 Storage & VMs
+                        </span>
+                        <span style={{ color: '#6366f1', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#6366f1' }} /> 🟣 Egress Bandwidth
+                        </span>
+                      </div>
 
-                  <div style={{ flex: 1, display: 'flex', gap: '20px', alignItems: 'flex-end', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)', paddingBottom: '16px' }}>
-                    {azureBills.map((bill: any, idx: number) => {
-                      const totalVal = Number(bill.total_amount || 0);
-                      const acaVal = Number(bill.aca_compute_amount || totalVal * 0.38);
-                      const mysqlVal = Number(bill.mysql_db_amount || totalVal * 0.30);
-                      const swaVal = Number(bill.swa_cdn_amount || totalVal * 0.14);
-                      const storageVal = Number(bill.storage_vm_amount || totalVal * 0.10);
-                      const egressVal = Number(bill.network_egress_amount || totalVal * 0.08);
+                      <div style={{ flex: 1, display: 'flex', gap: '20px', alignItems: 'flex-end', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)', paddingBottom: '16px' }}>
+                        {azureBills.map((bill: any, idx: number) => {
+                          const totalVal = Number(bill.total_amount || 0);
+                          const acaVal = Number(bill.aca_compute_amount || totalVal * 0.38);
+                          const mysqlVal = Number(bill.mysql_db_amount || totalVal * 0.30);
+                          const swaVal = Number(bill.swa_cdn_amount || totalVal * 0.14);
+                          const storageVal = Number(bill.storage_vm_amount || totalVal * 0.10);
+                          const egressVal = Number(bill.network_egress_amount || totalVal * 0.08);
 
-                      const currSym = getCurrencySymbol(bill.currency);
+                          const currSym = getCurrencySymbol(bill.currency);
 
-                      return (
-                        <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', height: '100%', justifyContent: 'flex-end' }}>
-                          <div style={{
-                            width: '100%',
-                            height: `${Math.min(100, Math.max(15, (totalVal / 600) * 100))}%`,
-                            display: 'flex',
-                            flexDirection: 'column-reverse',
-                            borderRadius: '6px',
-                            overflow: 'hidden',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                          }} title={`Period: ${bill.billing_period} | Total: ${currSym}${totalVal.toLocaleString('en-IN')}`}>
-                            <div style={{ height: `${(acaVal / totalVal) * 100}%`, background: '#8b5cf6' }} title={`ACA: ${currSym}${acaVal.toFixed(2)}`} />
-                            <div style={{ height: `${(mysqlVal / totalVal) * 100}%`, background: '#3b82f6' }} title={`MySQL: ${currSym}${mysqlVal.toFixed(2)}`} />
-                            <div style={{ height: `${(swaVal / totalVal) * 100}%`, background: '#06b6d4' }} title={`SWA: ${currSym}${swaVal.toFixed(2)}`} />
-                            <div style={{ height: `${(storageVal / totalVal) * 100}%`, background: '#10b981' }} title={`Storage: ${currSym}${storageVal.toFixed(2)}`} />
-                            <div style={{ height: `${(egressVal / totalVal) * 100}%`, background: '#6366f1' }} title={`Egress: ${currSym}${egressVal.toFixed(2)}`} />
-                          </div>
-                          <span style={{ fontSize: '0.74rem', color: isLight ? '#0f172a' : '#fff', fontWeight: 700 }}>{currSym}{totalVal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                          <span style={{ fontSize: '0.66rem', color: isLight ? '#64748b' : '#94a3b8', fontWeight: 600 }}>{bill.billing_period}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                          return (
+                            <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', height: '100%', justifyContent: 'flex-end' }}>
+                              <div style={{
+                                width: '100%',
+                                height: `${Math.min(100, Math.max(15, (totalVal / maxBillVal) * 100))}%`,
+                                display: 'flex',
+                                flexDirection: 'column-reverse',
+                                borderRadius: '6px',
+                                overflow: 'hidden',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                              }} title={`Period: ${bill.billing_period} | Total: ${currSym}${totalVal.toLocaleString('en-IN')}`}>
+                                <div style={{ height: `${(acaVal / totalVal) * 100}%`, background: '#8b5cf6' }} title={`ACA: ${currSym}${acaVal.toFixed(2)}`} />
+                                <div style={{ height: `${(mysqlVal / totalVal) * 100}%`, background: '#3b82f6' }} title={`MySQL: ${currSym}${mysqlVal.toFixed(2)}`} />
+                                <div style={{ height: `${(swaVal / totalVal) * 100}%`, background: '#06b6d4' }} title={`SWA: ${currSym}${swaVal.toFixed(2)}`} />
+                                <div style={{ height: `${(storageVal / totalVal) * 100}%`, background: '#10b981' }} title={`Storage: ${currSym}${storageVal.toFixed(2)}`} />
+                                <div style={{ height: `${(egressVal / totalVal) * 100}%`, background: '#6366f1' }} title={`Egress: ${currSym}${egressVal.toFixed(2)}`} />
+                              </div>
+                              <span style={{ fontSize: '0.74rem', color: isLight ? '#0f172a' : '#fff', fontWeight: 700 }}>{currSym}{totalVal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                              <span style={{ fontSize: '0.66rem', color: isLight ? '#64748b' : '#94a3b8', fontWeight: 600 }}>{bill.billing_period}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: isLight ? '#64748b' : '#94a3b8' }}>
                   Expanded High-Resolution Azure Cloud Infrastructure Analytics View
