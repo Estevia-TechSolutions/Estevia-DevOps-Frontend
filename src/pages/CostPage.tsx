@@ -2699,7 +2699,10 @@ export const CostPage: React.FC<CostPageProps> = ({
                     }
                   });
 
-                  const maxVal = Math.max(...renderedPoints.map((p: any) => p.baselineVal), 1);
+                  const maxVal = Math.max(
+                    ...renderedPoints.map((p: any) => Math.max(Number(p.actualCost || 0), Number(p.forecastCost || 0), Number(p.baselineVal || 0), Number(p.optimizedVal || 0))),
+                    1
+                  );
                   const baseMaxHeight = 140;
 
                   return (
@@ -2736,169 +2739,109 @@ export const CostPage: React.FC<CostPageProps> = ({
                         scrollbarWidth: 'thin'
                       }}>
                         {renderedPoints.map((p: any, idx: number) => {
-                          const isSplit = !isCumulative && (p.actualCost > 0 && p.forecastCost > 0);
-                          const actualH = isSplit ? Math.max(12, (p.actualCost / maxVal) * baseMaxHeight) : 0;
-                          const forecastH = isSplit ? Math.max(12, (p.forecastCost / maxVal) * baseMaxHeight) : 0;
-                          const totalH = Math.max(15, (p.baselineVal / maxVal) * baseMaxHeight);
-                          const optimizedHeight = Math.max(15, (p.optimizedVal / maxVal) * baseMaxHeight);
+                          const actualH = p.actualCost > 0 ? Math.max(12, (p.actualCost / maxVal) * baseMaxHeight) : 0;
+                          const forecastH = p.forecastCost > 0 ? Math.max(12, (p.forecastCost / maxVal) * baseMaxHeight) : 0;
+                          const optimizedH = Math.max(12, (p.optimizedVal / maxVal) * baseMaxHeight);
 
                           return (
                             <div 
                               key={idx} 
-                              onMouseEnter={() => setHoveredForecastIdx(idx)}
-                              onMouseLeave={() => setHoveredForecastIdx(null)}
                               style={{
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
                                 gap: '10px',
-                                minWidth: '104px',
+                                minWidth: p.actualCost > 0 ? '120px' : '88px',
                                 flexShrink: 0,
-                                position: 'relative',
-                                cursor: 'pointer'
+                                position: 'relative'
                               }}
                             >
-                              {/* Hover Floating Tooltip */}
-                              {hoveredForecastIdx === idx && (
-                                <div style={{
-                                  position: 'absolute',
-                                  bottom: `${baseMaxHeight + 40}px`,
-                                  left: '50%',
-                                  transform: 'translateX(-50%)',
-                                  zIndex: 100,
-                                  backgroundColor: isLight ? '#ffffff' : '#0f172a',
-                                  border: isLight ? '1px solid #cbd5e1' : '1px solid rgba(139,92,246,0.4)',
-                                  borderRadius: '10px',
-                                  padding: '10px 14px',
-                                  boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
-                                  minWidth: '200px',
-                                  pointerEvents: 'none',
-                                  fontSize: '0.74rem',
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: '5px'
-                                }}>
-                                  <div style={{ fontWeight: 800, fontSize: '0.82rem', color: isLight ? '#0f172a' : '#fff', borderBottom: isLight ? '1px solid #e2e8f0' : '1px solid rgba(255,255,255,0.1)', paddingBottom: '4px', display: 'flex', justifyContent: 'space-between' }}>
-                                    <span>{p.monthLabel}</span>
-                                    <span style={{ color: '#8b5cf6', fontSize: '0.7rem' }}>{isCumulative ? 'Cumulative' : 'Monthly'}</span>
-                                  </div>
-                                  {p.actualCost > 0 && !isCumulative && (
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#3b82f6', fontWeight: 600 }}>
-                                      <span>🔵 Actual Spent (MTD):</span>
-                                      <span>{currSym}{Number(p.actualCost).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                                    </div>
-                                  )}
-                                  {p.forecastCost > 0 && !isCumulative && (
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#8b5cf6', fontWeight: 600 }}>
-                                      <span>🟣 Remaining Forecast:</span>
-                                      <span>{currSym}{Number(p.forecastCost).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                                    </div>
-                                  )}
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', color: isLight ? '#334155' : '#cbd5e1', fontWeight: 700, borderTop: isLight ? '1px dashed #e2e8f0' : '1px dashed rgba(255,255,255,0.1)', paddingTop: '3px' }}>
-                                    <span>Total Baseline:</span>
-                                    <span>{currSym}{Number(p.baselineVal).toLocaleString('en-IN')}</span>
-                                  </div>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981', fontWeight: 700 }}>
-                                    <span>Target Optimized:</span>
-                                    <span>{currSym}{Number(p.optimizedVal).toLocaleString('en-IN')}</span>
-                                  </div>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981', fontSize: '0.7rem', fontWeight: 600 }}>
-                                    <span>Projected Savings:</span>
-                                    <span>{currSym}{Number(p.baselineVal - p.optimizedVal).toLocaleString('en-IN')} (22%)</span>
-                                  </div>
-                                </div>
-                              )}
-
                               <div style={{
                                 display: 'flex',
                                 alignItems: 'flex-end',
-                                gap: '8px',
+                                gap: '6px',
                                 height: `${baseMaxHeight + 25}px`,
                                 position: 'relative',
                                 paddingBottom: '2px'
                               }}>
-                                {/* Baseline Bar (Segmented if both Actual & Forecast exist) */}
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                  {isSplit ? (
+                                {/* Bar 1: Actual Cost (MTD) */}
+                                {p.actualCost > 0 && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                     <div style={{
-                                      width: '36px',
-                                      height: `${actualH + forecastH}px`,
-                                      display: 'flex',
-                                      flexDirection: 'column-reverse',
+                                      width: '32px',
+                                      height: `${actualH}px`,
+                                      background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)',
                                       borderRadius: '4px 4px 0 0',
-                                      overflow: 'hidden',
                                       position: 'relative',
-                                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                                      boxShadow: '0 4px 10px rgba(59, 130, 246, 0.25)'
                                     }}>
-                                      {/* Bottom: Actual MTD */}
-                                      <div style={{
-                                        height: `${(actualH / (actualH + forecastH)) * 100}%`,
-                                        background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)'
-                                      }} />
-                                      {/* Top: Remaining Forecast */}
-                                      <div style={{
-                                        height: `${(forecastH / (actualH + forecastH)) * 100}%`,
-                                        background: 'repeating-linear-gradient(45deg, #8b5cf6, #8b5cf6 3px, #7c3aed 3px, #7c3aed 6px)'
-                                      }} />
                                       <span style={{
                                         position: 'absolute',
                                         top: '-18px',
                                         left: '50%',
                                         transform: 'translateX(-50%)',
-                                        fontSize: '0.66rem',
+                                        fontSize: '0.64rem',
                                         fontWeight: 700,
                                         fontFamily: 'monospace',
-                                        color: isLight ? '#3b82f6' : '#93c5fd'
+                                        whiteSpace: 'nowrap',
+                                        color: '#3b82f6'
                                       }}>
-                                        {currSym}{p.baselineVal.toLocaleString('en-IN')}
+                                        {currSym}{Math.round(p.actualCost).toLocaleString('en-IN')}
                                       </span>
                                     </div>
-                                  ) : (
+                                  </div>
+                                )}
+
+                                {/* Bar 2: Projected Forecast */}
+                                {p.forecastCost > 0 && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                     <div style={{
-                                      width: '36px',
-                                      height: `${totalH}px`,
-                                      background: 'repeating-linear-gradient(45deg, #8b5cf6, #8b5cf6 4px, #7c3aed 4px, #7c3aed 8px)',
+                                      width: '32px',
+                                      height: `${forecastH}px`,
+                                      background: 'repeating-linear-gradient(45deg, #8b5cf6, #8b5cf6 3px, #7c3aed 3px, #7c3aed 6px)',
                                       borderRadius: '4px 4px 0 0',
                                       position: 'relative',
-                                      boxShadow: '0 4px 12px rgba(139,92,246,0.15)'
+                                      boxShadow: '0 4px 10px rgba(139, 92, 246, 0.25)'
                                     }}>
                                       <span style={{
                                         position: 'absolute',
                                         top: '-18px',
                                         left: '50%',
                                         transform: 'translateX(-50%)',
-                                        fontSize: '0.66rem',
+                                        fontSize: '0.64rem',
                                         fontWeight: 700,
                                         fontFamily: 'monospace',
+                                        whiteSpace: 'nowrap',
                                         color: isLight ? '#6d28d9' : '#c4b5fd'
                                       }}>
-                                        {currSym}{p.baselineVal.toLocaleString('en-IN')}
+                                        {currSym}{Math.round(p.forecastCost).toLocaleString('en-IN')}
                                       </span>
                                     </div>
-                                  )}
-                                </div>
+                                  </div>
+                                )}
 
-                                {/* Optimized Bar */}
+                                {/* Bar 3: Optimized Target Spend */}
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                   <div style={{
-                                    width: '36px',
-                                    height: `${optimizedHeight}px`,
+                                    width: '32px',
+                                    height: `${optimizedH}px`,
                                     background: 'linear-gradient(180deg, #34d399 0%, #10b981 100%)',
                                     borderRadius: '4px 4px 0 0',
                                     position: 'relative',
-                                    boxShadow: '0 4px 12px rgba(16,185,129,0.2)'
+                                    boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)'
                                   }}>
                                     <span style={{
                                       position: 'absolute',
                                       top: '-18px',
                                       left: '50%',
                                       transform: 'translateX(-50%)',
-                                      fontSize: '0.66rem',
+                                      fontSize: '0.64rem',
                                       fontWeight: 700,
                                       fontFamily: 'monospace',
+                                      whiteSpace: 'nowrap',
                                       color: '#10b981'
                                     }}>
-                                      {currSym}{p.optimizedVal.toLocaleString('en-IN')}
+                                      {currSym}{Math.round(p.optimizedVal).toLocaleString('en-IN')}
                                     </span>
                                   </div>
                                 </div>
@@ -2906,7 +2849,7 @@ export const CostPage: React.FC<CostPageProps> = ({
 
                               <span style={{
                                 fontSize: '0.72rem',
-                                fontWeight: 600,
+                                fontWeight: 700,
                                 color: isLight ? '#475569' : 'var(--text-secondary)',
                                 textTransform: 'uppercase'
                               }}>
@@ -4172,11 +4115,13 @@ export const CostPage: React.FC<CostPageProps> = ({
                           scrollbarWidth: 'thin'
                         }}>
                           {renderedPoints.map((p: any, idx: number) => {
-                            const isSplit = !isCumulative && (p.actualCost > 0 && p.forecastCost > 0);
-                            const actualH = isSplit ? Math.max(14, (p.actualCost / maxVal) * modalMaxHeight) : 0;
-                            const forecastH = isSplit ? Math.max(14, (p.forecastCost / maxVal) * modalMaxHeight) : 0;
-                            const totalH = Math.max(18, (p.baselineVal / maxVal) * modalMaxHeight);
-                            const optimizedHeight = Math.max(18, (p.optimizedVal / maxVal) * modalMaxHeight);
+                            const modalMaxVal = Math.max(
+                              ...renderedPoints.map((pt: any) => Math.max(Number(pt.actualCost || 0), Number(pt.forecastCost || 0), Number(pt.baselineVal || 0), Number(pt.optimizedVal || 0))),
+                              1
+                            );
+                            const actualH = p.actualCost > 0 ? Math.max(14, (p.actualCost / modalMaxVal) * modalMaxHeight) : 0;
+                            const forecastH = p.forecastCost > 0 ? Math.max(14, (p.forecastCost / modalMaxVal) * modalMaxHeight) : 0;
+                            const optimizedHeight = Math.max(14, (p.optimizedVal / modalMaxVal) * modalMaxHeight);
 
                             return (
                               <div key={idx} style={{
@@ -4184,80 +4129,77 @@ export const CostPage: React.FC<CostPageProps> = ({
                                 flexDirection: 'column',
                                 alignItems: 'center',
                                 gap: '10px',
-                                minWidth: '110px',
+                                minWidth: p.actualCost > 0 ? '130px' : '95px',
                                 flexShrink: 0
                               }}>
                                 <div style={{
                                   display: 'flex',
                                   alignItems: 'flex-end',
-                                  gap: '10px',
+                                  gap: '8px',
                                   height: `${modalMaxHeight + 30}px`,
                                   position: 'relative',
                                   paddingBottom: '2px'
                                 }}>
-                                  {/* Baseline Bar */}
-                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                    {isSplit ? (
+                                  {/* Bar 1: Actual Cost (MTD) */}
+                                  {p.actualCost > 0 && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                       <div style={{
-                                        width: '42px',
-                                        height: `${actualH + forecastH}px`,
-                                        display: 'flex',
-                                        flexDirection: 'column-reverse',
+                                        width: '36px',
+                                        height: `${actualH}px`,
+                                        background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)',
                                         borderRadius: '5px 5px 0 0',
-                                        overflow: 'hidden',
                                         position: 'relative',
-                                        boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
+                                        boxShadow: '0 4px 14px rgba(59, 130, 246, 0.25)'
                                       }}>
-                                        <div style={{
-                                          height: `${(actualH / (actualH + forecastH)) * 100}%`,
-                                          background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)'
-                                        }} />
-                                        <div style={{
-                                          height: `${(forecastH / (actualH + forecastH)) * 100}%`,
-                                          background: 'repeating-linear-gradient(45deg, #8b5cf6, #8b5cf6 3px, #7c3aed 3px, #7c3aed 6px)'
-                                        }} />
                                         <span style={{
                                           position: 'absolute',
                                           top: '-20px',
                                           left: '50%',
                                           transform: 'translateX(-50%)',
-                                          fontSize: '0.7rem',
+                                          fontSize: '0.68rem',
                                           fontWeight: 700,
                                           fontFamily: 'monospace',
-                                          color: isLight ? '#3b82f6' : '#93c5fd'
+                                          whiteSpace: 'nowrap',
+                                          color: '#3b82f6'
                                         }}>
-                                          {currSym}{p.baselineVal.toLocaleString('en-IN')}
+                                          {currSym}{Math.round(p.actualCost).toLocaleString('en-IN')}
                                         </span>
                                       </div>
-                                    ) : (
+                                    </div>
+                                  )}
+
+                                  {/* Bar 2: Projected Forecast */}
+                                  {p.forecastCost > 0 && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                       <div style={{
-                                        width: '42px',
-                                        height: `${totalH}px`,
-                                        background: 'repeating-linear-gradient(45deg, #8b5cf6, #8b5cf6 4px, #7c3aed 4px, #7c3aed 8px)',
+                                        width: '36px',
+                                        height: `${forecastH}px`,
+                                        background: 'repeating-linear-gradient(45deg, #8b5cf6, #8b5cf6 3px, #7c3aed 3px, #7c3aed 6px)',
                                         borderRadius: '5px 5px 0 0',
                                         position: 'relative',
-                                        boxShadow: '0 4px 14px rgba(139,92,246,0.2)'
+                                        boxShadow: '0 4px 14px rgba(139, 92, 246, 0.25)'
                                       }}>
                                         <span style={{
                                           position: 'absolute',
                                           top: '-20px',
                                           left: '50%',
                                           transform: 'translateX(-50%)',
-                                          fontSize: '0.7rem',
+                                          fontSize: '0.68rem',
                                           fontWeight: 700,
                                           fontFamily: 'monospace',
+                                          whiteSpace: 'nowrap',
                                           color: isLight ? '#6d28d9' : '#c4b5fd'
                                         }}>
-                                          {currSym}{p.baselineVal.toLocaleString('en-IN')}
+                                          {currSym}{Math.round(p.forecastCost).toLocaleString('en-IN')}
                                         </span>
                                       </div>
-                                    )}
-                                  </div>
+                                    </div>
+                                  )}
 
-                                  {/* Optimized Bar */}
+                                  {/* Bar 3: Optimized Target Spend */}
                                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                     <div style={{
-                                      width: '42px',
+                                      width: '36px',
                                       height: `${optimizedHeight}px`,
                                       background: 'linear-gradient(180deg, #34d399 0%, #10b981 100%)',
                                       borderRadius: '5px 5px 0 0',
@@ -4269,12 +4211,13 @@ export const CostPage: React.FC<CostPageProps> = ({
                                         top: '-20px',
                                         left: '50%',
                                         transform: 'translateX(-50%)',
-                                        fontSize: '0.7rem',
+                                        fontSize: '0.68rem',
                                         fontWeight: 700,
                                         fontFamily: 'monospace',
+                                        whiteSpace: 'nowrap',
                                         color: '#10b981'
                                       }}>
-                                        {currSym}{p.optimizedVal.toLocaleString('en-IN')}
+                                        {currSym}{Math.round(p.optimizedVal).toLocaleString('en-IN')}
                                       </span>
                                     </div>
                                   </div>
