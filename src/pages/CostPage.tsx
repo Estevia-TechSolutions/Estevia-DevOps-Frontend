@@ -542,9 +542,15 @@ export const CostPage: React.FC<CostPageProps> = ({
       const completedBills = (azureBills || []).filter(b => b.status !== 'Running');
       const runningAmount = Number(runningBill?.total_amount || 0);
 
+      const now = new Date();
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const daysElapsed = Math.min(now.getDate(), daysInMonth);
+      const daysRemaining = Math.max(0, daysInMonth - daysElapsed);
+
       let baseRunRate = 5000;
-      if (runningBill && runningAmount > 0) {
-        baseRunRate = runningAmount;
+      if (runningAmount > 0) {
+        const dailyBurnRate = runningAmount / Math.max(1, daysElapsed);
+        baseRunRate = dailyBurnRate * daysInMonth;
       } else if (completedBills.length > 0) {
         baseRunRate = completedBills.reduce((sum: number, b: any) => sum + Number(b.total_amount || 0), 0) / completedBills.length;
       } else if (azureBills && azureBills.length > 0) {
@@ -553,21 +559,25 @@ export const CostPage: React.FC<CostPageProps> = ({
         baseRunRate = costSummary.totalCost;
       }
 
-      const monthlySavings = Math.round(baseRunRate * 0.22);
+      const dailyBurnRate = runningAmount > 0 ? (runningAmount / Math.max(1, daysElapsed)) : (baseRunRate / daysInMonth);
+      const projectedRemaining = Number((dailyBurnRate * daysRemaining).toFixed(2));
+      const currentMonthFullRunRate = Number((runningAmount + projectedRemaining).toFixed(2));
+      const monthlyBaselineRunRate = currentMonthFullRunRate > 0 ? currentMonthFullRunRate : Number(baseRunRate.toFixed(2));
+      const monthlySavings = Number((monthlyBaselineRunRate * 0.22).toFixed(2));
       
       const fallbackPoints: any[] = [];
       const today = new Date();
       for (let i = 0; i < 12; i++) {
         const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
         const label = d.toLocaleString('en-US', { month: 'short', year: '2-digit' });
-        const baseVal = Number(baseRunRate.toFixed(2));
         const isCurrent = i === 0;
         const actualCostVal = isCurrent ? runningAmount : 0;
-        const forecastCostVal = isCurrent ? Math.max(0, baseVal - actualCostVal) : baseVal;
+        const forecastCostVal = isCurrent ? projectedRemaining : monthlyBaselineRunRate;
+        const baseVal = isCurrent ? currentMonthFullRunRate : monthlyBaselineRunRate;
 
         fallbackPoints.push({
           monthLabel: label,
-          baseline: isCurrent ? Number((actualCostVal + forecastCostVal).toFixed(2)) : baseVal,
+          baseline: baseVal,
           actualCost: Number(actualCostVal.toFixed(2)),
           forecastCost: Number(forecastCostVal.toFixed(2)),
           optimized: Number((baseVal * 0.78).toFixed(2)),
@@ -577,12 +587,20 @@ export const CostPage: React.FC<CostPageProps> = ({
 
       setForecastData({
         success: true,
-        monthlyBaselineRunRate: Number(baseRunRate.toFixed(2)),
+        monthlyBaselineRunRate: monthlyBaselineRunRate,
         monthlySavings,
         currency: resolvedCurrency,
+        currentMonthBreakdown: {
+          monthLabel: fallbackPoints[0]?.monthLabel,
+          daysElapsed,
+          totalDays: daysInMonth,
+          actualIncurred: runningAmount,
+          projectedRemaining,
+          totalFullMonthProjection: currentMonthFullRunRate
+        },
         forecast: {
-          3: { baselineTotal: Math.round(baseRunRate * 3), optimizedTotal: Math.round((baseRunRate - monthlySavings) * 3), periodSavings: Math.round(monthlySavings * 3) },
-          6: { baselineTotal: Math.round(baseRunRate * 6), optimizedTotal: Math.round((baseRunRate - monthlySavings) * 6), periodSavings: Math.round(monthlySavings * 6) },
+          3: { baselineTotal: Math.round(monthlyBaselineRunRate * 3), optimizedTotal: Math.round((monthlyBaselineRunRate - monthlySavings) * 3), periodSavings: Math.round(monthlySavings * 3) },
+          6: { baselineTotal: Math.round(monthlyBaselineRunRate * 6), optimizedTotal: Math.round((monthlyBaselineRunRate - monthlySavings) * 6), periodSavings: Math.round(monthlySavings * 6) },
           12: { baselineTotal: Math.round(baseRunRate * 12), optimizedTotal: Math.round((baseRunRate - monthlySavings) * 12), periodSavings: Math.round(monthlySavings * 12) }
         },
         points: fallbackPoints
@@ -2705,160 +2723,233 @@ export const CostPage: React.FC<CostPageProps> = ({
                   );
                   const baseMaxHeight = 140;
 
-                  return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '24px' }}>
-                      {/* Graph Legend */}
-                      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)' }} />
-                          <span style={{ fontSize: '0.74rem', color: isLight ? '#1e40af' : '#93c5fd', fontWeight: 600 }}>🔵 Actual Spent (MTD)</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'repeating-linear-gradient(45deg, #8b5cf6, #8b5cf6 3px, #7c3aed 3px, #7c3aed 6px)' }} />
-                          <span style={{ fontSize: '0.74rem', color: isLight ? '#6d28d9' : '#c4b5fd', fontWeight: 600 }}>🟣 Projected Azure Forecast</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'linear-gradient(180deg, #34d399 0%, #10b981 100%)' }} />
-                          <span style={{ fontSize: '0.74rem', color: '#10b981', fontWeight: 600 }}>🟢 Optimized Target (22% Savings)</span>
-                        </div>
-                      </div>
+                    const currBreakdown = forecastData?.currentMonthBreakdown || {
+                      monthLabel: pointsToRender[0]?.monthLabel,
+                      daysElapsed: 22,
+                      totalDays: 31,
+                      actualIncurred: Number(pointsToRender[0]?.actualCost || 0),
+                      projectedRemaining: Number(pointsToRender[0]?.forecastCost || 0),
+                      totalFullMonthProjection: Number(pointsToRender[0]?.baseline || 0)
+                    };
 
-                      {/* Bar Chart Container */}
-                      <div style={{
-                        display: 'flex',
-                        gap: '24px',
-                        alignItems: 'flex-end',
-                        height: '225px',
-                        padding: '24px 20px 16px 20px',
-                        backgroundColor: isLight ? '#f8fafc' : 'rgba(0,0,0,0.15)',
-                        borderRadius: '12px',
-                        border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
-                        overflowX: 'auto',
-                        position: 'relative',
-                        whiteSpace: 'nowrap',
-                        scrollbarWidth: 'thin'
-                      }}>
-                        {renderedPoints.map((p: any, idx: number) => {
-                          const actualH = p.actualCost > 0 ? Math.max(12, (p.actualCost / maxVal) * baseMaxHeight) : 0;
-                          const forecastH = p.forecastCost > 0 ? Math.max(12, (p.forecastCost / maxVal) * baseMaxHeight) : 0;
-                          const optimizedH = Math.max(12, (p.optimizedVal / maxVal) * baseMaxHeight);
-
-                          return (
-                            <div 
-                              key={idx} 
-                              style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                gap: '10px',
-                                minWidth: p.actualCost > 0 ? '120px' : '88px',
-                                flexShrink: 0,
-                                position: 'relative'
-                              }}
-                            >
-                              <div style={{
-                                display: 'flex',
-                                alignItems: 'flex-end',
-                                gap: '6px',
-                                height: `${baseMaxHeight + 25}px`,
-                                position: 'relative',
-                                paddingBottom: '2px'
-                              }}>
-                                {/* Bar 1: Actual Cost (MTD) */}
-                                {p.actualCost > 0 && (
-                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                    <div style={{
-                                      width: '32px',
-                                      height: `${actualH}px`,
-                                      background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)',
-                                      borderRadius: '4px 4px 0 0',
-                                      position: 'relative',
-                                      boxShadow: '0 4px 10px rgba(59, 130, 246, 0.25)'
-                                    }}>
-                                      <span style={{
-                                        position: 'absolute',
-                                        top: '-18px',
-                                        left: '50%',
-                                        transform: 'translateX(-50%)',
-                                        fontSize: '0.64rem',
-                                        fontWeight: 700,
-                                        fontFamily: 'monospace',
-                                        whiteSpace: 'nowrap',
-                                        color: '#3b82f6'
-                                      }}>
-                                        {currSym}{Math.round(p.actualCost).toLocaleString('en-IN')}
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Bar 2: Projected Forecast */}
-                                {p.forecastCost > 0 && (
-                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                    <div style={{
-                                      width: '32px',
-                                      height: `${forecastH}px`,
-                                      background: 'repeating-linear-gradient(45deg, #8b5cf6, #8b5cf6 3px, #7c3aed 3px, #7c3aed 6px)',
-                                      borderRadius: '4px 4px 0 0',
-                                      position: 'relative',
-                                      boxShadow: '0 4px 10px rgba(139, 92, 246, 0.25)'
-                                    }}>
-                                      <span style={{
-                                        position: 'absolute',
-                                        top: '-18px',
-                                        left: '50%',
-                                        transform: 'translateX(-50%)',
-                                        fontSize: '0.64rem',
-                                        fontWeight: 700,
-                                        fontFamily: 'monospace',
-                                        whiteSpace: 'nowrap',
-                                        color: isLight ? '#6d28d9' : '#c4b5fd'
-                                      }}>
-                                        {currSym}{Math.round(p.forecastCost).toLocaleString('en-IN')}
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Bar 3: Optimized Target Spend */}
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                  <div style={{
-                                    width: '32px',
-                                    height: `${optimizedH}px`,
-                                    background: 'linear-gradient(180deg, #34d399 0%, #10b981 100%)',
-                                    borderRadius: '4px 4px 0 0',
-                                    position: 'relative',
-                                    boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)'
-                                  }}>
-                                    <span style={{
-                                      position: 'absolute',
-                                      top: '-18px',
-                                      left: '50%',
-                                      transform: 'translateX(-50%)',
-                                      fontSize: '0.64rem',
-                                      fontWeight: 700,
-                                      fontFamily: 'monospace',
-                                      whiteSpace: 'nowrap',
-                                      color: '#10b981'
-                                    }}>
-                                      {currSym}{Math.round(p.optimizedVal).toLocaleString('en-IN')}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <span style={{
-                                fontSize: '0.72rem',
-                                fontWeight: 700,
-                                color: isLight ? '#475569' : 'var(--text-secondary)',
-                                textTransform: 'uppercase'
-                              }}>
-                                {p.monthLabel}
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '24px' }}>
+                        {/* Current Month Active Run-Rate Status Banner */}
+                        {currBreakdown.actualIncurred > 0 && (
+                          <div style={{
+                            padding: '16px 20px',
+                            borderRadius: '12px',
+                            backgroundColor: isLight ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.1)',
+                            border: isLight ? '1px solid rgba(59, 130, 246, 0.2)' : '1px solid rgba(59, 130, 246, 0.3)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '10px'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: isLight ? '#1e40af' : '#93c5fd', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                ⚡ Current Active Billing Cycle: <strong>{currBreakdown.monthLabel} (Day 1 to {currBreakdown.daysElapsed} of {currBreakdown.totalDays})</strong>
+                              </span>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                Burn-Rate: ~{currSym}{(currBreakdown.actualIncurred / Math.max(1, currBreakdown.daysElapsed)).toFixed(2)}/day
                               </span>
                             </div>
-                          );
-                        })}
-                      </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px' }}>
+                              <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: isLight ? '#fff' : 'rgba(0,0,0,0.25)', border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)' }}>
+                                <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', color: '#3b82f6', fontWeight: 700, display: 'block', marginBottom: '2px' }}>🔵 Incurred Spend (MTD)</span>
+                                <span style={{ fontSize: '1.05rem', fontWeight: 800, fontFamily: 'monospace', color: '#3b82f6' }}>
+                                  {currSym}{Number(currBreakdown.actualIncurred).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                              <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: isLight ? '#fff' : 'rgba(0,0,0,0.25)', border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)' }}>
+                                <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', color: '#8b5cf6', fontWeight: 700, display: 'block', marginBottom: '2px' }}>🟣 Est. Remaining ({currBreakdown.totalDays - currBreakdown.daysElapsed} Days)</span>
+                                <span style={{ fontSize: '1.05rem', fontWeight: 800, fontFamily: 'monospace', color: isLight ? '#6d28d9' : '#c4b5fd' }}>
+                                  +{currSym}{Number(currBreakdown.projectedRemaining).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                              <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: isLight ? '#fff' : 'rgba(0,0,0,0.25)', border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)' }}>
+                                <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '2px' }}>⚪ Full Month Projected</span>
+                                <span style={{ fontSize: '1.05rem', fontWeight: 800, fontFamily: 'monospace', color: isLight ? '#0f172a' : '#fff' }}>
+                                  ={currSym}{Number(currBreakdown.totalFullMonthProjection).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                              <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: isLight ? '#fff' : 'rgba(0,0,0,0.25)', border: '1px solid rgba(16,185,129,0.3)' }}>
+                                <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', color: '#10b981', fontWeight: 700, display: 'block', marginBottom: '2px' }}>🟢 Target Spend (-22%)</span>
+                                <span style={{ fontSize: '1.05rem', fontWeight: 800, fontFamily: 'monospace', color: '#10b981' }}>
+                                  {currSym}{Number(currBreakdown.totalFullMonthProjection * 0.78).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Graph Legend */}
+                        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)' }} />
+                            <span style={{ fontSize: '0.74rem', color: isLight ? '#1e40af' : '#93c5fd', fontWeight: 600 }}>🔵 Actual Spent (MTD)</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'repeating-linear-gradient(45deg, #8b5cf6, #8b5cf6 3px, #7c3aed 3px, #7c3aed 6px)' }} />
+                            <span style={{ fontSize: '0.74rem', color: isLight ? '#6d28d9' : '#c4b5fd', fontWeight: 600 }}>🟣 Projected Remaining / Full-Month Forecast</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'linear-gradient(180deg, #34d399 0%, #10b981 100%)' }} />
+                            <span style={{ fontSize: '0.74rem', color: '#10b981', fontWeight: 600 }}>🟢 Optimized Target (22% Savings)</span>
+                          </div>
+                        </div>
+
+                        {/* Bar Chart Container */}
+                        <div style={{
+                          display: 'flex',
+                          gap: '24px',
+                          alignItems: 'flex-end',
+                          height: '225px',
+                          padding: '24px 20px 16px 20px',
+                          backgroundColor: isLight ? '#f8fafc' : 'rgba(0,0,0,0.15)',
+                          borderRadius: '12px',
+                          border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)',
+                          overflowX: 'auto',
+                          position: 'relative',
+                          whiteSpace: 'nowrap',
+                          scrollbarWidth: 'thin'
+                        }}>
+                          {renderedPoints.map((p: any, idx: number) => {
+                            const actualH = p.actualCost > 0 ? Math.max(12, (p.actualCost / maxVal) * baseMaxHeight) : 0;
+                            const forecastH = p.forecastCost > 0 ? Math.max(12, (p.forecastCost / maxVal) * baseMaxHeight) : 0;
+                            const optimizedH = Math.max(12, (p.optimizedVal / maxVal) * baseMaxHeight);
+
+                            return (
+                              <div 
+                                key={idx} 
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  gap: '10px',
+                                  minWidth: p.actualCost > 0 ? '128px' : '88px',
+                                  flexShrink: 0,
+                                  position: 'relative'
+                                }}
+                              >
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'flex-end',
+                                  gap: '6px',
+                                  height: `${baseMaxHeight + 25}px`,
+                                  position: 'relative',
+                                  paddingBottom: '2px'
+                                }}>
+                                  {/* Bar 1: Actual Cost (MTD) */}
+                                  {p.actualCost > 0 && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                      <div style={{
+                                        width: '32px',
+                                        height: `${actualH}px`,
+                                        background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)',
+                                        borderRadius: '4px 4px 0 0',
+                                        position: 'relative',
+                                        boxShadow: '0 4px 10px rgba(59, 130, 246, 0.25)'
+                                      }}>
+                                        <span style={{
+                                          position: 'absolute',
+                                          top: '-18px',
+                                          left: '50%',
+                                          transform: 'translateX(-50%)',
+                                          fontSize: '0.64rem',
+                                          fontWeight: 700,
+                                          fontFamily: 'monospace',
+                                          whiteSpace: 'nowrap',
+                                          color: '#3b82f6'
+                                        }}>
+                                          {currSym}{Math.round(p.actualCost).toLocaleString('en-IN')}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Bar 2: Projected Forecast */}
+                                  {p.forecastCost > 0 && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                      <div style={{
+                                        width: '32px',
+                                        height: `${forecastH}px`,
+                                        background: 'repeating-linear-gradient(45deg, #8b5cf6, #8b5cf6 3px, #7c3aed 3px, #7c3aed 6px)',
+                                        borderRadius: '4px 4px 0 0',
+                                        position: 'relative',
+                                        boxShadow: '0 4px 10px rgba(139, 92, 246, 0.25)'
+                                      }}>
+                                        <span style={{
+                                          position: 'absolute',
+                                          top: '-18px',
+                                          left: '50%',
+                                          transform: 'translateX(-50%)',
+                                          fontSize: '0.64rem',
+                                          fontWeight: 700,
+                                          fontFamily: 'monospace',
+                                          whiteSpace: 'nowrap',
+                                          color: isLight ? '#6d28d9' : '#c4b5fd'
+                                        }}>
+                                          {currSym}{Math.round(p.forecastCost).toLocaleString('en-IN')}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Bar 3: Optimized Target Spend */}
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                    <div style={{
+                                      width: '32px',
+                                      height: `${optimizedH}px`,
+                                      background: 'linear-gradient(180deg, #34d399 0%, #10b981 100%)',
+                                      borderRadius: '4px 4px 0 0',
+                                      position: 'relative',
+                                      boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)'
+                                    }}>
+                                      <span style={{
+                                        position: 'absolute',
+                                        top: '-18px',
+                                        left: '50%',
+                                        transform: 'translateX(-50%)',
+                                        fontSize: '0.64rem',
+                                        fontWeight: 700,
+                                        fontFamily: 'monospace',
+                                        whiteSpace: 'nowrap',
+                                        color: '#10b981'
+                                      }}>
+                                        {currSym}{Math.round(p.optimizedVal).toLocaleString('en-IN')}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <span style={{
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  color: p.actualCost > 0 ? (isLight ? '#1d4ed8' : '#60a5fa') : (isLight ? '#475569' : 'var(--text-secondary)'),
+                                  textTransform: 'uppercase',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  gap: '2px'
+                                }}>
+                                  <span>{p.monthLabel}</span>
+                                  {p.actualCost > 0 && (
+                                    <span style={{
+                                      fontSize: '0.58rem',
+                                      fontWeight: 800,
+                                      padding: '1px 5px',
+                                      borderRadius: '4px',
+                                      backgroundColor: isLight ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.25)',
+                                      color: isLight ? '#1d4ed8' : '#93c5fd'
+                                    }}>
+                                      ACTIVE MTD
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
 
                       {/* Summary Card */}
                       <div style={{
@@ -4027,8 +4118,65 @@ export const CostPage: React.FC<CostPageProps> = ({
                     const maxVal = Math.max(...renderedPoints.map((p: any) => p.baselineVal), 1);
                     const modalMaxHeight = 180;
 
+                    const modalBreakdown = forecastData?.currentMonthBreakdown || {
+                      monthLabel: pointsToRender[0]?.monthLabel,
+                      daysElapsed: 22,
+                      totalDays: 31,
+                      actualIncurred: Number(pointsToRender[0]?.actualCost || 0),
+                      projectedRemaining: Number(pointsToRender[0]?.forecastCost || 0),
+                      totalFullMonthProjection: Number(pointsToRender[0]?.baseline || 0)
+                    };
+
                     return (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                        {/* Current Month Active Run-Rate Status Banner in Modal */}
+                        {modalBreakdown.actualIncurred > 0 && (
+                          <div style={{
+                            padding: '16px 20px',
+                            borderRadius: '12px',
+                            backgroundColor: isLight ? 'rgba(59, 130, 246, 0.05)' : 'rgba(59, 130, 246, 0.1)',
+                            border: isLight ? '1px solid rgba(59, 130, 246, 0.2)' : '1px solid rgba(59, 130, 246, 0.3)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '10px'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                              <span style={{ fontSize: '0.84rem', fontWeight: 700, color: isLight ? '#1e40af' : '#93c5fd', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                ⚡ Active Billing Cycle: <strong>{modalBreakdown.monthLabel} (Day 1 to {modalBreakdown.daysElapsed} of {modalBreakdown.totalDays})</strong>
+                              </span>
+                              <span style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                Daily Burn-Rate: ~{currSym}{(modalBreakdown.actualIncurred / Math.max(1, modalBreakdown.daysElapsed)).toFixed(2)}/day
+                              </span>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '12px' }}>
+                              <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: isLight ? '#fff' : 'rgba(0,0,0,0.25)', border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)' }}>
+                                <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', color: '#3b82f6', fontWeight: 700, display: 'block', marginBottom: '2px' }}>🔵 Incurred Spend (MTD)</span>
+                                <span style={{ fontSize: '1.1rem', fontWeight: 800, fontFamily: 'monospace', color: '#3b82f6' }}>
+                                  {currSym}{Number(modalBreakdown.actualIncurred).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                              <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: isLight ? '#fff' : 'rgba(0,0,0,0.25)', border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)' }}>
+                                <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', color: '#8b5cf6', fontWeight: 700, display: 'block', marginBottom: '2px' }}>🟣 Est. Remaining ({modalBreakdown.totalDays - modalBreakdown.daysElapsed} Days)</span>
+                                <span style={{ fontSize: '1.1rem', fontWeight: 800, fontFamily: 'monospace', color: isLight ? '#6d28d9' : '#c4b5fd' }}>
+                                  +{currSym}{Number(modalBreakdown.projectedRemaining).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                              <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: isLight ? '#fff' : 'rgba(0,0,0,0.25)', border: isLight ? '1px solid #e2e8f0' : '1px solid var(--glass-border)' }}>
+                                <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '2px' }}>⚪ Full Month Projected</span>
+                                <span style={{ fontSize: '1.1rem', fontWeight: 800, fontFamily: 'monospace', color: isLight ? '#0f172a' : '#fff' }}>
+                                  ={currSym}{Number(modalBreakdown.totalFullMonthProjection).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                              <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: isLight ? '#fff' : 'rgba(0,0,0,0.25)', border: '1px solid rgba(16,185,129,0.3)' }}>
+                                <span style={{ fontSize: '0.66rem', textTransform: 'uppercase', color: '#10b981', fontWeight: 700, display: 'block', marginBottom: '2px' }}>🟢 Target Spend (-22%)</span>
+                                <span style={{ fontSize: '1.1rem', fontWeight: 800, fontFamily: 'monospace', color: '#10b981' }}>
+                                  {currSym}{Number(modalBreakdown.totalFullMonthProjection * 0.78).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Interactive Controls & Legend Bar */}
                         <div style={{
                           display: 'flex',
@@ -4226,10 +4374,26 @@ export const CostPage: React.FC<CostPageProps> = ({
                                 <span style={{
                                   fontSize: '0.76rem',
                                   fontWeight: 700,
-                                  color: isLight ? '#334155' : 'var(--text-secondary)',
-                                  textTransform: 'uppercase'
+                                  color: p.actualCost > 0 ? (isLight ? '#1d4ed8' : '#60a5fa') : (isLight ? '#334155' : 'var(--text-secondary)'),
+                                  textTransform: 'uppercase',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  gap: '2px'
                                 }}>
-                                  {p.monthLabel}
+                                  <span>{p.monthLabel}</span>
+                                  {p.actualCost > 0 && (
+                                    <span style={{
+                                      fontSize: '0.58rem',
+                                      fontWeight: 800,
+                                      padding: '1px 5px',
+                                      borderRadius: '4px',
+                                      backgroundColor: isLight ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.25)',
+                                      color: isLight ? '#1d4ed8' : '#93c5fd'
+                                    }}>
+                                      ACTIVE MTD
+                                    </span>
+                                  )}
                                 </span>
                               </div>
                             );
