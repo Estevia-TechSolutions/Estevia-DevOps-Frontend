@@ -10,6 +10,7 @@ interface M365ManagementPageProps {
     setActiveTab: (tab: any) => void;
     showToast: (title: string, message: string, type: 'success' | 'error' | 'info' | 'warning') => void;
     m365TenantId?: string;
+    isGoldenAccess?: boolean;
 }
 
 export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
@@ -20,7 +21,8 @@ export const M365ManagementPage: React.FC<M365ManagementPageProps> = ({
     API_BASE,
     setActiveTab,
     showToast,
-    m365TenantId
+    m365TenantId,
+    isGoldenAccess = false
 }) => {
     const isM365Connected = credentialsList.some(c => c.provider === 'm365');
     const isGoDaddyConnected = credentialsList.some(c => c.provider === 'godaddy');

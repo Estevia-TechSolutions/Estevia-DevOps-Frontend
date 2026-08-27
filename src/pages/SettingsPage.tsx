@@ -111,6 +111,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   isGoldenAccess = false,
 }) => {
   const isOwnerOrAdmin = userRole === 'owner' || userRole === 'admin';
+  const isEffectiveDisabled = isOrgDisabled && !isGoldenAccess;
 
   // Sub-tab navigation and simulated payment states
   const [activeSubTab, setActiveSubTab] = React.useState<'licensing' | 'billing' | 'forecast'>('licensing');
@@ -342,7 +343,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   ];
 
   const handleCardClick = (tierId: string) => {
-    if (!isOwnerOrAdmin || isOrgDisabled) return;
+    if (!isOwnerOrAdmin || isEffectiveDisabled) return;
     // Expand AND select
     setExpandedTier(tierId);
     setDraftTier(tierId !== licenseTier ? tierId : null);
@@ -772,7 +773,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       background: isSelected
                         ? `linear-gradient(145deg, ${tierInfo.bg} 0%, rgba(255,255,255,0.01) 100%)`
                         : 'rgba(255,255,255,0.005)',
-                      cursor: (isOwnerOrAdmin && !isOrgDisabled) ? 'pointer' : 'default',
+                      cursor: (isOwnerOrAdmin && !isEffectiveDisabled) ? 'pointer' : 'default',
                       transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                       position: 'relative',
                       overflow: 'hidden',
@@ -782,13 +783,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       transform: isSelected ? 'translateY(-2px)' : 'none',
                     }}
                     onMouseEnter={(e) => {
-                      if (isOwnerOrAdmin && !isOrgDisabled && !isSelected) {
+                      if (isOwnerOrAdmin && !isEffectiveDisabled && !isSelected) {
                         e.currentTarget.style.borderColor = tier.color;
                         e.currentTarget.style.boxShadow = `0 4px 16px ${tierInfo.glow}`;
                       }
                     }}
                     onMouseLeave={(e) => {
-                      if (isOwnerOrAdmin && !isOrgDisabled && !isSelected) {
+                      if (isOwnerOrAdmin && !isEffectiveDisabled && !isSelected) {
                         e.currentTarget.style.borderColor = 'var(--glass-border)';
                         e.currentTarget.style.boxShadow = 'none';
                       }
@@ -928,7 +929,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       type="number"
                       min={1}
                       max={9999}
-                      disabled={!isOwnerOrAdmin || isOrgDisabled}
+                      disabled={!isOwnerOrAdmin || isEffectiveDisabled}
                       value={draftSeats}
                       onChange={e => {
                         setDraftSeats(parseInt(e.target.value, 10) || 1);
@@ -955,7 +956,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   </label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <select
-                      disabled={!isOwnerOrAdmin || isOrgDisabled}
+                      disabled={!isOwnerOrAdmin || isEffectiveDisabled}
                       value={draftCurrency}
                       onChange={e => {
                         setDraftCurrency(e.target.value);
@@ -1024,12 +1025,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         <input 
                           type="checkbox"
                           checked={draftDevops}
-                          disabled={!isOwnerOrAdmin || isOrgDisabled}
+                          disabled={!isOwnerOrAdmin || isEffectiveDisabled}
                           onChange={(e) => {
                             setDraftDevops(e.target.checked);
                             setShowSaveConfirmPrompt(false);
                           }}
-                          style={{ width: '16px', height: '16px', cursor: (isOwnerOrAdmin && !isOrgDisabled) ? 'pointer' : 'default' }}
+                          style={{ width: '16px', height: '16px', cursor: (isOwnerOrAdmin && !isEffectiveDisabled) ? 'pointer' : 'default' }}
                         />
                       </div>
                     </div>
@@ -1086,12 +1087,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         <input 
                           type="checkbox"
                           checked={draftDeveloper}
-                          disabled={!isOwnerOrAdmin || isOrgDisabled}
+                          disabled={!isOwnerOrAdmin || isEffectiveDisabled}
                           onChange={(e) => {
                             setDraftDeveloper(e.target.checked);
                             setShowSaveConfirmPrompt(false);
                           }}
-                          style={{ width: '16px', height: '16px', cursor: (isOwnerOrAdmin && !isOrgDisabled) ? 'pointer' : 'default' }}
+                          style={{ width: '16px', height: '16px', cursor: (isOwnerOrAdmin && !isEffectiveDisabled) ? 'pointer' : 'default' }}
                         />
                       </div>
                     </div>
@@ -1148,12 +1149,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         <input 
                           type="checkbox"
                           checked={draftSecurity}
-                          disabled={!isOwnerOrAdmin || isOrgDisabled}
+                          disabled={!isOwnerOrAdmin || isEffectiveDisabled}
                           onChange={(e) => {
                             setDraftSecurity(e.target.checked);
                             setShowSaveConfirmPrompt(false);
                           }}
-                          style={{ width: '16px', height: '16px', cursor: (isOwnerOrAdmin && !isOrgDisabled) ? 'pointer' : 'default' }}
+                          style={{ width: '16px', height: '16px', cursor: (isOwnerOrAdmin && !isEffectiveDisabled) ? 'pointer' : 'default' }}
                         />
                       </div>
                     </div>
@@ -1210,12 +1211,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         <input 
                           type="checkbox"
                           checked={draftObservability}
-                          disabled={!isOwnerOrAdmin || isOrgDisabled}
+                          disabled={!isOwnerOrAdmin || isEffectiveDisabled}
                           onChange={(e) => {
                             setDraftObservability(e.target.checked);
                             setShowSaveConfirmPrompt(false);
                           }}
-                          style={{ width: '16px', height: '16px', cursor: (isOwnerOrAdmin && !isOrgDisabled) ? 'pointer' : 'default' }}
+                          style={{ width: '16px', height: '16px', cursor: (isOwnerOrAdmin && !isEffectiveDisabled) ? 'pointer' : 'default' }}
                         />
                       </div>
                     </div>
@@ -1488,7 +1489,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   <button
                     type="button"
                     className="btn-primary"
-                    disabled={savingSettings || !hasAnyChange || isOrgDisabled}
+                    disabled={savingSettings || !hasAnyChange || isEffectiveDisabled}
                     onClick={handleReviewChanges}
                     style={{ padding: '10px 32px', borderRadius: '8px', fontSize: '0.86rem', fontWeight: 700 }}
                   >

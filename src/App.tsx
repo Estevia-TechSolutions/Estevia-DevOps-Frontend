@@ -2144,10 +2144,10 @@ function App() {
 
   // ── Force settings tab when org is disabled (Allow admin tabs) ─────────────
   useEffect(() => {
-    if (isOrgDisabled && !['settings', 'users', 'credentials', 'licensing', 'logs-doc'].includes(activeTab)) {
+    if (isOrgDisabled && !isGoldenAccess && !['settings', 'users', 'credentials', 'licensing', 'logs-doc'].includes(activeTab)) {
       setActiveTab('settings');
     }
-  }, [isOrgDisabled, activeTab]);
+  }, [isOrgDisabled, isGoldenAccess, activeTab]);
 
   // ── Pay invoice handler (client-side) ──────────────────────────────────────
   const handlePayInvoice = async (invoiceId: number): Promise<boolean> => {
@@ -8055,7 +8055,7 @@ function App() {
                         setScanSubTab('discovery');
                       }
                     }}
-                    disabled={requiresCredentialSetup || isOrgDisabled}
+                    disabled={requiresCredentialSetup || (isOrgDisabled && !isGoldenAccess)}
                   >
                     <Server size={16} />
                     <span>Cloud Scanning</span>
@@ -8099,7 +8099,7 @@ function App() {
                         setActiveTab('provision');
                       }
                     }}
-                    disabled={requiresCredentialSetup || isOrgDisabled}
+                    disabled={requiresCredentialSetup || (isOrgDisabled && !isGoldenAccess)}
                   >
                     <GitBranch size={16} />
                     <span>Provision & Pipelines</span>
@@ -8141,7 +8141,7 @@ function App() {
                         setCostTab('breakdown');
                       }
                     }}
-                    disabled={requiresCredentialSetup || isOrgDisabled}
+                    disabled={requiresCredentialSetup || (isOrgDisabled && !isGoldenAccess)}
                   >
                     <TrendingDown size={16} />
                     <span>Cost Management</span>
@@ -8182,7 +8182,7 @@ function App() {
                         setActiveTab('databases');
                       }
                     }}
-                    disabled={requiresCredentialSetup || isOrgDisabled}
+                    disabled={requiresCredentialSetup || (isOrgDisabled && !isGoldenAccess)}
                   >
                     <Database size={16} />
                     <span>DB Hub</span>
@@ -8223,7 +8223,7 @@ function App() {
                         setActiveTab('m365');
                       }
                     }}
-                    disabled={requiresCredentialSetup || isOrgDisabled}
+                    disabled={requiresCredentialSetup || (isOrgDisabled && !isGoldenAccess)}
                   >
                     <Mail size={16} />
                     <span>Microsoft 365</span>
@@ -8361,7 +8361,7 @@ function App() {
             <main style={{ paddingBottom: '80px', position: 'relative' }}>
 
               {/* Full-Page Translucent Glassmorphism Overlay when Target Scope is Restricted (Operational Tabs Only) */}
-              {(isOrgDisabled || isCurrentSubscriptionInactive) && !['settings', 'users', 'credentials', 'licensing', 'logs-doc'].includes(activeTab) && (
+              {((isOrgDisabled && !isGoldenAccess) || isCurrentSubscriptionInactive) && !['settings', 'users', 'credentials', 'licensing', 'logs-doc'].includes(activeTab) && (
                 <div style={{
                   position: 'absolute',
                   top: 0,
@@ -8988,6 +8988,7 @@ function App() {
                   organizationId={organizationId}
                   currentUser={user}
                   isOrgDisabled={isOrgDisabled}
+                  isGoldenAccess={isGoldenAccess}
                   credentialsList={credentialsList}
                   API_BASE={API_BASE}
                   setActiveTab={setActiveTab}
